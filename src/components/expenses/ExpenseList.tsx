@@ -22,29 +22,13 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import {
-  Expense,
-  CATEGORY_LABELS,
-  CATEGORY_ICONS,
-  PAYMENT_METHOD_LABELS,
-} from '@/types/finance';
+import { Expense, PAYMENT_METHOD_LABELS } from '@/types/finance';
 import ExpenseForm from './ExpenseForm';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const categoryBgColors: Record<string, string> = {
-  food: 'bg-category-food/10',
-  transport: 'bg-category-transport/10',
-  entertainment: 'bg-category-entertainment/10',
-  health: 'bg-category-health/10',
-  shopping: 'bg-category-shopping/10',
-  bills: 'bg-category-bills/10',
-  education: 'bg-category-education/10',
-  other: 'bg-category-other/10',
-};
-
 export default function ExpenseList() {
-  const { getMonthlyExpenses, removeExpense, getMonthlyTotal } = useFinance();
+  const { getMonthlyExpenses, removeExpense, getMonthlyTotal, getCategoryById } = useFinance();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [formOpen, setFormOpen] = useState(false);
@@ -204,59 +188,63 @@ export default function ExpenseList() {
             </div>
           ) : (
             <div className="space-y-3">
-              {sortedExpenses.map((expense) => (
-                <div
-                  key={expense.id}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
-                >
+              {sortedExpenses.map((expense) => {
+                const category = getCategoryById(expense.categoryId);
+                
+                return (
                   <div
-                    className={cn(
-                      'w-12 h-12 rounded-xl flex items-center justify-center text-xl',
-                      categoryBgColors[expense.category]
-                    )}
+                    key={expense.id}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
                   >
-                    {CATEGORY_ICONS[expense.category]}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">
-                      {expense.description || CATEGORY_LABELS[expense.category]}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {PAYMENT_METHOD_LABELS[expense.paymentMethod]} •{' '}
-                      Vence em {format(new Date(expense.dueDate), "dd 'de' MMMM", { locale: ptBR })}
-                    </p>
-                    {expense.observation && (
-                      <p className="text-xs text-muted-foreground mt-1 truncate">
-                        📝 {expense.observation}
+                    <div
+                      className={cn(
+                        'w-12 h-12 rounded-xl flex items-center justify-center text-xl',
+                        category?.color ? `bg-${category.color}/10` : 'bg-muted'
+                      )}
+                    >
+                      {category?.icon || '📦'}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground truncate">
+                        {expense.description || category?.name || 'Sem categoria'}
                       </p>
-                    )}
-                  </div>
+                      <p className="text-sm text-muted-foreground">
+                        {PAYMENT_METHOD_LABELS[expense.paymentMethod]} •{' '}
+                        Vence em {format(new Date(expense.dueDate), "dd 'de' MMMM", { locale: ptBR })}
+                      </p>
+                      {expense.observation && (
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          📝 {expense.observation}
+                        </p>
+                      )}
+                    </div>
 
-                  <div className="text-right">
-                    <p className="font-bold text-foreground text-lg">
-                      {formatCurrency(expense.amount)}
-                    </p>
-                  </div>
+                    <div className="text-right">
+                      <p className="font-bold text-foreground text-lg">
+                        {formatCurrency(expense.amount)}
+                      </p>
+                    </div>
 
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(expense)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(expense.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(expense)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(expense.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
