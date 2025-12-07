@@ -1,0 +1,188 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Wallet, TrendingUp, PieChart, Shield } from 'lucide-react';
+import { toast } from 'sonner';
+
+export default function Auth() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, register } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      if (isLogin) {
+        const result = await login(email, password);
+        if (result.success) {
+          toast.success('Login realizado com sucesso!');
+          navigate('/');
+        } else {
+          toast.error(result.error || 'Erro ao fazer login');
+        }
+      } else {
+        if (!name.trim()) {
+          toast.error('Por favor, informe seu nome');
+          setIsSubmitting(false);
+          return;
+        }
+        const result = await register(name, email, password);
+        if (result.success) {
+          toast.success('Conta criada com sucesso!');
+          navigate('/');
+        } else {
+          toast.error(result.error || 'Erro ao criar conta');
+        }
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const features = [
+    { icon: Wallet, title: 'Controle Total', desc: 'Gerencie todas suas despesas em um só lugar' },
+    { icon: TrendingUp, title: 'Análise Mensal', desc: 'Visualize seus gastos por categoria' },
+    { icon: PieChart, title: 'Relatórios', desc: 'Gráficos e resumos detalhados' },
+    { icon: Shield, title: 'Seguro', desc: 'Seus dados protegidos e privados' },
+  ];
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Left side - Features */}
+      <div className="hidden lg:flex lg:w-1/2 gradient-hero relative overflow-hidden">
+        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
+        
+        <div className="relative z-10 flex flex-col justify-center p-12 text-primary-foreground">
+          <div className="mb-8 animate-fade-in">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
+                <Wallet className="w-7 h-7" />
+              </div>
+              <h1 className="text-3xl font-bold">MeuBudget</h1>
+            </div>
+            <p className="text-xl text-primary-foreground/80 max-w-md">
+              Controle seu orçamento pessoal de forma simples e eficiente
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            {features.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="flex items-start gap-4 animate-slide-up"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center flex-shrink-0">
+                  <feature.icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">{feature.title}</h3>
+                  <p className="text-primary-foreground/70">{feature.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right side - Form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-background">
+        <div className="w-full max-w-md animate-scale-in">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
+            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
+              <Wallet className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">MeuBudget</h1>
+          </div>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="text-center pb-4">
+              <CardTitle className="text-2xl">
+                {isLogin ? 'Bem-vindo de volta!' : 'Criar sua conta'}
+              </CardTitle>
+              <CardDescription>
+                {isLogin
+                  ? 'Entre para acessar seu controle financeiro'
+                  : 'Comece a controlar suas finanças hoje'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome completo</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Seu nome"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required={!isLogin}
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                </div>
+                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
+                </Button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {isLogin ? (
+                    <>
+                      Não tem uma conta?{' '}
+                      <span className="text-primary font-semibold">Cadastre-se</span>
+                    </>
+                  ) : (
+                    <>
+                      Já tem uma conta?{' '}
+                      <span className="text-primary font-semibold">Faça login</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
