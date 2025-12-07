@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CATEGORY_LABELS, CATEGORY_ICONS, ExpenseCategory } from '@/types/finance';
+import { useFinance } from '@/contexts/FinanceContext';
 import { cn } from '@/lib/utils';
 
 interface CategoryChartProps {
@@ -7,18 +7,9 @@ interface CategoryChartProps {
   total: number;
 }
 
-const categoryColors: Record<ExpenseCategory, string> = {
-  food: 'bg-category-food',
-  transport: 'bg-category-transport',
-  entertainment: 'bg-category-entertainment',
-  health: 'bg-category-health',
-  shopping: 'bg-category-shopping',
-  bills: 'bg-category-bills',
-  education: 'bg-category-education',
-  other: 'bg-category-other',
-};
-
 export default function CategoryChart({ data, total }: CategoryChartProps) {
+  const { getCategoryById } = useFinance();
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -52,17 +43,17 @@ export default function CategoryChart({ data, total }: CategoryChartProps) {
         <CardTitle className="text-lg">Gastos por Categoria</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {sortedCategories.map(([category, amount]) => {
+        {sortedCategories.map(([categoryId, amount]) => {
           const percentage = total > 0 ? (amount / total) * 100 : 0;
-          const cat = category as ExpenseCategory;
+          const category = getCategoryById(categoryId);
           
           return (
-            <div key={category} className="space-y-2">
+            <div key={categoryId} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{CATEGORY_ICONS[cat]}</span>
+                  <span className="text-lg">{category?.icon || '📦'}</span>
                   <span className="text-sm font-medium text-foreground">
-                    {CATEGORY_LABELS[cat]}
+                    {category?.name || 'Sem categoria'}
                   </span>
                 </div>
                 <div className="text-right">
@@ -76,7 +67,10 @@ export default function CategoryChart({ data, total }: CategoryChartProps) {
               </div>
               <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                 <div
-                  className={cn('h-full rounded-full transition-all duration-500', categoryColors[cat])}
+                  className={cn(
+                    'h-full rounded-full transition-all duration-500',
+                    category?.color ? `bg-${category.color}` : 'bg-primary'
+                  )}
                   style={{ width: `${percentage}%` }}
                 />
               </div>

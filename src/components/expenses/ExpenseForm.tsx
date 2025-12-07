@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,15 +20,11 @@ import {
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, X } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import {
-  ExpenseCategory,
   PaymentMethod,
-  CATEGORY_LABELS,
-  CATEGORY_ICONS,
   PAYMENT_METHOD_LABELS,
   Expense,
 } from '@/types/finance';
@@ -41,10 +37,11 @@ interface ExpenseFormProps {
 }
 
 export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseFormProps) {
-  const { accounts, cards, addExpense, updateExpense } = useFinance();
+  const { accounts, cards, categories, subcategories, addExpense, updateExpense, getSubcategoriesByCategory } = useFinance();
   const isEditing = !!expense;
 
-  const [category, setCategory] = useState<ExpenseCategory>(expense?.category || 'food');
+  const [categoryId, setCategoryId] = useState(expense?.categoryId || '');
+  const [subcategoryId, setSubcategoryId] = useState(expense?.subcategoryId || '');
   const [description, setDescription] = useState(expense?.description || '');
   const [amount, setAmount] = useState(expense?.amount?.toString() || '');
   const [expenseDate, setExpenseDate] = useState<Date>(
@@ -62,6 +59,22 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const [installments, setInstallments] = useState(expense?.installments?.toString() || '1');
   const [observation, setObservation] = useState(expense?.observation || '');
 
+  const availableSubcategories = categoryId ? getSubcategoriesByCategory(categoryId) : [];
+
+  // Reset subcategory when category changes
+  useEffect(() => {
+    if (!expense) {
+      setSubcategoryId('');
+    }
+  }, [categoryId, expense]);
+
+  // Set default category
+  useEffect(() => {
+    if (!categoryId && categories.length > 0) {
+      setCategoryId(categories[0].id);
+    }
+  }, [categories, categoryId]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -71,8 +84,14 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       return;
     }
 
+    if (!categoryId) {
+      toast.error('Selecione uma categoria');
+      return;
+    }
+
     const expenseData = {
-      category,
+      categoryId,
+      subcategoryId: subcategoryId || undefined,
       description,
       amount: amountNumber,
       expenseDate,
@@ -98,7 +117,8 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   };
 
   const resetForm = () => {
-    setCategory('food');
+    setCategoryId(categories.length > 0 ? categories[0].id : '');
+    setSubcategoryId('');
     setDescription('');
     setAmount('');
     setExpenseDate(new Date());
@@ -110,8 +130,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     setInstallments('1');
     setObservation('');
   };
-
-  const categories = Object.entries(CATEGORY_LABELS) as [ExpenseCategory, string][];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -126,22 +144,42 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
           {/* Category */}
           <div className="space-y-2">
             <Label>Categoria</Label>
-            <Select value={category} onValueChange={(v) => setCategory(v as ExpenseCategory)}>
+            <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Selecione uma categoria" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
                     <span className="flex items-center gap-2">
-                      <span>{CATEGORY_ICONS[value]}</span>
-                      {label}
+                      <span>{cat.icon}</span>
+                      {cat.name}
                     </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {/* Subcategory */}
+          {availableSubcategories.length > 0 && (
+            <div className="space-y-2">
+              <Label>Subcategoria (opcional)</Label>
+              <Select value={subcategoryId} onValueChange={setSubcategoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma subcategoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhuma</SelectItem>
+                  {availableSubcategories.map((sub) => (
+                    <SelectItem key={sub.id} value={sub.id}>
+                      {sub.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Description */}
           <div className="space-y-2">

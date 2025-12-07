@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { User, Phone, Bell, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import CategoryManager from '@/components/settings/CategoryManager';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -16,13 +17,12 @@ export default function Settings() {
       toast.error('Informe um número de WhatsApp');
       return;
     }
-    // In a real app, this would save to the backend
     localStorage.setItem('whatsapp_number', whatsappNumber);
     toast.success('Número salvo com sucesso!');
   };
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-3xl">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
@@ -49,6 +49,9 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Categories Manager */}
+      <CategoryManager />
 
       {/* WhatsApp Notifications */}
       <Card>

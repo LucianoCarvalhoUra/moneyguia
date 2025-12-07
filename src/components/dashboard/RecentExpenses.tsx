@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Expense, CATEGORY_LABELS, CATEGORY_ICONS, PAYMENT_METHOD_LABELS } from '@/types/finance';
+import { Expense, PAYMENT_METHOD_LABELS } from '@/types/finance';
+import { useFinance } from '@/contexts/FinanceContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ArrowRight } from 'lucide-react';
@@ -11,18 +12,9 @@ interface RecentExpensesProps {
   expenses: Expense[];
 }
 
-const categoryBgColors: Record<string, string> = {
-  food: 'bg-category-food/10',
-  transport: 'bg-category-transport/10',
-  entertainment: 'bg-category-entertainment/10',
-  health: 'bg-category-health/10',
-  shopping: 'bg-category-shopping/10',
-  bills: 'bg-category-bills/10',
-  education: 'bg-category-education/10',
-  other: 'bg-category-other/10',
-};
-
 export default function RecentExpenses({ expenses }: RecentExpensesProps) {
+  const { getCategoryById } = useFinance();
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -55,35 +47,39 @@ export default function RecentExpenses({ expenses }: RecentExpensesProps) {
           </div>
         ) : (
           <div className="space-y-3">
-            {recentExpenses.map((expense) => (
-              <div
-                key={expense.id}
-                className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-              >
+            {recentExpenses.map((expense) => {
+              const category = getCategoryById(expense.categoryId);
+              
+              return (
                 <div
-                  className={cn(
-                    'w-10 h-10 rounded-lg flex items-center justify-center text-lg',
-                    categoryBgColors[expense.category]
-                  )}
+                  key={expense.id}
+                  className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                 >
-                  {CATEGORY_ICONS[expense.category]}
+                  <div
+                    className={cn(
+                      'w-10 h-10 rounded-lg flex items-center justify-center text-lg',
+                      category?.color ? `bg-${category.color}/10` : 'bg-muted'
+                    )}
+                  >
+                    {category?.icon || '📦'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">
+                      {expense.description || category?.name || 'Sem categoria'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {PAYMENT_METHOD_LABELS[expense.paymentMethod]} •{' '}
+                      {format(new Date(expense.dueDate), "dd 'de' MMM", { locale: ptBR })}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-foreground">
+                      {formatCurrency(expense.amount)}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground truncate">
-                    {expense.description || CATEGORY_LABELS[expense.category]}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {PAYMENT_METHOD_LABELS[expense.paymentMethod]} •{' '}
-                    {format(new Date(expense.dueDate), "dd 'de' MMM", { locale: ptBR })}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-foreground">
-                    {formatCurrency(expense.amount)}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
