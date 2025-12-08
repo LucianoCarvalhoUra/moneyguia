@@ -1,24 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { User, Phone, Bell, Shield } from 'lucide-react';
-import { toast } from 'sonner';
+import { User, Shield, Loader2 } from 'lucide-react';
 import CategoryManager from '@/components/settings/CategoryManager';
+import WhatsAppSettings from '@/components/settings/WhatsAppSettings';
+
+interface Profile {
+  name: string;
+  email: string;
+}
 
 export default function Settings() {
   const { user } = useAuth();
-  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleSaveWhatsapp = () => {
-    if (!whatsappNumber) {
-      toast.error('Informe um número de WhatsApp');
-      return;
+  useEffect(() => {
+    if (user?.id) {
+      loadProfile();
     }
-    localStorage.setItem('whatsapp_number', whatsappNumber);
-    toast.success('Número salvo com sucesso!');
+  }, [user?.id]);
+
+  const loadProfile = async () => {
+    if (!user?.id) return;
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('name, email')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (data) {
+      setProfile(data);
+    } else {
+      // Fallback to auth user data
+      setProfile({
+        name: user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário',
+        email: user.email || '',
+      });
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -39,14 +64,22 @@ export default function Settings() {
           <CardDescription>Informações da sua conta</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Nome</Label>
-            <Input value={user?.name || ''} disabled className="bg-muted" />
-          </div>
-          <div className="space-y-2">
-            <Label>E-mail</Label>
-            <Input value={user?.email || ''} disabled className="bg-muted" />
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label>Nome</Label>
+                <Input value={profile?.name || ''} disabled className="bg-muted" />
+              </div>
+              <div className="space-y-2">
+                <Label>E-mail</Label>
+                <Input value={profile?.email || ''} disabled className="bg-muted" />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -54,58 +87,7 @@ export default function Settings() {
       <CategoryManager />
 
       {/* WhatsApp Notifications */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Phone className="w-5 h-5 text-success" />
-            Notificações WhatsApp
-          </CardTitle>
-          <CardDescription>
-            Receba lembretes de vencimento no seu WhatsApp
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp">Número do WhatsApp</Label>
-            <Input
-              id="whatsapp"
-              type="tel"
-              placeholder="(11) 99999-9999"
-              value={whatsappNumber}
-              onChange={(e) => setWhatsappNumber(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Informe seu número com DDD para receber notificações
-            </p>
-          </div>
-          <Button onClick={handleSaveWhatsapp}>
-            Salvar Número
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Notification Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="w-5 h-5 text-accent" />
-            Preferências de Notificação
-          </CardTitle>
-          <CardDescription>
-            Configure quando deseja receber alertas
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 rounded-lg bg-muted/50 text-center text-muted-foreground">
-            <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">
-              As notificações de vencimento serão enviadas automaticamente
-              <br />
-              para o número de WhatsApp cadastrado.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <WhatsAppSettings />
 
       {/* Security */}
       <Card>
