@@ -60,9 +60,9 @@ export default function Navbar() {
           {/* User section */}
           <div className="hidden md:flex items-center gap-4">
             <span className="text-sm text-muted-foreground">
-              Olá, <span className="font-medium text-foreground">{user?.name?.split(' ')[0]}</span>
+              Olá, <span className="font-medium text-foreground">{user?.user_metadata?.name?.split(' ')[0] || user?.email?.split('@')[0]}</span>
             </span>
-            <Button variant="ghost" size="sm" onClick={logout}>
+            <Button variant="ghost" size="sm" onClick={() => logout()}>
               <LogOut className="w-4 h-4 mr-2" />
               Sair
             </Button>
@@ -103,9 +103,9 @@ export default function Navbar() {
               ))}
               <div className="border-t pt-4 mt-2">
                 <div className="px-4 mb-2 text-sm text-muted-foreground">
-                  Conectado como <span className="font-medium text-foreground">{user?.name}</span>
+                  Conectado como <span className="font-medium text-foreground">{user?.user_metadata?.name || user?.email}</span>
                 </div>
-                <Button variant="ghost" className="w-full justify-start" onClick={logout}>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => logout()}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Sair
                 </Button>
