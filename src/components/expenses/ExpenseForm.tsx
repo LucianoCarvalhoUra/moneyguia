@@ -165,12 +165,12 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
           {availableSubcategories.length > 0 && (
             <div className="space-y-2">
               <Label>Subcategoria (opcional)</Label>
-              <Select value={subcategoryId} onValueChange={setSubcategoryId}>
+              <Select value={subcategoryId || "none"} onValueChange={(v) => setSubcategoryId(v === "none" ? "" : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma subcategoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
                   {availableSubcategories.map((sub) => (
                     <SelectItem key={sub.id} value={sub.id}>
                       {sub.name}
