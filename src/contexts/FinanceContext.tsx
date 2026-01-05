@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { BankAccount, CreditCard, Expense, Category, Subcategory, DEFAULT_CATEGORIES } from '@/types/finance';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { BankAccount, CreditCard, Expense, Category, Subcategory, DEFAULT_CATEGORIES, PaymentMethod } from '@/types/finance';
 import { useAuth } from './AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface FinanceContextType {
   accounts: BankAccount[];
@@ -8,74 +10,145 @@ interface FinanceContextType {
   expenses: Expense[];
   categories: Category[];
   subcategories: Subcategory[];
-  addAccount: (account: Omit<BankAccount, 'id' | 'userId'>) => void;
-  removeAccount: (id: string) => void;
-  addCard: (card: Omit<CreditCard, 'id' | 'userId'>) => void;
-  removeCard: (id: string) => void;
-  addExpense: (expense: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => void;
-  updateExpense: (id: string, expense: Partial<Expense>) => void;
-  removeExpense: (id: string) => void;
-  addCategory: (category: Omit<Category, 'id' | 'userId'>) => void;
-  updateCategory: (id: string, category: Partial<Category>) => void;
-  removeCategory: (id: string) => void;
-  addSubcategory: (subcategory: Omit<Subcategory, 'id' | 'userId'>) => void;
-  updateSubcategory: (id: string, subcategory: Partial<Subcategory>) => void;
-  removeSubcategory: (id: string) => void;
+  isLoading: boolean;
+  addAccount: (account: Omit<BankAccount, 'id' | 'userId'>) => Promise<void>;
+  removeAccount: (id: string) => Promise<void>;
+  addCard: (card: Omit<CreditCard, 'id' | 'userId'>) => Promise<void>;
+  removeCard: (id: string) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
+  updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
+  removeExpense: (id: string) => Promise<void>;
+  addCategory: (category: Omit<Category, 'id' | 'userId'>) => Promise<void>;
+  updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
+  removeCategory: (id: string) => Promise<void>;
+  addSubcategory: (subcategory: Omit<Subcategory, 'id' | 'userId'>) => Promise<void>;
+  updateSubcategory: (id: string, subcategory: Partial<Subcategory>) => Promise<void>;
+  removeSubcategory: (id: string) => Promise<void>;
   getMonthlyExpenses: (year: number, month: number) => Expense[];
   getTotalByCategory: (year: number, month: number) => Record<string, number>;
   getMonthlyTotal: (year: number, month: number) => number;
   getCategoryById: (id: string) => Category | undefined;
   getSubcategoriesByCategory: (categoryId: string) => Subcategory[];
+  refreshData: () => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
-const ACCOUNTS_KEY = 'budget_accounts';
-const CARDS_KEY = 'budget_cards';
-const EXPENSES_KEY = 'budget_expenses';
-const CATEGORIES_KEY = 'budget_categories';
-const SUBCATEGORIES_KEY = 'budget_subcategories';
-
 export function FinanceProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      const savedAccounts = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]');
-      const savedCards = JSON.parse(localStorage.getItem(CARDS_KEY) || '[]');
-      const savedExpenses = JSON.parse(localStorage.getItem(EXPENSES_KEY) || '[]');
-      const savedCategories = JSON.parse(localStorage.getItem(CATEGORIES_KEY) || '[]');
-      const savedSubcategories = JSON.parse(localStorage.getItem(SUBCATEGORIES_KEY) || '[]');
+  const fetchData = useCallback(async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      // Fetch all data in parallel
+      const [accountsRes, cardsRes, categoriesRes, subcategoriesRes, expensesRes] = await Promise.all([
+        supabase.from('bank_accounts').select('*').eq('user_id', user.id),
+        supabase.from('credit_cards').select('*').eq('user_id', user.id),
+        supabase.from('categories').select('*').eq('user_id', user.id),
+        supabase.from('subcategories').select('*').eq('user_id', user.id),
+        supabase.from('expenses').select('*').eq('user_id', user.id).order('expense_date', { ascending: false }),
+      ]);
 
-      setAccounts(savedAccounts.filter((a: BankAccount) => a.userId === user.id));
-      setCards(savedCards.filter((c: CreditCard) => c.userId === user.id));
-      setExpenses(
-        savedExpenses
-          .filter((e: Expense) => e.userId === user.id)
-          .map((e: any) => ({
-            ...e,
-            expenseDate: new Date(e.expenseDate),
-            dueDate: new Date(e.dueDate),
-            createdAt: new Date(e.createdAt),
-          }))
-      );
-
-      // Load categories or initialize with defaults
-      const userCategories = savedCategories.filter((c: Category) => c.userId === user.id);
-      if (userCategories.length === 0) {
-        const defaultCats = DEFAULT_CATEGORIES.map(cat => ({ ...cat, userId: user.id }));
-        setCategories(defaultCats);
-        saveCategories(defaultCats);
-      } else {
-        setCategories(userCategories);
+      if (accountsRes.data) {
+        setAccounts(accountsRes.data.map(a => ({
+          id: a.id,
+          bankName: a.bank_name,
+          agency: a.agency,
+          accountNumber: a.account_number,
+          userId: a.user_id,
+        })));
       }
 
-      setSubcategories(savedSubcategories.filter((s: Subcategory) => s.userId === user.id));
+      if (cardsRes.data) {
+        setCards(cardsRes.data.map(c => ({
+          id: c.id,
+          brand: c.brand,
+          lastFourDigits: c.last_four_digits,
+          userId: c.user_id,
+        })));
+      }
+
+      if (categoriesRes.data && categoriesRes.data.length > 0) {
+        setCategories(categoriesRes.data.map(c => ({
+          id: c.id,
+          name: c.name,
+          icon: c.icon,
+          color: c.color,
+          userId: c.user_id,
+          isDefault: c.is_default,
+        })));
+      } else {
+        // Initialize with default categories
+        const defaultCats = DEFAULT_CATEGORIES.map(cat => ({
+          ...cat,
+          user_id: user.id,
+        }));
+        
+        const { data: insertedCats } = await supabase
+          .from('categories')
+          .insert(defaultCats)
+          .select();
+        
+        if (insertedCats) {
+          setCategories(insertedCats.map(c => ({
+            id: c.id,
+            name: c.name,
+            icon: c.icon,
+            color: c.color,
+            userId: c.user_id,
+            isDefault: c.is_default,
+          })));
+        }
+      }
+
+      if (subcategoriesRes.data) {
+        setSubcategories(subcategoriesRes.data.map(s => ({
+          id: s.id,
+          name: s.name,
+          categoryId: s.category_id,
+          userId: s.user_id,
+        })));
+      }
+
+      if (expensesRes.data) {
+        setExpenses(expensesRes.data.map(e => ({
+          id: e.id,
+          categoryId: e.category_id || '',
+          subcategoryId: e.subcategory_id || undefined,
+          description: e.description,
+          amount: Number(e.amount),
+          expenseDate: new Date(e.expense_date),
+          dueDate: new Date(e.due_date),
+          paymentMethod: e.payment_method as PaymentMethod,
+          accountId: e.account_id || undefined,
+          cardId: e.card_id || undefined,
+          isRecurring: e.is_recurring,
+          installments: e.installments || undefined,
+          currentInstallment: e.current_installment || undefined,
+          observation: e.observation || undefined,
+          userId: e.user_id,
+          createdAt: new Date(e.created_at),
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Erro ao carregar dados');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      fetchData();
     } else {
       setAccounts([]);
       setCards([]);
@@ -83,176 +156,379 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       setCategories([]);
       setSubcategories([]);
     }
-  }, [user]);
+  }, [isAuthenticated, user, fetchData]);
 
-  const saveAccounts = (newAccounts: BankAccount[]) => {
-    const allAccounts = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]');
-    const otherAccounts = allAccounts.filter((a: BankAccount) => a.userId !== user?.id);
-    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify([...otherAccounts, ...newAccounts]));
-  };
-
-  const saveCards = (newCards: CreditCard[]) => {
-    const allCards = JSON.parse(localStorage.getItem(CARDS_KEY) || '[]');
-    const otherCards = allCards.filter((c: CreditCard) => c.userId !== user?.id);
-    localStorage.setItem(CARDS_KEY, JSON.stringify([...otherCards, ...newCards]));
-  };
-
-  const saveExpenses = (newExpenses: Expense[]) => {
-    const allExpenses = JSON.parse(localStorage.getItem(EXPENSES_KEY) || '[]');
-    const otherExpenses = allExpenses.filter((e: Expense) => e.userId !== user?.id);
-    localStorage.setItem(EXPENSES_KEY, JSON.stringify([...otherExpenses, ...newExpenses]));
-  };
-
-  const saveCategories = (newCategories: Category[]) => {
-    const allCategories = JSON.parse(localStorage.getItem(CATEGORIES_KEY) || '[]');
-    const otherCategories = allCategories.filter((c: Category) => c.userId !== user?.id);
-    localStorage.setItem(CATEGORIES_KEY, JSON.stringify([...otherCategories, ...newCategories]));
-  };
-
-  const saveSubcategories = (newSubcategories: Subcategory[]) => {
-    const allSubcategories = JSON.parse(localStorage.getItem(SUBCATEGORIES_KEY) || '[]');
-    const otherSubcategories = allSubcategories.filter((s: Subcategory) => s.userId !== user?.id);
-    localStorage.setItem(SUBCATEGORIES_KEY, JSON.stringify([...otherSubcategories, ...newSubcategories]));
-  };
-
-  const addAccount = (account: Omit<BankAccount, 'id' | 'userId'>) => {
-    if (!user) return;
-    const newAccount: BankAccount = {
-      ...account,
-      id: crypto.randomUUID(),
-      userId: user.id,
-    };
-    const newAccounts = [...accounts, newAccount];
-    setAccounts(newAccounts);
-    saveAccounts(newAccounts);
-  };
-
-  const removeAccount = (id: string) => {
-    const newAccounts = accounts.filter((a) => a.id !== id);
-    setAccounts(newAccounts);
-    saveAccounts(newAccounts);
-  };
-
-  const addCard = (card: Omit<CreditCard, 'id' | 'userId'>) => {
-    if (!user) return;
-    const newCard: CreditCard = {
-      ...card,
-      id: crypto.randomUUID(),
-      userId: user.id,
-    };
-    const newCards = [...cards, newCard];
-    setCards(newCards);
-    saveCards(newCards);
-  };
-
-  const removeCard = (id: string) => {
-    const newCards = cards.filter((c) => c.id !== id);
-    setCards(newCards);
-    saveCards(newCards);
-  };
-
-  const addExpense = (expense: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => {
+  const addAccount = async (account: Omit<BankAccount, 'id' | 'userId'>) => {
     if (!user) return;
     
-    const expensesToAdd: Expense[] = [];
+    const { data, error } = await supabase
+      .from('bank_accounts')
+      .insert({
+        user_id: user.id,
+        bank_name: account.bankName,
+        agency: account.agency,
+        account_number: account.accountNumber,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      toast.error('Erro ao adicionar conta');
+      console.error(error);
+      return;
+    }
+    
+    if (data) {
+      setAccounts(prev => [...prev, {
+        id: data.id,
+        bankName: data.bank_name,
+        agency: data.agency,
+        accountNumber: data.account_number,
+        userId: data.user_id,
+      }]);
+    }
+  };
+
+  const removeAccount = async (id: string) => {
+    const { error } = await supabase
+      .from('bank_accounts')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Erro ao remover conta');
+      console.error(error);
+      return;
+    }
+    
+    setAccounts(prev => prev.filter(a => a.id !== id));
+  };
+
+  const addCard = async (card: Omit<CreditCard, 'id' | 'userId'>) => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('credit_cards')
+      .insert({
+        user_id: user.id,
+        brand: card.brand,
+        last_four_digits: card.lastFourDigits,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      toast.error('Erro ao adicionar cartão');
+      console.error(error);
+      return;
+    }
+    
+    if (data) {
+      setCards(prev => [...prev, {
+        id: data.id,
+        brand: data.brand,
+        lastFourDigits: data.last_four_digits,
+        userId: data.user_id,
+      }]);
+    }
+  };
+
+  const removeCard = async (id: string) => {
+    const { error } = await supabase
+      .from('credit_cards')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Erro ao remover cartão');
+      console.error(error);
+      return;
+    }
+    
+    setCards(prev => prev.filter(c => c.id !== id));
+  };
+
+  const addExpense = async (expense: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => {
+    if (!user) return;
+    
+    const expensesToInsert: Array<{
+      user_id: string;
+      category_id: string | null;
+      subcategory_id: string | null;
+      description: string;
+      amount: number;
+      expense_date: string;
+      due_date: string;
+      payment_method: PaymentMethod;
+      account_id: string | null;
+      card_id: string | null;
+      is_recurring: boolean;
+      installments: number | null;
+      current_installment: number | null;
+      observation: string | null;
+    }> = [];
     
     if (expense.isRecurring && expense.installments && expense.installments > 1) {
       for (let i = 0; i < expense.installments; i++) {
         const dueDate = new Date(expense.dueDate);
         dueDate.setMonth(dueDate.getMonth() + i);
         
-        expensesToAdd.push({
-          ...expense,
-          id: crypto.randomUUID(),
-          userId: user.id,
-          createdAt: new Date(),
-          dueDate,
-          currentInstallment: i + 1,
+        expensesToInsert.push({
+          user_id: user.id,
+          category_id: expense.categoryId || null,
+          subcategory_id: expense.subcategoryId || null,
           description: `${expense.description} (${i + 1}/${expense.installments})`,
+          amount: expense.amount,
+          expense_date: expense.expenseDate.toISOString().split('T')[0],
+          due_date: dueDate.toISOString().split('T')[0],
+          payment_method: expense.paymentMethod,
+          account_id: expense.accountId || null,
+          card_id: expense.cardId || null,
+          is_recurring: expense.isRecurring,
+          installments: expense.installments || null,
+          current_installment: i + 1,
+          observation: expense.observation || null,
         });
       }
     } else {
-      expensesToAdd.push({
-        ...expense,
-        id: crypto.randomUUID(),
-        userId: user.id,
-        createdAt: new Date(),
+      expensesToInsert.push({
+        user_id: user.id,
+        category_id: expense.categoryId || null,
+        subcategory_id: expense.subcategoryId || null,
+        description: expense.description,
+        amount: expense.amount,
+        expense_date: expense.expenseDate.toISOString().split('T')[0],
+        due_date: expense.dueDate.toISOString().split('T')[0],
+        payment_method: expense.paymentMethod,
+        account_id: expense.accountId || null,
+        card_id: expense.cardId || null,
+        is_recurring: expense.isRecurring,
+        installments: expense.installments || null,
+        current_installment: expense.currentInstallment || null,
+        observation: expense.observation || null,
       });
     }
 
-    const newExpenses = [...expenses, ...expensesToAdd];
-    setExpenses(newExpenses);
-    saveExpenses(newExpenses);
+    const { data, error } = await supabase
+      .from('expenses')
+      .insert(expensesToInsert)
+      .select();
+    
+    if (error) {
+      toast.error('Erro ao adicionar despesa');
+      console.error(error);
+      return;
+    }
+    
+    if (data) {
+      const newExpenses = data.map(e => ({
+        id: e.id,
+        categoryId: e.category_id || '',
+        subcategoryId: e.subcategory_id || undefined,
+        description: e.description,
+        amount: Number(e.amount),
+        expenseDate: new Date(e.expense_date),
+        dueDate: new Date(e.due_date),
+        paymentMethod: e.payment_method as PaymentMethod,
+        accountId: e.account_id || undefined,
+        cardId: e.card_id || undefined,
+        isRecurring: e.is_recurring,
+        installments: e.installments || undefined,
+        currentInstallment: e.current_installment || undefined,
+        observation: e.observation || undefined,
+        userId: e.user_id,
+        createdAt: new Date(e.created_at),
+      }));
+      setExpenses(prev => [...newExpenses, ...prev]);
+    }
   };
 
-  const updateExpense = (id: string, expenseUpdate: Partial<Expense>) => {
-    const newExpenses = expenses.map((e) =>
+  const updateExpense = async (id: string, expenseUpdate: Partial<Expense>) => {
+    const updateData: Record<string, unknown> = {};
+    
+    if (expenseUpdate.categoryId !== undefined) updateData.category_id = expenseUpdate.categoryId || null;
+    if (expenseUpdate.subcategoryId !== undefined) updateData.subcategory_id = expenseUpdate.subcategoryId || null;
+    if (expenseUpdate.description !== undefined) updateData.description = expenseUpdate.description;
+    if (expenseUpdate.amount !== undefined) updateData.amount = expenseUpdate.amount;
+    if (expenseUpdate.expenseDate !== undefined) updateData.expense_date = expenseUpdate.expenseDate.toISOString().split('T')[0];
+    if (expenseUpdate.dueDate !== undefined) updateData.due_date = expenseUpdate.dueDate.toISOString().split('T')[0];
+    if (expenseUpdate.paymentMethod !== undefined) updateData.payment_method = expenseUpdate.paymentMethod;
+    if (expenseUpdate.accountId !== undefined) updateData.account_id = expenseUpdate.accountId || null;
+    if (expenseUpdate.cardId !== undefined) updateData.card_id = expenseUpdate.cardId || null;
+    if (expenseUpdate.isRecurring !== undefined) updateData.is_recurring = expenseUpdate.isRecurring;
+    if (expenseUpdate.installments !== undefined) updateData.installments = expenseUpdate.installments || null;
+    if (expenseUpdate.currentInstallment !== undefined) updateData.current_installment = expenseUpdate.currentInstallment || null;
+    if (expenseUpdate.observation !== undefined) updateData.observation = expenseUpdate.observation || null;
+
+    const { error } = await supabase
+      .from('expenses')
+      .update(updateData)
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Erro ao atualizar despesa');
+      console.error(error);
+      return;
+    }
+    
+    setExpenses(prev => prev.map(e => 
       e.id === id ? { ...e, ...expenseUpdate } : e
-    );
-    setExpenses(newExpenses);
-    saveExpenses(newExpenses);
+    ));
   };
 
-  const removeExpense = (id: string) => {
-    const newExpenses = expenses.filter((e) => e.id !== id);
-    setExpenses(newExpenses);
-    saveExpenses(newExpenses);
+  const removeExpense = async (id: string) => {
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Erro ao remover despesa');
+      console.error(error);
+      return;
+    }
+    
+    setExpenses(prev => prev.filter(e => e.id !== id));
   };
 
-  const addCategory = (category: Omit<Category, 'id' | 'userId'>) => {
+  const addCategory = async (category: Omit<Category, 'id' | 'userId'>) => {
     if (!user) return;
-    const newCategory: Category = {
-      ...category,
-      id: crypto.randomUUID(),
-      userId: user.id,
-    };
-    const newCategories = [...categories, newCategory];
-    setCategories(newCategories);
-    saveCategories(newCategories);
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({
+        user_id: user.id,
+        name: category.name,
+        icon: category.icon,
+        color: category.color,
+        is_default: category.isDefault || false,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      toast.error('Erro ao adicionar categoria');
+      console.error(error);
+      return;
+    }
+    
+    if (data) {
+      setCategories(prev => [...prev, {
+        id: data.id,
+        name: data.name,
+        icon: data.icon,
+        color: data.color,
+        userId: data.user_id,
+        isDefault: data.is_default,
+      }]);
+    }
   };
 
-  const updateCategory = (id: string, categoryUpdate: Partial<Category>) => {
-    const newCategories = categories.map((c) =>
+  const updateCategory = async (id: string, categoryUpdate: Partial<Category>) => {
+    const updateData: Record<string, unknown> = {};
+    
+    if (categoryUpdate.name !== undefined) updateData.name = categoryUpdate.name;
+    if (categoryUpdate.icon !== undefined) updateData.icon = categoryUpdate.icon;
+    if (categoryUpdate.color !== undefined) updateData.color = categoryUpdate.color;
+    if (categoryUpdate.isDefault !== undefined) updateData.is_default = categoryUpdate.isDefault;
+
+    const { error } = await supabase
+      .from('categories')
+      .update(updateData)
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Erro ao atualizar categoria');
+      console.error(error);
+      return;
+    }
+    
+    setCategories(prev => prev.map(c => 
       c.id === id ? { ...c, ...categoryUpdate } : c
-    );
-    setCategories(newCategories);
-    saveCategories(newCategories);
+    ));
   };
 
-  const removeCategory = (id: string) => {
-    const newCategories = categories.filter((c) => c.id !== id);
-    setCategories(newCategories);
-    saveCategories(newCategories);
-    // Also remove associated subcategories
-    const newSubcategories = subcategories.filter((s) => s.categoryId !== id);
-    setSubcategories(newSubcategories);
-    saveSubcategories(newSubcategories);
+  const removeCategory = async (id: string) => {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Erro ao remover categoria');
+      console.error(error);
+      return;
+    }
+    
+    setCategories(prev => prev.filter(c => c.id !== id));
+    // Subcategories are deleted by cascade in database
+    setSubcategories(prev => prev.filter(s => s.categoryId !== id));
   };
 
-  const addSubcategory = (subcategory: Omit<Subcategory, 'id' | 'userId'>) => {
+  const addSubcategory = async (subcategory: Omit<Subcategory, 'id' | 'userId'>) => {
     if (!user) return;
-    const newSubcategory: Subcategory = {
-      ...subcategory,
-      id: crypto.randomUUID(),
-      userId: user.id,
-    };
-    const newSubcategories = [...subcategories, newSubcategory];
-    setSubcategories(newSubcategories);
-    saveSubcategories(newSubcategories);
+    
+    const { data, error } = await supabase
+      .from('subcategories')
+      .insert({
+        user_id: user.id,
+        category_id: subcategory.categoryId,
+        name: subcategory.name,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      toast.error('Erro ao adicionar subcategoria');
+      console.error(error);
+      return;
+    }
+    
+    if (data) {
+      setSubcategories(prev => [...prev, {
+        id: data.id,
+        name: data.name,
+        categoryId: data.category_id,
+        userId: data.user_id,
+      }]);
+    }
   };
 
-  const updateSubcategory = (id: string, subcategoryUpdate: Partial<Subcategory>) => {
-    const newSubcategories = subcategories.map((s) =>
+  const updateSubcategory = async (id: string, subcategoryUpdate: Partial<Subcategory>) => {
+    const updateData: Record<string, unknown> = {};
+    
+    if (subcategoryUpdate.name !== undefined) updateData.name = subcategoryUpdate.name;
+    if (subcategoryUpdate.categoryId !== undefined) updateData.category_id = subcategoryUpdate.categoryId;
+
+    const { error } = await supabase
+      .from('subcategories')
+      .update(updateData)
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Erro ao atualizar subcategoria');
+      console.error(error);
+      return;
+    }
+    
+    setSubcategories(prev => prev.map(s => 
       s.id === id ? { ...s, ...subcategoryUpdate } : s
-    );
-    setSubcategories(newSubcategories);
-    saveSubcategories(newSubcategories);
+    ));
   };
 
-  const removeSubcategory = (id: string) => {
-    const newSubcategories = subcategories.filter((s) => s.id !== id);
-    setSubcategories(newSubcategories);
-    saveSubcategories(newSubcategories);
+  const removeSubcategory = async (id: string) => {
+    const { error } = await supabase
+      .from('subcategories')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Erro ao remover subcategoria');
+      console.error(error);
+      return;
+    }
+    
+    setSubcategories(prev => prev.filter(s => s.id !== id));
   };
 
   const getMonthlyExpenses = (year: number, month: number) => {
@@ -283,6 +559,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return subcategories.filter((s) => s.categoryId === categoryId);
   };
 
+  const refreshData = async () => {
+    await fetchData();
+  };
+
   return (
     <FinanceContext.Provider
       value={{
@@ -291,6 +571,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         expenses,
         categories,
         subcategories,
+        isLoading,
         addAccount,
         removeAccount,
         addCard,
@@ -309,6 +590,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         getMonthlyTotal,
         getCategoryById,
         getSubcategoriesByCategory,
+        refreshData,
       }}
     >
       {children}
