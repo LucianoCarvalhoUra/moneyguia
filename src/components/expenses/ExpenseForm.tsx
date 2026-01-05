@@ -40,24 +40,53 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const { accounts, cards, categories, subcategories, addExpense, updateExpense, getSubcategoriesByCategory } = useFinance();
   const isEditing = !!expense;
 
-  const [categoryId, setCategoryId] = useState(expense?.categoryId || '');
-  const [subcategoryId, setSubcategoryId] = useState(expense?.subcategoryId || '');
-  const [description, setDescription] = useState(expense?.description || '');
-  const [amount, setAmount] = useState(expense?.amount?.toString() || '');
-  const [expenseDate, setExpenseDate] = useState<Date>(
-    expense?.expenseDate ? new Date(expense.expenseDate) : new Date()
-  );
-  const [dueDate, setDueDate] = useState<Date>(
-    expense?.dueDate ? new Date(expense.dueDate) : new Date()
-  );
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    expense?.paymentMethod || 'pix'
-  );
-  const [accountId, setAccountId] = useState(expense?.accountId || '');
-  const [cardId, setCardId] = useState(expense?.cardId || '');
-  const [isRecurring, setIsRecurring] = useState(expense?.isRecurring || false);
-  const [installments, setInstallments] = useState(expense?.installments?.toString() || '1');
-  const [observation, setObservation] = useState(expense?.observation || '');
+  const [categoryId, setCategoryId] = useState('');
+  const [subcategoryId, setSubcategoryId] = useState('');
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [expenseDate, setExpenseDate] = useState<Date>(new Date());
+  const [dueDate, setDueDate] = useState<Date>(new Date());
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
+  const [accountId, setAccountId] = useState('');
+  const [cardId, setCardId] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [installments, setInstallments] = useState('1');
+  const [observation, setObservation] = useState('');
+
+  const resetFormFields = () => {
+    setCategoryId(categories.length > 0 ? categories[0].id : '');
+    setSubcategoryId('');
+    setDescription('');
+    setAmount('');
+    setExpenseDate(new Date());
+    setDueDate(new Date());
+    setPaymentMethod('pix');
+    setAccountId('');
+    setCardId('');
+    setIsRecurring(false);
+    setInstallments('1');
+    setObservation('');
+  };
+
+  // Sync form state when expense prop changes (for editing)
+  useEffect(() => {
+    if (expense) {
+      setCategoryId(expense.categoryId || '');
+      setSubcategoryId(expense.subcategoryId || '');
+      setDescription(expense.description || '');
+      setAmount(expense.amount?.toString() || '');
+      setExpenseDate(expense.expenseDate ? new Date(expense.expenseDate) : new Date());
+      setDueDate(expense.dueDate ? new Date(expense.dueDate) : new Date());
+      setPaymentMethod(expense.paymentMethod || 'pix');
+      setAccountId(expense.accountId || '');
+      setCardId(expense.cardId || '');
+      setIsRecurring(expense.isRecurring || false);
+      setInstallments(expense.installments?.toString() || '1');
+      setObservation(expense.observation || '');
+    } else if (open) {
+      resetFormFields();
+    }
+  }, [expense, open, categories]);
 
   const availableSubcategories = categoryId ? getSubcategoriesByCategory(categoryId) : [];
 
@@ -113,22 +142,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     }
 
     onOpenChange(false);
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setCategoryId(categories.length > 0 ? categories[0].id : '');
-    setSubcategoryId('');
-    setDescription('');
-    setAmount('');
-    setExpenseDate(new Date());
-    setDueDate(new Date());
-    setPaymentMethod('pix');
-    setAccountId('');
-    setCardId('');
-    setIsRecurring(false);
-    setInstallments('1');
-    setObservation('');
   };
 
   return (
