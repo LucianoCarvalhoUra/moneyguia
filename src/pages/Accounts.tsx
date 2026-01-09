@@ -20,14 +20,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Building2, CreditCard, Trash2 } from 'lucide-react';
+import { Plus, Building2, CreditCard, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import { CreditCard as CreditCardType } from '@/types/finance';
 
 export default function Accounts() {
-  const { accounts, cards, addAccount, removeAccount, addCard, removeCard } = useFinance();
+  const { accounts, cards, addAccount, removeAccount, addCard, updateCard, removeCard } = useFinance();
   
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [cardDialogOpen, setCardDialogOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<CreditCardType | null>(null);
   const [deleteAccountDialog, setDeleteAccountDialog] = useState<string | null>(null);
   const [deleteCardDialog, setDeleteCardDialog] = useState<string | null>(null);
 
@@ -54,15 +56,34 @@ export default function Accounts() {
     setAccountNumber('');
   };
 
-  const handleAddCard = (e: React.FormEvent) => {
+  const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!brand || !lastFourDigits || lastFourDigits.length !== 4) {
       toast.error('Preencha todos os campos corretamente');
       return;
     }
-    addCard({ brand, lastFourDigits });
-    toast.success('Cartão adicionado com sucesso!');
+    
+    if (editingCard) {
+      await updateCard(editingCard.id, { brand, lastFourDigits });
+      toast.success('Cartão atualizado com sucesso!');
+    } else {
+      await addCard({ brand, lastFourDigits });
+      toast.success('Cartão adicionado com sucesso!');
+    }
+    
+    closeCardDialog();
+  };
+
+  const openEditCard = (card: CreditCardType) => {
+    setEditingCard(card);
+    setBrand(card.brand);
+    setLastFourDigits(card.lastFourDigits);
+    setCardDialogOpen(true);
+  };
+
+  const closeCardDialog = () => {
     setCardDialogOpen(false);
+    setEditingCard(null);
     setBrand('');
     setLastFourDigits('');
   };
@@ -176,7 +197,8 @@ export default function Accounts() {
                 {cards.map((card) => (
                   <div
                     key={card.id}
-                    className="flex items-center justify-between p-4 rounded-xl bg-muted/50 group"
+                    className="flex items-center justify-between p-4 rounded-xl bg-muted/50 group cursor-pointer hover:bg-muted/70 transition-colors"
+                    onClick={() => openEditCard(card)}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg gradient-accent flex items-center justify-center">
@@ -189,14 +211,30 @@ export default function Accounts() {
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => setDeleteCardDialog(card.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditCard(card);
+                        }}
+                      >
+                        <Pencil className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteCardDialog(card.id);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -256,11 +294,11 @@ export default function Accounts() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Card Dialog */}
-      <Dialog open={cardDialogOpen} onOpenChange={setCardDialogOpen}>
+      {/* Add/Edit Card Dialog */}
+      <Dialog open={cardDialogOpen} onOpenChange={(open) => !open && closeCardDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Novo Cartão de Crédito</DialogTitle>
+            <DialogTitle>{editingCard ? 'Editar Cartão de Crédito' : 'Novo Cartão de Crédito'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddCard} className="space-y-4">
             <div className="space-y-2">
@@ -291,11 +329,11 @@ export default function Accounts() {
               />
             </div>
             <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setCardDialogOpen(false)}>
+              <Button type="button" variant="outline" className="flex-1" onClick={closeCardDialog}>
                 Cancelar
               </Button>
               <Button type="submit" variant="hero" className="flex-1">
-                Adicionar
+                {editingCard ? 'Salvar' : 'Adicionar'}
               </Button>
             </div>
           </form>
