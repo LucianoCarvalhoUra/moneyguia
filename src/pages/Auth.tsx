@@ -1,12 +1,57 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Wallet, TrendingUp, PieChart, Shield } from 'lucide-react';
+import { Wallet, TrendingUp, PieChart, Shield, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+interface PasswordStrength {
+  score: number;
+  label: string;
+  color: string;
+  checks: {
+    minLength: boolean;
+    hasUppercase: boolean;
+    hasLowercase: boolean;
+    hasNumber: boolean;
+    hasSpecial: boolean;
+  };
+}
+
+function getPasswordStrength(password: string): PasswordStrength {
+  const checks = {
+    minLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+    hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  const score = Object.values(checks).filter(Boolean).length;
+
+  let label = 'Muito fraca';
+  let color = 'bg-destructive';
+
+  if (score >= 5) {
+    label = 'Muito forte';
+    color = 'bg-green-500';
+  } else if (score >= 4) {
+    label = 'Forte';
+    color = 'bg-green-400';
+  } else if (score >= 3) {
+    label = 'Média';
+    color = 'bg-yellow-500';
+  } else if (score >= 2) {
+    label = 'Fraca';
+    color = 'bg-orange-500';
+  }
+
+  return { score, label, color, checks };
+}
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -16,6 +61,8 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
+
+  const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +80,11 @@ export default function Auth() {
       } else {
         if (!name.trim()) {
           toast.error('Por favor, informe seu nome');
+          setIsSubmitting(false);
+          return;
+        }
+        if (passwordStrength.score < 3) {
+          toast.error('Sua senha é muito fraca. Atenda pelo menos 3 requisitos.');
           setIsSubmitting(false);
           return;
         }
@@ -55,6 +107,14 @@ export default function Auth() {
     { icon: PieChart, title: 'Relatórios', desc: 'Gráficos e resumos detalhados' },
     { icon: Shield, title: 'Seguro', desc: 'Seus dados protegidos e privados' },
   ];
+
+  const passwordRequirements = [
+    { key: 'minLength', label: 'Mínimo 8 caracteres' },
+    { key: 'hasUppercase', label: 'Letra maiúscula' },
+    { key: 'hasLowercase', label: 'Letra minúscula' },
+    { key: 'hasNumber', label: 'Número' },
+    { key: 'hasSpecial', label: 'Caractere especial (!@#$%...)' },
+  ] as const;
 
   return (
     <div className="min-h-screen flex">
@@ -152,8 +212,55 @@ export default function Auth() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={6}
                   />
+                  
+                  {/* Password strength indicator - only show on register */}
+                  {!isLogin && password.length > 0 && (
+                    <div className="space-y-3 pt-2">
+                      {/* Strength bar */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Força da senha</span>
+                          <span className={cn(
+                            "font-medium",
+                            passwordStrength.score >= 4 ? "text-green-500" : 
+                            passwordStrength.score >= 3 ? "text-yellow-500" : "text-destructive"
+                          )}>
+                            {passwordStrength.label}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className={cn("h-full transition-all duration-300", passwordStrength.color)}
+                            style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Requirements checklist */}
+                      <div className="grid grid-cols-2 gap-1 text-xs">
+                        {passwordRequirements.map((req) => {
+                          const isMet = passwordStrength.checks[req.key];
+                          return (
+                            <div 
+                              key={req.key}
+                              className={cn(
+                                "flex items-center gap-1.5 transition-colors",
+                                isMet ? "text-green-500" : "text-muted-foreground"
+                              )}
+                            >
+                              {isMet ? (
+                                <Check className="w-3 h-3" />
+                              ) : (
+                                <X className="w-3 h-3" />
+                              )}
+                              <span>{req.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
