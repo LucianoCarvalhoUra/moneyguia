@@ -14,6 +14,7 @@ interface FinanceContextType {
   addAccount: (account: Omit<BankAccount, 'id' | 'userId'>) => Promise<void>;
   removeAccount: (id: string) => Promise<void>;
   addCard: (card: Omit<CreditCard, 'id' | 'userId'>) => Promise<void>;
+  updateCard: (id: string, card: Partial<CreditCard>) => Promise<void>;
   removeCard: (id: string) => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
@@ -231,6 +232,28 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         userId: data.user_id,
       }]);
     }
+  };
+
+  const updateCard = async (id: string, cardUpdate: Partial<CreditCard>) => {
+    const updateData: Record<string, unknown> = {};
+    
+    if (cardUpdate.brand !== undefined) updateData.brand = cardUpdate.brand;
+    if (cardUpdate.lastFourDigits !== undefined) updateData.last_four_digits = cardUpdate.lastFourDigits;
+
+    const { error } = await supabase
+      .from('credit_cards')
+      .update(updateData)
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Erro ao atualizar cartão');
+      console.error(error);
+      return;
+    }
+    
+    setCards(prev => prev.map(c => 
+      c.id === id ? { ...c, ...cardUpdate } : c
+    ));
   };
 
   const removeCard = async (id: string) => {
@@ -575,6 +598,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         addAccount,
         removeAccount,
         addCard,
+        updateCard,
         removeCard,
         addExpense,
         updateExpense,
