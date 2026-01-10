@@ -5,10 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { FinanceProvider } from "@/contexts/FinanceContext";
+import { IncomeProvider } from "@/contexts/IncomeContext";
 import Layout from "@/components/layout/Layout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Expenses from "./pages/Expenses";
+import Incomes from "./pages/Incomes";
 import Accounts from "./pages/Accounts";
 import InvoiceReconciliation from "./pages/InvoiceReconciliation";
 import Settings from "./pages/Settings";
@@ -57,6 +59,7 @@ const AppRoutes = () => (
     <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
     <Route path="/" element={<Index />} />
     <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+    <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />
     <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
     <Route path="/reconciliation" element={<ProtectedRoute><InvoiceReconciliation /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
@@ -72,7 +75,9 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <FinanceProvider>
-            <AppRoutes />
+            <IncomeProvider>
+              <AppRoutes />
+            </IncomeProvider>
           </FinanceProvider>
         </AuthProvider>
       </BrowserRouter>

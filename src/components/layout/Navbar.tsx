@@ -10,7 +10,8 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  TrendingUp
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/expenses', label: 'Despesas', icon: Receipt },
+  { path: '/incomes', label: 'Receitas', icon: TrendingUp },
   { path: '/accounts', label: 'Contas', icon: CreditCard },
   { path: '/reconciliation', label: 'Conciliação', icon: FileCheck },
   { path: '/settings', label: 'Configurações', icon: Settings },

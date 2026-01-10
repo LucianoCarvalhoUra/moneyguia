@@ -49,6 +49,13 @@
     --category-education: 199 89% 48%;
     --category-other: 215 15% 50%;
 
+    /* Income category colors */
+    --category-income-salary: 142 71% 45%;
+    --category-income-investments: 199 89% 48%;
+    --category-income-freelance: 280 87% 65%;
+    --category-income-gifts: 340 82% 52%;
+    --category-income-other: 38 92% 50%;
+
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(173 58% 39%) 0%, hsl(185 60% 35%) 100%);
     --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(25 95% 53%) 100%);

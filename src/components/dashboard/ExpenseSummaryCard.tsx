@@ -18,7 +18,7 @@ export default function ExpenseSummaryCard({
   className,
 }: ExpenseSummaryCardProps) {
   const percentChange = previousValue
-    ? ((value - previousValue) / previousValue) * 100
+    ? ((value - previousValue) / Math.abs(previousValue)) * 100
     : 0;
   const isIncrease = percentChange > 0;
 
@@ -43,6 +43,41 @@ export default function ExpenseSummaryCard({
     balance: 'bg-primary/10 text-primary',
   };
 
+  // For balance, show green if positive, red if negative
+  const getValueColor = () => {
+    if (icon === 'balance') {
+      return value >= 0 ? 'text-success' : 'text-destructive';
+    }
+    if (icon === 'income') {
+      return 'text-success';
+    }
+    return 'text-foreground';
+  };
+
+  // For expense card, increase is bad (red), decrease is good (green)
+  // For income/balance card, increase is good (green), decrease is bad (red)
+  const getChangeColor = () => {
+    if (icon === 'expense') {
+      return isIncrease ? 'text-destructive' : 'text-success';
+    }
+    return isIncrease ? 'text-success' : 'text-destructive';
+  };
+
+  const getChangeIcon = () => {
+    if (icon === 'expense') {
+      return isIncrease ? (
+        <TrendingUp className="w-3 h-3 text-destructive" />
+      ) : (
+        <TrendingDown className="w-3 h-3 text-success" />
+      );
+    }
+    return isIncrease ? (
+      <TrendingUp className="w-3 h-3 text-success" />
+    ) : (
+      <TrendingDown className="w-3 h-3 text-destructive" />
+    );
+  };
+
   return (
     <Card className={cn('overflow-hidden', className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -54,22 +89,13 @@ export default function ExpenseSummaryCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-foreground">
+        <div className={cn('text-2xl font-bold', getValueColor())}>
           {formatCurrency(value)}
         </div>
         {previousValue !== undefined && previousValue !== 0 && (
           <div className="flex items-center gap-1 mt-1">
-            {isIncrease ? (
-              <TrendingUp className="w-3 h-3 text-destructive" />
-            ) : (
-              <TrendingDown className="w-3 h-3 text-success" />
-            )}
-            <span
-              className={cn(
-                'text-xs font-medium',
-                isIncrease ? 'text-destructive' : 'text-success'
-              )}
-            >
+            {getChangeIcon()}
+            <span className={cn('text-xs font-medium', getChangeColor())}>
               {Math.abs(percentChange).toFixed(1)}%
             </span>
             <span className="text-xs text-muted-foreground">vs mês anterior</span>
