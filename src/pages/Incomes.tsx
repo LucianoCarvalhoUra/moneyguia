@@ -1,35 +1,24 @@
 import { useState } from 'react';
-import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import IncomeForm from '@/components/income/IncomeForm';
+import IncomeList from '@/components/income/IncomeList';
 import ExpenseSummaryCard from '@/components/dashboard/ExpenseSummaryCard';
-import CategoryChart from '@/components/dashboard/CategoryChart';
-import RecentExpenses from '@/components/dashboard/RecentExpenses';
-import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
-import ExpenseForm from '@/components/expenses/ExpenseForm';
 
-export default function Dashboard() {
-  const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses } = useFinance();
-  const { getMonthlyIncomeTotal } = useIncome();
+export default function Incomes() {
+  const { getMonthlyIncomeTotal, getMonthlyIncomes } = useIncome();
   const [formOpen, setFormOpen] = useState(false);
   
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
 
-  const currentExpenseTotal = getMonthlyTotal(selectedYear, selectedMonth);
-  const currentIncomeTotal = getMonthlyIncomeTotal(selectedYear, selectedMonth);
-  const balance = currentIncomeTotal - currentExpenseTotal;
-  
+  const currentTotal = getMonthlyIncomeTotal(selectedYear, selectedMonth);
   const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
   const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
-  const previousExpenseTotal = getMonthlyTotal(previousYear, previousMonth);
-  const previousIncomeTotal = getMonthlyIncomeTotal(previousYear, previousMonth);
-  const previousBalance = previousIncomeTotal - previousExpenseTotal;
-  
-  const categoryTotals = getTotalByCategory(selectedYear, selectedMonth);
-  const monthlyExpenses = getMonthlyExpenses(selectedYear, selectedMonth);
+  const previousTotal = getMonthlyIncomeTotal(previousYear, previousMonth);
+  const monthlyIncomes = getMonthlyIncomes(selectedYear, selectedMonth);
 
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -59,12 +48,12 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Visão geral do seu orçamento</p>
+          <h1 className="text-2xl font-bold text-foreground">Receitas</h1>
+          <p className="text-muted-foreground">Gerencie seus ganhos e rendimentos</p>
         </div>
         <Button variant="hero" onClick={() => setFormOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
-          Nova Despesa
+          Nova Receita
         </Button>
       </div>
 
@@ -82,39 +71,25 @@ export default function Dashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <ExpenseSummaryCard
-          title="Total de Ganhos"
-          value={currentIncomeTotal}
-          previousValue={previousIncomeTotal}
+          title="Total de Receitas"
+          value={currentTotal}
+          previousValue={previousTotal}
           icon="income"
         />
         <ExpenseSummaryCard
-          title="Total de Gastos"
-          value={currentExpenseTotal}
-          previousValue={previousExpenseTotal}
-          icon="expense"
-        />
-        <ExpenseSummaryCard
-          title="Saldo Mensal"
-          value={balance}
-          previousValue={previousBalance}
+          title="Número de Receitas"
+          value={monthlyIncomes.length}
           icon="balance"
-          className={balance < 0 ? 'border-destructive/50' : 'border-success/50'}
         />
       </div>
 
-      {/* Charts */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <IncomeExpenseChart income={currentIncomeTotal} expense={currentExpenseTotal} />
-        <CategoryChart data={categoryTotals} total={currentExpenseTotal} />
-      </div>
+      {/* Income List */}
+      <IncomeList year={selectedYear} month={selectedMonth} />
 
-      {/* Recent Expenses */}
-      <RecentExpenses expenses={monthlyExpenses} />
-
-      {/* Expense Form */}
-      <ExpenseForm open={formOpen} onOpenChange={setFormOpen} />
+      {/* Income Form */}
+      <IncomeForm open={formOpen} onOpenChange={setFormOpen} />
     </div>
   );
 }
