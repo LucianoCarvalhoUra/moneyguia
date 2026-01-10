@@ -6,6 +6,7 @@ import {
   LayoutDashboard, 
   Receipt, 
   CreditCard, 
+  FileCheck, 
   Settings, 
   LogOut,
   Menu,
@@ -18,6 +19,7 @@ const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/expenses', label: 'Despesas', icon: Receipt },
   { path: '/accounts', label: 'Contas', icon: CreditCard },
+  { path: '/reconciliation', label: 'Conciliação', icon: FileCheck },
   { path: '/settings', label: 'Configurações', icon: Settings },
 ];
 
