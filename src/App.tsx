@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Expenses from "./pages/Expenses";
 import Accounts from "./pages/Accounts";
+import InvoiceReconciliation from "./pages/InvoiceReconciliation";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -57,6 +58,7 @@ const AppRoutes = () => (
     <Route path="/" element={<Index />} />
     <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
     <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
+    <Route path="/reconciliation" element={<ProtectedRoute><InvoiceReconciliation /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
