@@ -90,19 +90,25 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       }
 
       if (incomesRes.data) {
-        setIncomes(incomesRes.data.map(i => ({
-          id: i.id,
-          categoryId: i.category_id || '',
-          subcategoryId: i.subcategory_id || undefined,
-          title: i.title,
-          amount: Number(i.amount),
-          receiveDate: new Date(i.receive_date),
-          description: i.description || undefined,
-          isRecurring: i.is_recurring,
-          accountId: i.account_id || undefined,
-          userId: i.user_id,
-          createdAt: new Date(i.created_at),
-        })));
+        setIncomes(incomesRes.data.map(i => {
+          // Parse date string as local date to avoid timezone issues
+          const [year, month, day] = i.receive_date.split('-').map(Number);
+          const receiveDate = new Date(year, month - 1, day);
+          
+          return {
+            id: i.id,
+            categoryId: i.category_id || '',
+            subcategoryId: i.subcategory_id || undefined,
+            title: i.title,
+            amount: Number(i.amount),
+            receiveDate,
+            description: i.description || undefined,
+            isRecurring: i.is_recurring,
+            accountId: i.account_id || undefined,
+            userId: i.user_id,
+            createdAt: new Date(i.created_at),
+          };
+        }));
       }
     } catch (error) {
       console.error('Error fetching income data:', error);
@@ -181,19 +187,25 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     }
     
     if (data) {
-      const newIncomes = data.map(i => ({
-        id: i.id,
-        categoryId: i.category_id || '',
-        subcategoryId: i.subcategory_id || undefined,
-        title: i.title,
-        amount: Number(i.amount),
-        receiveDate: new Date(i.receive_date),
-        description: i.description || undefined,
-        isRecurring: i.is_recurring,
-        accountId: i.account_id || undefined,
-        userId: i.user_id,
-        createdAt: new Date(i.created_at),
-      }));
+      const newIncomes = data.map(i => {
+        // Parse date string as local date to avoid timezone issues
+        const [year, month, day] = i.receive_date.split('-').map(Number);
+        const receiveDate = new Date(year, month - 1, day);
+        
+        return {
+          id: i.id,
+          categoryId: i.category_id || '',
+          subcategoryId: i.subcategory_id || undefined,
+          title: i.title,
+          amount: Number(i.amount),
+          receiveDate,
+          description: i.description || undefined,
+          isRecurring: i.is_recurring,
+          accountId: i.account_id || undefined,
+          userId: i.user_id,
+          createdAt: new Date(i.created_at),
+        };
+      });
       setIncomes(prev => [...newIncomes, ...prev]);
     }
   };
