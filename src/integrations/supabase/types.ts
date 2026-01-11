@@ -226,6 +226,41 @@ export type Database = {
         }
         Relationships: []
       }
+      income_subcategories: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "income_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incomes: {
         Row: {
           account_id: string | null
@@ -236,6 +271,7 @@ export type Database = {
           id: string
           is_recurring: boolean
           receive_date: string
+          subcategory_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -249,6 +285,7 @@ export type Database = {
           id?: string
           is_recurring?: boolean
           receive_date: string
+          subcategory_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -262,6 +299,7 @@ export type Database = {
           id?: string
           is_recurring?: boolean
           receive_date?: string
+          subcategory_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -279,6 +317,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "income_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incomes_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "income_subcategories"
             referencedColumns: ["id"]
           },
         ]

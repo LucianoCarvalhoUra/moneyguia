@@ -26,7 +26,7 @@ interface IncomeListProps {
 }
 
 export default function IncomeList({ year, month }: IncomeListProps) {
-  const { getMonthlyIncomes, removeIncome, getIncomeCategoryById } = useIncome();
+  const { getMonthlyIncomes, removeIncome, getIncomeCategoryById, getIncomeSubcategoryById } = useIncome();
   const { accounts } = useFinance();
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [deletingIncomeId, setDeletingIncomeId] = useState<string | null>(null);
@@ -74,6 +74,7 @@ export default function IncomeList({ year, month }: IncomeListProps) {
         <CardContent className="space-y-3">
           {monthlyIncomes.map((income) => {
             const category = getIncomeCategoryById(income.categoryId);
+            const subcategory = income.subcategoryId ? getIncomeSubcategoryById(income.subcategoryId) : null;
             const accountName = getAccountName(income.accountId);
 
             return (
@@ -93,7 +94,10 @@ export default function IncomeList({ year, month }: IncomeListProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{category?.name || 'Sem categoria'}</span>
+                      <span>
+                        {category?.name || 'Sem categoria'}
+                        {subcategory && ` → ${subcategory.name}`}
+                      </span>
                       {accountName && (
                         <>
                           <span>•</span>
