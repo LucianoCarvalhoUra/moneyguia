@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { User, Shield, Loader2 } from 'lucide-react';
 import CategoryManager from '@/components/settings/CategoryManager';
+import IncomeCategoryManager from '@/components/settings/IncomeCategoryManager';
 import WhatsAppSettings from '@/components/settings/WhatsAppSettings';
-
 interface Profile {
   name: string;
   email: string;
@@ -83,8 +83,11 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      {/* Categories Manager */}
+      {/* Expense Categories Manager */}
       <CategoryManager />
+
+      {/* Income Categories Manager */}
+      <IncomeCategoryManager />
 
       {/* WhatsApp Notifications */}
       <WhatsAppSettings />

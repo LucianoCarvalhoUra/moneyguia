@@ -34,11 +34,12 @@ interface IncomeFormProps {
 }
 
 export default function IncomeForm({ open, onOpenChange, income }: IncomeFormProps) {
-  const { incomeCategories, addIncome, updateIncome } = useIncome();
+  const { incomeCategories, incomeSubcategories, getIncomeSubcategoriesByCategory, addIncome, updateIncome } = useIncome();
   const { accounts } = useFinance();
   const isEditing = !!income;
 
   const [categoryId, setCategoryId] = useState('');
+  const [subcategoryId, setSubcategoryId] = useState('');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [receiveDate, setReceiveDate] = useState<Date>(new Date());
@@ -46,8 +47,11 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const [isRecurring, setIsRecurring] = useState(false);
   const [accountId, setAccountId] = useState('');
 
+  const availableSubcategories = categoryId ? getIncomeSubcategoriesByCategory(categoryId) : [];
+
   const resetFormFields = () => {
     setCategoryId(incomeCategories.length > 0 ? incomeCategories[0].id : '');
+    setSubcategoryId('');
     setTitle('');
     setAmount('');
     setReceiveDate(new Date());
@@ -59,6 +63,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   useEffect(() => {
     if (income) {
       setCategoryId(income.categoryId || '');
+      setSubcategoryId(income.subcategoryId || '');
       setTitle(income.title || '');
       setAmount(income.amount?.toString() || '');
       setReceiveDate(income.receiveDate ? new Date(income.receiveDate) : new Date());
@@ -75,6 +80,13 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       setCategoryId(incomeCategories[0].id);
     }
   }, [incomeCategories, categoryId]);
+
+  // Reset subcategory when category changes
+  useEffect(() => {
+    if (!income) {
+      setSubcategoryId('');
+    }
+  }, [categoryId, income]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +109,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
 
     const incomeData = {
       categoryId,
+      subcategoryId: subcategoryId || undefined,
       title: title.trim(),
       amount: amountNumber,
       receiveDate,
@@ -157,6 +170,26 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
               </SelectContent>
             </Select>
           </div>
+
+          {/* Subcategory */}
+          {availableSubcategories.length > 0 && (
+            <div className="space-y-2">
+              <Label>Subcategoria (opcional)</Label>
+              <Select value={subcategoryId || "none"} onValueChange={(v) => setSubcategoryId(v === "none" ? "" : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma subcategoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {availableSubcategories.map((sub) => (
+                    <SelectItem key={sub.id} value={sub.id}>
+                      {sub.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Amount */}
           <div className="space-y-2">

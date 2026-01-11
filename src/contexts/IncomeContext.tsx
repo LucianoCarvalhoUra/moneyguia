@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Income, IncomeCategory, DEFAULT_INCOME_CATEGORIES } from '@/types/income';
+import { Income, IncomeCategory, IncomeSubcategory, DEFAULT_INCOME_CATEGORIES } from '@/types/income';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 interface IncomeContextType {
   incomes: Income[];
   incomeCategories: IncomeCategory[];
+  incomeSubcategories: IncomeSubcategory[];
   isLoading: boolean;
   addIncome: (income: Omit<Income, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
   updateIncome: (id: string, income: Partial<Income>) => Promise<void>;
@@ -14,10 +15,15 @@ interface IncomeContextType {
   addIncomeCategory: (category: Omit<IncomeCategory, 'id' | 'userId'>) => Promise<void>;
   updateIncomeCategory: (id: string, category: Partial<IncomeCategory>) => Promise<void>;
   removeIncomeCategory: (id: string) => Promise<void>;
+  addIncomeSubcategory: (subcategory: Omit<IncomeSubcategory, 'id' | 'userId'>) => Promise<void>;
+  updateIncomeSubcategory: (id: string, subcategory: Partial<IncomeSubcategory>) => Promise<void>;
+  removeIncomeSubcategory: (id: string) => Promise<void>;
+  getIncomeSubcategoriesByCategory: (categoryId: string) => IncomeSubcategory[];
   getMonthlyIncomes: (year: number, month: number) => Income[];
   getMonthlyIncomeTotal: (year: number, month: number) => number;
   getIncomeTotalByCategory: (year: number, month: number) => Record<string, number>;
   getIncomeCategoryById: (id: string) => IncomeCategory | undefined;
+  getIncomeSubcategoryById: (id: string) => IncomeSubcategory | undefined;
   refreshData: () => Promise<void>;
 }
 
@@ -27,6 +33,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [incomeCategories, setIncomeCategories] = useState<IncomeCategory[]>([]);
+  const [incomeSubcategories, setIncomeSubcategories] = useState<IncomeSubcategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -34,8 +41,9 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     
     setIsLoading(true);
     try {
-      const [categoriesRes, incomesRes] = await Promise.all([
+      const [categoriesRes, subcategoriesRes, incomesRes] = await Promise.all([
         supabase.from('income_categories').select('*').eq('user_id', user.id),
+        supabase.from('income_subcategories').select('*').eq('user_id', user.id),
         supabase.from('incomes').select('*').eq('user_id', user.id).order('receive_date', { ascending: false }),
       ]);
 
@@ -72,10 +80,20 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      if (subcategoriesRes.data) {
+        setIncomeSubcategories(subcategoriesRes.data.map(s => ({
+          id: s.id,
+          name: s.name,
+          categoryId: s.category_id,
+          userId: s.user_id,
+        })));
+      }
+
       if (incomesRes.data) {
         setIncomes(incomesRes.data.map(i => ({
           id: i.id,
           categoryId: i.category_id || '',
+          subcategoryId: i.subcategory_id || undefined,
           title: i.title,
           amount: Number(i.amount),
           receiveDate: new Date(i.receive_date),
@@ -100,6 +118,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     } else {
       setIncomes([]);
       setIncomeCategories([]);
+      setIncomeSubcategories([]);
     }
   }, [isAuthenticated, user, fetchData]);
 
@@ -109,6 +128,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     const incomesToInsert: Array<{
       user_id: string;
       category_id: string | null;
+      subcategory_id: string | null;
       title: string;
       amount: number;
       receive_date: string;
@@ -126,6 +146,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         incomesToInsert.push({
           user_id: user.id,
           category_id: income.categoryId || null,
+          subcategory_id: income.subcategoryId || null,
           title: income.title,
           amount: income.amount,
           receive_date: receiveDate.toISOString().split('T')[0],
@@ -138,6 +159,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       incomesToInsert.push({
         user_id: user.id,
         category_id: income.categoryId || null,
+        subcategory_id: income.subcategoryId || null,
         title: income.title,
         amount: income.amount,
         receive_date: income.receiveDate.toISOString().split('T')[0],
@@ -162,6 +184,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       const newIncomes = data.map(i => ({
         id: i.id,
         categoryId: i.category_id || '',
+        subcategoryId: i.subcategory_id || undefined,
         title: i.title,
         amount: Number(i.amount),
         receiveDate: new Date(i.receive_date),
@@ -179,6 +202,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     const updateData: Record<string, unknown> = {};
     
     if (incomeUpdate.categoryId !== undefined) updateData.category_id = incomeUpdate.categoryId || null;
+    if (incomeUpdate.subcategoryId !== undefined) updateData.subcategory_id = incomeUpdate.subcategoryId || null;
     if (incomeUpdate.title !== undefined) updateData.title = incomeUpdate.title;
     if (incomeUpdate.amount !== undefined) updateData.amount = incomeUpdate.amount;
     if (incomeUpdate.receiveDate !== undefined) updateData.receive_date = incomeUpdate.receiveDate.toISOString().split('T')[0];
@@ -287,6 +311,78 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     }
     
     setIncomeCategories(prev => prev.filter(c => c.id !== id));
+    // Also remove associated subcategories from state
+    setIncomeSubcategories(prev => prev.filter(s => s.categoryId !== id));
+  };
+
+  const addIncomeSubcategory = async (subcategory: Omit<IncomeSubcategory, 'id' | 'userId'>) => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('income_subcategories')
+      .insert({
+        user_id: user.id,
+        name: subcategory.name,
+        category_id: subcategory.categoryId,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      toast.error('Erro ao adicionar subcategoria de receita');
+      console.error(error);
+      return;
+    }
+    
+    if (data) {
+      setIncomeSubcategories(prev => [...prev, {
+        id: data.id,
+        name: data.name,
+        categoryId: data.category_id,
+        userId: data.user_id,
+      }]);
+    }
+  };
+
+  const updateIncomeSubcategory = async (id: string, subcategoryUpdate: Partial<IncomeSubcategory>) => {
+    const updateData: Record<string, unknown> = {};
+    
+    if (subcategoryUpdate.name !== undefined) updateData.name = subcategoryUpdate.name;
+    if (subcategoryUpdate.categoryId !== undefined) updateData.category_id = subcategoryUpdate.categoryId;
+
+    const { error } = await supabase
+      .from('income_subcategories')
+      .update(updateData)
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Erro ao atualizar subcategoria de receita');
+      console.error(error);
+      return;
+    }
+    
+    setIncomeSubcategories(prev => prev.map(s => 
+      s.id === id ? { ...s, ...subcategoryUpdate } : s
+    ));
+  };
+
+  const removeIncomeSubcategory = async (id: string) => {
+    const { error } = await supabase
+      .from('income_subcategories')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      toast.error('Erro ao remover subcategoria de receita');
+      console.error(error);
+      return;
+    }
+    
+    setIncomeSubcategories(prev => prev.filter(s => s.id !== id));
+  };
+
+  const getIncomeSubcategoriesByCategory = (categoryId: string) => {
+    return incomeSubcategories.filter(s => s.categoryId === categoryId);
   };
 
   const getMonthlyIncomes = (year: number, month: number) => {
@@ -313,6 +409,10 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     return incomeCategories.find((c) => c.id === id);
   };
 
+  const getIncomeSubcategoryById = (id: string) => {
+    return incomeSubcategories.find((s) => s.id === id);
+  };
+
   const refreshData = async () => {
     await fetchData();
   };
@@ -322,6 +422,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       value={{
         incomes,
         incomeCategories,
+        incomeSubcategories,
         isLoading,
         addIncome,
         updateIncome,
@@ -329,10 +430,15 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         addIncomeCategory,
         updateIncomeCategory,
         removeIncomeCategory,
+        addIncomeSubcategory,
+        updateIncomeSubcategory,
+        removeIncomeSubcategory,
+        getIncomeSubcategoriesByCategory,
         getMonthlyIncomes,
         getMonthlyIncomeTotal,
         getIncomeTotalByCategory,
         getIncomeCategoryById,
+        getIncomeSubcategoryById,
         refreshData,
       }}
     >
