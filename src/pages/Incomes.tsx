@@ -5,9 +5,13 @@ import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import IncomeForm from '@/components/income/IncomeForm';
 import IncomeList from '@/components/income/IncomeList';
 import ExpenseSummaryCard from '@/components/dashboard/ExpenseSummaryCard';
+import IncomeCategoryChart from '@/components/dashboard/IncomeCategoryChart';
+import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
+import { useFinance } from '@/contexts/FinanceContext';
 
 export default function Incomes() {
-  const { getMonthlyIncomeTotal, getMonthlyIncomes } = useIncome();
+  const { getMonthlyIncomeTotal, getMonthlyIncomes, getIncomeTotalByCategory } = useIncome();
+  const { getMonthlyTotal } = useFinance();
   const [formOpen, setFormOpen] = useState(false);
   
   const now = new Date();
@@ -15,10 +19,12 @@ export default function Incomes() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
 
   const currentTotal = getMonthlyIncomeTotal(selectedYear, selectedMonth);
+  const currentExpenseTotal = getMonthlyTotal(selectedYear, selectedMonth);
   const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
   const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
   const previousTotal = getMonthlyIncomeTotal(previousYear, previousMonth);
   const monthlyIncomes = getMonthlyIncomes(selectedYear, selectedMonth);
+  const incomeCategoryTotals = getIncomeTotalByCategory(selectedYear, selectedMonth);
 
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -83,6 +89,12 @@ export default function Incomes() {
           value={monthlyIncomes.length}
           icon="balance"
         />
+      </div>
+
+      {/* Charts */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <IncomeCategoryChart data={incomeCategoryTotals} total={currentTotal} />
+        <IncomeExpenseChart income={currentTotal} expense={currentExpenseTotal} />
       </div>
 
       {/* Income List */}

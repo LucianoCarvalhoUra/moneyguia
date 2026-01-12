@@ -97,10 +97,6 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       return;
     }
 
-    if (!title.trim()) {
-      toast.error('Informe um título');
-      return;
-    }
 
     if (!categoryId) {
       toast.error('Selecione uma categoria');
@@ -141,13 +137,12 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">Título</Label>
+            <Label htmlFor="title">Título (opcional)</Label>
             <Input
               id="title"
               placeholder="Ex: Salário Mensal"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              required
             />
           </div>
 
