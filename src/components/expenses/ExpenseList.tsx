@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
+import { useIncome } from '@/contexts/IncomeContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,11 +25,14 @@ import { ptBR } from 'date-fns/locale';
 import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Expense, PAYMENT_METHOD_LABELS } from '@/types/finance';
 import ExpenseForm from './ExpenseForm';
+import ExpenseCategoryChart from '@/components/dashboard/ExpenseCategoryChart';
+import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function ExpenseList() {
-  const { getMonthlyExpenses, removeExpense, getMonthlyTotal, getCategoryById } = useFinance();
+  const { getMonthlyExpenses, removeExpense, getMonthlyTotal, getCategoryById, getTotalByCategory } = useFinance();
+  const { getMonthlyIncomeTotal } = useIncome();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [formOpen, setFormOpen] = useState(false);
@@ -38,6 +42,8 @@ export default function ExpenseList() {
 
   const expenses = getMonthlyExpenses(selectedYear, selectedMonth);
   const total = getMonthlyTotal(selectedYear, selectedMonth);
+  const incomeTotal = getMonthlyIncomeTotal(selectedYear, selectedMonth);
+  const categoryTotals = getTotalByCategory(selectedYear, selectedMonth);
 
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -174,6 +180,12 @@ export default function ExpenseList() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <ExpenseCategoryChart data={categoryTotals} total={total} />
+        <IncomeExpenseChart income={incomeTotal} expense={total} />
+      </div>
 
       {/* Expense List */}
       <Card>

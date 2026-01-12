@@ -93,9 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      if (error.message.includes('already registered')) {
-        return { success: false, error: 'Este e-mail já está cadastrado' };
-      }
       return { success: false, error: error.message };
     }
 
