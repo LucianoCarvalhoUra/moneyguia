@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/select';
 import { Phone, Bell, Send, Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js';
+import { getUserFriendlyError } from '@/lib/errorMapper';
 
 interface NotificationSettings {
   id?: string;
@@ -68,12 +70,16 @@ export default function WhatsAppSettings() {
       return;
     }
 
-    // Basic phone validation
-    const phoneRegex = /^\+?[\d\s()-]{10,}$/;
-    if (!phoneRegex.test(settings.whatsapp_number.replace(/\s/g, ''))) {
-      toast.error('Número de WhatsApp inválido');
+    // Proper phone validation using libphonenumber-js
+    const phoneNumber = settings.whatsapp_number.trim();
+    if (!isValidPhoneNumber(phoneNumber)) {
+      toast.error('Número de WhatsApp inválido. Use o formato internacional (ex: +55 11 99999-9999)');
       return;
     }
+    
+    // Normalize phone number to E.164 format for storage
+    const parsedPhone = parsePhoneNumber(phoneNumber);
+    const normalizedPhone = parsedPhone ? parsedPhone.format('E.164') : phoneNumber;
 
     setIsSaving(true);
 
@@ -83,7 +89,7 @@ export default function WhatsAppSettings() {
         const { error } = await supabase
           .from('notification_settings')
           .update({
-            whatsapp_number: settings.whatsapp_number,
+            whatsapp_number: normalizedPhone,
             days_before_due: settings.days_before_due,
             is_enabled: settings.is_enabled,
           })
@@ -96,7 +102,7 @@ export default function WhatsAppSettings() {
           .from('notification_settings')
           .insert({
             user_id: user.id,
-            whatsapp_number: settings.whatsapp_number,
+            whatsapp_number: normalizedPhone,
             days_before_due: settings.days_before_due,
             is_enabled: settings.is_enabled,
           })
@@ -108,8 +114,8 @@ export default function WhatsAppSettings() {
       }
 
       toast.success('Configurações salvas com sucesso!');
-    } catch (error: any) {
-      toast.error('Erro ao salvar: ' + error.message);
+    } catch (error) {
+      toast.error(getUserFriendlyError(error));
     } finally {
       setIsSaving(false);
     }
