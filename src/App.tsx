@@ -13,6 +13,7 @@ import Expenses from "./pages/Expenses";
 import Incomes from "./pages/Incomes";
 import Accounts from "./pages/Accounts";
 import InvoiceReconciliation from "./pages/InvoiceReconciliation";
+import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -62,6 +63,7 @@ const AppRoutes = () => (
     <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />
     <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
     <Route path="/reconciliation" element={<ProtectedRoute><InvoiceReconciliation /></ProtectedRoute>} />
+    <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
