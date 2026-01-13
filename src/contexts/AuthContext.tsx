@@ -2,6 +2,33 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+// Map auth errors to user-friendly messages
+function getAuthErrorMessage(error: { message: string }): string {
+  console.error('Auth error:', error);
+  
+  const message = error.message.toLowerCase();
+  
+  if (message.includes('invalid login credentials')) {
+    return 'E-mail ou senha incorretos';
+  }
+  if (message.includes('email not confirmed')) {
+    return 'E-mail ainda não foi confirmado. Verifique sua caixa de entrada.';
+  }
+  if (message.includes('user already registered')) {
+    return 'Este e-mail já está cadastrado';
+  }
+  if (message.includes('password')) {
+    return 'A senha deve ter pelo menos 6 caracteres';
+  }
+  if (message.includes('email')) {
+    return 'E-mail inválido';
+  }
+  if (message.includes('rate limit') || message.includes('too many requests')) {
+    return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+  }
+  
+  return 'Erro ao processar sua solicitação. Tente novamente.';
+}
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -69,10 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        return { success: false, error: 'E-mail ou senha incorretos' };
-      }
-      return { success: false, error: error.message };
+      return { success: false, error: getAuthErrorMessage(error) };
     }
 
     return { success: true };
@@ -93,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: getAuthErrorMessage(error) };
     }
 
     return { success: true };
