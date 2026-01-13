@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PAYMENT_METHOD_LABELS } from '@/types/finance';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { Document, Packer, Paragraph, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, TextRun, WidthType, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 
@@ -183,46 +183,89 @@ export default function Reports() {
     doc.save(`relatorio-financeiro-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
-  const exportToExcel = () => {
-    const wsData = [
-      ['Relatório Financeiro'],
-      [`Usuário: ${user?.email || 'N/A'}`],
-      [`Período: ${getReportPeriod()}`],
-      [`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`],
-      [],
-      ['Resumo'],
-      ['Total de Receitas', totals.income],
-      ['Total de Despesas', totals.expense],
-      ['Saldo', totals.balance],
-      [],
-      ['Data', 'Tipo', 'Descrição', 'Categoria', 'Forma de Pagamento', 'Valor'],
-      ...filteredData.map(item => [
+  const exportToExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'MeuBudget';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Relatório');
+
+    // Set column widths
+    worksheet.columns = [
+      { width: 15 },
+      { width: 12 },
+      { width: 35 },
+      { width: 22 },
+      { width: 20 },
+      { width: 18 },
+    ];
+
+    // Header rows
+    worksheet.addRow(['Relatório Financeiro']);
+    worksheet.addRow([`Usuário: ${user?.email || 'N/A'}`]);
+    worksheet.addRow([`Período: ${getReportPeriod()}`]);
+    worksheet.addRow([`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`]);
+    worksheet.addRow([]);
+    
+    // Summary section
+    worksheet.addRow(['Resumo']);
+    const incomeRow = worksheet.addRow(['Total de Receitas', totals.income]);
+    incomeRow.getCell(2).numFmt = '"R$" #,##0.00';
+    incomeRow.getCell(1).font = { color: { argb: 'FF228B22' } };
+    
+    const expenseRow = worksheet.addRow(['Total de Despesas', totals.expense]);
+    expenseRow.getCell(2).numFmt = '"R$" #,##0.00';
+    expenseRow.getCell(1).font = { color: { argb: 'FFDC143C' } };
+    
+    const balanceRow = worksheet.addRow(['Saldo', totals.balance]);
+    balanceRow.getCell(2).numFmt = '"R$" #,##0.00';
+    balanceRow.getCell(1).font = { bold: true };
+    
+    worksheet.addRow([]);
+    
+    // Table header
+    const headerRow = worksheet.addRow(['Data', 'Tipo', 'Descrição', 'Categoria', 'Forma de Pagamento', 'Valor']);
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF3B82F6' },
+      };
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    // Data rows
+    filteredData.forEach(item => {
+      const row = worksheet.addRow([
         format(parseISO(item.date), 'dd/MM/yyyy'),
         item.type === 'income' ? 'Receita' : 'Despesa',
         item.description,
         item.category,
         item.paymentMethod,
         item.amount,
-      ]),
-      [],
-      ['', '', '', '', 'Total Geral:', totals.income - totals.expense],
-    ];
+      ]);
+      row.getCell(6).numFmt = '"R$" #,##0.00';
+    });
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 12 },
-      { wch: 10 },
-      { wch: 30 },
-      { wch: 20 },
-      { wch: 18 },
-      { wch: 15 },
-    ];
+    // Total row
+    worksheet.addRow([]);
+    const totalRow = worksheet.addRow(['', '', '', '', 'Total Geral:', totals.income - totals.expense]);
+    totalRow.getCell(5).font = { bold: true };
+    totalRow.getCell(6).font = { bold: true };
+    totalRow.getCell(6).numFmt = '"R$" #,##0.00';
+    totalRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF0F0F0' },
+      };
+    });
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
-    XLSX.writeFile(wb, `relatorio-financeiro-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    // Generate file and download
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `relatorio-financeiro-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   const exportToWord = async () => {
