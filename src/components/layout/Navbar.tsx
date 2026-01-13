@@ -11,7 +11,8 @@ import {
   LogOut,
   Menu,
   X,
-  TrendingUp
+  TrendingUp,
+  FileText
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,7 @@ const navItems = [
   { path: '/incomes', label: 'Receitas', icon: TrendingUp },
   { path: '/accounts', label: 'Contas', icon: CreditCard },
   { path: '/reconciliation', label: 'Conciliação', icon: FileCheck },
+  { path: '/reports', label: 'Relatórios', icon: FileText },
   { path: '/settings', label: 'Configurações', icon: Settings },
 ];
 
