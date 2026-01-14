@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useIncome } from '@/contexts/IncomeContext';
 import { useFinance } from '@/contexts/FinanceContext';
 import { Button } from '@/components/ui/button';
@@ -22,13 +22,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, RefreshCw, ArrowUpDown } from 'lucide-react';
 import { Income } from '@/types/income';
 import IncomeForm from '@/components/income/IncomeForm';
 import IncomeCategoryChart from '@/components/dashboard/IncomeCategoryChart';
 import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+
+type SortField = 'receiveDate' | 'category' | 'subcategory' | 'amount';
+type SortOrder = 'asc' | 'desc';
 
 export default function Incomes() {
   const { 
@@ -47,6 +50,8 @@ export default function Incomes() {
   const [editingIncome, setEditingIncome] = useState<Income | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>('receiveDate');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   const incomes = getMonthlyIncomes(selectedYear, selectedMonth);
   const total = getMonthlyIncomeTotal(selectedYear, selectedMonth);
@@ -117,9 +122,34 @@ export default function Incomes() {
     return account ? `${account.bankName}` : null;
   };
 
-  const sortedIncomes = [...incomes].sort(
-    (a, b) => new Date(a.receiveDate).getTime() - new Date(b.receiveDate).getTime()
-  );
+  const sortedIncomes = useMemo(() => {
+    return [...incomes].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'receiveDate':
+          comparison = new Date(a.receiveDate).getTime() - new Date(b.receiveDate).getTime();
+          break;
+        case 'category':
+          const catA = getIncomeCategoryById(a.categoryId)?.name || '';
+          const catB = getIncomeCategoryById(b.categoryId)?.name || '';
+          comparison = catA.localeCompare(catB);
+          break;
+        case 'subcategory':
+          const subA = a.subcategoryId ? getIncomeSubcategoryById(a.subcategoryId)?.name || '' : '';
+          const subB = b.subcategoryId ? getIncomeSubcategoryById(b.subcategoryId)?.name || '' : '';
+          comparison = subA.localeCompare(subB);
+          break;
+        case 'amount':
+          comparison = a.amount - b.amount;
+          break;
+        default:
+          comparison = new Date(a.receiveDate).getTime() - new Date(b.receiveDate).getTime();
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [incomes, sortField, sortOrder, getIncomeCategoryById, getIncomeSubcategoryById]);
 
   return (
     <div className="space-y-6">
@@ -203,8 +233,31 @@ export default function Incomes() {
 
       {/* Income List */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-lg">Lista de Receitas</CardTitle>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+            <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="receiveDate">Data de Recebimento</SelectItem>
+                <SelectItem value="category">Categoria</SelectItem>
+                <SelectItem value="subcategory">Subcategoria</SelectItem>
+                <SelectItem value="amount">Valor</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as SortOrder)}>
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="asc">Crescente</SelectItem>
+                <SelectItem value="desc">Decrescente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           {sortedIncomes.length === 0 ? (

@@ -27,14 +27,15 @@ interface ReportItem {
   type: 'income' | 'expense';
   description: string;
   category: string;
+  subcategory: string;
   paymentMethod: string;
   amount: number;
 }
 
 export default function Reports() {
   const { user } = useAuth();
-  const { expenses, categories, getCategoryById } = useFinance();
-  const { incomes, incomeCategories, getIncomeCategoryById } = useIncome();
+  const { expenses, categories, getCategoryById, getSubcategoryById } = useFinance();
+  const { incomes, incomeCategories, getIncomeCategoryById, getIncomeSubcategoryById } = useIncome();
 
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -59,6 +60,7 @@ export default function Reports() {
         const expenseDate = new Date(expense.expenseDate);
         if (expenseDate >= start && expenseDate <= end) {
           const category = getCategoryById(expense.categoryId || '');
+          const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
           
           if (selectedCategory !== 'all' && expense.categoryId !== selectedCategory) return;
           if (selectedPaymentMethod !== 'all' && expense.paymentMethod !== selectedPaymentMethod) return;
@@ -69,6 +71,7 @@ export default function Reports() {
             type: 'expense',
             description: expense.description,
             category: category?.name || 'Sem categoria',
+            subcategory: subcategory?.name || '-',
             paymentMethod: PAYMENT_METHOD_LABELS[expense.paymentMethod] || expense.paymentMethod,
             amount: expense.amount,
           });
@@ -82,6 +85,7 @@ export default function Reports() {
         const incomeDate = new Date(income.receiveDate);
         if (incomeDate >= start && incomeDate <= end) {
           const category = getIncomeCategoryById(income.categoryId || '');
+          const subcategory = income.subcategoryId ? getIncomeSubcategoryById(income.subcategoryId) : null;
           
           if (selectedCategory !== 'all' && income.categoryId !== selectedCategory) return;
           // Income doesn't have payment method, skip this filter for incomes
@@ -93,6 +97,7 @@ export default function Reports() {
             type: 'income',
             description: income.title,
             category: category?.name || 'Sem categoria',
+            subcategory: subcategory?.name || '-',
             paymentMethod: '-',
             amount: income.amount,
           });
@@ -101,7 +106,7 @@ export default function Reports() {
     }
 
     return items.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
-  }, [expenses, incomes, startDate, endDate, recordType, selectedCategory, selectedPaymentMethod, getCategoryById, getIncomeCategoryById]);
+  }, [expenses, incomes, startDate, endDate, recordType, selectedCategory, selectedPaymentMethod, getCategoryById, getSubcategoryById, getIncomeCategoryById, getIncomeSubcategoryById]);
 
   const totals = useMemo(() => {
     const incomeTotal = filteredData.filter(i => i.type === 'income').reduce((sum, i) => sum + i.amount, 0);
@@ -151,15 +156,16 @@ export default function Reports() {
       item.type === 'income' ? 'Receita' : 'Despesa',
       item.description,
       item.category,
+      item.subcategory,
       item.paymentMethod,
       formatCurrency(item.amount),
     ]);
 
     autoTable(doc, {
       startY: 95,
-      head: [['Data', 'Tipo', 'Descrição', 'Categoria', 'Forma Pagamento', 'Valor']],
+      head: [['Data', 'Tipo', 'Descrição', 'Categoria', 'Subcategoria', 'Forma Pagto', 'Valor']],
       body: tableData,
-      foot: [['', '', '', '', 'Total Geral:', formatCurrency(totals.income - totals.expense)]],
+      foot: [['', '', '', '', '', 'Total Geral:', formatCurrency(totals.income - totals.expense)]],
       styles: { fontSize: 8, cellPadding: 3 },
       headStyles: { fillColor: [59, 130, 246], textColor: 255 },
       footStyles: { fillColor: [240, 240, 240], textColor: [40, 40, 40], fontStyle: 'bold' },
@@ -194,10 +200,11 @@ export default function Reports() {
     worksheet.columns = [
       { width: 15 },
       { width: 12 },
-      { width: 35 },
-      { width: 22 },
-      { width: 20 },
+      { width: 30 },
       { width: 18 },
+      { width: 16 },
+      { width: 16 },
+      { width: 16 },
     ];
 
     // Header rows
@@ -224,7 +231,7 @@ export default function Reports() {
     worksheet.addRow([]);
     
     // Table header
-    const headerRow = worksheet.addRow(['Data', 'Tipo', 'Descrição', 'Categoria', 'Forma de Pagamento', 'Valor']);
+    const headerRow = worksheet.addRow(['Data', 'Tipo', 'Descrição', 'Categoria', 'Subcategoria', 'Forma de Pagamento', 'Valor']);
     headerRow.eachCell((cell) => {
       cell.fill = {
         type: 'pattern',
@@ -242,18 +249,19 @@ export default function Reports() {
         item.type === 'income' ? 'Receita' : 'Despesa',
         item.description,
         item.category,
+        item.subcategory,
         item.paymentMethod,
         item.amount,
       ]);
-      row.getCell(6).numFmt = '"R$" #,##0.00';
+      row.getCell(7).numFmt = '"R$" #,##0.00';
     });
 
     // Total row
     worksheet.addRow([]);
-    const totalRow = worksheet.addRow(['', '', '', '', 'Total Geral:', totals.income - totals.expense]);
-    totalRow.getCell(5).font = { bold: true };
+    const totalRow = worksheet.addRow(['', '', '', '', '', 'Total Geral:', totals.income - totals.expense]);
     totalRow.getCell(6).font = { bold: true };
-    totalRow.getCell(6).numFmt = '"R$" #,##0.00';
+    totalRow.getCell(7).font = { bold: true };
+    totalRow.getCell(7).numFmt = '"R$" #,##0.00';
     totalRow.eachCell((cell) => {
       cell.fill = {
         type: 'pattern',
@@ -271,7 +279,7 @@ export default function Reports() {
   const exportToWord = async () => {
     const tableRows = [
       new DocxTableRow({
-        children: ['Data', 'Tipo', 'Descrição', 'Categoria', 'Forma Pagamento', 'Valor'].map(text => 
+        children: ['Data', 'Tipo', 'Descrição', 'Categoria', 'Subcategoria', 'Forma Pagto', 'Valor'].map(text => 
           new DocxTableCell({
             children: [new Paragraph({ children: [new TextRun({ text, bold: true })] })],
             shading: { fill: '3B82F6' },
@@ -285,6 +293,7 @@ export default function Reports() {
             item.type === 'income' ? 'Receita' : 'Despesa',
             item.description,
             item.category,
+            item.subcategory,
             item.paymentMethod,
             formatCurrency(item.amount),
           ].map(text => 
@@ -296,7 +305,7 @@ export default function Reports() {
       ),
       new DocxTableRow({
         children: [
-          ...['', '', '', '', 'Total Geral:'].map(text => 
+          ...['', '', '', '', '', 'Total Geral:'].map(text => 
             new DocxTableCell({
               children: [new Paragraph({ children: [new TextRun({ text, bold: true })] })],
               shading: { fill: 'F0F0F0' },
@@ -527,6 +536,7 @@ export default function Reports() {
                     <TableHead>Tipo</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
+                    <TableHead>Subcategoria</TableHead>
                     <TableHead>Forma de Pagamento</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                   </TableRow>
@@ -546,6 +556,7 @@ export default function Reports() {
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">{item.description}</TableCell>
                       <TableCell>{item.category}</TableCell>
+                      <TableCell>{item.subcategory}</TableCell>
                       <TableCell>{item.paymentMethod}</TableCell>
                       <TableCell className={`text-right font-medium ${
                         item.type === 'income' ? 'text-green-600' : 'text-red-600'

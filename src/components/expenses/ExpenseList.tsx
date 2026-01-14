@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { Expense, PAYMENT_METHOD_LABELS } from '@/types/finance';
 import ExpenseForm from './ExpenseForm';
 import ExpenseCategoryChart from '@/components/dashboard/ExpenseCategoryChart';
@@ -30,8 +30,11 @@ import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'paymentMethod' | 'amount';
+type SortOrder = 'asc' | 'desc';
+
 export default function ExpenseList() {
-  const { getMonthlyExpenses, removeExpense, getMonthlyTotal, getCategoryById, getTotalByCategory } = useFinance();
+  const { getMonthlyExpenses, removeExpense, getMonthlyTotal, getCategoryById, getSubcategoryById, getTotalByCategory } = useFinance();
   const { getMonthlyIncomeTotal } = useIncome();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -39,6 +42,8 @@ export default function ExpenseList() {
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>('dueDate');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   const expenses = getMonthlyExpenses(selectedYear, selectedMonth);
   const total = getMonthlyTotal(selectedYear, selectedMonth);
@@ -103,9 +108,40 @@ export default function ExpenseList() {
     }
   };
 
-  const sortedExpenses = [...expenses].sort(
-    (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-  );
+  const sortedExpenses = useMemo(() => {
+    return [...expenses].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'dueDate':
+          comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          break;
+        case 'expenseDate':
+          comparison = new Date(a.expenseDate).getTime() - new Date(b.expenseDate).getTime();
+          break;
+        case 'category':
+          const catA = getCategoryById(a.categoryId)?.name || '';
+          const catB = getCategoryById(b.categoryId)?.name || '';
+          comparison = catA.localeCompare(catB);
+          break;
+        case 'subcategory':
+          const subA = a.subcategoryId ? getSubcategoryById(a.subcategoryId)?.name || '' : '';
+          const subB = b.subcategoryId ? getSubcategoryById(b.subcategoryId)?.name || '' : '';
+          comparison = subA.localeCompare(subB);
+          break;
+        case 'paymentMethod':
+          comparison = (PAYMENT_METHOD_LABELS[a.paymentMethod] || '').localeCompare(PAYMENT_METHOD_LABELS[b.paymentMethod] || '');
+          break;
+        case 'amount':
+          comparison = a.amount - b.amount;
+          break;
+        default:
+          comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [expenses, sortField, sortOrder, getCategoryById, getSubcategoryById]);
 
   return (
     <div className="space-y-6">
@@ -189,8 +225,33 @@ export default function ExpenseList() {
 
       {/* Expense List */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-lg">Lista de Despesas</CardTitle>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+            <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dueDate">Data de Vencimento</SelectItem>
+                <SelectItem value="expenseDate">Data de Pagamento</SelectItem>
+                <SelectItem value="category">Categoria</SelectItem>
+                <SelectItem value="subcategory">Subcategoria</SelectItem>
+                <SelectItem value="paymentMethod">Forma de Pagamento</SelectItem>
+                <SelectItem value="amount">Valor</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as SortOrder)}>
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="asc">Crescente</SelectItem>
+                <SelectItem value="desc">Decrescente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           {sortedExpenses.length === 0 ? (
@@ -202,7 +263,7 @@ export default function ExpenseList() {
             <div className="space-y-3">
               {sortedExpenses.map((expense) => {
                 const category = getCategoryById(expense.categoryId);
-                
+                const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
                 return (
                   <div
                     key={expense.id}
@@ -222,6 +283,9 @@ export default function ExpenseList() {
                         {expense.description || category?.name || 'Sem categoria'}
                       </p>
                       <p className="text-sm text-muted-foreground">
+                        {category?.name || 'Sem categoria'}
+                        {subcategory && ` → ${subcategory.name}`}
+                        {' • '}
                         {PAYMENT_METHOD_LABELS[expense.paymentMethod]} •{' '}
                         Vence em {format(new Date(expense.dueDate), "dd 'de' MMMM", { locale: ptBR })}
                       </p>
