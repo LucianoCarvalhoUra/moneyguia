@@ -29,6 +29,7 @@ interface FinanceContextType {
   getTotalByCategory: (year: number, month: number) => Record<string, number>;
   getMonthlyTotal: (year: number, month: number) => number;
   getCategoryById: (id: string) => Category | undefined;
+  getSubcategoryById: (id: string) => Subcategory | undefined;
   getSubcategoriesByCategory: (categoryId: string) => Subcategory[];
   refreshData: () => Promise<void>;
 }
@@ -578,6 +579,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return categories.find((c) => c.id === id);
   };
 
+  const getSubcategoryById = (id: string) => {
+    return subcategories.find((s) => s.id === id);
+  };
+
   const getSubcategoriesByCategory = (categoryId: string) => {
     return subcategories.filter((s) => s.categoryId === categoryId);
   };
@@ -613,6 +618,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         getTotalByCategory,
         getMonthlyTotal,
         getCategoryById,
+        getSubcategoryById,
         getSubcategoriesByCategory,
         refreshData,
       }}
