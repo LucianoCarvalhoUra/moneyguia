@@ -131,6 +131,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       isRecurring,
       installments: isRecurring ? parseInt(installments) : undefined,
       observation,
+      isPaid: expense?.isPaid ?? false,
     };
 
     if (isEditing && expense) {

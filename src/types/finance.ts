@@ -46,6 +46,7 @@ export interface Expense {
   installments?: number;
   currentInstallment?: number;
   observation?: string;
+  isPaid: boolean;
   userId: string;
   createdAt: Date;
 }

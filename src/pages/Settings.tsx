@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { User, Shield, Loader2 } from 'lucide-react';
 import CategoryManager from '@/components/settings/CategoryManager';
 import IncomeCategoryManager from '@/components/settings/IncomeCategoryManager';
-import WhatsAppSettings from '@/components/settings/WhatsAppSettings';
+import NotificationSettings from '@/components/settings/NotificationSettings';
 interface Profile {
   name: string;
   email: string;
@@ -89,8 +89,8 @@ export default function Settings() {
       {/* Income Categories Manager */}
       <IncomeCategoryManager />
 
-      {/* WhatsApp Notifications */}
-      <WhatsAppSettings />
+      {/* Notification Settings */}
+      <NotificationSettings />
 
       {/* Security */}
       <Card>

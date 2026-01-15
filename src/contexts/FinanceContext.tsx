@@ -136,6 +136,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           installments: e.installments || undefined,
           currentInstallment: e.current_installment || undefined,
           observation: e.observation || undefined,
+          isPaid: e.is_paid ?? false,
           userId: e.user_id,
           createdAt: new Date(e.created_at),
         })));
@@ -348,7 +349,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
     
     if (data) {
-      const newExpenses = data.map(e => ({
+      const newExpenses: Expense[] = data.map(e => ({
         id: e.id,
         categoryId: e.category_id || '',
         subcategoryId: e.subcategory_id || undefined,
@@ -363,6 +364,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         installments: e.installments || undefined,
         currentInstallment: e.current_installment || undefined,
         observation: e.observation || undefined,
+        isPaid: e.is_paid ?? false,
         userId: e.user_id,
         createdAt: new Date(e.created_at),
       }));
@@ -386,6 +388,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     if (expenseUpdate.installments !== undefined) updateData.installments = expenseUpdate.installments || null;
     if (expenseUpdate.currentInstallment !== undefined) updateData.current_installment = expenseUpdate.currentInstallment || null;
     if (expenseUpdate.observation !== undefined) updateData.observation = expenseUpdate.observation || null;
+    if (expenseUpdate.isPaid !== undefined) updateData.is_paid = expenseUpdate.isPaid;
 
     const { error } = await supabase
       .from('expenses')
