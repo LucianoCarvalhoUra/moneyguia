@@ -117,6 +117,7 @@ export type Database = {
           expense_date: string
           id: string
           installments: number | null
+          is_paid: boolean
           is_recurring: boolean
           observation: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -136,6 +137,7 @@ export type Database = {
           expense_date: string
           id?: string
           installments?: number | null
+          is_paid?: boolean
           is_recurring?: boolean
           observation?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
@@ -155,6 +157,7 @@ export type Database = {
           expense_date?: string
           id?: string
           installments?: number | null
+          is_paid?: boolean
           is_recurring?: boolean
           observation?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
@@ -332,8 +335,12 @@ export type Database = {
         Row: {
           created_at: string
           days_before_due: number
+          email_enabled: boolean
           id: string
           is_enabled: boolean
+          last_notification_date: string | null
+          notification_email: string | null
+          send_once_only: boolean
           updated_at: string
           user_id: string
           whatsapp_number: string | null
@@ -341,8 +348,12 @@ export type Database = {
         Insert: {
           created_at?: string
           days_before_due?: number
+          email_enabled?: boolean
           id?: string
           is_enabled?: boolean
+          last_notification_date?: string | null
+          notification_email?: string | null
+          send_once_only?: boolean
           updated_at?: string
           user_id: string
           whatsapp_number?: string | null
@@ -350,8 +361,12 @@ export type Database = {
         Update: {
           created_at?: string
           days_before_due?: number
+          email_enabled?: boolean
           id?: string
           is_enabled?: boolean
+          last_notification_date?: string | null
+          notification_email?: string | null
+          send_once_only?: boolean
           updated_at?: string
           user_id?: string
           whatsapp_number?: string | null
