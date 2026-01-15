@@ -22,19 +22,20 @@ import {
 } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, Check, Clock } from 'lucide-react';
 import { Expense, PAYMENT_METHOD_LABELS } from '@/types/finance';
 import ExpenseForm from './ExpenseForm';
 import ExpenseCategoryChart from '@/components/dashboard/ExpenseCategoryChart';
 import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'paymentMethod' | 'amount';
 type SortOrder = 'asc' | 'desc';
 
 export default function ExpenseList() {
-  const { getMonthlyExpenses, removeExpense, getMonthlyTotal, getCategoryById, getSubcategoryById, getTotalByCategory } = useFinance();
+  const { getMonthlyExpenses, removeExpense, updateExpense, getMonthlyTotal, getCategoryById, getSubcategoryById, getTotalByCategory } = useFinance();
   const { getMonthlyIncomeTotal } = useIncome();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -106,6 +107,11 @@ export default function ExpenseList() {
     if (!open) {
       setEditingExpense(undefined);
     }
+  };
+
+  const handleTogglePaid = async (expense: Expense) => {
+    await updateExpense(expense.id, { isPaid: !expense.isPaid });
+    toast.success(expense.isPaid ? 'Despesa marcada como pendente' : 'Despesa marcada como paga');
   };
 
   const sortedExpenses = useMemo(() => {
@@ -267,7 +273,10 @@ export default function ExpenseList() {
                 return (
                   <div
                     key={expense.id}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
+                    className={cn(
+                      "flex items-center gap-4 p-4 rounded-xl hover:bg-muted transition-colors group",
+                      expense.isPaid ? "bg-muted/30 opacity-75" : "bg-muted/50"
+                    )}
                   >
                     <div
                       className={cn(
@@ -279,9 +288,25 @@ export default function ExpenseList() {
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">
-                        {expense.description || category?.name || 'Sem categoria'}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className={cn(
+                          "font-medium text-foreground truncate",
+                          expense.isPaid && "line-through text-muted-foreground"
+                        )}>
+                          {expense.description || category?.name || 'Sem categoria'}
+                        </p>
+                        {expense.isPaid ? (
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-xs">
+                            <Check className="w-3 h-3 mr-1" />
+                            Pago
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Pendente
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {category?.name || 'Sem categoria'}
                         {subcategory && ` → ${subcategory.name}`}
@@ -297,12 +322,23 @@ export default function ExpenseList() {
                     </div>
 
                     <div className="text-right">
-                      <p className="font-bold text-foreground text-lg">
+                      <p className={cn(
+                        "font-bold text-lg",
+                        expense.isPaid ? "text-muted-foreground" : "text-foreground"
+                      )}>
                         {formatCurrency(expense.amount)}
                       </p>
                     </div>
 
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleTogglePaid(expense)}
+                        title={expense.isPaid ? "Marcar como pendente" : "Marcar como pago"}
+                      >
+                        <Check className={cn("w-4 h-4", expense.isPaid ? "text-success" : "text-muted-foreground")} />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"

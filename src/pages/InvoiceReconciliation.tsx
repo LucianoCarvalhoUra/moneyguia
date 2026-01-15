@@ -132,6 +132,7 @@ export default function InvoiceReconciliation() {
         observation: difference > 0 
           ? 'Despesa não registrada identificada na conciliação' 
           : 'Valor registrado a maior identificado na conciliação',
+        isPaid: false,
       });
 
       toast.success('Ajuste de fatura registrado com sucesso!');
