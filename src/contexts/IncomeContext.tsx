@@ -104,6 +104,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             receiveDate,
             description: i.description || undefined,
             isRecurring: i.is_recurring,
+            isReceived: i.is_received ?? false,
             accountId: i.account_id || undefined,
             userId: i.user_id,
             createdAt: new Date(i.created_at),
@@ -140,6 +141,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       receive_date: string;
       description: string | null;
       is_recurring: boolean;
+      is_received: boolean;
       account_id: string | null;
     }> = [];
 
@@ -158,6 +160,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           receive_date: receiveDate.toISOString().split('T')[0],
           description: income.description || null,
           is_recurring: income.isRecurring,
+          is_received: income.isReceived ?? false,
           account_id: income.accountId || null,
         });
       }
@@ -171,6 +174,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         receive_date: income.receiveDate.toISOString().split('T')[0],
         description: income.description || null,
         is_recurring: income.isRecurring,
+        is_received: income.isReceived ?? false,
         account_id: income.accountId || null,
       });
     }
@@ -201,6 +205,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           receiveDate,
           description: i.description || undefined,
           isRecurring: i.is_recurring,
+          isReceived: i.is_received ?? false,
           accountId: i.account_id || undefined,
           userId: i.user_id,
           createdAt: new Date(i.created_at),
@@ -220,6 +225,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     if (incomeUpdate.receiveDate !== undefined) updateData.receive_date = incomeUpdate.receiveDate.toISOString().split('T')[0];
     if (incomeUpdate.description !== undefined) updateData.description = incomeUpdate.description || null;
     if (incomeUpdate.isRecurring !== undefined) updateData.is_recurring = incomeUpdate.isRecurring;
+    if (incomeUpdate.isReceived !== undefined) updateData.is_received = incomeUpdate.isReceived;
     if (incomeUpdate.accountId !== undefined) updateData.account_id = incomeUpdate.accountId || null;
 
     const { error } = await supabase

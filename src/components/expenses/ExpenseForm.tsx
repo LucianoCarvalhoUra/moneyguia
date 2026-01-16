@@ -50,6 +50,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const [accountId, setAccountId] = useState('');
   const [cardId, setCardId] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
   const [installments, setInstallments] = useState('1');
   const [observation, setObservation] = useState('');
 
@@ -64,6 +65,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     setAccountId('');
     setCardId('');
     setIsRecurring(false);
+    setIsPaid(false);
     setInstallments('1');
     setObservation('');
   };
@@ -81,6 +83,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       setAccountId(expense.accountId || '');
       setCardId(expense.cardId || '');
       setIsRecurring(expense.isRecurring || false);
+      setIsPaid(expense.isPaid || false);
       setInstallments(expense.installments?.toString() || '1');
       setObservation(expense.observation || '');
     } else if (open) {
@@ -131,7 +134,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       isRecurring,
       installments: isRecurring ? parseInt(installments) : undefined,
       observation,
-      isPaid: expense?.isPaid ?? false,
+      isPaid,
     };
 
     if (isEditing && expense) {
@@ -317,6 +320,23 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
               </Select>
             </div>
           )}
+
+          {/* Paid Status */}
+          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+            <div>
+              <Label htmlFor="isPaid" className="font-medium">
+                Despesa Paga?
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Marque se já pagou esta despesa
+              </p>
+            </div>
+            <Switch
+              id="isPaid"
+              checked={isPaid}
+              onCheckedChange={setIsPaid}
+            />
+          </div>
 
           {/* Recurring */}
           <div className="flex items-center justify-between p-4 bg-muted rounded-lg">

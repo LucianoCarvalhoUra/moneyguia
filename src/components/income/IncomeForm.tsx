@@ -45,6 +45,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const [receiveDate, setReceiveDate] = useState<Date>(new Date());
   const [description, setDescription] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
+  const [isReceived, setIsReceived] = useState(false);
   const [accountId, setAccountId] = useState('');
 
   const availableSubcategories = categoryId ? getIncomeSubcategoriesByCategory(categoryId) : [];
@@ -57,6 +58,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     setReceiveDate(new Date());
     setDescription('');
     setIsRecurring(false);
+    setIsReceived(false);
     setAccountId('');
   };
 
@@ -69,6 +71,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       setReceiveDate(income.receiveDate ? new Date(income.receiveDate) : new Date());
       setDescription(income.description || '');
       setIsRecurring(income.isRecurring || false);
+      setIsReceived(income.isReceived || false);
       setAccountId(income.accountId || '');
     } else if (open) {
       resetFormFields();
@@ -111,6 +114,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       receiveDate,
       description: description || undefined,
       isRecurring,
+      isReceived,
       accountId: accountId || undefined,
     };
 
@@ -240,6 +244,23 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
               </Select>
             </div>
           )}
+
+          {/* Received Status */}
+          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+            <div>
+              <Label htmlFor="received" className="font-medium">
+                Receita Recebida?
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Marque se já recebeu este valor
+              </p>
+            </div>
+            <Switch
+              id="received"
+              checked={isReceived}
+              onCheckedChange={setIsReceived}
+            />
+          </div>
 
           {/* Recurring */}
           <div className="flex items-center justify-between p-4 bg-muted rounded-lg">

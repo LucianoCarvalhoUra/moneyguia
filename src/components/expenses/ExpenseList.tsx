@@ -324,7 +324,11 @@ export default function ExpenseList() {
                     <div className="text-right">
                       <p className={cn(
                         "font-bold text-lg",
-                        expense.isPaid ? "text-muted-foreground" : "text-foreground"
+                        expense.isPaid 
+                          ? "text-muted-foreground" 
+                          : !expense.isPaid && new Date(expense.dueDate) < new Date() 
+                            ? "text-destructive" 
+                            : "text-foreground"
                       )}>
                         {formatCurrency(expense.amount)}
                       </p>
