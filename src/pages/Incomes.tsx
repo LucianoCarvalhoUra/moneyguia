@@ -22,7 +22,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, RefreshCw, ArrowUpDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, RefreshCw, ArrowUpDown, Check, Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Income } from '@/types/income';
 import IncomeForm from '@/components/income/IncomeForm';
 import IncomeCategoryChart from '@/components/dashboard/IncomeCategoryChart';
@@ -36,7 +37,8 @@ type SortOrder = 'asc' | 'desc';
 export default function Incomes() {
   const { 
     getMonthlyIncomes, 
-    removeIncome, 
+    removeIncome,
+    updateIncome,
     getMonthlyIncomeTotal, 
     getIncomeTotalByCategory,
     getIncomeCategoryById,
@@ -114,6 +116,11 @@ export default function Incomes() {
     if (!open) {
       setEditingIncome(undefined);
     }
+  };
+
+  const handleToggleReceived = async (income: Income) => {
+    await updateIncome(income.id, { isReceived: !income.isReceived });
+    toast.success(income.isReceived ? 'Receita marcada como pendente' : 'Receita marcada como recebida');
   };
 
   const getAccountName = (accountId?: string) => {
@@ -275,7 +282,10 @@ export default function Incomes() {
                 return (
                   <div
                     key={income.id}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
+                    className={cn(
+                      "flex items-center gap-4 p-4 rounded-xl hover:bg-muted transition-colors group",
+                      income.isReceived ? "bg-muted/30 opacity-75" : "bg-muted/50"
+                    )}
                   >
                     <div
                       className={cn(
@@ -287,9 +297,23 @@ export default function Incomes() {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground truncate">
+                        <p className={cn(
+                          "font-medium text-foreground truncate",
+                          income.isReceived && "line-through text-muted-foreground"
+                        )}>
                           {income.title || category?.name || 'Sem categoria'}
                         </p>
+                        {income.isReceived ? (
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-xs">
+                            <Check className="w-3 h-3 mr-1" />
+                            Recebido
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Pendente
+                          </Badge>
+                        )}
                         {income.isRecurring && (
                           <RefreshCw className="w-3 h-3 text-muted-foreground" />
                         )}
@@ -299,7 +323,7 @@ export default function Incomes() {
                         {subcategory && ` → ${subcategory.name}`}
                         {accountName && ` • ${accountName}`}
                         {' • '}
-                        Recebido em {format(new Date(income.receiveDate), "dd 'de' MMMM", { locale: ptBR })}
+                        Recebimento em {format(new Date(income.receiveDate), "dd 'de' MMMM", { locale: ptBR })}
                       </p>
                       {income.description && (
                         <p className="text-xs text-muted-foreground mt-1 truncate">
@@ -309,12 +333,27 @@ export default function Incomes() {
                     </div>
 
                     <div className="text-right">
-                      <p className="font-bold text-success text-lg">
+                      <p className={cn(
+                        "font-bold text-lg",
+                        income.isReceived 
+                          ? "text-muted-foreground" 
+                          : !income.isReceived && new Date(income.receiveDate) < new Date() 
+                            ? "text-destructive" 
+                            : "text-success"
+                      )}>
                         +{formatCurrency(income.amount)}
                       </p>
                     </div>
 
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleToggleReceived(income)}
+                        title={income.isReceived ? "Marcar como pendente" : "Marcar como recebido"}
+                      >
+                        <Check className={cn("w-4 h-4", income.isReceived ? "text-success" : "text-muted-foreground")} />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"

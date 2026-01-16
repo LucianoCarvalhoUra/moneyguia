@@ -272,6 +272,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_received: boolean
           is_recurring: boolean
           receive_date: string
           subcategory_id: string | null
@@ -286,6 +287,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_received?: boolean
           is_recurring?: boolean
           receive_date: string
           subcategory_id?: string | null
@@ -300,6 +302,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_received?: boolean
           is_recurring?: boolean
           receive_date?: string
           subcategory_id?: string | null

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp } from 'lucide-react';
 import ExpenseSummaryCard from '@/components/dashboard/ExpenseSummaryCard';
 import CategoryChart from '@/components/dashboard/CategoryChart';
 import RecentExpenses from '@/components/dashboard/RecentExpenses';
@@ -10,17 +11,34 @@ import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
 
 export default function Dashboard() {
-  const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses } = useFinance();
-  const { getMonthlyIncomeTotal } = useIncome();
+  const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses } = useFinance();
+  const { getMonthlyIncomeTotal, incomes } = useIncome();
   const [formOpen, setFormOpen] = useState(false);
   
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
 
+  // Get monthly data
+  const monthlyExpenses = getMonthlyExpenses(selectedYear, selectedMonth);
+  const monthlyIncomes = incomes.filter((i) => {
+    const date = new Date(i.receiveDate);
+    return date.getFullYear() === selectedYear && date.getMonth() === selectedMonth;
+  });
+
+  // Total expenses/incomes (projected - all items)
   const currentExpenseTotal = getMonthlyTotal(selectedYear, selectedMonth);
   const currentIncomeTotal = getMonthlyIncomeTotal(selectedYear, selectedMonth);
-  const balance = currentIncomeTotal - currentExpenseTotal;
+  const projectedBalance = currentIncomeTotal - currentExpenseTotal;
+  
+  // Real balance (only paid expenses and received incomes)
+  const paidExpensesTotal = monthlyExpenses
+    .filter(e => e.isPaid)
+    .reduce((acc, e) => acc + e.amount, 0);
+  const receivedIncomesTotal = monthlyIncomes
+    .filter(i => i.isReceived)
+    .reduce((acc, i) => acc + i.amount, 0);
+  const realBalance = receivedIncomesTotal - paidExpensesTotal;
   
   const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
   const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
@@ -29,7 +47,13 @@ export default function Dashboard() {
   const previousBalance = previousIncomeTotal - previousExpenseTotal;
   
   const categoryTotals = getTotalByCategory(selectedYear, selectedMonth);
-  const monthlyExpenses = getMonthlyExpenses(selectedYear, selectedMonth);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(amount);
+  };
 
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -96,12 +120,53 @@ export default function Dashboard() {
           icon="expense"
         />
         <ExpenseSummaryCard
-          title="Saldo Mensal"
-          value={balance}
+          title="Saldo Previsto"
+          value={projectedBalance}
           previousValue={previousBalance}
           icon="balance"
-          className={balance < 0 ? 'border-destructive/50' : 'border-success/50'}
+          className={projectedBalance < 0 ? 'border-destructive/50' : 'border-success/50'}
         />
+      </div>
+
+      {/* Real Balance Card */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className={realBalance >= 0 ? 'border-success/50 bg-success/5' : 'border-destructive/50 bg-destructive/5'}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-xl ${realBalance >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
+                <Wallet className={`w-6 h-6 ${realBalance >= 0 ? 'text-success' : 'text-destructive'}`} />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Saldo Real</p>
+                <p className={`text-2xl font-bold ${realBalance >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {formatCurrency(realBalance)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Receitas recebidas ({formatCurrency(receivedIncomesTotal)}) - Despesas pagas ({formatCurrency(paidExpensesTotal)})
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={projectedBalance >= 0 ? 'border-primary/50 bg-primary/5' : 'border-warning/50 bg-warning/5'}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-xl ${projectedBalance >= 0 ? 'bg-primary/10' : 'bg-warning/10'}`}>
+                <TrendingUp className={`w-6 h-6 ${projectedBalance >= 0 ? 'text-primary' : 'text-warning'}`} />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Saldo Previsto (Final do Mês)</p>
+                <p className={`text-2xl font-bold ${projectedBalance >= 0 ? 'text-primary' : 'text-warning'}`}>
+                  {formatCurrency(projectedBalance)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Todas receitas ({formatCurrency(currentIncomeTotal)}) - Todas despesas ({formatCurrency(currentExpenseTotal)})
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Charts */}
