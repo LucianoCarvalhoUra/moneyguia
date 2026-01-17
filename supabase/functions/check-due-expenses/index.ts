@@ -11,6 +11,8 @@ interface NotificationSettings {
   user_id: string;
   email_enabled: boolean;
   notification_email: string | null;
+  sender_email: string | null;
+  sender_name: string | null;
   days_before_due: number;
   send_once_only: boolean;
   last_notification_date: string | null;
@@ -114,17 +116,9 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("BREVO_API_KEY not configured");
     }
 
-    // Parse request body for sender configuration (optional)
-    let senderEmail = "noreply@seudominio.com";
-    let senderName = "Controle Financeiro";
-    
-    try {
-      const body = await req.json();
-      if (body.senderEmail) senderEmail = body.senderEmail;
-      if (body.senderName) senderName = body.senderName;
-    } catch {
-      // No body or invalid JSON, use defaults
-    }
+    // Default sender configuration (can be overridden by user settings)
+    const defaultSenderEmail = "noreply@seudominio.com";
+    const defaultSenderName = "Controle Financeiro";
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -288,14 +282,18 @@ const handler = async (req: Request): Promise<Response> => {
       `;
 
       try {
+        // Use user's sender configuration or defaults
+        const userSenderEmail = settings.sender_email || defaultSenderEmail;
+        const userSenderName = settings.sender_name || defaultSenderName;
+
         const emailResponse = await sendBrevoEmail(
           brevoApiKey,
           settings.notification_email,
           userName,
           `⚠️ Lembrete: Você tem ${expenses.length} despesa(s) próxima(s) do vencimento!`,
           emailHtml,
-          senderEmail,
-          senderName
+          userSenderEmail,
+          userSenderName
         );
 
         console.log(`Email sent to ${settings.notification_email} via Brevo:`, emailResponse);

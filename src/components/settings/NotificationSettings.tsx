@@ -23,6 +23,8 @@ interface NotificationSettingsData {
   id?: string;
   whatsapp_number: string;
   notification_email: string;
+  sender_email: string;
+  sender_name: string;
   days_before_due: number;
   is_enabled: boolean;
   email_enabled: boolean;
@@ -34,6 +36,8 @@ export default function NotificationSettings() {
   const [settings, setSettings] = useState<NotificationSettingsData>({
     whatsapp_number: '',
     notification_email: '',
+    sender_email: '',
+    sender_name: 'Controle Financeiro',
     days_before_due: 3,
     is_enabled: false,
     email_enabled: true,
@@ -63,6 +67,8 @@ export default function NotificationSettings() {
         id: data.id,
         whatsapp_number: data.whatsapp_number || '',
         notification_email: data.notification_email || user.email || '',
+        sender_email: data.sender_email || '',
+        sender_name: data.sender_name || 'Controle Financeiro',
         days_before_due: data.days_before_due,
         is_enabled: data.is_enabled,
         email_enabled: data.email_enabled ?? true,
@@ -114,6 +120,8 @@ export default function NotificationSettings() {
       const dataToSave = {
         whatsapp_number: normalizedPhone || null,
         notification_email: settings.notification_email || null,
+        sender_email: settings.sender_email || null,
+        sender_name: settings.sender_name || 'Controle Financeiro',
         days_before_due: settings.days_before_due,
         is_enabled: settings.is_enabled,
         email_enabled: settings.email_enabled,
@@ -282,15 +290,46 @@ export default function NotificationSettings() {
             </div>
             
             {settings.email_enabled && (
-              <div className="space-y-2">
-                <Label htmlFor="email">Endereço de E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={settings.notification_email}
-                  onChange={(e) => setSettings(prev => ({ ...prev, notification_email: e.target.value }))}
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail para Receber Alertas</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={settings.notification_email}
+                    onChange={(e) => setSettings(prev => ({ ...prev, notification_email: e.target.value }))}
+                  />
+                </div>
+                
+                <div className="p-3 bg-muted/50 rounded-lg space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Configuração do Remetente (Brevo)
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="sender-email">E-mail Remetente (verificado no Brevo)</Label>
+                    <Input
+                      id="sender-email"
+                      type="email"
+                      placeholder="noreply@seudominio.com"
+                      value={settings.sender_email}
+                      onChange={(e) => setSettings(prev => ({ ...prev, sender_email: e.target.value }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Use o e-mail que você verificou no painel do Brevo
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sender-name">Nome do Remetente</Label>
+                    <Input
+                      id="sender-name"
+                      type="text"
+                      placeholder="Controle Financeiro"
+                      value={settings.sender_name}
+                      onChange={(e) => setSettings(prev => ({ ...prev, sender_name: e.target.value }))}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>
