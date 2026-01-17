@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +37,12 @@ interface Profile {
   email: string | null;
 }
 
+interface BrevoEmailResponse {
+  messageId?: string;
+  code?: string;
+  message?: string;
+}
+
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   account: "Conta Bancária",
   pix: "PIX",
@@ -56,18 +61,70 @@ const formatDate = (dateStr: string): string => {
   return date.toLocaleDateString("pt-BR");
 };
 
+// Send email using Brevo Transactional Email API
+async function sendBrevoEmail(
+  apiKey: string,
+  to: string,
+  toName: string,
+  subject: string,
+  htmlContent: string,
+  senderEmail: string,
+  senderName: string
+): Promise<BrevoEmailResponse> {
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "accept": "application/json",
+      "api-key": apiKey,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: {
+        name: senderName,
+        email: senderEmail,
+      },
+      to: [
+        {
+          email: to,
+          name: toName,
+        },
+      ],
+      subject: subject,
+      htmlContent: htmlContent,
+    }),
+  });
+
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.message || `Brevo API error: ${response.status}`);
+  }
+  
+  return data;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY not configured");
+    const brevoApiKey = Deno.env.get("BREVO_API_KEY");
+    if (!brevoApiKey) {
+      throw new Error("BREVO_API_KEY not configured");
     }
 
-    const resend = new Resend(resendApiKey);
+    // Parse request body for sender configuration (optional)
+    let senderEmail = "noreply@seudominio.com";
+    let senderName = "Controle Financeiro";
+    
+    try {
+      const body = await req.json();
+      if (body.senderEmail) senderEmail = body.senderEmail;
+      if (body.senderName) senderName = body.senderName;
+    } catch {
+      // No body or invalid JSON, use defaults
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -104,7 +161,7 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
 
-      // Skip if no email configured
+      // Skip if no email configured - get email dynamically from notification_email field
       if (!settings.notification_email) {
         results.push({ userId: settings.user_id, emailsSent: 0, error: "No email configured" });
         continue;
@@ -162,14 +219,20 @@ const handler = async (req: Request): Promise<Response> => {
       // Calculate total pending amount
       const totalAmount = expenses.reduce((sum: number, e: Expense) => sum + Number(e.amount), 0);
 
-      // Build expense list HTML (simplified format as requested)
+      // Build expense list HTML with Category, Name, Payment Type, and Due Date
       const expenseListHtml = expenses
         .map((expense: Expense) => {
           const categoryName = expense.category_id ? categoriesMap[expense.category_id] || "Sem categoria" : "Sem categoria";
+          const paymentLabel = PAYMENT_METHOD_LABELS[expense.payment_method] || expense.payment_method;
+          
           return `
-            <li style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-              <strong>${expense.description}</strong> - ${formatCurrency(expense.amount)} - Vence em ${formatDate(expense.due_date)} (${categoryName})
-            </li>
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <td style="padding: 12px; text-align: left;">${categoryName}</td>
+              <td style="padding: 12px; text-align: left; font-weight: 600;">${expense.description}</td>
+              <td style="padding: 12px; text-align: left;">${paymentLabel}</td>
+              <td style="padding: 12px; text-align: right; font-weight: bold; color: #dc2626;">${formatCurrency(expense.amount)}</td>
+              <td style="padding: 12px; text-align: center;">${formatDate(expense.due_date)}</td>
+            </tr>
           `;
         })
         .join("");
@@ -181,18 +244,29 @@ const handler = async (req: Request): Promise<Response> => {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 20px; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0; text-align: center;">⚠️ Lembrete: Você tem ${expenses.length} despesa(s) próxima(s) do vencimento!</h1>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+          <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 25px; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; text-align: center; font-size: 22px;">⚠️ Lembrete: Você tem ${expenses.length} despesa(s) próxima(s) do vencimento!</h1>
           </div>
           
-          <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+          <div style="background: #ffffff; padding: 25px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
             <p style="margin-top: 0; font-size: 16px;">Olá, <strong>${userName}</strong>!</p>
             <p>Identificamos que as seguintes contas precisam da sua atenção:</p>
             
-            <ul style="list-style: none; padding: 0; margin: 20px 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              ${expenseListHtml}
-            </ul>
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background: #fafafa; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              <thead>
+                <tr style="background: #374151; color: white;">
+                  <th style="padding: 12px; text-align: left; font-weight: 600;">Categoria</th>
+                  <th style="padding: 12px; text-align: left; font-weight: 600;">Nome da Despesa</th>
+                  <th style="padding: 12px; text-align: left; font-weight: 600;">Tipo de Pagamento</th>
+                  <th style="padding: 12px; text-align: right; font-weight: 600;">Valor</th>
+                  <th style="padding: 12px; text-align: center; font-weight: 600;">Vencimento</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${expenseListHtml}
+              </tbody>
+            </table>
             
             <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin: 20px 0;">
               <p style="margin: 0; font-size: 18px; font-weight: bold; color: #92400e;">
@@ -214,14 +288,17 @@ const handler = async (req: Request): Promise<Response> => {
       `;
 
       try {
-        const emailResponse = await resend.emails.send({
-          from: "Controle Financeiro <onboarding@resend.dev>",
-          to: [settings.notification_email],
-          subject: `⚠️ Lembrete: Você tem ${expenses.length} despesa(s) próxima(s) do vencimento!`,
-          html: emailHtml,
-        });
+        const emailResponse = await sendBrevoEmail(
+          brevoApiKey,
+          settings.notification_email,
+          userName,
+          `⚠️ Lembrete: Você tem ${expenses.length} despesa(s) próxima(s) do vencimento!`,
+          emailHtml,
+          senderEmail,
+          senderName
+        );
 
-        console.log(`Email sent to ${settings.notification_email}:`, emailResponse);
+        console.log(`Email sent to ${settings.notification_email} via Brevo:`, emailResponse);
 
         // Update last notification date
         await supabase
