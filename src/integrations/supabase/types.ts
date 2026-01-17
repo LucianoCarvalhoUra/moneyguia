@@ -344,6 +344,8 @@ export type Database = {
           last_notification_date: string | null
           notification_email: string | null
           send_once_only: boolean
+          sender_email: string | null
+          sender_name: string | null
           updated_at: string
           user_id: string
           whatsapp_number: string | null
@@ -357,6 +359,8 @@ export type Database = {
           last_notification_date?: string | null
           notification_email?: string | null
           send_once_only?: boolean
+          sender_email?: string | null
+          sender_name?: string | null
           updated_at?: string
           user_id: string
           whatsapp_number?: string | null
@@ -370,6 +374,8 @@ export type Database = {
           last_notification_date?: string | null
           notification_email?: string | null
           send_once_only?: boolean
+          sender_email?: string | null
+          sender_name?: string | null
           updated_at?: string
           user_id?: string
           whatsapp_number?: string | null
