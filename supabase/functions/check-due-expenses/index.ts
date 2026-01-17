@@ -32,6 +32,12 @@ interface Category {
   name: string;
 }
 
+interface Profile {
+  user_id: string;
+  name: string | null;
+  email: string | null;
+}
+
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   account: "Conta Bancária",
   pix: "PIX",
@@ -104,19 +110,19 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
 
-      // Calculate date range for alerts
+      // Calculate date range for alerts (today to today + days_before_due)
       const alertDate = new Date(today);
       alertDate.setDate(alertDate.getDate() + settings.days_before_due);
       const alertDateStr = alertDate.toISOString().split("T")[0];
 
-      // Get unpaid expenses within the alert window
+      // Get unpaid expenses within the alert window (is_paid = false)
       const { data: expenses, error: expensesError } = await supabase
         .from("expenses")
         .select("id, description, amount, due_date, payment_method, category_id, user_id")
         .eq("user_id", settings.user_id)
         .eq("is_paid", false)
-        .lte("due_date", alertDateStr)
         .gte("due_date", todayStr)
+        .lte("due_date", alertDateStr)
         .order("due_date", { ascending: true });
 
       if (expensesError) {
@@ -128,6 +134,15 @@ const handler = async (req: Request): Promise<Response> => {
         results.push({ userId: settings.user_id, emailsSent: 0 });
         continue;
       }
+
+      // Get user profile for personalized greeting
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_id, name, email")
+        .eq("user_id", settings.user_id)
+        .single();
+
+      const userName = (profile as Profile | null)?.name || "Usuário";
 
       // Get categories for the expenses
       const categoryIds = [...new Set(expenses.map((e) => e.category_id).filter(Boolean))];
@@ -144,25 +159,20 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
 
-      // Build expense list HTML
+      // Calculate total pending amount
+      const totalAmount = expenses.reduce((sum: number, e: Expense) => sum + Number(e.amount), 0);
+
+      // Build expense list HTML (simplified format as requested)
       const expenseListHtml = expenses
         .map((expense: Expense) => {
           const categoryName = expense.category_id ? categoriesMap[expense.category_id] || "Sem categoria" : "Sem categoria";
-          const paymentLabel = PAYMENT_METHOD_LABELS[expense.payment_method] || expense.payment_method;
-
           return `
-            <tr>
-              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${expense.description}</td>
-              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${categoryName}</td>
-              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">${formatCurrency(expense.amount)}</td>
-              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${paymentLabel}</td>
-              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${formatDate(expense.due_date)}</td>
-            </tr>
+            <li style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+              <strong>${expense.description}</strong> - ${formatCurrency(expense.amount)} - Vence em ${formatDate(expense.due_date)} (${categoryName})
+            </li>
           `;
         })
         .join("");
-
-      const totalAmount = expenses.reduce((sum: number, e: Expense) => sum + Number(e.amount), 0);
 
       const emailHtml = `
         <!DOCTYPE html>
@@ -172,41 +182,31 @@ const handler = async (req: Request): Promise<Response> => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0; text-align: center;">⚠️ Lembrete de Vencimento</h1>
+          <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 20px; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; text-align: center;">⚠️ Lembrete: Você tem ${expenses.length} despesa(s) próxima(s) do vencimento!</h1>
           </div>
           
           <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
-            <p style="margin-top: 0;">Olá!</p>
-            <p>Esta é uma notificação do seu <strong>Controle Financeiro</strong>. As seguintes despesas estão próximas do vencimento:</p>
+            <p style="margin-top: 0; font-size: 16px;">Olá, <strong>${userName}</strong>!</p>
+            <p>Identificamos que as seguintes contas precisam da sua atenção:</p>
             
-            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-              <thead>
-                <tr style="background: #f3f4f6;">
-                  <th style="padding: 12px; text-align: left; font-weight: 600;">Despesa</th>
-                  <th style="padding: 12px; text-align: left; font-weight: 600;">Categoria</th>
-                  <th style="padding: 12px; text-align: left; font-weight: 600;">Valor</th>
-                  <th style="padding: 12px; text-align: left; font-weight: 600;">Pagamento</th>
-                  <th style="padding: 12px; text-align: left; font-weight: 600;">Vencimento</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${expenseListHtml}
-              </tbody>
-              <tfoot>
-                <tr style="background: #f3f4f6;">
-                  <td colspan="2" style="padding: 12px; font-weight: bold;">Total</td>
-                  <td colspan="3" style="padding: 12px; font-weight: bold; color: #dc2626;">${formatCurrency(totalAmount)}</td>
-                </tr>
-              </tfoot>
-            </table>
+            <ul style="list-style: none; padding: 0; margin: 20px 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              ${expenseListHtml}
+            </ul>
             
-            <p style="color: #6b7280; font-size: 14px;">
-              Por favor, ignore este e-mail caso o pagamento já tenha sido processado.
+            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin: 20px 0;">
+              <p style="margin: 0; font-size: 18px; font-weight: bold; color: #92400e;">
+                💰 Total Pendente no Período: <span style="color: #dc2626;">${formatCurrency(totalAmount)}</span>
+              </p>
+            </div>
+            
+            <p style="color: #4b5563; font-size: 14px; background: #e5e7eb; padding: 12px; border-radius: 6px;">
+              📱 Acesse o app para marcar como pago após realizar a transação.
             </p>
             
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
               <p>Este é um e-mail automático enviado pelo seu sistema de Controle Financeiro.</p>
+              <p>Por favor, ignore este e-mail caso o pagamento já tenha sido processado.</p>
             </div>
           </div>
         </body>
@@ -217,7 +217,7 @@ const handler = async (req: Request): Promise<Response> => {
         const emailResponse = await resend.emails.send({
           from: "Controle Financeiro <onboarding@resend.dev>",
           to: [settings.notification_email],
-          subject: `⚠️ Lembrete de Vencimento: ${expenses.length} despesa(s) próxima(s) do vencimento`,
+          subject: `⚠️ Lembrete: Você tem ${expenses.length} despesa(s) próxima(s) do vencimento!`,
           html: emailHtml,
         });
 
