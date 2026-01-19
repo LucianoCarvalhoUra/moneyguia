@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { User, Shield, Loader2 } from 'lucide-react';
+import { User, Shield, Loader2, ShieldCheck } from 'lucide-react';
 import CategoryManager from '@/components/settings/CategoryManager';
 import IncomeCategoryManager from '@/components/settings/IncomeCategoryManager';
 import NotificationSettings from '@/components/settings/NotificationSettings';
+import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
+import { useAdminCheck } from '@/hooks/useAdminCheck';
+
 interface Profile {
   name: string;
   email: string;
@@ -16,6 +20,7 @@ interface Profile {
 
 export default function Settings() {
   const { user } = useAuth();
+  const { isAdmin, isLoading: isAdminLoading } = useAdminCheck();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -103,7 +108,7 @@ export default function Settings() {
             Opções de segurança da conta
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="p-4 rounded-lg bg-muted/50">
             <p className="text-sm text-muted-foreground mb-3">
               Para alterar sua senha ou outras configurações de segurança,
@@ -113,8 +118,39 @@ export default function Settings() {
               Alterar Senha (em breve)
             </Button>
           </div>
+          
+          <div className="border-t pt-4">
+            <h4 className="font-medium text-destructive mb-2">Zona de Perigo</h4>
+            <p className="text-sm text-muted-foreground mb-3">
+              Ações irreversíveis para sua conta.
+            </p>
+            <DeleteProfileDialog />
+          </div>
         </CardContent>
       </Card>
+
+      {/* Admin Link - Only visible to admins */}
+      {!isAdminLoading && isAdmin && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+              Administração
+            </CardTitle>
+            <CardDescription>
+              Você tem acesso ao painel administrativo
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link to="/admin">
+              <Button className="gap-2">
+                <ShieldCheck className="w-4 h-4" />
+                Acessar Painel Admin
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

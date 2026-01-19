@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { Button } from '@/components/ui/button';
 import { 
   Wallet, 
@@ -12,7 +13,8 @@ import {
   Menu,
   X,
   TrendingUp,
-  FileText
+  FileText,
+  ShieldCheck
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -29,8 +31,14 @@ const navItems = [
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { isAdmin } = useAdminCheck();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Add admin link to nav items if user is admin
+  const allNavItems = isAdmin 
+    ? [...navItems, { path: '/admin', label: 'Admin', icon: ShieldCheck }]
+    : navItems;
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
@@ -46,7 +54,7 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => (
+            {allNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -54,7 +62,8 @@ export default function Navbar() {
                   'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                   location.pathname === item.path
                     ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+                  item.path === '/admin' && 'text-primary hover:text-primary'
                 )}
               >
                 <item.icon className="w-4 h-4" />
@@ -91,7 +100,7 @@ export default function Navbar() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t animate-slide-up">
             <div className="flex flex-col gap-2">
-              {navItems.map((item) => (
+              {allNavItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
@@ -100,7 +109,8 @@ export default function Navbar() {
                     'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
                     location.pathname === item.path
                       ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+                    item.path === '/admin' && 'text-primary hover:text-primary'
                   )}
                 >
                   <item.icon className="w-5 h-5" />
