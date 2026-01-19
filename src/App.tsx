@@ -15,6 +15,7 @@ import Accounts from "./pages/Accounts";
 import InvoiceReconciliation from "./pages/InvoiceReconciliation";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,7 @@ const AppRoutes = () => (
     <Route path="/reconciliation" element={<ProtectedRoute><InvoiceReconciliation /></ProtectedRoute>} />
     <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+    <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
