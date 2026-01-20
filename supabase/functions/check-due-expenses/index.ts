@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import nodemailer from "npm:nodemailer@6.9.13";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,12 +40,6 @@ interface Profile {
   email: string | null;
 }
 
-interface BrevoEmailResponse {
-  messageId?: string;
-  code?: string;
-  message?: string;
-}
-
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   account: "Conta Bancária",
   pix: "PIX",
@@ -63,46 +58,37 @@ const formatDate = (dateStr: string): string => {
   return date.toLocaleDateString("pt-BR");
 };
 
-// Send email using Brevo Transactional Email API
-async function sendBrevoEmail(
-  apiKey: string,
+// Send email using SMTP
+async function sendSmtpEmail(
   to: string,
-  toName: string,
   subject: string,
   htmlContent: string,
   senderEmail: string,
   senderName: string
-): Promise<BrevoEmailResponse> {
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      "accept": "application/json",
-      "api-key": apiKey,
-      "content-type": "application/json",
+): Promise<any> {
+  const smtpHost = Deno.env.get("SMTP_HOST");
+  const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "587");
+  const smtpUser = Deno.env.get("SMTP_USER");
+  const smtpPass = Deno.env.get("SMTP_PASS");
+
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465, // true for 465, false for other ports
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
     },
-    body: JSON.stringify({
-      sender: {
-        name: senderName,
-        email: senderEmail,
-      },
-      to: [
-        {
-          email: to,
-          name: toName,
-        },
-      ],
-      subject: subject,
-      htmlContent: htmlContent,
-    }),
   });
 
-  const data = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(data.message || `Brevo API error: ${response.status}`);
-  }
-  
-  return data;
+  const info = await transporter.sendMail({
+    from: `"${senderName}" <${senderEmail}>`, // sender address
+    to: to, // list of receivers
+    subject: subject, // Subject line
+    html: htmlContent, // html body
+  });
+
+  return info;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -111,13 +97,15 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const brevoApiKey = Deno.env.get("BREVO_API_KEY");
-    if (!brevoApiKey) {
-      throw new Error("BREVO_API_KEY not configured");
+    const smtpUser = Deno.env.get("SMTP_USER");
+    const smtpPass = Deno.env.get("SMTP_PASS");
+    
+    if (!smtpUser || !smtpPass) {
+      throw new Error("SMTP credentials not configured");
     }
 
     // Default sender configuration (can be overridden by user settings)
-    const defaultSenderEmail = "noreply@seudominio.com";
+    const defaultSenderEmail = smtpUser;
     const defaultSenderName = "Controle Financeiro";
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -286,17 +274,15 @@ const handler = async (req: Request): Promise<Response> => {
         const userSenderEmail = settings.sender_email || defaultSenderEmail;
         const userSenderName = settings.sender_name || defaultSenderName;
 
-        const emailResponse = await sendBrevoEmail(
-          brevoApiKey,
+        const emailResponse = await sendSmtpEmail(
           settings.notification_email,
-          userName,
           `⚠️ Lembrete: Você tem ${expenses.length} despesa(s) próxima(s) do vencimento!`,
           emailHtml,
           userSenderEmail,
           userSenderName
         );
 
-        console.log(`Email sent to ${settings.notification_email} via Brevo:`, emailResponse);
+        console.log(`Email sent to ${settings.notification_email} via SMTP:`, emailResponse);
 
         // Update last notification date
         await supabase

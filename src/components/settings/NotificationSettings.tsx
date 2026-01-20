@@ -304,10 +304,10 @@ export default function NotificationSettings() {
                 
                 <div className="p-3 bg-muted/50 rounded-lg space-y-3">
                   <p className="text-sm font-medium text-muted-foreground">
-                    Configuração do Remetente (Brevo)
+                    Configuração do Remetente
                   </p>
                   <div className="space-y-2">
-                    <Label htmlFor="sender-email">E-mail Remetente (verificado no Brevo)</Label>
+                    <Label htmlFor="sender-email">E-mail Remetente</Label>
                     <Input
                       id="sender-email"
                       type="email"
@@ -316,7 +316,7 @@ export default function NotificationSettings() {
                       onChange={(e) => setSettings(prev => ({ ...prev, sender_email: e.target.value }))}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Use o e-mail que você verificou no painel do Brevo
+                      E-mail que aparecerá como remetente
                     </p>
                   </div>
                   <div className="space-y-2">
