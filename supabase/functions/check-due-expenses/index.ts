@@ -92,6 +92,8 @@ async function sendSmtpEmail(
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log('Função de e-mail iniciada...');
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -309,10 +311,16 @@ const handler = async (req: Request): Promise<Response> => {
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error in check-due-expenses:", error);
+    console.error("Erro detalhado na Edge Function:", error);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
     );
   }
 };

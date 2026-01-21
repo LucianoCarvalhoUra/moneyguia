@@ -98,8 +98,9 @@ export default function Admin() {
 
   const handleTestEmail = async () => {
     setIsTesting(true);
+    console.log('Chamando Edge Function...');
     try {
-      const { data, error } = await supabase.functions.invoke('send-email-smtp', {
+      const { data, error } = await supabase.functions.invoke('check-due-expenses', {
         body: { test: true },
       });
 
