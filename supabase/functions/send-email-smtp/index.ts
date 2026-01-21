@@ -5,6 +5,7 @@ import nodemailer from "npm:nodemailer@6.9.13";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 interface NotificationSettings {
@@ -57,35 +58,37 @@ const formatDate = (dateStr: string): string => {
 };
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("Função send-email-smtp iniciada...");
+  console.log('Recebendo requisição...');
 
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Get SMTP configuration from environment (set by admin)
     const smtpUser = Deno.env.get("SMTP_USER");
     const smtpPass = Deno.env.get("SMTP_PASS");
     const smtpHost = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
     const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "587");
 
     if (!smtpUser || !smtpPass) {
-      throw new Error("SMTP credentials not configured. Please contact the administrator.");
+      console.error('Configurações SMTP ausentes nos Secrets.');
+      return new Response(
+        JSON.stringify({ error: 'Configurações SMTP do administrador ausentes. Contate o suporte.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all users with email notifications enabled
     const { data: notificationSettings, error: settingsError } = await supabase
       .from("notification_settings")
       .select("*")
       .eq("email_enabled", true);
 
     if (settingsError) {
-      throw new Error(`Failed to fetch notification settings: ${settingsError.message}`);
+      throw settingsError;
     }
 
     if (!notificationSettings || notificationSettings.length === 0) {
@@ -102,7 +105,6 @@ const handler = async (req: Request): Promise<Response> => {
     let totalEmailsSent = 0;
     const results: Array<{ userId: string; emailsSent: number; error?: string }> = [];
 
-    // Initialize Nodemailer Transporter
     const transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
@@ -113,29 +115,22 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
     
-    // Verify connection
     await transporter.verify();
-    console.log("Conexão SMTP verificada com sucesso.");
 
     for (const settings of notificationSettings as NotificationSettings[]) {
-      // Skip if send_once_only is true and we already sent today
       if (settings.send_once_only && settings.last_notification_date === todayStr) {
         results.push({ userId: settings.user_id, emailsSent: 0 });
         continue;
       }
 
-      // Skip if no email configured
       if (!settings.notification_email) {
         results.push({ userId: settings.user_id, emailsSent: 0, error: "No email configured" });
         continue;
       }
 
-      // Calculate date range for alerts
       const alertDate = new Date(today);
       alertDate.setDate(alertDate.getDate() + settings.days_before_due);
       const alertDateStr = alertDate.toISOString().split("T")[0];
-
-      // Get unpaid expenses within the alert window
       const { data: expenses, error: expensesError } = await supabase
         .from("expenses")
         .select("id, description, amount, due_date, payment_method, category_id, user_id")
@@ -155,7 +150,6 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
 
-      // Get user profile for personalized greeting
       const { data: profile } = await supabase
         .from("profiles")
         .select("user_id, name, email")
@@ -164,7 +158,6 @@ const handler = async (req: Request): Promise<Response> => {
 
       const userName = (profile as Profile | null)?.name || "Usuário";
 
-      // Get categories for the expenses
       const categoryIds = [...new Set(expenses.map((e) => e.category_id).filter(Boolean))];
       let categoriesMap: Record<string, string> = {};
 
@@ -179,10 +172,8 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
 
-      // Calculate total pending amount
       const totalAmount = expenses.reduce((sum: number, e: Expense) => sum + Number(e.amount), 0);
 
-      // Build expense list HTML
       const expenseListHtml = expenses
         .map((expense: Expense) => {
           const categoryName = expense.category_id ? categoriesMap[expense.category_id] || "Sem categoria" : "Sem categoria";
@@ -260,7 +251,6 @@ const handler = async (req: Request): Promise<Response> => {
 
         console.log(`Email sent to ${settings.notification_email} via SMTP`);
 
-        // Update last notification date
         await supabase
           .from("notification_settings")
           .update({ last_notification_date: todayStr })
@@ -285,11 +275,10 @@ const handler = async (req: Request): Promise<Response> => {
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Erro detalhado na Edge Function send-email-smtp:", error);
+    console.error("Erro crítico na Edge Function:", error);
     return new Response(
       JSON.stringify({ 
-        error: errorMessage,
-        details: error instanceof Error ? error.stack : undefined
+        error: errorMessage
       }),
       { 
         status: 500, 
