@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import nodemailer from "npm:nodemailer@6.9.13";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,6 +57,8 @@ const formatDate = (dateStr: string): string => {
 };
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("Função send-email-smtp iniciada...");
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -66,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
     const smtpUser = Deno.env.get("SMTP_USER");
     const smtpPass = Deno.env.get("SMTP_PASS");
     const smtpHost = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
-    const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "465");
+    const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "587");
 
     if (!smtpUser || !smtpPass) {
       throw new Error("SMTP credentials not configured. Please contact the administrator.");
@@ -100,18 +102,20 @@ const handler = async (req: Request): Promise<Response> => {
     let totalEmailsSent = 0;
     const results: Array<{ userId: string; emailsSent: number; error?: string }> = [];
 
-    // Initialize SMTP client
-    const smtpClient = new SMTPClient({
-      connection: {
-        hostname: smtpHost,
-        port: smtpPort,
-        tls: true,
-        auth: {
-          username: smtpUser,
-          password: smtpPass,
-        },
+    // Initialize Nodemailer Transporter
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465, // true for 465, false for other ports
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
       },
     });
+    
+    // Verify connection
+    await transporter.verify();
+    console.log("Conexão SMTP verificada com sucesso.");
 
     for (const settings of notificationSettings as NotificationSettings[]) {
       // Skip if send_once_only is true and we already sent today
@@ -247,11 +251,10 @@ const handler = async (req: Request): Promise<Response> => {
       `;
 
       try {
-        await smtpClient.send({
-          from: smtpUser,
+        await transporter.sendMail({
+          from: `"Controle Financeiro" <${smtpUser}>`,
           to: settings.notification_email,
           subject: `⚠️ Lembrete: Você tem ${expenses.length} despesa(s) próxima(s) do vencimento!`,
-          content: "auto",
           html: emailHtml,
         });
 
@@ -272,8 +275,6 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    await smtpClient.close();
-
     return new Response(
       JSON.stringify({
         success: true,
@@ -284,10 +285,16 @@ const handler = async (req: Request): Promise<Response> => {
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error in send-email-smtp:", error);
+    console.error("Erro detalhado na Edge Function send-email-smtp:", error);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
     );
   }
 };
