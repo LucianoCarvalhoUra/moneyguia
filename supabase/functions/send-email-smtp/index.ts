@@ -1,3 +1,4 @@
+// Atualizado em: 21/01/2026 12:10
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import nodemailer from "npm:nodemailer@6.9.13";
@@ -65,14 +66,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Fallback para teste manual (preencha se não tiver acesso aos Secrets)
-    const SMTP_USER_FALLBACK = "seu-email@gmail.com";
-    const SMTP_PASS_FALLBACK = "sua-senha-de-app";
-
-    const smtpUser = Deno.env.get("SMTP_USER") || SMTP_USER_FALLBACK;
-    const smtpPass = Deno.env.get("SMTP_PASS") || SMTP_PASS_FALLBACK;
-    const smtpHost = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
-    const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "587");
+    // Credenciais Hardcoded para Teste (Substitua pelos seus dados reais)
+    const smtpUser = "seu-email@gmail.com";
+    const smtpPass = "sua-senha-de-app"; // Senha de aplicativo de 16 dígitos
+    const smtpHost = "smtp.gmail.com";
+    const smtpPort = 587;
 
     if (!smtpUser || !smtpPass) {
       throw new Error("Credenciais SMTP não configuradas.");
