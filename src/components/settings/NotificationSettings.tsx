@@ -18,6 +18,7 @@ import { Bell, Mail, Phone, Loader2, Send, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js';
 import { getUserFriendlyError } from '@/lib/errorMapper';
+import emailjs from '@emailjs/browser';
 
 interface NotificationSettingsData {
   id?: string;
@@ -158,19 +159,29 @@ export default function NotificationSettings() {
     setIsTesting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('check-due-expenses');
-      
-      if (error) throw error;
+      // Configuração do EmailJS
+      const serviceId = 'service_0fkehsl';
+      const templateId = 'template_rg9q1ib';
+      const publicKey = 'IwkbWoFVQ5W0HUFPo';
+
+      const templateParams = {
+        to_email: settings.notification_email,
+        message: 'Este é um teste de notificação de vencimento do KeepMoney.',
+        from_name: 'KeepMoney Notificações'
+      };
+
+      await emailjs.send(serviceId, templateId, templateParams, publicKey);
 
       toast.success(
-        'Verificação de alertas executada!',
+        'E-mail de teste enviado com sucesso!',
         {
-          description: `E-mails enviados: ${data?.totalEmailsSent || 0}`,
+          description: `Enviado para: ${settings.notification_email}`,
           icon: <CheckCircle className="w-5 h-5 text-success" />,
         }
       );
     } catch (error) {
-      toast.error(getUserFriendlyError(error));
+      console.error('Error sending email:', error);
+      toast.error('Erro ao enviar e-mail de teste');
     } finally {
       setIsTesting(false);
     }
