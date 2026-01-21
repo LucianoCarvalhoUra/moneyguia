@@ -61,21 +61,21 @@ const handler = async (req: Request): Promise<Response> => {
   console.log('Recebendo requisição...');
 
   if (req.method === "OPTIONS") {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
-    const smtpUser = Deno.env.get("SMTP_USER");
-    const smtpPass = Deno.env.get("SMTP_PASS");
+    // Fallback para teste manual (preencha se não tiver acesso aos Secrets)
+    const SMTP_USER_FALLBACK = "seu-email@gmail.com";
+    const SMTP_PASS_FALLBACK = "sua-senha-de-app";
+
+    const smtpUser = Deno.env.get("SMTP_USER") || SMTP_USER_FALLBACK;
+    const smtpPass = Deno.env.get("SMTP_PASS") || SMTP_PASS_FALLBACK;
     const smtpHost = Deno.env.get("SMTP_HOST") || "smtp.gmail.com";
     const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "587");
 
     if (!smtpUser || !smtpPass) {
-      console.error('Configurações SMTP ausentes nos Secrets.');
-      return new Response(
-        JSON.stringify({ error: 'Configurações SMTP do administrador ausentes. Contate o suporte.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error("Credenciais SMTP não configuradas.");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -277,9 +277,7 @@ const handler = async (req: Request): Promise<Response> => {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Erro crítico na Edge Function:", error);
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage
-      }),
+      JSON.stringify({ error: errorMessage }),
       { 
         status: 500, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
