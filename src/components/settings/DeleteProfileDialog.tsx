@@ -79,7 +79,6 @@ export default function DeleteProfileDialog() {
                   <li>Todas as despesas e receitas</li>
                   <li>Categorias e subcategorias personalizadas</li>
                   <li>Contas bancárias e cartões de crédito</li>
-                  <li>Configurações de notificação</li>
                   <li>Perfil e dados pessoais</li>
                 </ul>
               </div>

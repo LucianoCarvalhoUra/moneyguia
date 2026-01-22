@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { User, Shield, Loader2, ShieldCheck } from 'lucide-react';
 import CategoryManager from '@/components/settings/CategoryManager';
 import IncomeCategoryManager from '@/components/settings/IncomeCategoryManager';
-import NotificationSettings from '@/components/settings/NotificationSettings';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 
@@ -93,9 +92,6 @@ export default function Settings() {
 
       {/* Income Categories Manager */}
       <IncomeCategoryManager />
-
-      {/* Notification Settings */}
-      <NotificationSettings />
 
       {/* Security */}
       <Card>
