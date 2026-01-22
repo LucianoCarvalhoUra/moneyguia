@@ -348,7 +348,7 @@ export default function NotificationSettings() {
         <Button 
           onClick={handleSave} 
           disabled={isSaving}
-          className="flex-1"
+          className="bg-primary text-primary-foreground shadow hover:bg-primary/90 flex-1"
         >
           {isSaving ? (
             <>
@@ -361,10 +361,9 @@ export default function NotificationSettings() {
         </Button>
 
         <Button
-          variant="outline"
           onClick={handleTestEmail}
           disabled={isTesting || (!settings.email_enabled && !settings.is_enabled)}
-          className="flex-1"
+          className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground flex-1"
         >
           {isTesting ? (
             <>

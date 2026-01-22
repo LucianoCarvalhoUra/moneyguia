@@ -388,9 +388,8 @@ export default function InvoiceReconciliation() {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
-                      variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
                         !adjustmentPaymentDate && "text-muted-foreground"
                       )}
                     >
@@ -452,7 +451,7 @@ export default function InvoiceReconciliation() {
 
             <div className="flex justify-end mt-6">
               <Button 
-                variant="hero" 
+                className="bg-primary text-primary-foreground shadow hover:bg-primary/90" 
                 onClick={handleConfirmReconciliation}
                 disabled={isSubmitting}
               >
@@ -477,7 +476,7 @@ export default function InvoiceReconciliation() {
                   </p>
                 </div>
               </div>
-              <Button variant="outline" onClick={() => toast.success('Conciliação confirmada!')}>
+              <Button className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" onClick={() => toast.success('Conciliação confirmada!')}>
                 Confirmar
               </Button>
             </div>

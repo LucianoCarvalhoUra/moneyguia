@@ -86,7 +86,7 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground">Visão geral do seu orçamento</p>
         </div>
-        <Button variant="hero" onClick={() => setFormOpen(true)}>
+        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => setFormOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Nova Despesa
         </Button>
@@ -94,13 +94,13 @@ export default function Dashboard() {
 
       {/* Month Navigation */}
       <div className="flex items-center justify-center gap-4 py-2">
-        <Button variant="ghost" size="icon" onClick={handlePreviousMonth}>
+        <Button className="hover:bg-accent hover:text-accent-foreground" size="icon" onClick={handlePreviousMonth}>
           <ChevronLeft className="w-5 h-5" />
         </Button>
         <div className="text-lg font-semibold text-foreground min-w-[180px] text-center">
           {months[selectedMonth]} {selectedYear}
         </div>
-        <Button variant="ghost" size="icon" onClick={handleNextMonth}>
+        <Button className="hover:bg-accent hover:text-accent-foreground" size="icon" onClick={handleNextMonth}>
           <ChevronRight className="w-5 h-5" />
         </Button>
       </div>

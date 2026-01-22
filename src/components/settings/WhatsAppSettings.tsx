@@ -264,10 +264,9 @@ export default function WhatsAppSettings() {
         </Button>
 
         <Button
-          variant="outline"
           onClick={handleTestNotification}
           disabled={isTesting || !settings.whatsapp_number}
-          className="flex-1"
+          className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground flex-1"
         >
           {isTesting ? (
             <>

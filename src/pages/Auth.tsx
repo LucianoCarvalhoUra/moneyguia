@@ -262,7 +262,7 @@ export default function Auth() {
                     </div>
                   )}
                 </div>
-                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isSubmitting}>
+                <Button type="submit" size="lg" className="w-full bg-primary text-primary-foreground shadow hover:bg-primary/90" disabled={isSubmitting}>
                   {isSubmitting ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
                 </Button>
               </form>

@@ -166,7 +166,7 @@ export default function Incomes() {
           <h1 className="text-2xl font-bold text-foreground">Receitas</h1>
           <p className="text-muted-foreground">Gerencie seus ganhos e rendimentos</p>
         </div>
-        <Button variant="hero" onClick={() => setFormOpen(true)}>
+        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => setFormOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Nova Receita
         </Button>
@@ -176,7 +176,7 @@ export default function Incomes() {
       <Card>
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon" onClick={handlePreviousMonth}>
+            <Button className="hover:bg-accent hover:text-accent-foreground" size="icon" onClick={handlePreviousMonth}>
               <ChevronLeft className="w-5 h-5" />
             </Button>
             
@@ -214,7 +214,7 @@ export default function Incomes() {
               </Select>
             </div>
 
-            <Button variant="ghost" size="icon" onClick={handleNextMonth}>
+            <Button className="hover:bg-accent hover:text-accent-foreground" size="icon" onClick={handleNextMonth}>
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
@@ -347,23 +347,23 @@ export default function Incomes() {
 
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
-                        variant="ghost"
                         size="icon"
+                        className="hover:bg-accent hover:text-accent-foreground"
                         onClick={() => handleToggleReceived(income)}
                         title={income.isReceived ? "Marcar como pendente" : "Marcar como recebido"}
                       >
                         <Check className={cn("w-4 h-4", income.isReceived ? "text-success" : "text-muted-foreground")} />
                       </Button>
                       <Button
-                        variant="ghost"
                         size="icon"
+                        className="hover:bg-accent hover:text-accent-foreground"
                         onClick={() => handleEdit(income)}
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
                       <Button
-                        variant="ghost"
                         size="icon"
+                        className="hover:bg-accent hover:text-accent-foreground"
                         onClick={() => handleDelete(income.id)}
                       >
                         <Trash2 className="w-4 h-4 text-destructive" />

@@ -125,7 +125,7 @@ export default function Accounts() {
               </CardTitle>
               <CardDescription>Suas contas bancárias cadastradas</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setAccountDialogOpen(true)}>
+            <Button className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" size="sm" onClick={() => setAccountDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-1" />
               Adicionar
             </Button>
@@ -156,9 +156,8 @@ export default function Accounts() {
                       </div>
                     </div>
                     <Button
-                      variant="ghost"
                       size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground"
                       onClick={() => setDeleteAccountDialog(account.id)}
                     >
                       <Trash2 className="w-4 h-4 text-destructive" />
@@ -180,7 +179,7 @@ export default function Accounts() {
               </CardTitle>
               <CardDescription>Seus cartões cadastrados</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setCardDialogOpen(true)}>
+            <Button className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" size="sm" onClick={() => setCardDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-1" />
               Adicionar
             </Button>
@@ -213,9 +212,8 @@ export default function Accounts() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Button
-                        variant="ghost"
                         size="icon"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
                           openEditCard(card);
@@ -224,9 +222,8 @@ export default function Accounts() {
                         <Pencil className="w-4 h-4 text-muted-foreground" />
                       </Button>
                       <Button
-                        variant="ghost"
                         size="icon"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
                           setDeleteCardDialog(card.id);
@@ -283,10 +280,10 @@ export default function Accounts() {
               </div>
             </div>
             <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setAccountDialogOpen(false)}>
+              <Button type="button" className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground flex-1" onClick={() => setAccountDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" variant="hero" className="flex-1">
+              <Button type="submit" className="bg-primary text-primary-foreground shadow hover:bg-primary/90 flex-1">
                 Adicionar
               </Button>
             </div>
@@ -329,10 +326,10 @@ export default function Accounts() {
               />
             </div>
             <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" className="flex-1" onClick={closeCardDialog}>
+              <Button type="button" className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground flex-1" onClick={closeCardDialog}>
                 Cancelar
               </Button>
-              <Button type="submit" variant="hero" className="flex-1">
+              <Button type="submit" className="bg-primary text-primary-foreground shadow hover:bg-primary/90 flex-1">
                 {editingCard ? 'Salvar' : 'Adicionar'}
               </Button>
             </div>

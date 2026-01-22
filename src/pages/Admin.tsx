@@ -89,7 +89,7 @@ export default function Admin() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button onClick={handleTestEmail} disabled={isTesting}>
+          <Button onClick={handleTestEmail} disabled={isTesting} className="bg-primary text-primary-foreground shadow hover:bg-primary/90">
             {isTesting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

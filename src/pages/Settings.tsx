@@ -114,7 +114,7 @@ export default function Settings() {
               Para alterar sua senha ou outras configurações de segurança,
               entre em contato com o suporte.
             </p>
-            <Button variant="outline" disabled>
+            <Button className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" disabled>
               Alterar Senha (em breve)
             </Button>
           </div>

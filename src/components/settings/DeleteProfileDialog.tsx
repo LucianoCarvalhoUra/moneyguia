@@ -57,7 +57,7 @@ export default function DeleteProfileDialog() {
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive" className="gap-2">
+        <Button className="gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90">
           <Trash2 className="w-4 h-4" />
           Excluir Minha Conta
         </Button>

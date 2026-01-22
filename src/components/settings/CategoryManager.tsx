@@ -213,15 +213,15 @@ export default function CategoryManager() {
                     </CollapsibleTrigger>
                     <div className="flex gap-1">
                       <Button
-                        variant="ghost"
                         size="icon"
+                        className="hover:bg-accent hover:text-accent-foreground"
                         onClick={() => openCategoryDialog(category)}
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
                       <Button
-                        variant="ghost"
                         size="icon"
+                        className="hover:bg-accent hover:text-accent-foreground"
                         onClick={() => confirmDelete('category', category.id)}
                       >
                         <Trash2 className="w-4 h-4 text-destructive" />
@@ -239,17 +239,15 @@ export default function CategoryManager() {
                           <span className="text-sm text-foreground">↳ {sub.name}</span>
                           <div className="flex gap-1">
                             <Button
-                              variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 hover:bg-accent hover:text-accent-foreground"
                               onClick={() => openSubcategoryDialog(category.id, sub)}
                             >
                               <Pencil className="w-3 h-3" />
                             </Button>
                             <Button
-                              variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 hover:bg-accent hover:text-accent-foreground"
                               onClick={() => confirmDelete('subcategory', sub.id)}
                             >
                               <Trash2 className="w-3 h-3 text-destructive" />
@@ -258,9 +256,8 @@ export default function CategoryManager() {
                         </div>
                       ))}
                       <Button
-                        variant="ghost"
                         size="sm"
-                        className="ml-6"
+                        className="ml-6 hover:bg-accent hover:text-accent-foreground"
                         onClick={() => openSubcategoryDialog(category.id)}
                       >
                         <Plus className="w-3 h-3 mr-1" />
@@ -333,7 +330,7 @@ export default function CategoryManager() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>
+            <Button className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" onClick={() => setCategoryDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleSaveCategory}>
@@ -362,7 +359,7 @@ export default function CategoryManager() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSubcategoryDialogOpen(false)}>
+            <Button className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" onClick={() => setSubcategoryDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleSaveSubcategory}>
