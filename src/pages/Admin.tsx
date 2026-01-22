@@ -32,7 +32,7 @@ export default function Admin() {
       }
 
       // Configuração do EmailJS
-      const serviceId = 'service_0fkehsl';
+      const serviceId = 'service_zt7h2zc';
       const templateId = 'template_rg9q1ib';
       const publicKey = 'IwkbWoFVQ5W0HUFPo';
 
