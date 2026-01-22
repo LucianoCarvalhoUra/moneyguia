@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Shield, Loader2, Send } from 'lucide-react';
+import { Shield, Loader2, Send, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import emailjs from '@emailjs/browser';
 
@@ -12,6 +14,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const { isAdmin, isLoading: isCheckingAdmin } = useAdminCheck();
   const [isTesting, setIsTesting] = useState(false);
+  const [alertEmail, setAlertEmail] = useState('');
 
   useEffect(() => {
     if (!isCheckingAdmin && !isAdmin) {
@@ -20,17 +23,25 @@ export default function Admin() {
     }
   }, [isCheckingAdmin, isAdmin, navigate]);
 
+  useEffect(() => {
+    const loadUserEmail = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setAlertEmail(user.email);
+      }
+    };
+    loadUserEmail();
+  }, []);
+
   const handleTestEmail = async () => {
+    if (!alertEmail) {
+      toast.error('Por favor, informe um e-mail para receber o alerta.');
+      return;
+    }
+
     setIsTesting(true);
     console.log('Enviando e-mail via EmailJS...');
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user?.email) {
-        toast.error('Não foi possível identificar o e-mail do administrador.');
-        return;
-      }
-
       // Configuração do EmailJS
       const serviceId = 'service_zt7h2zc';
       const templateId = 'template_rg9q1ib';
@@ -39,14 +50,14 @@ export default function Admin() {
       emailjs.init(publicKey);
 
       const templateParams = {
-        to_email: user.email,
+        to_email: alertEmail,
         message: 'Este é um teste de envio de alerta via EmailJS.',
         from_name: 'KeepMoney Admin'
       };
 
       await emailjs.send(serviceId, templateId, templateParams, publicKey);
 
-      toast.success(`E-mail de teste enviado para ${user.email}!`);
+      toast.success(`E-mail de teste enviado para ${alertEmail}!`);
     } catch (error: any) {
       console.error('Error sending email:', error);
       const errorMessage = error?.text || error?.message || 'Erro desconhecido';
@@ -79,34 +90,45 @@ export default function Admin() {
         <p className="text-muted-foreground">Configurações globais do sistema</p>
       </div>
 
-      {/* Test Email Card */}
+      {/* Canais de Envio Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Send className="w-5 h-5 text-primary" />
-            Teste de Notificações
+            <Mail className="w-5 h-5 text-primary" />
+            Canais de Envio
           </CardTitle>
           <CardDescription>
-            Verifique se o sistema de e-mails (EmailJS) está funcionando corretamente.
+            Configure os canais para recebimento de alertas do sistema.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button onClick={handleTestEmail} disabled={isTesting} className="bg-primary text-primary-foreground shadow hover:bg-primary/90">
-            {isTesting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Enviando...
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4 mr-2" />
-                Enviar E-mail de Teste
-              </>
-            )}
-          </Button>
-          <p className="text-sm text-muted-foreground mt-4">
-            O e-mail será enviado para o seu endereço de administrador logado.
-          </p>
+          <div className="space-y-2">
+            <Label htmlFor="alert-email">E-mail para Receber Alertas</Label>
+            <div className="flex gap-2">
+              <Input
+                id="alert-email"
+                value={alertEmail}
+                onChange={(e) => setAlertEmail(e.target.value)}
+                placeholder="seu@email.com"
+              />
+              <Button onClick={handleTestEmail} disabled={isTesting} className="bg-primary text-primary-foreground shadow hover:bg-primary/90 whitespace-nowrap">
+                {isTesting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Testar Envio
+                  </>
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Este endereço será usado para notificações administrativas.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
