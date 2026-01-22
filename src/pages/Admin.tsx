@@ -36,6 +36,8 @@ export default function Admin() {
       const templateId = 'template_rg9q1ib';
       const publicKey = 'IwkbWoFVQ5W0HUFPo';
 
+      emailjs.init(publicKey);
+
       const templateParams = {
         to_email: user.email,
         message: 'Este é um teste de envio de alerta via EmailJS.',
