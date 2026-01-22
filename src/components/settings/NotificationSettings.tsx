@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -14,35 +12,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Bell, Mail, Phone, Loader2, Send, CheckCircle } from 'lucide-react';
+import { Bell, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { isValidPhoneNumber, parsePhoneNumber } from 'libphonenumber-js';
 import { getUserFriendlyError } from '@/lib/errorMapper';
-import emailjs from '@emailjs/browser';
 
 interface NotificationSettingsData {
   id?: string;
-  whatsapp_number: string;
-  notification_email: string;
   days_before_due: number;
-  is_enabled: boolean;
-  email_enabled: boolean;
   send_once_only: boolean;
 }
 
 export default function NotificationSettings() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<NotificationSettingsData>({
-    whatsapp_number: '',
-    notification_email: '',
     days_before_due: 3,
-    is_enabled: false,
-    email_enabled: true,
     send_once_only: false,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -62,19 +49,9 @@ export default function NotificationSettings() {
     if (data) {
       setSettings({
         id: data.id,
-        whatsapp_number: data.whatsapp_number || '',
-        notification_email: data.notification_email || user.email || '',
         days_before_due: data.days_before_due,
-        is_enabled: data.is_enabled,
-        email_enabled: data.email_enabled ?? true,
         send_once_only: data.send_once_only ?? false,
       });
-    } else {
-      // Set default email from user
-      setSettings(prev => ({
-        ...prev,
-        notification_email: user.email || '',
-      }));
     }
     setIsLoading(false);
   };
@@ -82,42 +59,11 @@ export default function NotificationSettings() {
   const handleSave = async () => {
     if (!user?.id) return;
 
-    // Validate email if email notifications are enabled
-    if (settings.email_enabled && !settings.notification_email) {
-      toast.error('Informe um e-mail para receber notificações');
-      return;
-    }
-
-    // Validate WhatsApp if WhatsApp notifications are enabled
-    if (settings.is_enabled) {
-      if (!settings.whatsapp_number) {
-        toast.error('Informe um número de WhatsApp');
-        return;
-      }
-      
-      const phoneNumber = settings.whatsapp_number.trim();
-      if (!isValidPhoneNumber(phoneNumber)) {
-        toast.error('Número de WhatsApp inválido. Use o formato internacional (ex: +55 11 99999-9999)');
-        return;
-      }
-    }
-
     setIsSaving(true);
 
     try {
-      // Normalize phone number if provided
-      let normalizedPhone = settings.whatsapp_number;
-      if (settings.whatsapp_number) {
-        const parsedPhone = parsePhoneNumber(settings.whatsapp_number.trim());
-        normalizedPhone = parsedPhone ? parsedPhone.format('E.164') : settings.whatsapp_number;
-      }
-
       const dataToSave = {
-        whatsapp_number: normalizedPhone || null,
-        notification_email: settings.notification_email || null,
         days_before_due: settings.days_before_due,
-        is_enabled: settings.is_enabled,
-        email_enabled: settings.email_enabled,
         send_once_only: settings.send_once_only,
       };
 
@@ -150,43 +96,6 @@ export default function NotificationSettings() {
     }
   };
 
-  const handleTestEmail = async () => {
-    if (!settings.notification_email) {
-      toast.error('Salve um e-mail primeiro');
-      return;
-    }
-
-    setIsTesting(true);
-
-    try {
-      // Configuração do EmailJS
-      const serviceId = 'service_0fkehsl';
-      const templateId = 'template_rg9q1ib';
-      const publicKey = 'IwkbWoFVQ5W0HUFPo';
-
-      const templateParams = {
-        to_email: settings.notification_email,
-        message: 'Este é um teste de notificação de vencimento do KeepMoney.',
-        from_name: 'KeepMoney Notificações'
-      };
-
-      await emailjs.send(serviceId, templateId, templateParams, publicKey);
-
-      toast.success(
-        'E-mail de teste enviado com sucesso!',
-        {
-          description: `Enviado para: ${settings.notification_email}`,
-          icon: <CheckCircle className="w-5 h-5 text-success" />,
-        }
-      );
-    } catch (error) {
-      console.error('Error sending email:', error);
-      toast.error('Erro ao enviar e-mail de teste');
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
   const daysOptions = [
     { value: '1', label: '1 dia antes' },
     { value: '2', label: '2 dias antes' },
@@ -216,7 +125,7 @@ export default function NotificationSettings() {
             Notificações de Vencimento
           </CardTitle>
           <CardDescription>
-            Configure como e quando deseja ser notificado sobre despesas próximas do vencimento
+            Configure quando deseja ser notificado sobre despesas próximas do vencimento
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -264,85 +173,6 @@ export default function NotificationSettings() {
         </CardContent>
       </Card>
 
-      {/* Channels Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="w-5 h-5 text-primary" />
-            Canais de Envio
-          </CardTitle>
-          <CardDescription>
-            Escolha por onde deseja receber as notificações
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Email Channel */}
-          <div className="space-y-4 p-4 border rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                <Label htmlFor="email-enabled" className="font-medium cursor-pointer">
-                  E-mail
-                </Label>
-              </div>
-              <Switch
-                id="email-enabled"
-                checked={settings.email_enabled}
-                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, email_enabled: checked }))}
-              />
-            </div>
-            
-            {settings.email_enabled && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">E-mail para Receber Alertas</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={settings.notification_email}
-                    onChange={(e) => setSettings(prev => ({ ...prev, notification_email: e.target.value }))}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* WhatsApp Channel */}
-          <div className="space-y-4 p-4 border rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-muted-foreground" />
-                <Label htmlFor="whatsapp-enabled" className="font-medium cursor-pointer">
-                  WhatsApp
-                </Label>
-              </div>
-              <Switch
-                id="whatsapp-enabled"
-                checked={settings.is_enabled}
-                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, is_enabled: checked }))}
-              />
-            </div>
-            
-            {settings.is_enabled && (
-              <div className="space-y-2">
-                <Label htmlFor="whatsapp">Número com DDD</Label>
-                <Input
-                  id="whatsapp"
-                  type="tel"
-                  placeholder="+55 (11) 99999-9999"
-                  value={settings.whatsapp_number}
-                  onChange={(e) => setSettings(prev => ({ ...prev, whatsapp_number: e.target.value }))}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Inclua o código do país (+55 para Brasil)
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3">
         <Button 
@@ -359,33 +189,6 @@ export default function NotificationSettings() {
             'Salvar Configurações'
           )}
         </Button>
-
-        <Button
-          onClick={handleTestEmail}
-          disabled={isTesting || (!settings.email_enabled && !settings.is_enabled)}
-          className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground flex-1"
-        >
-          {isTesting ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Verificando...
-            </>
-          ) : (
-            <>
-              <Send className="w-4 h-4 mr-2" />
-              Testar Alertas
-            </>
-          )}
-        </Button>
-      </div>
-
-      {/* Info Box */}
-      <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-        <p className="text-sm text-foreground">
-          <strong>Como funciona:</strong> O sistema verifica diariamente as despesas não pagas 
-          próximas do vencimento e envia alertas pelos canais configurados, ajudando você a 
-          evitar multas e juros.
-        </p>
       </div>
     </div>
   );
