@@ -129,9 +129,6 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Pending Expenses List */}
-      <PendingExpensesList selectedMonth={selectedMonth} selectedYear={selectedYear} />
-
       {/* Real Balance Card */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className={realBalance >= 0 ? 'border-success/50 bg-success/5' : 'border-destructive/50 bg-destructive/5'}>
@@ -178,6 +175,9 @@ export default function Dashboard() {
         <IncomeExpenseChart income={currentIncomeTotal} expense={currentExpenseTotal} />
         <CategoryChart data={categoryTotals} total={currentExpenseTotal} />
       </div>
+
+      {/* Pending Expenses List */}
+      <PendingExpensesList selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
       {/* Recent Expenses */}
       <RecentExpenses expenses={monthlyExpenses} />
