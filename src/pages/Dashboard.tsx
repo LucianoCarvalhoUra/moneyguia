@@ -9,6 +9,7 @@ import CategoryChart from '@/components/dashboard/CategoryChart';
 import RecentExpenses from '@/components/dashboard/RecentExpenses';
 import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
+import PendingExpensesList from '@/components/dashboard/PendingExpensesList';
 
 export default function Dashboard() {
   const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses } = useFinance();
@@ -127,6 +128,9 @@ export default function Dashboard() {
           className={projectedBalance < 0 ? 'border-destructive/50' : 'border-success/50'}
         />
       </div>
+
+      {/* Pending Expenses List */}
+      <PendingExpensesList />
 
       {/* Real Balance Card */}
       <div className="grid gap-4 md:grid-cols-2">
