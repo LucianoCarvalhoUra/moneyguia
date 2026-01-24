@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, addMonths, subMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Search, Plus, Pencil, Trash2, CheckCircle2, AlertCircle, Calendar, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -21,38 +22,41 @@ import { Badge } from '@/components/ui/badge';
 export default function Expenses() {
   const { expenses, categories, subcategories, removeExpense, updateExpense } = useFinance();
   
-  // States
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  
-  const months = [
-    { value: 0, label: 'Janeiro' },
-    { value: 1, label: 'Fevereiro' },
-    { value: 2, label: 'Março' },
-    { value: 3, label: 'Abril' },
-    { value: 4, label: 'Maio' },
-    { value: 5, label: 'Junho' },
-    { value: 6, label: 'Julho' },
-    { value: 7, label: 'Agosto' },
-    { value: 8, label: 'Setembro' },
-    { value: 9, label: 'Outubro' },
-    { value: 10, label: 'Novembro' },
-    { value: 11, label: 'Dezembro' },
-  ];
-  
-  const currentYear = new Date().getFullYear();
-  const years = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
-
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [subcategoryFilter, setSubcategoryFilter] = useState<string>('all');
+  // Estados solicitados explicitamente
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<string>('dueDate');
-  const [sortOrder, setSortOrder] = useState<string>('asc');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   
+  // Estados adicionais para funcionamento da UI
+  const [subcategoryFilter, setSubcategoryFilter] = useState('all');
+  const [sortField, setSortField] = useState('dueDate');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
+
+  // Regra de Ouro: Logout após 15 min de inatividade
+  useEffect(() => {
+    let timeout: number;
+
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      timeout = window.setTimeout(() => {
+        window.location.href = '/auth';
+      }, 15 * 60 * 1000); // 15 minutes
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(event => document.addEventListener(event, resetTimer));
+    
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeout);
+      events.forEach(event => document.removeEventListener(event, resetTimer));
+    };
+  }, []);
 
   // Filtered Subcategories
   const filteredSubcategories = useMemo(() => {
@@ -66,7 +70,10 @@ export default function Expenses() {
       .filter(expense => {
         // Date Filter
         const expenseDate = new Date(expense.dueDate);
-        if (expenseDate.getMonth() !== selectedMonth || expenseDate.getFullYear() !== selectedYear) return false;
+        if (
+          expenseDate.getMonth() !== selectedDate.getMonth() || 
+          expenseDate.getFullYear() !== selectedDate.getFullYear()
+        ) return false;
 
         // Status
         if (statusFilter === 'paid' && !expense.isPaid) return false;
@@ -84,7 +91,10 @@ export default function Expenses() {
           const subcategory = subcategories.find(s => s.id === expense.subcategoryId);
           const searchLower = searchTerm.toLowerCase();
           
-          if (!category?.name.toLowerCase().includes(searchLower) && !subcategory?.name.toLowerCase().includes(searchLower)) return false;
+          const matchesCategory = category?.name.toLowerCase().includes(searchLower);
+          const matchesSubcategory = subcategory?.name.toLowerCase().includes(searchLower);
+          
+          if (!matchesCategory && !matchesSubcategory) return false;
         }
 
         return true;
@@ -103,7 +113,7 @@ export default function Expenses() {
         }
         return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [expenses, selectedMonth, selectedYear, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder]);
+  }, [expenses, selectedDate, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder, categories, subcategories]);
 
   const handleClearFilters = () => {
     setStatusFilter('all');
@@ -145,21 +155,11 @@ export default function Expenses() {
   };
 
   const handlePreviousMonth = () => {
-    if (selectedMonth === 0) {
-      setSelectedMonth(11);
-      setSelectedYear(selectedYear - 1);
-    } else {
-      setSelectedMonth(selectedMonth - 1);
-    }
+    setSelectedDate(prev => subMonths(prev, 1));
   };
 
   const handleNextMonth = () => {
-    if (selectedMonth === 11) {
-      setSelectedMonth(0);
-      setSelectedYear(selectedYear + 1);
-    } else {
-      setSelectedMonth(selectedMonth + 1);
-    }
+    setSelectedDate(prev => addMonths(prev, 1));
   };
 
   return (
@@ -182,54 +182,25 @@ export default function Expenses() {
         </Button>
       </div>
 
-      {/* Month Selector */}
+      {/* Seletor de Mês/Ano (Fixo no Topo) */}
       <Card>
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
             <Button 
-              className="hover:bg-accent hover:text-accent-foreground bg-transparent text-foreground shadow-none" 
+              variant="ghost"
               size="icon" 
               onClick={handlePreviousMonth}
             >
               <ChevronLeft className="w-5 h-5" />
             </Button>
             
-            <div className="flex items-center gap-3">
-              <Select
-                value={selectedMonth.toString()}
-                onValueChange={(v) => setSelectedMonth(parseInt(v))}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((month) => (
-                    <SelectItem key={month.value} value={month.value.toString()}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={selectedYear.toString()}
-                onValueChange={(v) => setSelectedYear(parseInt(v))}
-              >
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-2 text-lg font-semibold capitalize">
+              <Calendar className="w-5 h-5 mr-2" />
+              {format(selectedDate, 'MMMM yyyy', { locale: ptBR })}
             </div>
 
             <Button 
-              className="hover:bg-accent hover:text-accent-foreground bg-transparent text-foreground shadow-none" 
+              variant="ghost"
               size="icon" 
               onClick={handleNextMonth}
             >
@@ -239,45 +210,42 @@ export default function Expenses() {
         </CardContent>
       </Card>
 
-      {/* Filter Toggle Button */}
+      {/* Botão de Alternar Filtros */}
       <div className="flex justify-end">
         <Button
-          className="bg-background border border-input hover:bg-accent hover:text-accent-foreground text-foreground shadow-sm gap-2"
-          onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+          variant="outline"
+          className="gap-2"
+          onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
         >
           <Filter className="w-4 h-4" />
-          {isFiltersOpen ? 'Ocultar Filtros' : 'Mostrar Filtros e Ordenação'}
+          {isFiltersExpanded ? 'Ocultar Filtros' : 'Filtros e Opções'}
         </Button>
       </div>
 
-      {/* Filters & Sort Bar */}
-      {isFiltersOpen && (
-        <div className="animate-in fade-in duration-300">
+      {/* Área de Filtros Condicional */}
+      {isFiltersExpanded && (
+        <div className="animate-in fade-in slide-in-from-top-2 duration-200">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-medium">
-                <Filter className="w-4 h-4" />
-                Filtros e Ordenação
-              </CardTitle>
+              <CardTitle className="text-base font-medium">Filtros Avançados</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-4">
-                {/* Period Filter removed from here */}
-
-                {/* Top Row: Search and Main Filters */}
                 <div className="flex flex-col lg:flex-row gap-4">
+                  {/* Busca */}
                   <div className="flex-1 relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar despesa..."
+                      placeholder="Buscar por categoria..."
                       className="pl-9"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row gap-4 lg:w-auto">
-                     <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  {/* Filtros Dropdown */}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
                       <SelectTrigger className="w-full sm:w-[140px]">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
@@ -321,8 +289,8 @@ export default function Expenses() {
                   </div>
                 </div>
 
-                {/* Bottom Row: Sorting and Clear */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t">
+                {/* Ordenação e Limpar */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t">
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <span className="text-sm text-muted-foreground whitespace-nowrap">Ordenar por:</span>
                     <Select value={sortField} onValueChange={setSortField}>
@@ -346,7 +314,7 @@ export default function Expenses() {
                   </div>
 
                   <Button 
-                    className="w-full sm:w-auto bg-transparent hover:bg-accent text-muted-foreground hover:text-foreground shadow-none"
+                    variant="ghost"
                     onClick={handleClearFilters}
                   >
                     <X className="w-4 h-4 mr-2" />
@@ -359,12 +327,12 @@ export default function Expenses() {
         </div>
       )}
 
-      {/* Summary Card */}
+      {/* Card de Resumo */}
       <Card className="bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20">
         <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">
-              Total de Despesas ({months[selectedMonth].label}/{selectedYear})
+              Total de Despesas ({format(selectedDate, 'MMMM/yyyy', { locale: ptBR })})
             </p>
             <p className="text-3xl font-bold text-red-600 dark:text-red-400">
               {formatCurrency(filteredExpenses.reduce((acc, curr) => acc + curr.amount, 0))}
@@ -376,7 +344,7 @@ export default function Expenses() {
         </CardContent>
       </Card>
 
-      {/* Expenses Table */}
+      {/* Tabela Padronizada */}
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -451,14 +419,16 @@ export default function Expenses() {
                         <div className="flex justify-end gap-2">
                           <Button
                             size="icon"
-                            className="h-8 w-8 bg-transparent hover:bg-accent text-muted-foreground hover:text-foreground shadow-none"
+                            variant="ghost"
+                            className="h-8 w-8"
                             onClick={() => handleEdit(expense)}
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>
                           <Button
                             size="icon"
-                            className="h-8 w-8 bg-transparent hover:bg-destructive/10 text-destructive shadow-none"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
                             onClick={() => handleDelete(expense.id)}
                           >
                             <Trash2 className="w-4 h-4" />
