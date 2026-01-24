@@ -1,4 +1,1 @@
 project_id = "uuirvevhvjvnubihnstz"
-
-[functions.check-due-expenses]
-verify_jwt = false

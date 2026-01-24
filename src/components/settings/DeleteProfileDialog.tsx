@@ -73,15 +73,6 @@ export default function DeleteProfileDialog() {
               <p className="text-foreground font-medium">
                 Ao excluir o perfil, todas as informações também serão excluídas.
               </p>
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 space-y-2">
-                <p className="text-sm font-medium text-destructive">Serão excluídos:</p>
-                <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                  <li>Todas as despesas e receitas</li>
-                  <li>Categorias e subcategorias personalizadas</li>
-                  <li>Contas bancárias e cartões de crédito</li>
-                  <li>Perfil e dados pessoais</li>
-                </ul>
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm-delete" className="text-sm">
                   Digite <span className="font-mono font-bold">EXCLUIR</span> para confirmar:
