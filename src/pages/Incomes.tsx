@@ -19,7 +19,37 @@ import IncomeForm from '@/components/income/IncomeForm';
 import { Badge } from '@/components/ui/badge';
 
 export default function Incomes() {
-  const { incomes, incomeCategories, incomeSubcategories, removeIncome, updateIncome } = useIncome();
+  const { incomes: fetchedIncomes, incomeCategories, incomeSubcategories, removeIncome, updateIncome } = useIncome();
+  
+  // Mock data for visualization if no real data exists
+  const incomes = fetchedIncomes.length > 0 ? fetchedIncomes : [
+    {
+      id: 'mock-1',
+      title: 'Salário Mensal',
+      description: 'Adiantamento Quinzenal',
+      amount: 3500.00,
+      receiveDate: new Date().toISOString(),
+      categoryId: 'salary',
+      subcategoryId: null,
+      isReceived: true,
+      userId: 'mock-user',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'mock-2',
+      title: 'Freelance',
+      description: 'Desenvolvimento Web',
+      amount: 1200.00,
+      receiveDate: new Date(Date.now() + 86400000 * 2).toISOString(),
+      categoryId: 'freelance',
+      subcategoryId: null,
+      isReceived: false,
+      userId: 'mock-user',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+  ];
   
   // States
   const [statusFilter, setStatusFilter] = useState<string>('all');
