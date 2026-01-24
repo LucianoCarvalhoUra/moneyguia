@@ -79,7 +79,13 @@ export default function Expenses() {
         if (subcategoryFilter !== 'all' && expense.subcategoryId !== subcategoryFilter) return false;
 
         // Search
-        if (searchTerm && !expense.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+        if (searchTerm) {
+          const category = categories.find(c => c.id === expense.categoryId);
+          const subcategory = subcategories.find(s => s.id === expense.subcategoryId);
+          const searchLower = searchTerm.toLowerCase();
+          
+          if (!category?.name.toLowerCase().includes(searchLower) && !subcategory?.name.toLowerCase().includes(searchLower)) return false;
+        }
 
         return true;
       })
@@ -91,9 +97,6 @@ export default function Expenses() {
             break;
           case 'amount':
             comparison = a.amount - b.amount;
-            break;
-          case 'description':
-            comparison = a.description.localeCompare(b.description);
             break;
           default:
             comparison = 0;
@@ -268,7 +271,6 @@ export default function Expenses() {
                   <SelectContent>
                     <SelectItem value="dueDate">Vencimento</SelectItem>
                     <SelectItem value="amount">Valor</SelectItem>
-                    <SelectItem value="description">Descrição</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={sortOrder} onValueChange={setSortOrder}>
@@ -317,8 +319,8 @@ export default function Expenses() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead className="hidden md:table-cell">Categoria</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead className="hidden md:table-cell">Subcategoria</TableHead>
                 <TableHead>Vencimento</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Valor</TableHead>
@@ -340,22 +342,16 @@ export default function Expenses() {
                   return (
                     <TableRow key={expense.id}>
                       <TableCell className="font-medium">
-                        {expense.description}
-                        <div className="md:hidden text-xs text-muted-foreground mt-1">
-                          {category?.name} {subcategory && `• ${subcategory.name}`}
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{category?.icon || '📦'}</span>
+                          <span>{category?.name || 'Sem categoria'}</span>
+                        </div>
+                        <div className="md:hidden text-xs text-muted-foreground mt-1 pl-7">
+                          {subcategory ? subcategory.name : '-'}
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        <div className="flex flex-col">
-                          <span className="flex items-center gap-1">
-                            {category?.icon} {category?.name || 'Sem categoria'}
-                          </span>
-                          {subcategory && (
-                            <span className="text-xs text-muted-foreground ml-5">
-                              ↳ {subcategory.name}
-                            </span>
-                          )}
-                        </div>
+                        {subcategory ? subcategory.name : '-'}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

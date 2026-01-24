@@ -71,7 +71,7 @@ export default function DeleteProfileDialog() {
           <AlertDialogDescription asChild>
             <div className="space-y-4 text-left">
               <p className="text-foreground font-medium">
-                Ao excluir o perfil, todas as informações também serão excluídas.
+                Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas.
               </p>
               <div className="space-y-2">
                 <Label htmlFor="confirm-delete" className="text-sm">
