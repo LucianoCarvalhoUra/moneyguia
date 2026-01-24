@@ -22,6 +22,7 @@ export default function Expenses() {
   const { expenses, categories, subcategories, removeExpense, updateExpense } = useFinance();
   
   // 1. Correção de Escopo e Estados
+  // 1. Escopo de Variáveis
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,8 +34,10 @@ export default function Expenses() {
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const [sortField, setSortField] = useState('date');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   // 2. Dados Auxiliares
+  // Constantes
   const months = [
     { value: 0, label: 'Janeiro' },
     { value: 1, label: 'Fevereiro' },
@@ -51,7 +54,9 @@ export default function Expenses() {
   ];
 
   const years = Array.from({ length: 11 }, (_, i) => 2020 + i); // 2020 to 2030
+  const years = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
 
+  // Funções Auxiliares
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -60,6 +65,7 @@ export default function Expenses() {
   };
 
   // 5. Regras de Negócio Específicas (Logout)
+  // 4. Regras de Negócio (Logout automático)
   useEffect(() => {
     let timeout: number;
 
@@ -191,6 +197,7 @@ export default function Expenses() {
       </div>
 
       {/* 3. UI e Filtros (Seletor de Mês/Ano sempre visível) */}
+      {/* Seletor de Mês/Ano */}
       <Card>
         <CardContent className="py-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -224,6 +231,7 @@ export default function Expenses() {
       </Card>
 
       {/* Botão Filtros e Opções */}
+      {/* Botão Filtros */}
       <div className="flex justify-end">
         <Button
           variant="outline"
@@ -336,6 +344,7 @@ export default function Expenses() {
       )}
 
       {/* Card de Resumo */}
+      {/* Resumo */}
       <Card className="bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20">
         <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -353,6 +362,7 @@ export default function Expenses() {
       </Card>
 
       {/* 4. Tabela de Despesas */}
+      {/* Tabela */}
       <Card>
         <CardContent className="p-0">
           <Table>
