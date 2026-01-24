@@ -371,8 +371,8 @@ export default function Incomes() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead className="hidden md:table-cell">Categoria</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead className="hidden md:table-cell">Subcategoria</TableHead>
                 <TableHead>Recebimento</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Valor</TableHead>
@@ -394,22 +394,16 @@ export default function Incomes() {
                   return (
                     <TableRow key={income.id}>
                       <TableCell className="font-medium">
-                        {income.title}
-                        <div className="md:hidden text-xs text-muted-foreground mt-1">
-                          {category?.name} {subcategory && `• ${subcategory.name}`}
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{category?.icon || '💰'}</span>
+                          <span>{category?.name || 'Sem categoria'}</span>
+                        </div>
+                        <div className="md:hidden text-xs text-muted-foreground mt-1 pl-7">
+                          {subcategory ? subcategory.name : '-'}
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        <div className="flex flex-col">
-                          <span className="flex items-center gap-1">
-                            {category?.icon} {category?.name || 'Sem categoria'}
-                          </span>
-                          {subcategory && (
-                            <span className="text-xs text-muted-foreground ml-5">
-                              ↳ {subcategory.name}
-                            </span>
-                          )}
-                        </div>
+                        {subcategory ? subcategory.name : '-'}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
