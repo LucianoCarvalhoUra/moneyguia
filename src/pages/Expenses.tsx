@@ -23,6 +23,27 @@ export default function Expenses() {
   const { expenses, categories, subcategories, removeExpense, updateExpense } = useFinance();
   
   // States
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  
+  const months = [
+    { value: 0, label: 'Janeiro' },
+    { value: 1, label: 'Fevereiro' },
+    { value: 2, label: 'Março' },
+    { value: 3, label: 'Abril' },
+    { value: 4, label: 'Maio' },
+    { value: 5, label: 'Junho' },
+    { value: 6, label: 'Julho' },
+    { value: 7, label: 'Agosto' },
+    { value: 8, label: 'Setembro' },
+    { value: 9, label: 'Outubro' },
+    { value: 10, label: 'Novembro' },
+    { value: 11, label: 'Dezembro' },
+  ];
+  
+  const currentYear = new Date().getFullYear();
+  const years = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [subcategoryFilter, setSubcategoryFilter] = useState<string>('all');
@@ -43,6 +64,10 @@ export default function Expenses() {
   const filteredExpenses = useMemo(() => {
     return expenses
       .filter(expense => {
+        // Date Filter
+        const expenseDate = new Date(expense.dueDate);
+        if (expenseDate.getMonth() !== selectedMonth || expenseDate.getFullYear() !== selectedYear) return false;
+
         // Status
         if (statusFilter === 'paid' && !expense.isPaid) return false;
         if (statusFilter === 'pending' && expense.isPaid) return false;
@@ -75,7 +100,7 @@ export default function Expenses() {
         }
         return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [expenses, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder]);
+  }, [expenses, selectedMonth, selectedYear, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder]);
 
   const handleClearFilters = () => {
     setStatusFilter('all');
@@ -146,6 +171,35 @@ export default function Expenses() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4">
+            {/* Period Filter */}
+            <div className="flex flex-col sm:flex-row gap-4 pb-4 border-b">
+              <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((month) => (
+                    <SelectItem key={month.value} value={month.value.toString()}>
+                      {month.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+                <SelectTrigger className="w-full sm:w-[120px]">
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Top Row: Search and Main Filters */}
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1 relative">

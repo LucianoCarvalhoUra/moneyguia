@@ -52,6 +52,27 @@ export default function Incomes() {
   ];
   
   // States
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const months = [
+    { value: 0, label: 'Janeiro' },
+    { value: 1, label: 'Fevereiro' },
+    { value: 2, label: 'Março' },
+    { value: 3, label: 'Abril' },
+    { value: 4, label: 'Maio' },
+    { value: 5, label: 'Junho' },
+    { value: 6, label: 'Julho' },
+    { value: 7, label: 'Agosto' },
+    { value: 8, label: 'Setembro' },
+    { value: 9, label: 'Outubro' },
+    { value: 10, label: 'Novembro' },
+    { value: 11, label: 'Dezembro' },
+  ];
+  
+  const currentYear = new Date().getFullYear();
+  const years = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [subcategoryFilter, setSubcategoryFilter] = useState<string>('all');
@@ -94,6 +115,10 @@ export default function Incomes() {
   const filteredIncomes = useMemo(() => {
     return incomes
       .filter(income => {
+        // Date Filter
+        const incomeDate = new Date(income.receiveDate);
+        if (incomeDate.getMonth() !== selectedMonth || incomeDate.getFullYear() !== selectedYear) return false;
+
         // Status
         if (statusFilter === 'received' && !income.isReceived) return false;
         if (statusFilter === 'pending' && income.isReceived) return false;
@@ -129,7 +154,7 @@ export default function Incomes() {
         }
         return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [incomes, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder]);
+  }, [incomes, selectedMonth, selectedYear, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder]);
 
   const handleClearFilters = () => {
     setStatusFilter('all');
@@ -200,6 +225,35 @@ export default function Incomes() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4">
+            {/* Period Filter */}
+            <div className="flex flex-col sm:flex-row gap-4 pb-4 border-b">
+              <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((month) => (
+                    <SelectItem key={month.value} value={month.value.toString()}>
+                      {month.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+                <SelectTrigger className="w-full sm:w-[120px]">
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Top Row: Search and Main Filters */}
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1 relative">
