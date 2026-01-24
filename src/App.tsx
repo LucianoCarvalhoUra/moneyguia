@@ -16,6 +16,7 @@ import InvoiceReconciliation from "./pages/InvoiceReconciliation";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { useIdleTimeout } from "./hooks/useIdleTimeout";
 
 const queryClient = new QueryClient();
 
@@ -69,22 +70,25 @@ const AppRoutes = () => (
   </Routes>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <FinanceProvider>
-            <IncomeProvider>
-              <AppRoutes />
-            </IncomeProvider>
-          </FinanceProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  useIdleTimeout(); // Call the hook here
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <FinanceProvider>
+              <IncomeProvider>
+                <AppRoutes />
+              </IncomeProvider>
+            </FinanceProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
