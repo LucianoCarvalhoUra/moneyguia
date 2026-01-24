@@ -11,9 +11,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, addMonths, subMonths } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Search, Plus, Pencil, Trash2, CheckCircle2, AlertCircle, Calendar, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format } from 'date-fns';
+import { Search, Plus, Pencil, Trash2, CheckCircle2, AlertCircle, Calendar, Filter, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
@@ -22,21 +21,45 @@ import { Badge } from '@/components/ui/badge';
 export default function Expenses() {
   const { expenses, categories, subcategories, removeExpense, updateExpense } = useFinance();
   
-  // Estados solicitados explicitamente
-  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  // 1. Correção de Escopo e Estados
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  
-  // Estados adicionais para funcionamento da UI
   const [subcategoryFilter, setSubcategoryFilter] = useState('all');
-  const [sortField, setSortField] = useState('dueDate');
-  const [sortOrder, setSortOrder] = useState('asc');
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [sortField, setSortField] = useState('date');
+  const [sortOrder, setSortOrder] = useState('asc');
 
-  // Regra de Ouro: Logout após 15 min de inatividade
+  // 2. Dados Auxiliares
+  const months = [
+    { value: 0, label: 'Janeiro' },
+    { value: 1, label: 'Fevereiro' },
+    { value: 2, label: 'Março' },
+    { value: 3, label: 'Abril' },
+    { value: 4, label: 'Maio' },
+    { value: 5, label: 'Junho' },
+    { value: 6, label: 'Julho' },
+    { value: 7, label: 'Agosto' },
+    { value: 8, label: 'Setembro' },
+    { value: 9, label: 'Outubro' },
+    { value: 10, label: 'Novembro' },
+    { value: 11, label: 'Dezembro' },
+  ];
+
+  const years = Array.from({ length: 11 }, (_, i) => 2020 + i); // 2020 to 2030
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
+  // 5. Regras de Negócio Específicas (Logout)
   useEffect(() => {
     let timeout: number;
 
@@ -64,28 +87,28 @@ export default function Expenses() {
     return subcategories.filter(sub => sub.categoryId === categoryFilter);
   }, [categoryFilter, subcategories]);
 
-  // Filtered & Sorted Expenses
+  // Filtered Expenses
   const filteredExpenses = useMemo(() => {
     return expenses
       .filter(expense => {
-        // Date Filter
         const expenseDate = new Date(expense.dueDate);
-        if (
-          expenseDate.getMonth() !== selectedDate.getMonth() || 
-          expenseDate.getFullYear() !== selectedDate.getFullYear()
-        ) return false;
+        
+        // Month/Year Filter
+        if (expenseDate.getMonth() !== selectedMonth || expenseDate.getFullYear() !== selectedYear) {
+          return false;
+        }
 
-        // Status
+        // Status Filter
         if (statusFilter === 'paid' && !expense.isPaid) return false;
         if (statusFilter === 'pending' && expense.isPaid) return false;
 
-        // Category
+        // Category Filter
         if (categoryFilter !== 'all' && expense.categoryId !== categoryFilter) return false;
 
-        // Subcategory
+        // Subcategory Filter
         if (subcategoryFilter !== 'all' && expense.subcategoryId !== subcategoryFilter) return false;
 
-        // Search
+        // Search Filter
         if (searchTerm) {
           const category = categories.find(c => c.id === expense.categoryId);
           const subcategory = subcategories.find(s => s.id === expense.subcategoryId);
@@ -102,7 +125,7 @@ export default function Expenses() {
       .sort((a, b) => {
         let comparison = 0;
         switch (sortField) {
-          case 'dueDate':
+          case 'date':
             comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
             break;
           case 'amount':
@@ -113,15 +136,15 @@ export default function Expenses() {
         }
         return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [expenses, selectedDate, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder, categories, subcategories]);
+  }, [expenses, selectedMonth, selectedYear, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder, categories, subcategories]);
 
   const handleClearFilters = () => {
     setStatusFilter('all');
     setCategoryFilter('all');
     setSubcategoryFilter('all');
     setSearchTerm('');
-    setSortField('dueDate');
-    setSortOrder('asc');
+    setSortField('date');
+    setSortOrder('desc');
   };
 
   const handleDelete = async (id: string) => {
@@ -147,21 +170,6 @@ export default function Expenses() {
     setIsFormOpen(true);
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
-
-  const handlePreviousMonth = () => {
-    setSelectedDate(prev => subMonths(prev, 1));
-  };
-
-  const handleNextMonth = () => {
-    setSelectedDate(prev => addMonths(prev, 1));
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -182,49 +190,53 @@ export default function Expenses() {
         </Button>
       </div>
 
-      {/* Seletor de Mês/Ano (Fixo no Topo) */}
+      {/* 3. UI e Filtros (Seletor de Mês/Ano sempre visível) */}
       <Card>
         <CardContent className="py-4">
-          <div className="flex items-center justify-between">
-            <Button 
-              variant="ghost"
-              size="icon" 
-              onClick={handlePreviousMonth}
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
-            
-            <div className="flex items-center gap-2 text-lg font-semibold capitalize">
-              <Calendar className="w-5 h-5 mr-2" />
-              {format(selectedDate, 'MMMM yyyy', { locale: ptBR })}
-            </div>
+          <div className="flex flex-col sm:flex-row gap-4">
+             <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((month) => (
+                    <SelectItem key={month.value} value={month.value.toString()}>
+                      {month.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Button 
-              variant="ghost"
-              size="icon" 
-              onClick={handleNextMonth}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </Button>
+              <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+                <SelectTrigger className="w-full sm:w-[120px]">
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Botão de Alternar Filtros */}
+      {/* Botão Filtros e Opções */}
       <div className="flex justify-end">
         <Button
           variant="outline"
           className="gap-2"
-          onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+          onClick={() => setIsFiltersOpen(!isFiltersOpen)}
         >
           <Filter className="w-4 h-4" />
-          {isFiltersExpanded ? 'Ocultar Filtros' : 'Filtros e Opções'}
+          {isFiltersOpen ? 'Ocultar Filtros' : 'Filtros e Opções'}
         </Button>
       </div>
 
-      {/* Área de Filtros Condicional */}
-      {isFiltersExpanded && (
-        <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+      {/* Filtros Condicionais */}
+      {isFiltersOpen && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-medium">Filtros Avançados</CardTitle>
@@ -232,7 +244,6 @@ export default function Expenses() {
             <CardContent>
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col lg:flex-row gap-4">
-                  {/* Busca */}
                   <div className="flex-1 relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -243,7 +254,6 @@ export default function Expenses() {
                     />
                   </div>
                   
-                  {/* Filtros Dropdown */}
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                       <SelectTrigger className="w-full sm:w-[140px]">
@@ -289,7 +299,6 @@ export default function Expenses() {
                   </div>
                 </div>
 
-                {/* Ordenação e Limpar */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t">
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <span className="text-sm text-muted-foreground whitespace-nowrap">Ordenar por:</span>
@@ -298,7 +307,7 @@ export default function Expenses() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="dueDate">Vencimento</SelectItem>
+                        <SelectItem value="date">Vencimento</SelectItem>
                         <SelectItem value="amount">Valor</SelectItem>
                       </SelectContent>
                     </Select>
@@ -324,7 +333,6 @@ export default function Expenses() {
               </div>
             </CardContent>
           </Card>
-        </div>
       )}
 
       {/* Card de Resumo */}
@@ -332,7 +340,7 @@ export default function Expenses() {
         <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">
-              Total de Despesas ({format(selectedDate, 'MMMM/yyyy', { locale: ptBR })})
+              Total de Despesas ({months[selectedMonth].label}/{selectedYear})
             </p>
             <p className="text-3xl font-bold text-red-600 dark:text-red-400">
               {formatCurrency(filteredExpenses.reduce((acc, curr) => acc + curr.amount, 0))}
@@ -344,7 +352,7 @@ export default function Expenses() {
         </CardContent>
       </Card>
 
-      {/* Tabela Padronizada */}
+      {/* 4. Tabela de Despesas */}
       <Card>
         <CardContent className="p-0">
           <Table>
