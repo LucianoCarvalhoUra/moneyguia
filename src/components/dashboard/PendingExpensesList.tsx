@@ -8,12 +8,24 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-export default function PendingExpensesList() {
+interface PendingExpensesListProps {
+  selectedMonth: number;
+  selectedYear: number;
+}
+
+export default function PendingExpensesList({ selectedMonth, selectedYear }: PendingExpensesListProps) {
   const { expenses, updateExpense } = useFinance();
 
-  // Filtra despesas não pagas e ordena por data de vencimento
+  // Filtra despesas não pagas pelo vencimento no mês selecionado
   const pendingExpenses = expenses
-    .filter(expense => !expense.isPaid)
+    .filter(expense => {
+      const dueDate = new Date(expense.dueDate);
+      return (
+        !expense.isPaid &&
+        dueDate.getMonth() === selectedMonth &&
+        dueDate.getFullYear() === selectedYear
+      );
+    })
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
   const handlePay = async (id: string) => {

@@ -130,7 +130,7 @@ export default function Dashboard() {
       </div>
 
       {/* Pending Expenses List */}
-      <PendingExpensesList />
+      <PendingExpensesList selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
       {/* Real Balance Card */}
       <div className="grid gap-4 md:grid-cols-2">
