@@ -24,11 +24,11 @@ export default function Incomes() {
 
   // Regra de Ouro: Session Timeout (15 min)
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: number;
 
     const resetTimer = () => {
       clearTimeout(timeout);
-      timeout = setTimeout(() => {
+      timeout = window.setTimeout(() => {
         window.location.href = '/auth';
       }, 15 * 60 * 1000); // 15 minutes
     };
