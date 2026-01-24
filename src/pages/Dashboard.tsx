@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import RecentExpenses from '@/components/dashboard/RecentExpenses';
 import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
 import PendingExpensesList from '@/components/dashboard/PendingExpensesList';
+import { toast } from 'sonner';
+import { addDays, startOfDay, endOfDay } from 'date-fns';
 
 export default function Dashboard() {
   const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses } = useFinance();
@@ -78,6 +80,39 @@ export default function Dashboard() {
       setSelectedMonth(selectedMonth + 1);
     }
   };
+
+  // Smart Alert Logic
+  useEffect(() => {
+    const checkAlerts = () => {
+      const enabled = localStorage.getItem('alert_enabled') !== 'false';
+      if (!enabled) return;
+
+      const hasShown = sessionStorage.getItem('dashboard_alert_shown');
+      if (hasShown) return;
+
+      const days = parseInt(localStorage.getItem('alert_days_before') || '2');
+      const today = startOfDay(new Date());
+      const limitDate = endOfDay(addDays(today, days));
+
+      const upcomingExpenses = expenses.filter(e => {
+        if (e.isPaid) return false;
+        const dueDate = new Date(e.dueDate);
+        return dueDate >= today && dueDate <= limitDate;
+      });
+
+      if (upcomingExpenses.length > 0) {
+        toast.warning(`Atenção: Você tem ${upcomingExpenses.length} despesa(s) vencendo em breve!`, {
+          duration: 6000,
+          description: `Verifique suas contas para os próximos ${days} dias.`,
+        });
+        sessionStorage.setItem('dashboard_alert_shown', 'true');
+      }
+    };
+
+    if (expenses.length > 0) {
+      checkAlerts();
+    }
+  }, [expenses]);
 
   return (
     <div className="space-y-6">

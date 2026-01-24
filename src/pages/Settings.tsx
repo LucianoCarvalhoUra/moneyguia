@@ -6,10 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { User, Shield, Loader2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { User, Shield, Loader2, Bell } from 'lucide-react';
 import CategoryManager from '@/components/settings/CategoryManager';
 import IncomeCategoryManager from '@/components/settings/IncomeCategoryManager';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface Profile {
   name: string;
@@ -20,12 +29,22 @@ export default function Settings() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [alertDays, setAlertDays] = useState('2');
+  const [alertEnabled, setAlertEnabled] = useState(true);
 
   useEffect(() => {
     if (user?.id) {
       loadProfile();
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    const storedDays = localStorage.getItem('alert_days_before');
+    if (storedDays) setAlertDays(storedDays);
+    
+    const storedEnabled = localStorage.getItem('alert_enabled');
+    if (storedEnabled !== null) setAlertEnabled(storedEnabled === 'true');
+  }, []);
 
   const loadProfile = async () => {
     if (!user?.id) return;
@@ -46,6 +65,14 @@ export default function Settings() {
       });
     }
     setIsLoading(false);
+  };
+
+  const saveAlertSettings = (enabled: boolean, days: string) => {
+    setAlertEnabled(enabled);
+    setAlertDays(days);
+    localStorage.setItem('alert_enabled', String(enabled));
+    localStorage.setItem('alert_days_before', days);
+    toast.success('Preferências de alerta atualizadas');
   };
 
   return (
@@ -90,6 +117,49 @@ export default function Settings() {
 
       {/* Income Categories Manager */}
       <IncomeCategoryManager />
+
+      {/* Smart Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="w-5 h-5 text-primary" />
+            Notificações Inteligentes
+          </CardTitle>
+          <CardDescription>Configure seus alertas de vencimento</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+            <div className="space-y-0.5">
+              <Label className="text-base">Alerta ao Logar</Label>
+              <p className="text-sm text-muted-foreground">
+                Mostrar aviso de contas próximas do vencimento
+              </p>
+            </div>
+            <Button 
+              className={cn(alertEnabled ? "bg-primary hover:bg-primary/90" : "bg-muted text-muted-foreground hover:bg-muted/80")}
+              onClick={() => saveAlertSettings(!alertEnabled, alertDays)}
+            >
+              {alertEnabled ? 'Ativado' : 'Desativado'}
+            </Button>
+          </div>
+
+          {alertEnabled && (
+            <div className="space-y-2">
+              <Label>Antecedência do Alerta</Label>
+              <Select value={alertDays} onValueChange={(v) => saveAlertSettings(alertEnabled, v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 dia antes</SelectItem>
+                  <SelectItem value="2">2 dias antes</SelectItem>
+                  <SelectItem value="7">1 semana antes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Security */}
       <Card>
