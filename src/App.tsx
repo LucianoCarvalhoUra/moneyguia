@@ -16,7 +16,6 @@ import InvoiceReconciliation from "./pages/InvoiceReconciliation";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import { useIdleTimeout } from "./hooks/useIdleTimeout";
 
 const queryClient = new QueryClient();
 
@@ -71,7 +70,6 @@ const AppRoutes = () => (
 );
 
 const App = () => {
-  useIdleTimeout(); // Call the hook here
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -90,5 +88,3 @@ const App = () => {
     </QueryClientProvider>
   );
 };
-
-export default App;
