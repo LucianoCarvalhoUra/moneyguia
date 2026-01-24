@@ -21,7 +21,6 @@ import { Badge } from '@/components/ui/badge';
 export default function Expenses() {
   const { expenses, categories, subcategories, removeExpense, updateExpense } = useFinance();
   
-  // 1. Correção de Escopo e Estados
   // 1. Escopo de Variáveis
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -33,10 +32,8 @@ export default function Expenses() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const [sortField, setSortField] = useState('date');
-  const [sortOrder, setSortOrder] = useState('asc');
   const [sortOrder, setSortOrder] = useState('desc');
 
-  // 2. Dados Auxiliares
   // Constantes
   const months = [
     { value: 0, label: 'Janeiro' },
@@ -53,7 +50,6 @@ export default function Expenses() {
     { value: 11, label: 'Dezembro' },
   ];
 
-  const years = Array.from({ length: 11 }, (_, i) => 2020 + i); // 2020 to 2030
   const years = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
 
   // Funções Auxiliares
@@ -64,7 +60,6 @@ export default function Expenses() {
     }).format(value);
   };
 
-  // 5. Regras de Negócio Específicas (Logout)
   // 4. Regras de Negócio (Logout automático)
   useEffect(() => {
     let timeout: number;
@@ -473,134 +468,6 @@ export default function Expenses() {
     </div>
   );
 }
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base font-medium">
-            <Filter className="w-4 h-4" />
-            Filtros e Ordenação
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4">
-            {/* Period Filter */}
-            <div className="flex flex-col sm:flex-row gap-4 pb-4 border-b">
-              <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Mês" />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((month) => (
-                    <SelectItem key={month.value} value={month.value.toString()}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-                <SelectTrigger className="w-full sm:w-[120px]">
-                  <SelectValue placeholder="Ano" />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Top Row: Search and Main Filters */}
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar despesa..."
-                  className="pl-9"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4 lg:w-auto">
-                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-[140px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="paid">Pago</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={categoryFilter} onValueChange={(v) => {
-                  setCategoryFilter(v);
-                  setSubcategoryFilter('all');
-                }}>
-                  <SelectTrigger className="w-full sm:w-[160px]">
-                    <SelectValue placeholder="Categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    {categories.map(cat => (
-                      <SelectItem key={cat.id} value={cat.id}>{cat.icon} {cat.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select 
-                  value={subcategoryFilter} 
-                  onValueChange={setSubcategoryFilter}
-                  disabled={categoryFilter === 'all' || filteredSubcategories.length === 0}
-                >
-                  <SelectTrigger className="w-full sm:w-[160px]">
-                    <SelectValue placeholder="Subcategoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    {filteredSubcategories.map(sub => (
-                      <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Bottom Row: Sorting and Clear */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-sm text-muted-foreground whitespace-nowrap">Ordenar por:</span>
-                <Select value={sortField} onValueChange={setSortField}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dueDate">Vencimento</SelectItem>
-                    <SelectItem value="amount">Valor</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={sortOrder} onValueChange={setSortOrder}>
-                  <SelectTrigger className="w-[110px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="asc">Crescente</SelectItem>
-                    <SelectItem value="desc">Decrescente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button 
-                className="w-full sm:w-auto bg-transparent hover:bg-accent text-muted-foreground hover:text-foreground shadow-none"
-                onClick={handleClearFilters}
-              >
-                <X className="w-4 h-4 mr-2" />
-                Limpar Filtros
-              </Button>
-            </div>
-          </div>
-        </CardContent>
       </Card>
 
       {/* Summary Card */}
