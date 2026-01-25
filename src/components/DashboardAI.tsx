@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Send, X, Bot, User } from 'lucide-react';
-import { useFinancialData } from '@/hooks/useFinancialData';
+import { useFinancialSummary } from '@/hooks/useFinancialSummary';
 
 interface Message {
   id: string;
@@ -18,7 +18,7 @@ export function DashboardAI() {
     { id: '1', role: 'ai', content: 'Olá! Sou seu assistente financeiro. Como posso ajudar hoje?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  const { aiContextString } = useFinancialData();
+  const summary = useFinancialSummary();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,12 +58,33 @@ export function DashboardAI() {
     setTimeout(() => {
       let response = '';
       const lowerInput = userMessage.content.toLowerCase();
+      const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-      if (lowerInput.includes('resumo') || lowerInput.includes('geral') || lowerInput.includes('saldo')) {
-        response = aiContextString;
+      // Contexto de dados
+      const contextData = {
+        saldo: fmt(summary.balance),
+        receitas: fmt(summary.totalIncome),
+        despesas: fmt(summary.totalExpenses),
+        maiorGasto: summary.categorySpending[0] ? `${summary.categorySpending[0].category} (${fmt(summary.categorySpending[0].amount)})` : 'Nenhum',
+        contasPendentes: summary.upcomingBills.length
+      };
+
+      if (lowerInput.includes('resumo') || lowerInput.includes('geral') || lowerInput.includes('saúde') || lowerInput.includes('saude')) {
+        response = `Você é o KeepMoney AI. Seu contexto atual de dados é: Saldo ${contextData.saldo}, Receitas ${contextData.receitas}, Despesas ${contextData.despesas}. Com base nisso, sua saúde financeira está ${summary.balance >= 0 ? 'equilibrada' : 'requerendo atenção'}.`;
+      } else if (lowerInput.includes('saldo')) {
+        response = `Seu saldo atual é de ${contextData.saldo}.`;
+      } else if (lowerInput.includes('gasto') || lowerInput.includes('despesa')) {
+        response = `Suas despesas totais são ${contextData.despesas}. A categoria com maior gasto é ${contextData.maiorGasto}.`;
+      } else if (lowerInput.includes('receita') || lowerInput.includes('ganho')) {
+        response = `Suas receitas totais são ${contextData.receitas}.`;
+      } else if (lowerInput.includes('conta') || lowerInput.includes('pendente') || lowerInput.includes('vencimento')) {
+        response = `Você tem ${contextData.contasPendentes} contas próximas ao vencimento.`;
+        if (summary.upcomingBills.length > 0) {
+          const nextBill = summary.upcomingBills[0];
+          response += ` A próxima é ${nextBill.description} (${fmt(nextBill.amount)}) em ${new Date(nextBill.dueDate).toLocaleDateString('pt-BR')}.`;
+        }
       } else {
-        // Simple fallback using context data if available
-        response = `Com base nos seus dados: ${aiContextString.split('\n')[1] || ''}. Posso ajudar com mais detalhes sobre suas finanças.`;
+        response = `Com base nos seus dados (Saldo: ${contextData.saldo}), posso ajudar com detalhes sobre receitas, despesas ou contas pendentes.`;
       }
 
       setMessages(prev => [...prev, {
