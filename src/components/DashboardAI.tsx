@@ -82,19 +82,6 @@ export function DashboardAI() {
     setInput('');
     setIsThinking(true);
 
-    // PASSO 3: Regra de Segurança Integrada
-    if (textToSend.toLowerCase().includes('exclusão') || textToSend.toLowerCase().includes('excluir perfil')) {
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          role: 'ai',
-          content: '⚠️ AVISO DE SEGURANÇA: Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas permanentemente.'
-        }]);
-        setIsThinking(false);
-      }, 500);
-      return;
-    }
-
     try {
       const systemMessage = {
         role: 'system',
@@ -148,8 +135,18 @@ export function DashboardAI() {
       const { financialProfile, recurrenceAnalysis, criticalCategories, detailedBreakdown, variableAnalysis, projections, anomalies } = aiConsultantContext;
       const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-      // Check for context follow-up
-      if (currentAnalysisContext && (lowerInput.includes('e agora') || lowerInput.includes('como fazer') || lowerInput.includes('plano'))) {
+      // 1. Regra de Segurança (Prioridade Máxima)
+      if (lowerInput.includes('exclusão') || lowerInput.includes('excluir perfil') || lowerInput.includes('apagar conta') || lowerInput.includes('deletar conta')) {
+          response = '⚠️ **Aviso de Segurança:** Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas permanentemente.';
+      }
+      // 2. Reserva de Emergência
+      else if (lowerInput.includes('reserva') || lowerInput.includes('emergência') || lowerInput.includes('emergencia')) {
+          const monthlyExpenses = financialProfile.totalExpenses > 0 ? financialProfile.totalExpenses : 0;
+          const idealReserve = monthlyExpenses * 6;
+          response = `💰 **Cálculo de Reserva de Emergência:**\n\nBaseado na sua média de despesas mensais (${fmt(monthlyExpenses)}), o valor ideal para sua segurança (6 meses) é de **${fmt(idealReserve)}**.\n\nSugiro começar guardando 10% da sua receita mensal até atingir este objetivo.`;
+      }
+      // 3. Contexto de Continuidade (Follow-up)
+      else if (currentAnalysisContext && (lowerInput.includes('e agora') || lowerInput.includes('como fazer') || lowerInput.includes('plano'))) {
          if (currentAnalysisContext.topic === 'compensation') {
              const { expense, deficit } = currentAnalysisContext.data;
              response = `Continuando sobre o **${expense.description}**: Como é um gasto obrigatório, o plano é reduzir R$ ${fmt(deficit)} em categorias variáveis. \n\nSugestão prática: Corte 50% dos gastos com **${variableAnalysis.variableExpenses[0]?.category || 'Lazer'}** nas próximas semanas.`;
@@ -158,9 +155,8 @@ export function DashboardAI() {
              return;
          }
       }
-
-      // Lógica da Persona (Insight > Ação)
-      if (lowerInput.includes('como estou') || lowerInput.includes('analise') || lowerInput.includes('análise') || lowerInput.includes('resumo')) {
+      // 4. Análise Financeira (Insight > Ação)
+      else if (lowerInput.includes('como estou') || lowerInput.includes('analise') || lowerInput.includes('análise') || lowerInput.includes('resumo')) {
         const isCriticalBalance = projections.projectedBalance < 0;
         
         if (isCriticalBalance) {
@@ -244,33 +240,15 @@ export function DashboardAI() {
           response = `📅 **Agenda Financeira:** Próximos vencimentos identificados:\n${nextBills.map(b => `- ${b.description}: ${fmt(b.amount)}`).join('\n')}.\n\n`;
           response += `💼 **Recomendação:** Agende esses pagamentos hoje para evitar multas e juros.`;
 
-      } else {
-        // Fallback direto com dados
-        const topAnomaly = anomalies[0];
-        response = `🤖 **Consultoria:** Analisando seu perfil, vejo um saldo de ${fmt(financialProfile.totalBalance)}. `;
-        
-        if (topAnomaly) {
-            response += `Notei um gasto atípico de ${fmt(topAnomaly.amount)} em "${topAnomaly.description}".\n\n`;
-            response += `⚠️ **Atenção:** Verifique se isso foi planejado. Se não, ajuste o orçamento das outras categorias para compensar.`;
+      } 
+      // 5. Resposta Conversacional (Evita Loop de Análise)
+      else {
+        if (lowerInput.match(/^(oi|olá|ola|bom dia|boa tarde|boa noite)$/)) {
+            response = "Olá! Sou seu Consultor Financeiro. Posso analisar seus gastos, sugerir cortes ou calcular sua reserva de emergência. Como posso ajudar?";
+        } else if (lowerInput.match(/^(entendi|ok|certo|obrigado|obrigada|valeu|tá bom)$/)) {
+            response = "Disponha! Estou por aqui se precisar de mais alguma análise.";
         } else {
-            const top3 = detailedBreakdown.topExpenses.slice(0, 3);
-            if (top3.length > 0) {
-                 const top3Total = top3.reduce((acc, curr) => acc + curr.amount, 0);
-                 const concentration = financialProfile.totalExpenses > 0 ? (top3Total / financialProfile.totalExpenses) * 100 : 0;
-                 const deficit = top3Total - financialProfile.totalBalance;
-
-                 response += `Seus 3 maiores gastos este mês foram:\n`;
-                 response += top3.map((e, i) => `${i + 1}. **${e.description.replace(/Ajuste de Fatura - /i, 'Cartão ')}**: ${fmt(e.amount)}`).join('\n');
-                 response += `\n\n📊 **Análise de Concentração:** Estes itens representam **${concentration.toFixed(1)}%** do total de suas despesas.\n\n`;
-                 
-                 if (deficit > 0) {
-                    response += `⚠️ **Atenção:** Seus 3 maiores gastos superam seu saldo atual em ${fmt(deficit)}. Você precisará de uma entrada de receita ou resgate de reserva para cobrir este mês.`;
-                 } else {
-                    response += `✅ Seus maiores gastos estão cobertos pelo saldo atual.`;
-                 }
-            } else {
-                 response += `Não identifiquei grandes gastos atípicos. Continue monitorando o orçamento.`;
-            }
+            response = "Não entendi exatamente. Você quer saber sobre seu **saldo**, **maiores gastos** ou calcular sua **reserva de emergência**?";
         }
       }
 
