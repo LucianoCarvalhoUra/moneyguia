@@ -111,22 +111,37 @@ export function DashboardAI() {
     setTimeout(() => {
       let response = '';
       const lowerInput = textToSend.toLowerCase();
-      const { financialProfile, recurrenceAnalysis, criticalCategories, detailedBreakdown } = aiConsultantContext;
+      const { financialProfile, recurrenceAnalysis, criticalCategories, detailedBreakdown, variableAnalysis, projections } = aiConsultantContext;
 
       // Lógica da Persona (50/30/20 e Análise)
       if (lowerInput.includes('como estou') || lowerInput.includes('analise') || lowerInput.includes('análise')) {
         const fixedCostsRatio = (recurrenceAnalysis.totalRecurring / financialProfile.totalIncome) * 100;
-        response = `Analisando seu perfil: Suas despesas fixas consomem ${fixedCostsRatio.toFixed(1)}% da sua receita. `;
+        const variableCostsRatio = financialProfile.totalIncome > 0 ? (financialProfile.totalVariable / financialProfile.totalIncome) * 100 : 0;
         
-        if (fixedCostsRatio > 50) {
-          response += `🚨 Atenção: Isso está acima do ideal de 50%. Sugiro revisar: ${recurrenceAnalysis.recurringExpenses.slice(0, 2).map(e => e.description).join(', ')}. `;
+        // Análise de Furo no Orçamento (Saldo Negativo)
+        if (projections.projectedBalance < 0) {
+          response = `🚨 **Alerta de Orçamento:** Seu saldo projetado para o fim do mês é negativo em R$ ${Math.abs(projections.projectedBalance).toFixed(2)}.\n\n`;
+          
+          if (fixedCostsRatio <= 50) {
+            // Fixas ok, Variáveis altas
+            const remainingRatio = 100 - fixedCostsRatio;
+            response += `Suas despesas fixas estão saudáveis (${fixedCostsRatio.toFixed(1)}%). O problema é que os outros ${remainingRatio.toFixed(1)}% (e mais um pouco) estão indo para **Despesas Variáveis**.\n\n`;
+            response += `🕵️ **Investigação:** Os 3 maiores vilões do seu saldo são:\n`;
+            response += variableAnalysis.variableExpenses.slice(0, 3).map(v => `- ${v.description} (${v.category}): R$ ${v.amount.toFixed(2)}`).join('\n');
+            
+            const topCategory = variableAnalysis.variableExpenses[0]?.category || 'Lazer';
+            const reductionAmount = Math.abs(projections.projectedBalance) * 0.5; // Suggest reducing half the deficit from top item
+            response += `\n\n💡 **Sugestão de Reequilíbrio:** Para evitar o saldo de R$ ${projections.projectedBalance.toFixed(2)}, você precisa reduzir a categoria **${topCategory}** em pelo menos R$ ${reductionAmount.toFixed(0)} ainda esta semana.`;
+          } else {
+            // Fixas altas
+            response += `O problema é estrutural: Suas despesas fixas consomem ${fixedCostsRatio.toFixed(1)}% da receita (Ideal: 50%). Você precisa renegociar contratos como: ${recurrenceAnalysis.recurringExpenses.slice(0, 2).map(e => e.description).join(', ')}.`;
+          }
         } else {
-          response += `✅ Ótimo! Você está dentro da regra 50/30/20 para gastos fixos. `;
+          // Saldo Positivo
+          response = `✅ **Saúde Financeira:** Seu saldo projetado é positivo (R$ ${projections.projectedBalance.toFixed(2)}).\n`;
+          response += `Suas despesas fixas consomem ${fixedCostsRatio.toFixed(1)}% da receita. `;
+          response += fixedCostsRatio > 50 ? `Atenção, está um pouco alto (Ideal: 50%).` : `Está dentro da meta!`;
         }
-        
-        // Comparação Lazer vs Educação (se houver dados)
-        // (Simplificado pois não temos categorias hardcoded garantidas, mas a lógica seria aqui)
-        response += `\n\nSeu saldo projetado para o fim do mês é R$ ${aiConsultantContext.projections.projectedBalance.toFixed(2)}.`;
 
       } else if (lowerInput.includes('cortar') || lowerInput.includes('gastei mais') || lowerInput.includes('por que')) {
         if (criticalCategories.length > 0) {

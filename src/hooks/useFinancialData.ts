@@ -11,6 +11,7 @@ export interface FinancialContextType {
       totalIncome: number;
       totalExpenses: number;
       savingsRate: number; // % of income saved
+      totalVariable: number;
     };
     recurrenceAnalysis: {
       recurringExpenses: { description: string; amount: number; category: string }[];
@@ -22,6 +23,10 @@ export interface FinancialContextType {
       average3Months: number;
       trend: 'Crescente' | 'Decrescente' | 'Estável';
     }[];
+    variableAnalysis: {
+      variableExpenses: { description: string; amount: number; category: string }[];
+      totalVariable: number;
+    };
     projections: {
       projectedBalance: number;
       projectedExpenses: number;
@@ -55,9 +60,10 @@ export const useFinancialData = (): FinancialContextType => {
     if (!expenses || !incomes) {
       return {
         aiConsultantContext: {
-          financialProfile: { totalBalance: 0, totalIncome: 0, totalExpenses: 0, savingsRate: 0 },
+          financialProfile: { totalBalance: 0, totalIncome: 0, totalExpenses: 0, savingsRate: 0, totalVariable: 0 },
           recurrenceAnalysis: { recurringExpenses: [], totalRecurring: 0 },
           criticalCategories: [],
+          variableAnalysis: { variableExpenses: [], totalVariable: 0 },
           projections: { projectedBalance: 0, projectedExpenses: 0, daysRemaining: 0 },
           anomalies: [],
           detailedBreakdown: { topExpenses: [], categoryVariations: [] },
@@ -92,7 +98,18 @@ export const useFinancialData = (): FinancialContextType => {
       }));
     const totalRecurring = recurringExpensesList.reduce((acc, item) => acc + item.amount, 0);
 
-    // 3. Top 3 Critical Categories (vs 3-month average)
+    // 3. Variable Expenses Analysis (Non-Recurring)
+    const variableExpensesList = currentMonthExpenses
+      .filter(e => !e.isRecurring)
+      .map(e => ({
+        description: e.description,
+        amount: Number(e.amount),
+        category: categories.find(c => c.id === e.categoryId)?.name || 'Outros'
+      }))
+      .sort((a, b) => b.amount - a.amount);
+    const totalVariable = variableExpensesList.reduce((acc, item) => acc + item.amount, 0);
+
+    // 4. Top 3 Critical Categories (vs 3-month average)
     const last3MonthsStart = startOfMonth(subMonths(now, 3));
     const previousExpenses = expenses.filter(e => {
         const d = new Date(e.dueDate);
@@ -129,16 +146,15 @@ export const useFinancialData = (): FinancialContextType => {
         .sort((a, b) => (b.currentAmount - b.average3Months) - (a.currentAmount - a.average3Months)) // Sort by deviation
         .slice(0, 3);
 
-    // 4. Projection
+    // 5. Projection (Realistic: Scheduled Balance)
     const daysInMonth = getDaysInMonth(now);
     const currentDay = getDate(now);
     const daysRemaining = daysInMonth - currentDay;
-    // Simple linear projection: (spent / daysPassed) * totalDays
-    const effectiveDays = Math.max(currentDay, 1);
-    const projectedExpenses = (totalExpenses / effectiveDays) * daysInMonth;
+    // Projection based on scheduled items (Realized + Pending)
+    const projectedExpenses = totalExpenses; 
     const projectedBalance = totalIncome - projectedExpenses;
 
-    // 5. Anomalies (Expenses > 30% of total income or > 2x category average)
+    // 6. Anomalies (Expenses > 30% of total income or > 2x category average)
     const anomalies = currentMonthExpenses
         .filter(e => {
             const amount = Number(e.amount);
@@ -157,7 +173,7 @@ export const useFinancialData = (): FinancialContextType => {
             category: categories.find(c => c.id === e.categoryId)?.name || 'Outros'
         }));
 
-    // 6. Detailed Breakdown (Top 10 Expenses & Category Variations)
+    // 7. Detailed Breakdown (Top 10 Expenses & Category Variations)
     const topExpenses = currentMonthExpenses
         .sort((a, b) => Number(b.amount) - Number(a.amount))
         .slice(0, 10)
@@ -177,7 +193,7 @@ export const useFinancialData = (): FinancialContextType => {
         .sort((a, b) => b.variation - a.variation)
         .slice(0, 5);
 
-    // 7. Transaction History (Last 3 Months for RAG)
+    // 8. Transaction History (Last 3 Months for RAG)
     const threeMonthsAgo = subMonths(now, 3);
     const recentIncomes = incomes
       .filter(i => new Date(i.receiveDate) >= threeMonthsAgo)
@@ -197,9 +213,10 @@ export const useFinancialData = (): FinancialContextType => {
       }));
 
     const aiConsultantContext = {
-        financialProfile: { totalBalance, totalIncome, totalExpenses, savingsRate },
+        financialProfile: { totalBalance, totalIncome, totalExpenses, savingsRate, totalVariable },
         recurrenceAnalysis: { recurringExpenses: recurringExpensesList, totalRecurring },
         criticalCategories: criticalCategories as { category: string; currentAmount: number; average3Months: number; trend: 'Crescente' | 'Decrescente' | 'Estável' }[],
+        variableAnalysis: { variableExpenses: variableExpensesList, totalVariable },
         projections: { projectedBalance, projectedExpenses, daysRemaining },
         anomalies,
         detailedBreakdown: { topExpenses, categoryVariations },
