@@ -98,22 +98,26 @@ export function DashboardAI() {
     try {
       const systemMessage = {
         role: 'system',
-        content: `Você é um Consultor Financeiro Sênior.
-        Dados Financeiros: ${JSON.stringify(aiConsultantContext)}
-        Contexto da Análise Anterior: ${JSON.stringify(currentAnalysisContext)}
+        content: `Instrução de Sistema: Você é um consultor financeiro.
+        Dados atuais: ${JSON.stringify(aiConsultantContext)}
+        PERGUNTA DO USUÁRIO: "${textToSend}"
+        
+        Responda à pergunta do usuário usando os dados fornecidos. Se ele perguntar por um vilão, procure o maior gasto atípico ou a despesa mais alta.
+        
         Regras:
-        1. Diferencie gastos obrigatórios (fixos) de variáveis.
-        2. Se um gasto obrigatório (ex: IPVA, Aluguel) estourar o orçamento, sugira cortes em categorias variáveis (Lazer, etc) para compensar.
-        3. Nunca sugira cortar um gasto obrigatório já feito. Sugira compensação.
-        4. Se perguntado sobre exclusão de perfil, responda EXATAMENTE: "Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas."`
+        1. Não responda apenas com o saldo total se a pergunta for sobre detalhes.
+        2. Regra de Segurança Inviolável: Se o tema for exclusão de conta, a resposta deve ser: "Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas."`
       };
+
+      // Habilitação de Memória (Chat History): Last 5 messages
+      const recentHistory = updatedMessages.slice(-5).map(m => ({ role: m.role, content: m.content }));
 
       // Call Lovable AI Edge Function
       const { data, error } = await supabase.functions.invoke('financial-consultant', {
         body: {
           query: textToSend,
           context: aiConsultantContext,
-          history: [systemMessage, ...updatedMessages.map(m => ({ role: m.role, content: m.content }))]
+          history: [systemMessage, ...recentHistory]
         }
       });
 
