@@ -1,13 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Send, X, Bot, User } from 'lucide-react';
-import { useFinancialAnalysis } from '@/hooks/useFinancialAnalysis';
+import { useFinancialData } from '@/hooks/useFinancialData';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface Message {
   id: string;
@@ -22,7 +19,7 @@ export function DashboardAI() {
     { id: '1', role: 'ai', content: 'Olá! Sou seu assistente financeiro. Como posso ajudar hoje?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  const analysis = useFinancialAnalysis();
+  const { aiContextString } = useFinancialData();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,7 +43,7 @@ export function DashboardAI() {
     setIsLoading(true);
 
     // PASSO 3: Regra de Segurança Integrada
-    if (userMessage.content.toLowerCase().includes('exclusão')) {
+    if (userMessage.content.toLowerCase().includes('exclusão') || userMessage.content.toLowerCase().includes('excluir perfil')) {
       setTimeout(() => {
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
@@ -63,16 +60,11 @@ export function DashboardAI() {
       let response = '';
       const lowerInput = userMessage.content.toLowerCase();
 
-      if (lowerInput.includes('saldo')) {
-        response = `Seu saldo atual é de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(analysis.balance)}.`;
-      } else if (lowerInput.includes('gasto') || lowerInput.includes('despesa')) {
-        response = `Você gastou um total de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(analysis.totalExpenses)}. Sua maior categoria de gastos é ${analysis.topCategory}.`;
-      } else if (lowerInput.includes('receita') || lowerInput.includes('ganho')) {
-        response = `Suas receitas totais somam ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(analysis.totalIncomes)}.`;
-      } else if (lowerInput.includes('pendente') || lowerInput.includes('conta')) {
-        response = `Você tem ${analysis.pendingBillsCount} contas pendentes.`;
+      if (lowerInput.includes('resumo') || lowerInput.includes('geral') || lowerInput.includes('saldo')) {
+        response = aiContextString;
       } else {
-        response = 'Posso ajudar com informações sobre seu saldo, gastos, receitas ou contas pendentes.';
+        // Simple fallback using context data if available
+        response = `Com base nos seus dados: ${aiContextString.split('\n')[1] || ''}. Posso ajudar com mais detalhes sobre suas finanças.`;
       }
 
       setMessages(prev => [...prev, {
@@ -85,18 +77,17 @@ export function DashboardAI() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999]">
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            size="icon"
-            className="h-14 w-14 rounded-full shadow-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white transition-transform hover:scale-105"
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-24 right-6 z-[9999] w-[320px] shadow-2xl"
           >
-            <Sparkles className="h-6 w-6" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[350px] p-0 mr-4 mb-2 border-none shadow-2xl" side="top" align="end">
-          <div className="flex flex-col h-[500px] bg-background rounded-lg border overflow-hidden">
+            <Card className="flex flex-col h-[500px] border-primary/20 overflow-hidden">
             {/* Cabeçalho */}
             <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -129,9 +120,26 @@ export function DashboardAI() {
                 <Button type="submit" size="icon" disabled={isLoading || !input.trim()}><Send className="w-4 h-4" /></Button>
               </form>
             </div>
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        className="fixed bottom-6 right-6 z-[9999]"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <Button
+          size="icon"
+          className="h-14 w-14 rounded-full shadow-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? <X className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
+        </Button>
+      </motion.div>
+    </>
   );
 }

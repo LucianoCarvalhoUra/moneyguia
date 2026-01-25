@@ -221,7 +221,7 @@ export default function Dashboard() {
       {/* Expense Form */}
       <ExpenseForm open={formOpen} onOpenChange={setFormOpen} />
 
-      {/* AI Assistant */}
+      {/* AI Assistant - Integrated at the end to avoid overflow issues */}
       <DashboardAI />
     </div>
   );
