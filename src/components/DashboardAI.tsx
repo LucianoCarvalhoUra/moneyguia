@@ -106,8 +106,11 @@ export function DashboardAI() {
         
         Regras:
         1. Quando o usuário pedir uma lista (ex: "3 maiores gastos", "vilões"), você DEVE obrigatoriamente retornar uma lista numerada contendo o Nome e o Valor de cada item. Não resuma a resposta apenas ao maior item.
-        2. Só mencione o saldo bancário se o usuário perguntar especificamente por ele ou se for relevante para uma análise de risco (saldo negativo).
-        3. Regra de Segurança Inviolável: Se o tema for exclusão de conta, a resposta deve ser: "Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas."`
+        2. Análise de Concentração: Sempre calcule o impacto percentual dos maiores gastos no total de despesas.
+        3. Simplificação de Termos: Simplifique nomes complexos (ex: "Ajuste de Fatura - Personalite" -> "Cartão de Crédito Personalite").
+        4. Proatividade Financeira: Se os maiores gastos superarem o saldo, alerte sobre a necessidade de receita extra ou resgate de reserva.
+        5. Só mencione o saldo bancário se o usuário perguntar especificamente por ele ou se for relevante para uma análise de risco (saldo negativo).
+        6. Regra de Segurança Inviolável: Se o tema for exclusão de conta, a resposta deve ser: "Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas."`
       };
 
       // Habilitação de Memória (Chat History): Last 5 messages
@@ -251,9 +254,19 @@ export function DashboardAI() {
         } else {
             const top3 = detailedBreakdown.topExpenses.slice(0, 3);
             if (top3.length > 0) {
+                 const top3Total = top3.reduce((acc, curr) => acc + curr.amount, 0);
+                 const concentration = financialProfile.totalExpenses > 0 ? (top3Total / financialProfile.totalExpenses) * 100 : 0;
+                 const deficit = top3Total - financialProfile.totalBalance;
+
                  response += `Seus 3 maiores gastos este mês foram:\n`;
-                 response += top3.map((e, i) => `${i + 1}. **${e.description}**: ${fmt(e.amount)}`).join('\n');
-                 response += `\n\nIsso está dentro do planejado?`;
+                 response += top3.map((e, i) => `${i + 1}. **${e.description.replace(/Ajuste de Fatura - /i, 'Cartão ')}**: ${fmt(e.amount)}`).join('\n');
+                 response += `\n\n📊 **Análise de Concentração:** Estes itens representam **${concentration.toFixed(1)}%** do total de suas despesas.\n\n`;
+                 
+                 if (deficit > 0) {
+                    response += `⚠️ **Atenção:** Seus 3 maiores gastos superam seu saldo atual em ${fmt(deficit)}. Você precisará de uma entrada de receita ou resgate de reserva para cobrir este mês.`;
+                 } else {
+                    response += `✅ Seus maiores gastos estão cobertos pelo saldo atual.`;
+                 }
             } else {
                  response += `Não identifiquei grandes gastos atípicos. Continue monitorando o orçamento.`;
             }
