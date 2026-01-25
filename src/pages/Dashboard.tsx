@@ -12,6 +12,7 @@ import ExpenseForm from '@/components/expenses/ExpenseForm';
 import PendingExpensesList from '@/components/dashboard/PendingExpensesList';
 import { toast } from 'sonner';
 import { addDays, startOfDay, endOfDay } from 'date-fns';
+import { DashboardAI } from '@/components/DashboardAI';
 
 export default function Dashboard() {
   const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses } = useFinance();
@@ -219,6 +220,9 @@ export default function Dashboard() {
 
       {/* Expense Form */}
       <ExpenseForm open={formOpen} onOpenChange={setFormOpen} />
+
+      {/* AI Assistant */}
+      <DashboardAI />
     </div>
   );
 }
