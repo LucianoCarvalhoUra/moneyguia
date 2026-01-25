@@ -173,10 +173,10 @@ export const useFinancialData = (): FinancialContextType => {
             category: categories.find(c => c.id === e.categoryId)?.name || 'Outros'
         }));
 
-    // 7. Detailed Breakdown (Top 10 Expenses & Category Variations)
+    // 7. Detailed Breakdown (Top 20 Expenses & Category Variations)
     const topExpenses = currentMonthExpenses
         .sort((a, b) => Number(b.amount) - Number(a.amount))
-        .slice(0, 10)
+        .slice(0, 20)
         .map(e => ({
             description: e.description,
             amount: Number(e.amount),

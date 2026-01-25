@@ -102,7 +102,7 @@ export function DashboardAI() {
         Dados atuais: ${JSON.stringify(aiConsultantContext)}
         PERGUNTA DO USUÁRIO: "${textToSend}"
         
-        Responda à pergunta do usuário usando os dados fornecidos. Se ele perguntar por um vilão, procure o maior gasto atípico ou a despesa mais alta.
+        Você tem acesso a uma lista detalhada de transações. Nunca responda apenas com o saldo. Sempre que perguntado sobre "vilões" ou "detalhes", vasculhe a lista de transações, identifique o item de maior valor nominal e cite-o pelo nome (ex: IPVA Sportage).
         
         Regras:
         1. Não responda apenas com o saldo total se a pergunta for sobre detalhes.
@@ -248,7 +248,12 @@ export function DashboardAI() {
             response += `Notei um gasto atípico de ${fmt(topAnomaly.amount)} em "${topAnomaly.description}".\n\n`;
             response += `⚠️ **Atenção:** Verifique se isso foi planejado. Se não, ajuste o orçamento das outras categorias para compensar.`;
         } else {
-            response += `Suas finanças estão estáveis.\n\n🚀 **Próximo Passo:** Continue monitorando seus gastos variáveis para fechar o mês no azul.`;
+            const topExpense = detailedBreakdown.topExpenses[0];
+            if (topExpense) {
+                 response += `Seu maior gasto este mês foi com "**${topExpense.description}**" (${fmt(topExpense.amount)}). Isso está dentro do planejado?`;
+            } else {
+                 response += `Não identifiquei grandes gastos atípicos. Continue monitorando o orçamento.`;
+            }
         }
       }
 
