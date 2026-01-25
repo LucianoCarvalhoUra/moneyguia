@@ -4,7 +4,6 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Send, X, Bot, User } from 'lucide-react';
 import { useFinancialData } from '@/hooks/useFinancialData';
-import { AnimatePresence, motion } from 'framer-motion';
 
 interface Message {
   id: string;
@@ -78,16 +77,9 @@ export function DashboardAI() {
 
   return (
     <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="fixed bottom-24 right-6 z-[9999] w-[320px] shadow-2xl"
-          >
-            <Card className="flex flex-col h-[500px] border-primary/20 overflow-hidden">
+      {isOpen && (
+        <div className="fixed bottom-24 right-6 z-[9999] w-[320px] shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <Card className="flex flex-col h-[500px] border-primary/20 overflow-hidden">
             {/* Cabeçalho */}
             <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -120,26 +112,19 @@ export function DashboardAI() {
                 <Button type="submit" size="icon" disabled={isLoading || !input.trim()}><Send className="w-4 h-4" /></Button>
               </form>
             </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </Card>
+        </div>
+      )}
 
-      <motion.div
-        className="fixed bottom-6 right-6 z-[9999]"
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-      >
+      <div className="fixed bottom-6 right-6 z-[9999]">
         <Button
           size="icon"
-          className="h-14 w-14 rounded-full shadow-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
+          className="h-14 w-14 rounded-full shadow-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white transition-transform hover:scale-105 active:scale-95"
           onClick={() => setIsOpen(!isOpen)}
         >
           {isOpen ? <X className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
         </Button>
-      </motion.div>
+      </div>
     </>
   );
 }
