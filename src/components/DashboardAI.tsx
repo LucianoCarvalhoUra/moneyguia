@@ -12,6 +12,11 @@ interface Message {
   content: string;
 }
 
+interface AnalysisContext {
+  topic: string;
+  data: any;
+}
+
 export function DashboardAI() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -21,6 +26,7 @@ export function DashboardAI() {
   const [isThinking, setIsThinking] = useState(false);
   const { aiContextString, aiConsultantContext } = useFinancialData();
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [currentAnalysisContext, setCurrentAnalysisContext] = useState<AnalysisContext | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,6 +59,12 @@ export function DashboardAI() {
     setSuggestions(newSuggestions.slice(0, 3));
   }, [aiConsultantContext]);
 
+  const isMandatory = (description: string, category: string) => {
+    const mandatoryKeywords = ['aluguel', 'condomínio', 'luz', 'água', 'energia', 'internet', 'ipva', 'iptu', 'escola', 'faculdade', 'plano', 'seguro', 'financiamento', 'habitacao', 'moradia', 'saude', 'transporte', 'educacao', 'mercado'];
+    const text = (description + ' ' + category).toLowerCase();
+    return mandatoryKeywords.some(k => text.includes(k));
+  };
+
   const handleSendMessage = async (e?: React.FormEvent, customText?: string) => {
     if (e) e.preventDefault();
     const textToSend = customText || input;
@@ -65,7 +77,8 @@ export function DashboardAI() {
       content: textToSend
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
     setIsThinking(true);
 
@@ -83,12 +96,24 @@ export function DashboardAI() {
     }
 
     try {
+      const systemMessage = {
+        role: 'system',
+        content: `Você é um Consultor Financeiro Sênior.
+        Dados Financeiros: ${JSON.stringify(aiConsultantContext)}
+        Contexto da Análise Anterior: ${JSON.stringify(currentAnalysisContext)}
+        Regras:
+        1. Diferencie gastos obrigatórios (fixos) de variáveis.
+        2. Se um gasto obrigatório (ex: IPVA, Aluguel) estourar o orçamento, sugira cortes em categorias variáveis (Lazer, etc) para compensar.
+        3. Nunca sugira cortar um gasto obrigatório já feito. Sugira compensação.
+        4. Se perguntado sobre exclusão de perfil, responda EXATAMENTE: "Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas."`
+      };
+
       // Call Lovable AI Edge Function
       const { data, error } = await supabase.functions.invoke('financial-consultant', {
         body: {
           query: textToSend,
           context: aiConsultantContext,
-          history: messages.map(m => ({ role: m.role, content: m.content }))
+          history: [systemMessage, ...updatedMessages.map(m => ({ role: m.role, content: m.content }))]
         }
       });
 
@@ -114,6 +139,17 @@ export function DashboardAI() {
       const { financialProfile, recurrenceAnalysis, criticalCategories, detailedBreakdown, variableAnalysis, projections, anomalies } = aiConsultantContext;
       const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
+      // Check for context follow-up
+      if (currentAnalysisContext && (lowerInput.includes('e agora') || lowerInput.includes('como fazer') || lowerInput.includes('plano'))) {
+         if (currentAnalysisContext.topic === 'compensation') {
+             const { expense, deficit } = currentAnalysisContext.data;
+             response = `Continuando sobre o **${expense.description}**: Como é um gasto obrigatório, o plano é reduzir R$ ${fmt(deficit)} em categorias variáveis. \n\nSugestão prática: Corte 50% dos gastos com **${variableAnalysis.variableExpenses[0]?.category || 'Lazer'}** nas próximas semanas.`;
+             setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', content: response }]);
+             setIsThinking(false);
+             return;
+         }
+      }
+
       // Lógica da Persona (Insight > Ação)
       if (lowerInput.includes('como estou') || lowerInput.includes('analise') || lowerInput.includes('análise') || lowerInput.includes('resumo')) {
         const isCriticalBalance = projections.projectedBalance < 0;
@@ -122,16 +158,30 @@ export function DashboardAI() {
             const deficit = Math.abs(projections.projectedBalance);
             const topExpense = detailedBreakdown.topExpenses[0];
             const impact = financialProfile.totalIncome > 0 ? (topExpense.amount / financialProfile.totalIncome) * 100 : 0;
+            const isTopMandatory = topExpense ? isMandatory(topExpense.description, topExpense.category) : false;
             
             response = `🚨 **Alerta Crítico:** Notei um desequilíbrio este mês. Seu saldo projetado está negativo em ${fmt(deficit)}.\n\n`;
             
             if (topExpense && impact > 10) {
-                response += `📉 **Contexto de Impacto:** O gasto com "${topExpense.description}" (${fmt(topExpense.amount)}) consumiu ${impact.toFixed(1)}% da sua receita, desestabilizando o fluxo.\n\n`;
-            }
+                if (isTopMandatory) {
+                    response += `📉 **Diagnóstico:** O gasto obrigatório com "**${topExpense.description}**" (${fmt(topExpense.amount)}) consumiu ${impact.toFixed(1)}% da sua receita, desestabilizando o fluxo.\n\n`;
+                    
+                    const cutCandidates = variableAnalysis.variableExpenses.slice(0, 2);
+                    if (cutCandidates.length > 0) {
+                        response += `⚖️ **Estratégia de Compensação:** Como o ${topExpense.description} é indispensável, identifiquei que você pode compensar reduzindo gastos em **${cutCandidates.map(c => c.category).join(' e ')}**.\n\n`;
+                    } else {
+                        response += `⚖️ **Estratégia:** Precisamos cortar gastos variáveis imediatamente para compensar.\n\n`;
+                    }
 
-            const cutCandidates = variableAnalysis.variableExpenses.slice(0, 2);
-            if (cutCandidates.length > 0) {
-                response += `🛡️ **Plano de Recuperação:** Para recuperar seu caixa, sugiro reduzir drasticamente as categorias **${cutCandidates.map(c => c.category).join(' e ')}** nos próximos 15 dias.`;
+                    // Projection
+                    const monthsToRecover = financialProfile.savingsRate > 0 ? Math.ceil(deficit / (financialProfile.totalIncome * 0.1)) : 3;
+                    response += `📅 **Previsão de Caixa:** Com ajustes, o saldo deve se estabilizar em cerca de ${monthsToRecover} meses.`;
+
+                    setCurrentAnalysisContext({ topic: 'compensation', data: { expense: topExpense, deficit } });
+                } else {
+                    response += `📉 **Contexto:** O gasto com "**${topExpense.description}**" (${fmt(topExpense.amount)}) foi alto e parece ser discricionário.\n\n`;
+                    response += `✂️ **Ação:** Considere cortar este tipo de gasto nos próximos meses.`;
+                }
             } else {
                 response += `🛡️ **Plano de Recuperação:** Corte gastos variáveis imediatamente para cobrir o rombo.`;
             }
