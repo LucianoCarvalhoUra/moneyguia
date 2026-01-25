@@ -32,6 +32,10 @@ export interface FinancialContextType {
       topExpenses: { description: string; amount: number; date: string; category: string }[];
       categoryVariations: { category: string; variation: number; current: number; average: number }[];
     };
+    transactionsHistory: {
+      incomes: { description: string; amount: number; date: string; category: string }[];
+      expenses: { description: string; amount: number; date: string; category: string }[];
+    };
   };
   aiContextString: string;
   isLoading: boolean;
@@ -40,7 +44,7 @@ export interface FinancialContextType {
 
 export const useFinancialData = (): FinancialContextType => {
   const { expenses, categories } = useFinance();
-  const { incomes } = useIncome();
+  const { incomes, incomeCategories } = useIncome();
 
   // Note: Assuming contexts handle loading internally and return empty arrays initially.
   // If contexts exposed loading states, we would use them here.
@@ -56,7 +60,8 @@ export const useFinancialData = (): FinancialContextType => {
           criticalCategories: [],
           projections: { projectedBalance: 0, projectedExpenses: 0, daysRemaining: 0 },
           anomalies: [],
-          detailedBreakdown: { topExpenses: [], categoryVariations: [] }
+          detailedBreakdown: { topExpenses: [], categoryVariations: [] },
+          transactionsHistory: { incomes: [], expenses: [] }
         },
         aiContextString: '',
         isLoading: true,
@@ -172,13 +177,33 @@ export const useFinancialData = (): FinancialContextType => {
         .sort((a, b) => b.variation - a.variation)
         .slice(0, 5);
 
+    // 7. Transaction History (Last 3 Months for RAG)
+    const threeMonthsAgo = subMonths(now, 3);
+    const recentIncomes = incomes
+      .filter(i => new Date(i.receiveDate) >= threeMonthsAgo)
+      .map(i => ({
+        description: i.description || i.title,
+        amount: Number(i.amount),
+        date: format(new Date(i.receiveDate), 'yyyy-MM-dd'),
+        category: incomeCategories?.find(c => c.id === i.categoryId)?.name || 'Outros'
+      }));
+    const recentExpenses = expenses
+      .filter(e => new Date(e.dueDate) >= threeMonthsAgo)
+      .map(e => ({
+        description: e.description,
+        amount: Number(e.amount),
+        date: format(new Date(e.dueDate), 'yyyy-MM-dd'),
+        category: categories.find(c => c.id === e.categoryId)?.name || 'Outros'
+      }));
+
     const aiConsultantContext = {
         financialProfile: { totalBalance, totalIncome, totalExpenses, savingsRate },
         recurrenceAnalysis: { recurringExpenses: recurringExpensesList, totalRecurring },
         criticalCategories: criticalCategories as { category: string; currentAmount: number; average3Months: number; trend: 'Crescente' | 'Decrescente' | 'Estável' }[],
         projections: { projectedBalance, projectedExpenses, daysRemaining },
         anomalies,
-        detailedBreakdown: { topExpenses, categoryVariations }
+        detailedBreakdown: { topExpenses, categoryVariations },
+        transactionsHistory: { incomes: recentIncomes, expenses: recentExpenses }
     };
 
     const aiContextString = `

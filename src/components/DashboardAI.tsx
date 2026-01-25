@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Send, X, Bot, User, Search, TrendingDown, Calendar, AlertTriangle } from 'lucide-react';
+import { Sparkles, Send, X, Bot, User, Search, TrendingDown, Calendar, Loader2 } from 'lucide-react';
 import { useFinancialData } from '@/hooks/useFinancialData';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -17,7 +18,7 @@ export function DashboardAI() {
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', role: 'ai', content: 'Olá! Sou seu Consultor Financeiro. Como posso ajudar a otimizar seu orçamento hoje?' }
   ]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const { aiContextString, aiConsultantContext } = useFinancialData();
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -66,7 +67,7 @@ export function DashboardAI() {
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
-    setIsLoading(true);
+    setIsThinking(true);
 
     // PASSO 3: Regra de Segurança Integrada
     if (textToSend.toLowerCase().includes('exclusão') || textToSend.toLowerCase().includes('excluir perfil')) {
@@ -76,12 +77,37 @@ export function DashboardAI() {
           role: 'ai',
           content: '⚠️ AVISO DE SEGURANÇA: Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas permanentemente.'
         }]);
-        setIsLoading(false);
+        setIsThinking(false);
       }, 500);
       return;
     }
 
-    // Simulação da IA com Persona de Consultor
+    try {
+      // Call Lovable AI Edge Function
+      const { data, error } = await supabase.functions.invoke('financial-consultant', {
+        body: {
+          query: textToSend,
+          context: aiConsultantContext,
+          history: messages.map(m => ({ role: m.role, content: m.content }))
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.response) {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          role: 'ai',
+          content: data.response
+        }]);
+        setIsThinking(false);
+        return;
+      }
+    } catch (error) {
+      console.log('Edge function not available, falling back to local logic', error);
+    }
+
+    // Fallback: Simulação da IA com Persona de Consultor (Local)
     setTimeout(() => {
       let response = '';
       const lowerInput = textToSend.toLowerCase();
@@ -135,7 +161,7 @@ export function DashboardAI() {
         role: 'ai',
         content: response
       }]);
-      setIsLoading(false);
+      setIsThinking(false);
     }, 1200);
   };
 
@@ -169,7 +195,12 @@ export function DashboardAI() {
                   {msg.role === 'user' && <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0"><User className="w-4 h-4" /></div>}
                 </div>
               ))}
-              {isLoading && <div className="flex gap-2 justify-start"><div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"><Bot className="w-4 h-4 text-primary" /></div><div className="bg-muted p-3 rounded-lg rounded-tl-none"><span className="animate-pulse">Digitando...</span></div></div>}
+              {isThinking && (
+                <div className="flex gap-2 justify-start items-center">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"><Bot className="w-4 h-4 text-primary" /></div>
+                  <div className="bg-muted p-3 rounded-lg rounded-tl-none flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> Analisando suas finanças...</div>
+                </div>
+              )}
             </div>
 
             {/* Quick Actions */}
@@ -188,7 +219,7 @@ export function DashboardAI() {
             <div className="p-4 border-t bg-background/50">
               <form onSubmit={(e) => handleSendMessage(e)} className="flex gap-2">
                 <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Pergunte sobre suas finanças..." className="flex-1" />
-                <Button type="submit" size="icon" disabled={isLoading || !input.trim()}><Send className="w-4 h-4" /></Button>
+                <Button type="submit" size="icon" disabled={isThinking || !input.trim()}><Send className="w-4 h-4" /></Button>
               </form>
             </div>
           </Card>
