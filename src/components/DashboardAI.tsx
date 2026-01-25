@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Send, X, Bot, User, Search, TrendingDown, Calendar } from 'lucide-react';
-import { useFinancialSummary } from '@/hooks/useFinancialSummary';
+import { useFinancialData } from '@/hooks/useFinancialData';
 
 interface Message {
   id: string;

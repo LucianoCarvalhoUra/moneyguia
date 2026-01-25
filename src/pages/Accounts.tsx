@@ -106,6 +106,12 @@ export default function Accounts() {
 
   const cardBrands = ['Visa', 'Mastercard', 'Elo', 'American Express', 'Hipercard'];
 
+  const maskAccountNumber = (number: string) => {
+    if (!number) return '';
+    if (number.length <= 4) return number;
+    return '•'.repeat(number.length - 4) + number.slice(-4);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -151,7 +157,7 @@ export default function Accounts() {
                       <div>
                         <p className="font-medium text-foreground">{account.bankName}</p>
                         <p className="text-sm text-muted-foreground">
-                          Ag: {account.agency} • CC: {account.accountNumber}
+                          Ag: {account.agency} • CC: {maskAccountNumber(account.accountNumber)}
                         </p>
                       </div>
                     </div>
