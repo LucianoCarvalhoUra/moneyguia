@@ -102,11 +102,12 @@ export function DashboardAI() {
         Dados atuais: ${JSON.stringify(aiConsultantContext)}
         PERGUNTA DO USUÁRIO: "${textToSend}"
         
-        Você tem acesso a uma lista detalhada de transações. Nunca responda apenas com o saldo. Sempre que perguntado sobre "vilões" ou "detalhes", vasculhe a lista de transações, identifique o item de maior valor nominal e cite-o pelo nome (ex: IPVA Sportage).
+        Você tem acesso a uma lista detalhada de transações (detailedBreakdown.topExpenses).
         
         Regras:
-        1. Não responda apenas com o saldo total se a pergunta for sobre detalhes.
-        2. Regra de Segurança Inviolável: Se o tema for exclusão de conta, a resposta deve ser: "Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas."`
+        1. Quando o usuário pedir uma lista (ex: "3 maiores gastos", "vilões"), você DEVE obrigatoriamente retornar uma lista numerada contendo o Nome e o Valor de cada item. Não resuma a resposta apenas ao maior item.
+        2. Só mencione o saldo bancário se o usuário perguntar especificamente por ele ou se for relevante para uma análise de risco (saldo negativo).
+        3. Regra de Segurança Inviolável: Se o tema for exclusão de conta, a resposta deve ser: "Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas."`
       };
 
       // Habilitação de Memória (Chat History): Last 5 messages
@@ -248,9 +249,11 @@ export function DashboardAI() {
             response += `Notei um gasto atípico de ${fmt(topAnomaly.amount)} em "${topAnomaly.description}".\n\n`;
             response += `⚠️ **Atenção:** Verifique se isso foi planejado. Se não, ajuste o orçamento das outras categorias para compensar.`;
         } else {
-            const topExpense = detailedBreakdown.topExpenses[0];
-            if (topExpense) {
-                 response += `Seu maior gasto este mês foi com "**${topExpense.description}**" (${fmt(topExpense.amount)}). Isso está dentro do planejado?`;
+            const top3 = detailedBreakdown.topExpenses.slice(0, 3);
+            if (top3.length > 0) {
+                 response += `Seus 3 maiores gastos este mês foram:\n`;
+                 response += top3.map((e, i) => `${i + 1}. **${e.description}**: ${fmt(e.amount)}`).join('\n');
+                 response += `\n\nIsso está dentro do planejado?`;
             } else {
                  response += `Não identifiquei grandes gastos atípicos. Continue monitorando o orçamento.`;
             }
