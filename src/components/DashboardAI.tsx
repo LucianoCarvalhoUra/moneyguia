@@ -111,64 +111,91 @@ export function DashboardAI() {
     setTimeout(() => {
       let response = '';
       const lowerInput = textToSend.toLowerCase();
-      const { financialProfile, recurrenceAnalysis, criticalCategories, detailedBreakdown, variableAnalysis, projections } = aiConsultantContext;
+      const { financialProfile, recurrenceAnalysis, criticalCategories, detailedBreakdown, variableAnalysis, projections, anomalies } = aiConsultantContext;
+      const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-      // Lógica da Persona (50/30/20 e Análise)
-      if (lowerInput.includes('como estou') || lowerInput.includes('analise') || lowerInput.includes('análise')) {
-        const fixedCostsRatio = (recurrenceAnalysis.totalRecurring / financialProfile.totalIncome) * 100;
-        const variableCostsRatio = financialProfile.totalIncome > 0 ? (financialProfile.totalVariable / financialProfile.totalIncome) * 100 : 0;
+      // Lógica da Persona (Insight > Ação)
+      if (lowerInput.includes('como estou') || lowerInput.includes('analise') || lowerInput.includes('análise') || lowerInput.includes('resumo')) {
+        const isCriticalBalance = projections.projectedBalance < 0;
         
-        // Análise de Furo no Orçamento (Saldo Negativo)
-        if (projections.projectedBalance < 0) {
-          response = `🚨 **Alerta de Orçamento:** Seu saldo projetado para o fim do mês é negativo em R$ ${Math.abs(projections.projectedBalance).toFixed(2)}.\n\n`;
-          
-          if (fixedCostsRatio <= 50) {
-            // Fixas ok, Variáveis altas
-            const remainingRatio = 100 - fixedCostsRatio;
-            response += `Suas despesas fixas estão saudáveis (${fixedCostsRatio.toFixed(1)}%). O problema é que os outros ${remainingRatio.toFixed(1)}% (e mais um pouco) estão indo para **Despesas Variáveis**.\n\n`;
-            response += `🕵️ **Investigação:** Os 3 maiores vilões do seu saldo são:\n`;
-            response += variableAnalysis.variableExpenses.slice(0, 3).map(v => `- ${v.description} (${v.category}): R$ ${v.amount.toFixed(2)}`).join('\n');
+        if (isCriticalBalance) {
+            const deficit = Math.abs(projections.projectedBalance);
+            const topExpense = detailedBreakdown.topExpenses[0];
+            const impact = financialProfile.totalIncome > 0 ? (topExpense.amount / financialProfile.totalIncome) * 100 : 0;
             
-            const topCategory = variableAnalysis.variableExpenses[0]?.category || 'Lazer';
-            const reductionAmount = Math.abs(projections.projectedBalance) * 0.5; // Suggest reducing half the deficit from top item
-            response += `\n\n💡 **Sugestão de Reequilíbrio:** Para evitar o saldo de R$ ${projections.projectedBalance.toFixed(2)}, você precisa reduzir a categoria **${topCategory}** em pelo menos R$ ${reductionAmount.toFixed(0)} ainda esta semana.`;
-          } else {
-            // Fixas altas
-            response += `O problema é estrutural: Suas despesas fixas consomem ${fixedCostsRatio.toFixed(1)}% da receita (Ideal: 50%). Você precisa renegociar contratos como: ${recurrenceAnalysis.recurringExpenses.slice(0, 2).map(e => e.description).join(', ')}.`;
-          }
+            response = `🚨 **Alerta Crítico:** Notei um desequilíbrio este mês. Seu saldo projetado está negativo em ${fmt(deficit)}.\n\n`;
+            
+            if (topExpense && impact > 10) {
+                response += `📉 **Contexto de Impacto:** O gasto com "${topExpense.description}" (${fmt(topExpense.amount)}) consumiu ${impact.toFixed(1)}% da sua receita, desestabilizando o fluxo.\n\n`;
+            }
+
+            const cutCandidates = variableAnalysis.variableExpenses.slice(0, 2);
+            if (cutCandidates.length > 0) {
+                response += `🛡️ **Plano de Recuperação:** Para recuperar seu caixa, sugiro reduzir drasticamente as categorias **${cutCandidates.map(c => c.category).join(' e ')}** nos próximos 15 dias.`;
+            } else {
+                response += `🛡️ **Plano de Recuperação:** Corte gastos variáveis imediatamente para cobrir o rombo.`;
+            }
         } else {
-          // Saldo Positivo
-          response = `✅ **Saúde Financeira:** Seu saldo projetado é positivo (R$ ${projections.projectedBalance.toFixed(2)}).\n`;
-          response += `Suas despesas fixas consomem ${fixedCostsRatio.toFixed(1)}% da receita. `;
-          response += fixedCostsRatio > 50 ? `Atenção, está um pouco alto (Ideal: 50%).` : `Está dentro da meta!`;
+            response = `✅ **Saúde Financeira:** Seu saldo projetado é positivo (${fmt(projections.projectedBalance)}).\n\n`;
+            response += `📊 **Insight:** Suas despesas fixas estão em ${(recurrenceAnalysis.totalRecurring / financialProfile.totalIncome * 100).toFixed(1)}% da receita. `;
+            
+            if (criticalCategories.length > 0) {
+                response += `Porém, a categoria **${criticalCategories[0].category}** está com tendência de alta.\n\n`;
+                response += `🎯 **Recomendação:** Monitore esta categoria para não comprometer a economia do próximo mês.`;
+            } else {
+                response += `Tudo sob controle.\n\n🚀 **Recomendação:** Aproveite o saldo positivo para aportar em sua reserva de emergência.`;
+            }
         }
 
       } else if (lowerInput.includes('cortar') || lowerInput.includes('gastei mais') || lowerInput.includes('por que')) {
         if (criticalCategories.length > 0) {
-          response = `🔍 Fatos: Suas categorias ${criticalCategories.map(c => c.category).join(', ')} estão com tendência de alta. \n\nOs maiores vilões deste mês foram: \n${detailedBreakdown.topExpenses.slice(0, 3).map(e => `- ${e.description}: R$ ${e.amount}`).join('\n')}. \n\nCorte esses itens supérfluos imediatamente.`;
+          const topCrit = criticalCategories[0];
+          response = `📉 **Análise de Tendência:** Identifiquei que **${topCrit.category}** está crescendo e superou sua média em ${fmt(topCrit.currentAmount - topCrit.average3Months)}.\n\n`;
+          response += `✂️ **Ação Imediata:** Revise os gastos desta categoria. O maior item foi "${detailedBreakdown.topExpenses.find(e => e.category === topCrit.category)?.description || 'diversos'}". Corte excessos aqui.`;
         } else {
-          response = `🔍 Seus gastos estão estáveis. Para economizar, foque nos itens mais caros do mês: \n${detailedBreakdown.topExpenses.slice(0, 3).map(e => `- ${e.description}: R$ ${e.amount}`).join('\n')}.`;
+          const topVar = variableAnalysis.variableExpenses[0];
+          response = `🔍 **Análise:** Seus gastos recorrentes estão estáveis. O aumento vem de despesas variáveis como **${topVar?.category}**.\n\n`;
+          response += `💡 **Sugestão:** Tente reduzir o consumo em ${topVar?.category} em 20% na próxima semana para ver resultado imediato.`;
         }
 
       } else if (lowerInput.includes('reduzir') && lowerInput.includes('categoria')) {
-         if (criticalCategories.length > 0) {
-             const top = criticalCategories[0];
-              response = `📉 Ação Imediata: Sua categoria **${top.category}** excedeu a média em R$ ${(top.currentAmount - top.average3Months).toFixed(2)}. \n\nSugestão: Estabeleça um teto de R$ ${top.average3Months.toFixed(0)} para o próximo mês.`;
-         } else {
-              response = "📉 Todas as suas categorias estão dentro da média histórica. Mantenha o controle.";
-         }
+          if (criticalCategories.length > 0) {
+              const top = criticalCategories[0];
+              response = `📉 **Foco no Problema:** Sua categoria **${top.category}** é a mais crítica no momento (R$ ${fmt(top.currentAmount)}).\n\n`;
+              response += `🎯 **Meta:** Estabeleça um teto de ${fmt(top.average3Months)} para o próximo mês e acompanhe semanalmente.`;
+          } else {
+              response = `📉 **Observação:** Nenhuma categoria apresenta desvio alarmante hoje. Mantenha a disciplina nos gastos variáveis como **${variableAnalysis.variableExpenses[0]?.category}**.`;
+          }
 
       } else if (lowerInput.includes('receita') && lowerInput.includes('cobre')) {
+          const fixedRatio = (recurrenceAnalysis.totalRecurring / financialProfile.totalIncome) * 100;
           const covers = financialProfile.totalIncome >= recurrenceAnalysis.totalRecurring;
-          response = `📅 ${covers ? 'Sim, cobre com folga.' : 'Não, estamos no vermelho.'} Sua receita é R$ ${financialProfile.totalIncome.toFixed(2)} e suas contas fixas somam R$ ${recurrenceAnalysis.totalRecurring.toFixed(2)}. Sobram R$ ${(financialProfile.totalIncome - recurrenceAnalysis.totalRecurring).toFixed(2)} para gastos variáveis e investimentos.`;
+          
+          response = `📅 **Diagnóstico:** ${covers ? 'Sim, sua receita cobre as fixas.' : 'Não, suas contas fixas excedem a receita.'}\n\n`;
+          response += `📊 **Dados:** Comprometimento de ${fixedRatio.toFixed(1)}% da renda.\n\n`;
+          
+          if (fixedRatio > 50) {
+              response += `⚠️ **Ação Necessária:** Este índice é alto (Ideal: <50%). Planeje reduzir custos fixos como ${recurrenceAnalysis.recurringExpenses[0]?.description} para ter folga.`;
+          } else {
+              response += `✅ **Conclusão:** Você tem margem para investir. Priorize a quitação de dívidas ou aportes financeiros.`;
+          }
 
       } else if (lowerInput.includes('vencem') || lowerInput.includes('contas')) {
-          const nextBills = aiConsultantContext.recurrenceAnalysis.recurringExpenses.slice(0, 3);
-          response = `📅 Próximos vencimentos identificados: \n${nextBills.map(b => `- ${b.description}: R$ ${b.amount}`).join('\n')}. \n\nCertifique-se de ter saldo para cobri-los.`;
+          const nextBills = recurrenceAnalysis.recurringExpenses.slice(0, 3);
+          response = `📅 **Agenda Financeira:** Próximos vencimentos identificados:\n${nextBills.map(b => `- ${b.description}: ${fmt(b.amount)}`).join('\n')}.\n\n`;
+          response += `💼 **Recomendação:** Agende esses pagamentos hoje para evitar multas e juros.`;
 
       } else {
         // Fallback direto com dados
-        response = `Analisando seus dados atuais: Saldo de R$ ${financialProfile.totalBalance.toFixed(2)} e Despesas de R$ ${financialProfile.totalExpenses.toFixed(2)}. \n\nSeu maior gasto recente foi com ${detailedBreakdown.topExpenses[0]?.description || 'N/A'}. Como posso ajudar a melhorar esses números?`;
+        const topAnomaly = anomalies[0];
+        response = `🤖 **Consultoria:** Analisando seu perfil, vejo um saldo de ${fmt(financialProfile.totalBalance)}. `;
+        
+        if (topAnomaly) {
+            response += `Notei um gasto atípico de ${fmt(topAnomaly.amount)} em "${topAnomaly.description}".\n\n`;
+            response += `⚠️ **Atenção:** Verifique se isso foi planejado. Se não, ajuste o orçamento das outras categorias para compensar.`;
+        } else {
+            response += `Suas finanças estão estáveis.\n\n🚀 **Próximo Passo:** Continue monitorando seus gastos variáveis para fechar o mês no azul.`;
+        }
       }
 
       setMessages(prev => [...prev, {
