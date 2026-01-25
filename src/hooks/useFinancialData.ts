@@ -37,6 +37,13 @@ export interface FinancialContextType {
       topExpenses: { description: string; amount: number; date: string; category: string }[];
       categoryVariations: { category: string; variation: number; current: number; average: number }[];
     };
+    previousMonth: {
+      totalIncome: number;
+      totalExpenses: number;
+      balance: number;
+      topExpenseName: string;
+      topExpenseAmount: number;
+    };
     transactionsHistory: {
       incomes: { description: string; amount: number; date: string; category: string }[];
       expenses: { description: string; amount: number; date: string; category: string }[];
@@ -67,6 +74,7 @@ export const useFinancialData = (): FinancialContextType => {
           projections: { projectedBalance: 0, projectedExpenses: 0, daysRemaining: 0 },
           anomalies: [],
           detailedBreakdown: { topExpenses: [], categoryVariations: [] },
+          previousMonth: { totalIncome: 0, totalExpenses: 0, balance: 0, topExpenseName: '', topExpenseAmount: 0 },
           transactionsHistory: { incomes: [], expenses: [] }
         },
         aiContextString: '',
@@ -212,6 +220,16 @@ export const useFinancialData = (): FinancialContextType => {
         category: categories.find(c => c.id === e.categoryId)?.name || 'Outros'
       }));
 
+    // 9. Previous Month Context (Memory)
+    const lastMonth = subMonths(now, 1);
+    const lastMonthIncomes = incomes.filter(i => isSameMonth(new Date(i.receiveDate), lastMonth));
+    const lastMonthExpenses = expenses.filter(e => isSameMonth(new Date(e.dueDate), lastMonth));
+    
+    const lastMonthTotalIncome = lastMonthIncomes.reduce((acc, i) => acc + Number(i.amount), 0);
+    const lastMonthTotalExpenses = lastMonthExpenses.reduce((acc, e) => acc + Number(e.amount), 0);
+    const lastMonthBalance = lastMonthTotalIncome - lastMonthTotalExpenses;
+    const lastMonthTopExpense = lastMonthExpenses.sort((a, b) => Number(b.amount) - Number(a.amount))[0];
+
     const aiConsultantContext = {
         financialProfile: { totalBalance, totalIncome, totalExpenses, savingsRate, totalVariable },
         recurrenceAnalysis: { recurringExpenses: recurringExpensesList, totalRecurring },
@@ -220,6 +238,13 @@ export const useFinancialData = (): FinancialContextType => {
         projections: { projectedBalance, projectedExpenses, daysRemaining },
         anomalies,
         detailedBreakdown: { topExpenses, categoryVariations },
+        previousMonth: {
+            totalIncome: lastMonthTotalIncome,
+            totalExpenses: lastMonthTotalExpenses,
+            balance: lastMonthBalance,
+            topExpenseName: lastMonthTopExpense?.description || 'Nenhum',
+            topExpenseAmount: Number(lastMonthTopExpense?.amount || 0)
+        },
         transactionsHistory: { incomes: recentIncomes, expenses: recentExpenses }
     };
 

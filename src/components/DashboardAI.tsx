@@ -102,15 +102,16 @@ export function DashboardAI() {
         Dados atuais: ${JSON.stringify(aiConsultantContext)}
         PERGUNTA DO USUÁRIO: "${textToSend}"
         
-        Você tem acesso a uma lista detalhada de transações (detailedBreakdown.topExpenses).
+        Você tem acesso a uma lista detalhada de transações e ao histórico do mês anterior (previousMonth).
         
-        Regras:
-        1. Quando o usuário pedir uma lista (ex: "3 maiores gastos", "vilões"), você DEVE obrigatoriamente retornar uma lista numerada contendo o Nome e o Valor de cada item. Não resuma a resposta apenas ao maior item.
-        2. Análise de Concentração: Sempre calcule o impacto percentual dos maiores gastos no total de despesas.
-        3. Simplificação de Termos: Simplifique nomes complexos (ex: "Ajuste de Fatura - Personalite" -> "Cartão de Crédito Personalite").
-        4. Proatividade Financeira: Se os maiores gastos superarem o saldo, alerte sobre a necessidade de receita extra ou resgate de reserva.
-        5. Só mencione o saldo bancário se o usuário perguntar especificamente por ele ou se for relevante para uma análise de risco (saldo negativo).
-        6. Regra de Segurança Inviolável: Se o tema for exclusão de conta, a resposta deve ser: "Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas."`
+        DIRETRIZES DE MEMÓRIA E COMPORTAMENTO:
+        1. Persistência de Fatos: Verifique o objeto 'previousMonth'. Se houve saldo negativo ou gasto alto no mês passado, trate isso como um fato histórico. Se o usuário perguntar "Como estou?", diga: "Você está se recuperando do impacto de [Valor] do mês passado causado por [Nome do Gasto]".
+        2. Interpretação de Próximos Passos: Se perguntado "O que eu faço?", sugira uma reserva de emergência ideal. Calcule 6x a média de despesas mensais e sugira começar guardando 10% desse valor.
+        3. Regra de Segurança Inviolável (Recall): Se o tema for exclusão de conta/perfil, a resposta deve ser EXATAMENTE: "Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas."
+        4. Listas: Quando pedir lista, use numeração e valores explícitos.
+        5. Análise de Concentração: Calcule o impacto percentual dos maiores gastos.
+        6. Simplificação: Simplifique nomes de transações (ex: "Ajuste de Fatura" -> "Cartão").
+        7. Proatividade: Se os gastos superarem o saldo, alerte sobre a necessidade de receita extra.`
       };
 
       // Habilitação de Memória (Chat History): Last 5 messages
