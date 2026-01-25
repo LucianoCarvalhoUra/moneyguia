@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
-import { format, subMonths, startOfMonth, endOfMonth, getDaysInMonth, getDate, isSameMonth } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, getDaysInMonth, getDate, isSameMonth, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export interface FinancialContextType {
@@ -43,6 +43,22 @@ export const useFinancialData = (): FinancialContextType => {
   const isLoading = !expenses || !incomes; 
 
   const financialContext = useMemo(() => {
+    // Safety check for initial render
+    if (!expenses || !incomes) {
+      return {
+        aiConsultantContext: {
+          financialProfile: { totalBalance: 0, totalIncome: 0, totalExpenses: 0, savingsRate: 0 },
+          recurrenceAnalysis: { recurringExpenses: [], totalRecurring: 0 },
+          criticalCategories: [],
+          projections: { projectedBalance: 0, projectedExpenses: 0, daysRemaining: 0 },
+          anomalies: []
+        },
+        aiContextString: '',
+        isLoading: true,
+        error: null
+      };
+    }
+
     const now = new Date();
     const currentMonthStart = startOfMonth(now);
     const currentMonthEnd = endOfMonth(now);
