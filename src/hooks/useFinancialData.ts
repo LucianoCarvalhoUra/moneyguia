@@ -28,6 +28,10 @@ export interface FinancialContextType {
       daysRemaining: number;
     };
     anomalies: { description: string; amount: number; date: string; category: string }[];
+    detailedBreakdown: {
+      topExpenses: { description: string; amount: number; date: string; category: string }[];
+      categoryVariations: { category: string; variation: number; current: number; average: number }[];
+    };
   };
   aiContextString: string;
   isLoading: boolean;
@@ -51,7 +55,8 @@ export const useFinancialData = (): FinancialContextType => {
           recurrenceAnalysis: { recurringExpenses: [], totalRecurring: 0 },
           criticalCategories: [],
           projections: { projectedBalance: 0, projectedExpenses: 0, daysRemaining: 0 },
-          anomalies: []
+          anomalies: [],
+          detailedBreakdown: { topExpenses: [], categoryVariations: [] }
         },
         aiContextString: '',
         isLoading: true,
@@ -147,12 +152,33 @@ export const useFinancialData = (): FinancialContextType => {
             category: categories.find(c => c.id === e.categoryId)?.name || 'Outros'
         }));
 
+    // 6. Detailed Breakdown (Top 10 Expenses & Category Variations)
+    const topExpenses = currentMonthExpenses
+        .sort((a, b) => Number(b.amount) - Number(a.amount))
+        .slice(0, 10)
+        .map(e => ({
+            description: e.description,
+            amount: Number(e.amount),
+            date: format(new Date(e.dueDate), 'dd/MM/yyyy'),
+            category: categories.find(c => c.id === e.categoryId)?.name || 'Outros'
+        }));
+
+    const categoryVariations = Object.entries(categoryStats)
+        .map(([category, stats]) => {
+            const avg = stats.history.reduce((a, b) => a + b, 0) / 3;
+            const variation = avg > 0 ? ((stats.current - avg) / avg) * 100 : 0;
+            return { category, variation, current: stats.current, average: avg };
+        })
+        .sort((a, b) => b.variation - a.variation)
+        .slice(0, 5);
+
     const aiConsultantContext = {
         financialProfile: { totalBalance, totalIncome, totalExpenses, savingsRate },
         recurrenceAnalysis: { recurringExpenses: recurringExpensesList, totalRecurring },
         criticalCategories: criticalCategories as { category: string; currentAmount: number; average3Months: number; trend: 'Crescente' | 'Decrescente' | 'Estável' }[],
         projections: { projectedBalance, projectedExpenses, daysRemaining },
-        anomalies
+        anomalies,
+        detailedBreakdown: { topExpenses, categoryVariations }
     };
 
     const aiContextString = `
@@ -177,6 +203,10 @@ export const useFinancialData = (): FinancialContextType => {
       
       5. ANOMALIAS DETECTADAS:
       ${anomalies.map(a => `- ${a.description}: R$ ${a.amount.toFixed(2)} (${a.category})`).join('\n')}
+
+      6. DETALHAMENTO PROFUNDO:
+      - Top Gastos: ${topExpenses.map(e => `${e.description} (${e.amount})`).join(', ')}
+      - Variações: ${categoryVariations.map(c => `${c.category} (${c.variation.toFixed(1)}%)`).join(', ')}
     `.trim();
 
     return {

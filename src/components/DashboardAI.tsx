@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Send, X, Bot, User, Search, TrendingDown, Calendar } from 'lucide-react';
+import { Sparkles, Send, X, Bot, User, Search, TrendingDown, Calendar, AlertTriangle } from 'lucide-react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 
 interface Message {
@@ -19,6 +19,7 @@ export function DashboardAI() {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const { aiContextString, aiConsultantContext } = useFinancialData();
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,6 +27,30 @@ export function DashboardAI() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Generate Dynamic Suggestions based on context
+  useEffect(() => {
+    if (!aiConsultantContext) return;
+    const { financialProfile, recurrenceAnalysis, criticalCategories, anomalies } = aiConsultantContext;
+    const newSuggestions = [];
+
+    if (financialProfile.totalExpenses > financialProfile.totalIncome) {
+      newSuggestions.push('🚨 Por que gastei mais este mês?');
+    }
+    if (criticalCategories.length > 0) {
+      newSuggestions.push(`📉 Reduzir ${criticalCategories[0].category}`);
+    }
+    if (anomalies.length > 0) {
+      newSuggestions.push('🔍 Ver gastos atípicos');
+    }
+    if (recurrenceAnalysis.totalRecurring > 0) {
+      newSuggestions.push('📅 Quais contas vencem logo?');
+    }
+    // Fallback suggestions
+    if (newSuggestions.length < 3) newSuggestions.push('💰 Como economizar?');
+    
+    setSuggestions(newSuggestions.slice(0, 3));
+  }, [aiConsultantContext]);
 
   const handleSendMessage = async (e?: React.FormEvent, customText?: string) => {
     if (e) e.preventDefault();
@@ -60,7 +85,7 @@ export function DashboardAI() {
     setTimeout(() => {
       let response = '';
       const lowerInput = textToSend.toLowerCase();
-      const { financialProfile, recurrenceAnalysis, criticalCategories } = aiConsultantContext;
+      const { financialProfile, recurrenceAnalysis, criticalCategories, detailedBreakdown } = aiConsultantContext;
 
       // Lógica da Persona (50/30/20 e Análise)
       if (lowerInput.includes('como estou') || lowerInput.includes('analise') || lowerInput.includes('análise')) {
@@ -77,28 +102,32 @@ export function DashboardAI() {
         // (Simplificado pois não temos categorias hardcoded garantidas, mas a lógica seria aqui)
         response += `\n\nSeu saldo projetado para o fim do mês é R$ ${aiConsultantContext.projections.projectedBalance.toFixed(2)}.`;
 
-      } else if (lowerInput.includes('cortar gastos') || lowerInput.includes('onde posso cortar')) {
+      } else if (lowerInput.includes('cortar') || lowerInput.includes('gastei mais') || lowerInput.includes('por que')) {
         if (criticalCategories.length > 0) {
-          response = `🔍 Identifiquei tendências de alta em: ${criticalCategories.map(c => `${c.category} (R$ ${c.currentAmount.toFixed(2)})`).join(', ')}. Estas categorias estão gastando mais que a sua média dos últimos 3 meses. Tente reduzir aqui primeiro.`;
+          response = `🔍 Fatos: Suas categorias ${criticalCategories.map(c => c.category).join(', ')} estão com tendência de alta. \n\nOs maiores vilões deste mês foram: \n${detailedBreakdown.topExpenses.slice(0, 3).map(e => `- ${e.description}: R$ ${e.amount}`).join('\n')}. \n\nCorte esses itens supérfluos imediatamente.`;
         } else {
-          response = `🔍 Seus gastos estão estáveis em relação à média. Para economizar mais, olhe para suas despesas recorrentes: ${recurrenceAnalysis.recurringExpenses.map(e => e.description).join(', ')}.`;
+          response = `🔍 Seus gastos estão estáveis. Para economizar, foque nos itens mais caros do mês: \n${detailedBreakdown.topExpenses.slice(0, 3).map(e => `- ${e.description}: R$ ${e.amount}`).join('\n')}.`;
         }
 
       } else if (lowerInput.includes('reduzir') && lowerInput.includes('categoria')) {
          if (criticalCategories.length > 0) {
              const top = criticalCategories[0];
-             response = `📉 Sua categoria mais crítica é **${top.category}**. Você gastou R$ ${top.currentAmount.toFixed(2)}, o que é acima da sua média de R$ ${top.average3Months.toFixed(2)}. Defina um teto de gastos semanal para ela.`;
+              response = `📉 Ação Imediata: Sua categoria **${top.category}** excedeu a média em R$ ${(top.currentAmount - top.average3Months).toFixed(2)}. \n\nSugestão: Estabeleça um teto de R$ ${top.average3Months.toFixed(0)} para o próximo mês.`;
          } else {
-             response = "📉 No momento, nenhuma categoria apresenta um aumento alarmante em relação à sua média histórica.";
+              response = "📉 Todas as suas categorias estão dentro da média histórica. Mantenha o controle.";
          }
 
       } else if (lowerInput.includes('receita') && lowerInput.includes('cobre')) {
           const covers = financialProfile.totalIncome >= recurrenceAnalysis.totalRecurring;
           response = `📅 ${covers ? 'Sim, cobre com folga.' : 'Não, estamos no vermelho.'} Sua receita é R$ ${financialProfile.totalIncome.toFixed(2)} e suas contas fixas somam R$ ${recurrenceAnalysis.totalRecurring.toFixed(2)}. Sobram R$ ${(financialProfile.totalIncome - recurrenceAnalysis.totalRecurring).toFixed(2)} para gastos variáveis e investimentos.`;
 
+      } else if (lowerInput.includes('vencem') || lowerInput.includes('contas')) {
+          const nextBills = aiConsultantContext.recurrenceAnalysis.recurringExpenses.slice(0, 3);
+          response = `📅 Próximos vencimentos identificados: \n${nextBills.map(b => `- ${b.description}: R$ ${b.amount}`).join('\n')}. \n\nCertifique-se de ter saldo para cobri-los.`;
+
       } else {
-        // Fallback genérico com contexto
-        response = `Como Consultor Financeiro, vejo que seu saldo atual é R$ ${financialProfile.totalBalance.toFixed(2)}. Posso analisar seus gastos fixos, categorias críticas ou projetar seu fechamento de mês. O que prefere?`;
+        // Fallback direto com dados
+        response = `Analisando seus dados atuais: Saldo de R$ ${financialProfile.totalBalance.toFixed(2)} e Despesas de R$ ${financialProfile.totalExpenses.toFixed(2)}. \n\nSeu maior gasto recente foi com ${detailedBreakdown.topExpenses[0]?.description || 'N/A'}. Como posso ajudar a melhorar esses números?`;
       }
 
       setMessages(prev => [...prev, {
@@ -145,15 +174,14 @@ export function DashboardAI() {
 
             {/* Quick Actions */}
             <div className="px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar">
-                <Button variant="outline" size="sm" className="text-xs whitespace-nowrap h-8" onClick={() => handleSendMessage(undefined, '🔍 Onde posso cortar gastos este mês?')}>
-                    <Search className="w-3 h-3 mr-1" /> Cortar Gastos
-                </Button>
-                <Button variant="outline" size="sm" className="text-xs whitespace-nowrap h-8" onClick={() => handleSendMessage(undefined, '📉 Como reduzir minha categoria mais cara?')}>
-                    <TrendingDown className="w-3 h-3 mr-1" /> Reduzir Top 1
-                </Button>
-                <Button variant="outline" size="sm" className="text-xs whitespace-nowrap h-8" onClick={() => handleSendMessage(undefined, '📅 Minha receita cobre minhas contas fixas?')}>
-                    <Calendar className="w-3 h-3 mr-1" /> Contas Fixas
-                </Button>
+                {suggestions.map((suggestion, index) => (
+                  <Button key={index} variant="outline" size="sm" className="text-xs whitespace-nowrap h-8" onClick={() => handleSendMessage(undefined, suggestion)}>
+                      {suggestion.includes('cortar') || suggestion.includes('gastei') ? <Search className="w-3 h-3 mr-1" /> : 
+                       suggestion.includes('Reduzir') ? <TrendingDown className="w-3 h-3 mr-1" /> : 
+                       <Calendar className="w-3 h-3 mr-1" />} 
+                      {suggestion}
+                  </Button>
+                ))}
             </div>
 
             {/* Input */}
