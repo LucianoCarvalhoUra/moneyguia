@@ -82,6 +82,42 @@ export function DashboardAI() {
     setInput('');
     setIsThinking(true);
 
+    const lowerInput = textToSend.toLowerCase();
+    const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+    // 1. Prioridade de Resposta (Match de Intenção - Processamento Local)
+    
+    // Regra de Segurança
+    if (lowerInput.includes('apagar') || lowerInput.includes('excluir') || lowerInput.includes('deletar')) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', content: 'Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas.' }]);
+        setIsThinking(false);
+      }, 600);
+      return;
+    }
+
+    // Cálculo de Reserva
+    if (lowerInput.includes('reserva')) {
+      const { financialProfile } = aiConsultantContext;
+      const monthlyExpenses = financialProfile.totalExpenses > 0 ? financialProfile.totalExpenses : 0;
+      const idealReserve = monthlyExpenses * 6;
+      const response = `💰 **Cálculo de Reserva de Emergência:**\n\nBaseado na sua média de despesas mensais (${fmt(monthlyExpenses)}), o valor ideal para sua segurança (6 meses) é de **${fmt(idealReserve)}**.\n\nSugiro começar guardando 10% da sua receita mensal até atingir este objetivo.`;
+      setTimeout(() => {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', content: response }]);
+        setIsThinking(false);
+      }, 800);
+      return;
+    }
+
+    // Manutenção de Contexto (Apenas acusar recebimento)
+    if (lowerInput.match(/^(entendi|ok|certo|obrigado|obrigada|valeu|tá bom)$/)) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', content: 'Disponha! Estou à disposição para novas análises.' }]);
+        setIsThinking(false);
+      }, 600);
+      return;
+    }
+
     try {
       const systemMessage = {
         role: 'system',
@@ -131,22 +167,10 @@ export function DashboardAI() {
     // Fallback: Simulação da IA com Persona de Consultor (Local)
     setTimeout(() => {
       let response = '';
-      const lowerInput = textToSend.toLowerCase();
       const { financialProfile, recurrenceAnalysis, criticalCategories, detailedBreakdown, variableAnalysis, projections, anomalies } = aiConsultantContext;
-      const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-      // 1. Regra de Segurança (Prioridade Máxima)
-      if (lowerInput.includes('exclusão') || lowerInput.includes('excluir perfil') || lowerInput.includes('apagar conta') || lowerInput.includes('deletar conta')) {
-          response = '⚠️ **Aviso de Segurança:** Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas permanentemente.';
-      }
-      // 2. Reserva de Emergência
-      else if (lowerInput.includes('reserva') || lowerInput.includes('emergência') || lowerInput.includes('emergencia')) {
-          const monthlyExpenses = financialProfile.totalExpenses > 0 ? financialProfile.totalExpenses : 0;
-          const idealReserve = monthlyExpenses * 6;
-          response = `💰 **Cálculo de Reserva de Emergência:**\n\nBaseado na sua média de despesas mensais (${fmt(monthlyExpenses)}), o valor ideal para sua segurança (6 meses) é de **${fmt(idealReserve)}**.\n\nSugiro começar guardando 10% da sua receita mensal até atingir este objetivo.`;
-      }
-      // 3. Contexto de Continuidade (Follow-up)
-      else if (currentAnalysisContext && (lowerInput.includes('e agora') || lowerInput.includes('como fazer') || lowerInput.includes('plano'))) {
+      // Contexto de Continuidade (Follow-up)
+      if (currentAnalysisContext && (lowerInput.includes('e agora') || lowerInput.includes('como fazer') || lowerInput.includes('plano'))) {
          if (currentAnalysisContext.topic === 'compensation') {
              const { expense, deficit } = currentAnalysisContext.data;
              response = `Continuando sobre o **${expense.description}**: Como é um gasto obrigatório, o plano é reduzir R$ ${fmt(deficit)} em categorias variáveis. \n\nSugestão prática: Corte 50% dos gastos com **${variableAnalysis.variableExpenses[0]?.category || 'Lazer'}** nas próximas semanas.`;
@@ -155,8 +179,8 @@ export function DashboardAI() {
              return;
          }
       }
-      // 4. Análise Financeira (Insight > Ação)
-      else if (lowerInput.includes('como estou') || lowerInput.includes('analise') || lowerInput.includes('análise') || lowerInput.includes('resumo')) {
+      // Análise Financeira (Insight > Ação)
+      else if (lowerInput.includes('como estou') || lowerInput.includes('analise') || lowerInput.includes('análise') || lowerInput.includes('resumo') || lowerInput.includes('geral')) {
         const isCriticalBalance = projections.projectedBalance < 0;
         
         if (isCriticalBalance) {
@@ -240,16 +264,10 @@ export function DashboardAI() {
           response = `📅 **Agenda Financeira:** Próximos vencimentos identificados:\n${nextBills.map(b => `- ${b.description}: ${fmt(b.amount)}`).join('\n')}.\n\n`;
           response += `💼 **Recomendação:** Agende esses pagamentos hoje para evitar multas e juros.`;
 
-      } 
-      // 5. Resposta Conversacional (Evita Loop de Análise)
-      else {
-        if (lowerInput.match(/^(oi|olá|ola|bom dia|boa tarde|boa noite)$/)) {
-            response = "Olá! Sou seu Consultor Financeiro. Posso analisar seus gastos, sugerir cortes ou calcular sua reserva de emergência. Como posso ajudar?";
-        } else if (lowerInput.match(/^(entendi|ok|certo|obrigado|obrigada|valeu|tá bom)$/)) {
-            response = "Disponha! Estou por aqui se precisar de mais alguma análise.";
-        } else {
-            response = "Não entendi exatamente. Você quer saber sobre seu **saldo**, **maiores gastos** ou calcular sua **reserva de emergência**?";
-        }
+      } else {
+        // Fallback Genérico Inteligente (Sem menu fixo)
+        response = `Entendi. Estou analisando seus dados financeiros (Saldo Atual: ${fmt(financialProfile.totalBalance)}). \n\n`;
+        response += `Você pode me perguntar sobre detalhes específicos, como "quais são meus maiores gastos" ou "como economizar em lazer".`;
       }
 
       setMessages(prev => [...prev, {
