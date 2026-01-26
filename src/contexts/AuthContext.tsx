@@ -73,6 +73,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Timeout por Inatividade
+  useEffect(() => {
+    let inactivityTimer: ReturnType<typeof setTimeout>;
+
+    const handleLogoutOnInactivity = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log('Usuário inativo por 15 minutos. Deslogando.');
+        await supabase.auth.signOut();
+        window.location.href = '/login';
+      }
+    };
+
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(handleLogoutOnInactivity, 15 * 60 * 1000); // 15 minutos
+    };
+
+    const activityEvents: (keyof WindowEventMap)[] = ['mousemove', 'keydown', 'scroll', 'click'];
+    activityEvents.forEach(event => window.addEventListener(event, resetTimer));
+    resetTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      activityEvents.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, []);
+
   const createProfileIfNotExists = async (user: User) => {
     const { data: existingProfile } = await supabase
       .from('profiles')
@@ -125,6 +153,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await supabase.auth.signOut();
+    // O listener onAuthStateChange também será acionado, mas um redirecionamento forçado garante um estado limpo.
+    window.location.href = '/login';
   };
 
   return (
