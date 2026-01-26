@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleLogoutOnInactivity = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        console.log('Usuário inativo por 30 segundos. Deslogando para teste.');
+        console.log('Usuário inativo por 15 minutos. Deslogando.');
         await supabase.auth.signOut();
         // Limpeza explícita do estado para evitar renderização de componentes protegidos
         setUser(null);
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const resetTimer = () => {
       clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(handleLogoutOnInactivity, 30 * 1000); // 30 segundos para teste
+      inactivityTimer = setTimeout(handleLogoutOnInactivity, 15 * 60 * 1000); // 15 minutos
     };
 
     const activityEvents: (keyof WindowEventMap)[] = ['mousemove', 'keydown', 'scroll', 'click'];
