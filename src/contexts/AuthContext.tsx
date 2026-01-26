@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -81,8 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         console.log('Usuário inativo por 30 segundos. Deslogando para teste.');
+        setIsLoading(true);
         await supabase.auth.signOut();
-        window.location.href = '/auth';
+        navigate('/auth', { replace: true });
       }
     };
 
@@ -99,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(inactivityTimer);
       activityEvents.forEach(event => window.removeEventListener(event, resetTimer));
     };
-  }, []);
+  }, [navigate]);
 
   const createProfileIfNotExists = async (user: User) => {
     const { data: existingProfile } = await supabase
@@ -152,9 +155,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    // O listener onAuthStateChange também será acionado, mas um redirecionamento forçado garante um estado limpo.
-    window.location.href = '/auth';
+    setIsLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.auth.signOut();
+    }
+    navigate('/auth', { replace: true });
   };
 
   return (
