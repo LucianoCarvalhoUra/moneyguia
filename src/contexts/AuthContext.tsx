@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session) {
         console.log('Usuário inativo por 30 segundos. Deslogando para teste.');
         await supabase.auth.signOut();
-        window.location.href = '/login';
+        window.location.href = '/auth';
       }
     };
 
@@ -154,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     await supabase.auth.signOut();
     // O listener onAuthStateChange também será acionado, mas um redirecionamento forçado garante um estado limpo.
-    window.location.href = '/login';
+    window.location.href = '/auth';
   };
 
   return (

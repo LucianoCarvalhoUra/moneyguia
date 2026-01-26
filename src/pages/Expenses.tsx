@@ -60,28 +60,6 @@ export default function Expenses() {
     }).format(value);
   };
 
-  // 4. Regras de Negócio (Logout automático)
-  useEffect(() => {
-    let timeout: number;
-
-    const resetTimer = () => {
-      clearTimeout(timeout);
-      timeout = window.setTimeout(() => {
-        window.location.href = '/auth';
-      }, 15 * 60 * 1000); // 15 minutes
-    };
-
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    events.forEach(event => document.addEventListener(event, resetTimer));
-    
-    resetTimer();
-
-    return () => {
-      clearTimeout(timeout);
-      events.forEach(event => document.removeEventListener(event, resetTimer));
-    };
-  }, []);
-
   // Filtered Subcategories
   const filteredSubcategories = useMemo(() => {
     if (categoryFilter === 'all') return [];

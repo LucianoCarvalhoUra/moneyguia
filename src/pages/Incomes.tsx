@@ -84,55 +84,45 @@ export default function Incomes() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState<any>(null);
 
-  // Session Timeout Logic
-  useEffect(() => {
-    let timeout: number;
-
-    const resetTimer = () => {
-      clearTimeout(timeout);
-      timeout = window.setTimeout(() => {
-        window.location.href = '/auth';
-      }, 15 * 60 * 1000); // 15 minutes
-    };
-
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    events.forEach(event => document.addEventListener(event, resetTimer));
-    
-    resetTimer();
-
-    return () => {
-      clearTimeout(timeout);
-      events.forEach(event => document.removeEventListener(event, resetTimer));
-    };
-  }, []);
-
   // Filtered Subcategories
   const filteredSubcategories = useMemo(() => {
     if (categoryFilter === 'all') return [];
     return incomeSubcategories.filter(sub => sub.categoryId === categoryFilter);
   }, [categoryFilter, incomeSubcategories]);
 
-  // Filtered & Sorted Incomes
+  // Filtered Incomes
   const filteredIncomes = useMemo(() => {
     return incomes
       .filter(income => {
-        // Date Filter
         const incomeDate = new Date(income.receiveDate);
-        if (incomeDate.getMonth() !== selectedMonth || incomeDate.getFullYear() !== selectedYear) return false;
+        
+        // Month/Year Filter
+        if (incomeDate.getMonth() !== selectedMonth || incomeDate.getFullYear() !== selectedYear) {
+          return false;
+        }
 
-        // Status
+        // Status Filter
         if (statusFilter === 'received' && !income.isReceived) return false;
         if (statusFilter === 'pending' && income.isReceived) return false;
 
-        // Category
+        // Category Filter
         if (categoryFilter !== 'all' && income.categoryId !== categoryFilter) return false;
 
-        // Subcategory
+        // Subcategory Filter
         if (subcategoryFilter !== 'all' && income.subcategoryId !== subcategoryFilter) return false;
 
-        // Search
-        const searchContent = (income.title || income.description || '').toLowerCase();
-        if (searchTerm && !searchContent.includes(searchTerm.toLowerCase())) return false;
+        // Search Filter
+        if (searchTerm) {
+          const category = incomeCategories.find(c => c.id === income.categoryId);
+          const subcategory = incomeSubcategories.find(s => s.id === income.subcategoryId);
+          const searchLower = searchTerm.toLowerCase();
+          
+          const matchesTitle = income.title.toLowerCase().includes(searchLower);
+          const matchesCategory = category?.name.toLowerCase().includes(searchLower);
+          const matchesSubcategory = subcategory?.name.toLowerCase().includes(searchLower);
+          
+          if (!matchesTitle && !matchesCategory && !matchesSubcategory) return false;
+        }
 
         return true;
       })
@@ -150,7 +140,7 @@ export default function Incomes() {
         }
         return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [incomes, selectedMonth, selectedYear, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder]);
+  }, [incomes, selectedMonth, selectedYear, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder, incomeCategories, incomeSubcategories]);
 
   const handleClearFilters = () => {
     setStatusFilter('all');
