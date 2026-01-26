@@ -83,8 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         console.log('Usuário inativo por 30 segundos. Deslogando para teste.');
-        setIsLoading(true);
         await supabase.auth.signOut();
+        // Limpeza explícita do estado para evitar renderização de componentes protegidos
+        setUser(null);
+        setSession(null);
         navigate('/auth', { replace: true });
       }
     };
@@ -155,11 +157,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    setIsLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await supabase.auth.signOut();
-    }
+    await supabase.auth.signOut();
+    // Limpeza explícita do estado para garantir que a UI reaja imediatamente
+    setUser(null);
+    setSession(null);
     navigate('/auth', { replace: true });
   };
 
