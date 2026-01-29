@@ -607,7 +607,7 @@ export default function Reports() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <FileText className="w-6 h-6 text-primary" />
-            Relatórios
+            Gráficos e Relatórios
           </h1>
           <p className="text-muted-foreground">Gere relatórios detalhados e visualize suas finanças</p>
         </div>
