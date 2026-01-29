@@ -133,7 +133,6 @@ export default function Reports() {
   }, [filteredData]);
 
   // Data for Comparative Chart (Optimized)
-  /*
   const comparativeChartData = useMemo(() => {
     const currentYear = new Date().getFullYear();
 
@@ -207,7 +206,6 @@ export default function Reports() {
     let totalIncome = 0;
     let totalExpense = 0;
     const allDates: number[] = [];
-    const variableExpensesByCategory: Record<string, number> = {};
 
     // Single pass over incomes to calculate totals and collect dates
     incomes.forEach(i => {
@@ -220,7 +218,6 @@ export default function Reports() {
     // Single pass over expenses to calculate totals and collect dates
     expenses.forEach(e => {
       if (e.isPaid) totalPaid += e.amount;
-      if (!e.isRecurring) variableExpensesByCategory[e.categoryId] = (variableExpensesByCategory[e.categoryId] || 0) + e.amount;
       totalExpense += e.amount;
       const time = new Date(e.expenseDate).getTime();
       if (!isNaN(time)) allDates.push(time);
@@ -234,15 +231,17 @@ export default function Reports() {
     const currentMonthIncomes = incomes.filter(i => new Date(i.receiveDate).getMonth() === currentMonth && new Date(i.receiveDate).getFullYear() === currentYear).reduce((sum, i) => sum + i.amount, 0);
     const currentMonthExpenses = expenses.filter(e => new Date(e.dueDate).getMonth() === currentMonth && new Date(e.dueDate).getFullYear() === currentYear).reduce((sum, e) => sum + e.amount, 0);
     const currentMonthBalance = currentMonthIncomes - currentMonthExpenses;
+    
+    const formatMoney = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
     let insight = '';
+    
     if (currentMonthBalance >= 0) {
-      insight = `Neste mês você economizou ${formatCurrency(currentMonthBalance)}.`;
+      insight = `Neste mês você economizou ${formatMoney(currentMonthBalance)}.`;
     } else {
-      insight = `Cuidado: seus gastos superaram os ganhos em ${formatCurrency(Math.abs(currentMonthBalance))}.`;
+      insight = `Cuidado: seus gastos superaram os ganhos em ${formatMoney(Math.abs(currentMonthBalance))}.`;
     }
 
     if (allDates.length === 0) {
-      return { projectionData: [], totalAvailableBalance: currentBalance, aiInsight: 'Sem dados suficientes para análise.' };
       return { projectionData: [], totalAvailableBalance: currentBalance, aiInsight };
     }
 
@@ -260,33 +259,8 @@ export default function Reports() {
       return { name: format(futureDate, 'MMM/yy', { locale: ptBR }), Saldo: projectedBalance };
     });
 
-    const emergencyGoal = averageMonthlyExpense * 6;
-    const shortfall = emergencyGoal - currentBalance;
-    let insight = 'Sua reserva de emergência parece estar em dia. Continue assim!';
-    if (shortfall > 0 && averageMonthlyExpense > 0) {
-      const topVariableCategory = Object.entries(variableExpensesByCategory).sort(([, a], [, b]) => b - a)[0];
-
-      if (topVariableCategory) {
-        const [catId, catAmount] = topVariableCategory;
-        const categoryName = getCategoryById(catId)?.name || 'Despesas Variáveis';
-        const savingsNeededPerMonth = shortfall / 12;
-        const percentToSave = Math.min(50, Math.max(5, (savingsNeededPerMonth / catAmount) * 100));
-        
-        if (percentToSave > 0 && isFinite(percentToSave)) {
-          insight = `Para atingir sua meta de reserva de emergência (${formatCurrency(emergencyGoal)}), sugiro economizar ${percentToSave.toFixed(0)}% na categoria '${categoryName}'.`;
-        } else {
-          insight = `Para atingir sua meta de reserva de emergência (${formatCurrency(emergencyGoal)}), você precisa aumentar sua receita ou cortar despesas.`;
-        }
-      }
-    }
-
     return { projectionData: projData, totalAvailableBalance: currentBalance, aiInsight: insight };
-  }, [incomes, expenses, getCategoryById]);
-  */
-
-  // Temporary fallback data
-  const totalAvailableBalance = totals.balance;
-  const aiInsight = "Análise temporariamente indisponível.";
+  }, [incomes, expenses]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -583,19 +557,16 @@ export default function Reports() {
                       <CardTitle>Ganhos vs. Gastos</CardTitle>
                       <CardDescription>Comparativo de receitas e despesas.</CardDescription>
                     </div>
-                    {/* <Tabs value={chartView} onValueChange={(v) => setChartView(v as 'monthly' | 'annual')} className="mt-4 sm:mt-0">
+                    <Tabs value={chartView} onValueChange={(v) => setChartView(v as 'monthly' | 'annual')} className="mt-4 sm:mt-0">
                       <TabsList>
                         <TabsTrigger value="monthly">Mensal</TabsTrigger>
                         <TabsTrigger value="annual">Anual</TabsTrigger>
                       </TabsList>
-                    </Tabs> */}
+                    </Tabs>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-center h-[300px] text-muted-foreground bg-muted/20 rounded-lg">
-                    <p>Gráfico em manutenção</p>
-                  </div>
-                  {/* <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={comparativeChartData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
@@ -608,7 +579,7 @@ export default function Reports() {
                       <Bar dataKey="Ganhos" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="Gastos" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
                     </BarChart>
-                  </ResponsiveContainer> */}
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
 
@@ -619,10 +590,7 @@ export default function Reports() {
                   <CardDescription>Estimativa do seu saldo para os próximos 12 meses.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-center h-[300px] text-muted-foreground bg-muted/20 rounded-lg">
-                    <p>Gráfico em manutenção</p>
-                  </div>
-                  {/* <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={projectionData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
@@ -634,7 +602,7 @@ export default function Reports() {
                       <Legend />
                       <Line type="monotone" dataKey="Saldo" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 8 }} />
                     </LineChart>
-                  </ResponsiveContainer> */}
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
 
