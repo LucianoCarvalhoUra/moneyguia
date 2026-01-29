@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, isBefore, startOfDay } from 'date-fns';
 import { Search, Plus, Pencil, Trash2, CheckCircle2, AlertCircle, Calendar, Filter, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -19,6 +20,7 @@ import ExpenseForm from '@/components/expenses/ExpenseForm';
 import { Badge } from '@/components/ui/badge';
 
 export default function Expenses() {
+  const location = useLocation();
   const { expenses, categories, subcategories, removeExpense, updateExpense } = useFinance();
   
   // 1. Escopo de Variáveis
@@ -60,6 +62,23 @@ export default function Expenses() {
     }).format(value);
   };
 
+  // Handle Deep Link from Dashboard Alert
+  useEffect(() => {
+    if (location.state?.filter === 'overdue') {
+      setStatusFilter('overdue');
+      
+      if (location.state?.focusExpenseId) {
+        const expense = expenses.find(e => e.id === location.state.focusExpenseId);
+        if (expense) {
+          setEditingExpense(expense);
+          setIsFormOpen(true);
+        }
+      }
+      // Clear state to avoid re-triggering
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, expenses]);
+
   // Filtered Subcategories
   const filteredSubcategories = useMemo(() => {
     if (categoryFilter === 'all') return [];
@@ -72,14 +91,20 @@ export default function Expenses() {
       .filter(expense => {
         const expenseDate = new Date(expense.dueDate);
         
-        // Month/Year Filter
-        if (expenseDate.getMonth() !== selectedMonth || expenseDate.getFullYear() !== selectedYear) {
-          return false;
+        // Special Overdue Filter (Bypasses Month/Year)
+        if (statusFilter === 'overdue') {
+          return !expense.isPaid && isBefore(expenseDate, startOfDay(new Date()));
+        }
+
+        // Month/Year Filter (Only if not overdue filter)
+        if (statusFilter !== 'overdue' && (expenseDate.getMonth() !== selectedMonth || expenseDate.getFullYear() !== selectedYear)) {
+           return false;
         }
 
         // Status Filter
         if (statusFilter === 'paid' && !expense.isPaid) return false;
         if (statusFilter === 'pending' && expense.isPaid) return false;
+        // 'overdue' is handled above
 
         // Category Filter
         if (categoryFilter !== 'all' && expense.categoryId !== categoryFilter) return false;
@@ -244,6 +269,7 @@ export default function Expenses() {
                         <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="pending">Pendente</SelectItem>
                         <SelectItem value="paid">Pago</SelectItem>
+                        <SelectItem value="overdue">Vencidos</SelectItem>
                       </SelectContent>
                     </Select>
 

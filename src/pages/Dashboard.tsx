@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp, AlertTriangle, X } from 'lucide-react';
 import ExpenseSummaryCard from '@/components/dashboard/ExpenseSummaryCard';
 import CategoryChart from '@/components/dashboard/CategoryChart';
 import RecentExpenses from '@/components/dashboard/RecentExpenses';
@@ -11,10 +12,11 @@ import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
 import PendingExpensesList from '@/components/dashboard/PendingExpensesList';
 import { toast } from 'sonner';
-import { addDays, startOfDay, endOfDay } from 'date-fns';
+import { addDays, startOfDay, endOfDay, isBefore } from 'date-fns';
 import { DashboardAI } from '@/components/DashboardAI';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses } = useFinance();
   const { getMonthlyIncomeTotal, incomes } = useIncome();
   const [formOpen, setFormOpen] = useState(false);
@@ -22,6 +24,7 @@ export default function Dashboard() {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [showOverdueAlert, setShowOverdueAlert] = useState(true);
 
   // Get monthly data
   const monthlyExpenses = getMonthlyExpenses(selectedYear, selectedMonth);
@@ -82,6 +85,26 @@ export default function Dashboard() {
     }
   };
 
+  // Overdue Expenses Logic
+  const overdueExpenses = expenses.filter(e => {
+    return !e.isPaid && isBefore(new Date(e.dueDate), startOfDay(new Date()));
+  });
+
+  const handleOverdueClick = () => {
+    if (overdueExpenses.length > 0) {
+      // Sort by due date to find oldest
+      const sorted = [...overdueExpenses].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+      const oldest = sorted[0];
+      
+      navigate('/expenses', { 
+        state: { 
+          filter: 'overdue',
+          focusExpenseId: oldest.id 
+        } 
+      });
+    }
+  };
+
   // Smart Alert Logic
   useEffect(() => {
     const checkAlerts = () => {
@@ -117,6 +140,35 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Overdue Alert Banner */}
+      {showOverdueAlert && overdueExpenses.length > 0 && (
+        <div 
+          className="bg-red-600 text-white px-4 py-3 rounded-lg shadow-md flex items-center justify-between cursor-pointer hover:bg-red-700 transition-colors animate-in slide-in-from-top-2"
+          onClick={handleOverdueClick}
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-full">
+              <AlertTriangle className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="font-bold">Atenção: Você possui {overdueExpenses.length} despesas vencidas!</p>
+              <p className="text-xs text-white/90">Clique para regularizar a situação</p>
+            </div>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/20 hover:text-white"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowOverdueAlert(false);
+            }}
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
