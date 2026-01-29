@@ -20,6 +20,7 @@ import { Document, Packer, Paragraph, Table as DocxTable, TableRow as DocxTableR
 import { saveAs } from 'file-saver';
 // Temporarily disabled charts to fix build error
 // import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 type RecordType = 'all' | 'income' | 'expense';
@@ -227,8 +228,22 @@ export default function Reports() {
 
     const currentBalance = totalReceived - totalPaid;
 
+    // AI Insight Logic
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const currentMonthIncomes = incomes.filter(i => new Date(i.receiveDate).getMonth() === currentMonth && new Date(i.receiveDate).getFullYear() === currentYear).reduce((sum, i) => sum + i.amount, 0);
+    const currentMonthExpenses = expenses.filter(e => new Date(e.dueDate).getMonth() === currentMonth && new Date(e.dueDate).getFullYear() === currentYear).reduce((sum, e) => sum + e.amount, 0);
+    const currentMonthBalance = currentMonthIncomes - currentMonthExpenses;
+    let insight = '';
+    if (currentMonthBalance >= 0) {
+      insight = `Neste mês você economizou ${formatCurrency(currentMonthBalance)}.`;
+    } else {
+      insight = `Cuidado: seus gastos superaram os ganhos em ${formatCurrency(Math.abs(currentMonthBalance))}.`;
+    }
+
     if (allDates.length === 0) {
       return { projectionData: [], totalAvailableBalance: currentBalance, aiInsight: 'Sem dados suficientes para análise.' };
+      return { projectionData: [], totalAvailableBalance: currentBalance, aiInsight };
     }
 
     const firstTransactionDate = new Date(Math.min(...allDates));
