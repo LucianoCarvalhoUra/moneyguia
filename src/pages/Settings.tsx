@@ -17,6 +17,7 @@ import { User, Shield, Loader2, Bell } from 'lucide-react';
 import CategoryManager from '@/components/settings/CategoryManager';
 import IncomeCategoryManager from '@/components/settings/IncomeCategoryManager';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
+import ChangePasswordForm from '@/components/settings/ChangePasswordForm';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -191,24 +192,7 @@ export default function Settings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="p-4 rounded-lg bg-muted/50">
-            <p className="text-sm text-muted-foreground mb-3">
-              Para alterar sua senha ou outras configurações de segurança,
-              entre em contato com o suporte.
-            </p>
-            <Button className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" disabled>
-              Alterar Senha (em breve)
-            </Button>
-          </div>
-          
-          <div className="border-t pt-4">
-            <h4 className="font-medium text-destructive mb-2">Zona de Perigo</h4>
-            <p className="text-sm text-muted-foreground mb-3">
-              Ações irreversíveis para sua conta.
-            </p>
-            <DeleteProfileDialog />
-          </div>
-        </CardContent>
+          <ardContent>
       </Card>
 
 
