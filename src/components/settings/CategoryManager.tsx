@@ -163,7 +163,7 @@ export default function CategoryManager() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Tags className="w-5 h-5 text-primary" />
-              Categorias
+              Categorias de Despesas
             </CardTitle>
             <CardDescription>
               Personalize suas categorias e subcategorias
