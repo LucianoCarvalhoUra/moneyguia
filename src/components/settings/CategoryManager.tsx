@@ -26,10 +26,19 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Plus, Pencil, Trash2, ChevronDown, Tags, FolderTree } from 'lucide-react';
-import { Category, Subcategory, CATEGORY_ICONS, CATEGORY_COLORS } from '@/types/finance';
+import { Plus, Pencil, Trash2, ChevronDown, Tags, FolderTree, Search } from 'lucide-react';
+import { Category, Subcategory } from '@/types/finance';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { CategoryIcon, iconMap } from '@/components/CategoryIcon';
+
+const AVAILABLE_COLORS = [
+  'slate-500', 'red-500', 'orange-500', 'amber-500', 'yellow-500', 'lime-500',
+  'green-500', 'emerald-500', 'teal-500', 'cyan-500', 'sky-500', 'blue-500',
+  'indigo-500', 'violet-500', 'purple-500', 'fuchsia-500', 'pink-500', 'rose-500'
+];
+
+const AVAILABLE_ICONS = Object.keys(iconMap);
 
 export default function CategoryManager() {
   const {
@@ -55,8 +64,8 @@ export default function CategoryManager() {
 
   // Category form state
   const [categoryName, setCategoryName] = useState('');
-  const [categoryIcon, setCategoryIcon] = useState('📦');
-  const [categoryColor, setCategoryColor] = useState('category-other');
+  const [categoryIcon, setCategoryIcon] = useState('Package');
+  const [categoryColor, setCategoryColor] = useState('slate-500');
 
   // Subcategory form state
   const [subcategoryName, setSubcategoryName] = useState('');
@@ -76,8 +85,8 @@ export default function CategoryManager() {
     } else {
       setEditingCategory(null);
       setCategoryName('');
-      setCategoryIcon('📦');
-      setCategoryColor('category-other');
+      setCategoryIcon('Package');
+      setCategoryColor('slate-500');
     }
     setCategoryDialogOpen(true);
   };
@@ -198,7 +207,7 @@ export default function CategoryManager() {
                         'w-10 h-10 rounded-lg flex items-center justify-center text-lg',
                         `bg-${category.color}/20`
                       )}>
-                        {category.icon}
+                        <CategoryIcon iconName={category.icon} className={`w-5 h-5 text-${category.color}`} />
                       </div>
                       <div className="flex-1 text-left min-w-0">
                         <p className="font-medium text-foreground truncate">{category.name}</p>
@@ -274,7 +283,7 @@ export default function CategoryManager() {
 
       {/* Category Dialog */}
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
@@ -291,28 +300,28 @@ export default function CategoryManager() {
             </div>
             <div className="space-y-2">
               <Label>Ícone</Label>
-              <div className="flex flex-wrap gap-2">
-                {CATEGORY_ICONS.map((icon) => (
+              <div className="grid grid-cols-6 gap-2 max-h-[200px] overflow-y-auto p-1 border rounded-md">
+                {AVAILABLE_ICONS.map((icon) => (
                   <button
                     key={icon}
                     type="button"
                     onClick={() => setCategoryIcon(icon)}
                     className={cn(
-                      'w-10 h-10 rounded-lg flex items-center justify-center text-lg border-2 transition-colors',
+                      'w-10 h-10 rounded-lg flex items-center justify-center transition-colors hover:bg-muted',
                       categoryIcon === icon
-                        ? 'border-primary bg-primary/10'
-                        : 'border-transparent bg-muted hover:bg-muted/80'
+                        ? 'bg-primary/20 text-primary ring-2 ring-primary'
+                        : 'text-muted-foreground'
                     )}
                   >
-                    {icon}
+                    <CategoryIcon iconName={icon} className="w-5 h-5" />
                   </button>
                 ))}
               </div>
             </div>
             <div className="space-y-2">
               <Label>Cor</Label>
-              <div className="flex flex-wrap gap-2">
-                {CATEGORY_COLORS.map((color) => (
+              <div className="grid grid-cols-6 gap-2">
+                {AVAILABLE_COLORS.map((color) => (
                   <button
                     key={color}
                     type="button"
@@ -321,7 +330,7 @@ export default function CategoryManager() {
                       'w-10 h-10 rounded-lg border-2 transition-colors',
                       `bg-${color}`,
                       categoryColor === color
-                        ? 'border-foreground'
+                        ? 'border-foreground ring-2 ring-offset-2 ring-foreground/20'
                         : 'border-transparent'
                     )}
                   />

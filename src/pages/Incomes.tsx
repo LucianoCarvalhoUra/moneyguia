@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import IncomeForm from '@/components/income/IncomeForm';
 import { Badge } from '@/components/ui/badge';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 export default function Incomes() {
   const location = useLocation();
@@ -345,7 +346,7 @@ export default function Incomes() {
                       <SelectContent>
                         <SelectItem value="all">Todas</SelectItem>
                         {incomeCategories.map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}>{cat.icon} {cat.name}</SelectItem>
+                          <SelectItem key={cat.id} value={cat.id}><span className="flex items-center gap-2"><CategoryIcon iconName={cat.icon} className="w-4 h-4" /> {cat.name}</span></SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -453,7 +454,7 @@ export default function Incomes() {
                     <TableRow key={income.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">{category?.icon || '💰'}</span>
+                          <CategoryIcon iconName={category?.icon || 'Wallet'} className={cn("w-5 h-5", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
                           <span>{category?.name || 'Sem categoria'}</span>
                         </div>
                         <div className="md:hidden text-xs text-muted-foreground mt-1 pl-7">
