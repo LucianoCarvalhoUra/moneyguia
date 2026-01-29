@@ -55,7 +55,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           color: c.color,
           userId: c.user_id,
           isDefault: c.is_default,
-        })));
+        })).sort((a, b) => a.name.localeCompare(b.name)));
       } else {
         // Initialize with default income categories
         const defaultCats = DEFAULT_INCOME_CATEGORIES.map(cat => ({
@@ -76,7 +76,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             color: c.color,
             userId: c.user_id,
             isDefault: c.is_default,
-          })));
+          })).sort((a, b) => a.name.localeCompare(b.name)));
         }
       }
 
@@ -288,7 +288,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         color: data.color,
         userId: data.user_id,
         isDefault: data.is_default,
-      }]);
+      }].sort((a, b) => a.name.localeCompare(b.name)));
     }
   };
 
@@ -313,7 +313,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     
     setIncomeCategories(prev => prev.map(c => 
       c.id === id ? { ...c, ...categoryUpdate } : c
-    ));
+    ).sort((a, b) => a.name.localeCompare(b.name)));
   };
 
   const removeIncomeCategory = async (id: string) => {

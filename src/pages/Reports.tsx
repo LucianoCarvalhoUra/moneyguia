@@ -67,7 +67,7 @@ export default function Reports() {
   const allCategories = useMemo(() => {
     const expenseCats = categories.map(c => ({ id: c.id, name: c.name, type: 'expense' as const }));
     const incomeCats = incomeCategories.map(c => ({ id: c.id, name: c.name, type: 'income' as const }));
-    return [...expenseCats, ...incomeCats];
+    return [...expenseCats, ...incomeCats].sort((a, b) => a.name.localeCompare(b.name));
   }, [categories, incomeCategories]);
 
   const filteredData = useMemo((): ReportItem[] => {

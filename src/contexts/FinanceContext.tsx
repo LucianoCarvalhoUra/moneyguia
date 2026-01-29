@@ -86,7 +86,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           color: c.color,
           userId: c.user_id,
           isDefault: c.is_default,
-        })));
+        })).sort((a, b) => a.name.localeCompare(b.name)));
       } else {
         // Initialize with default categories
         const defaultCats = DEFAULT_CATEGORIES.map(cat => ({
@@ -107,7 +107,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             color: c.color,
             userId: c.user_id,
             isDefault: c.is_default,
-          })));
+          })).sort((a, b) => a.name.localeCompare(b.name)));
         }
       }
 
@@ -450,7 +450,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         color: data.color,
         userId: data.user_id,
         isDefault: data.is_default,
-      }]);
+      }].sort((a, b) => a.name.localeCompare(b.name)));
     }
   };
 
@@ -475,7 +475,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     
     setCategories(prev => prev.map(c => 
       c.id === id ? { ...c, ...categoryUpdate } : c
-    ));
+    ).sort((a, b) => a.name.localeCompare(b.name)));
   };
 
   const removeCategory = async (id: string) => {
