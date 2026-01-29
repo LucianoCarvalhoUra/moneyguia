@@ -1,7 +1,7 @@
 import { useState, useMemo, ReactNode } from 'react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Download, FileSpreadsheet, FileType, Calendar, Filter, ChevronDown, Wallet, Bot, PieChart as PieChartIcon } from 'lucide-react';
+import { FileText, Download, FileSpreadsheet, FileType, Calendar, Filter, ChevronDown, Wallet, Bot, PieChart as PieChartIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -44,10 +44,13 @@ const NoDataPlaceholder = ({ children }: { children: ReactNode }) => (
   </div>
 );
 
+// Helper function outside component to avoid initialization errors
+const formatMoney = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
 export default function Reports() {
   const { user } = useAuth();
-  const { expenses, categories, getCategoryById, getSubcategoryById } = useFinance();
-  const { incomes, incomeCategories, getIncomeCategoryById, getIncomeSubcategoryById } = useIncome();
+  const { expenses, categories, getCategoryById, getSubcategoryById, isLoading: financeLoading } = useFinance();
+  const { incomes, incomeCategories, getIncomeCategoryById, getIncomeSubcategoryById, isLoading: incomeLoading } = useIncome();
   const [activeTab, setActiveTab] = useState('visual');
 
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -199,15 +202,15 @@ export default function Reports() {
     }
   }, [incomes, expenses, chartView]);
 
-  // Data for Projection Chart, Total Balance, and AI Insight (Optimized)
-  const { projectionData, totalAvailableBalance, aiInsight } = useMemo(() => {
+  // Data for Projection Chart
+  const projectionData = useMemo(() => {
+    if (!incomes || !expenses) return [];
+
     let totalReceived = 0;
     let totalPaid = 0;
     let totalIncome = 0;
     let totalExpense = 0;
     const allDates: number[] = [];
-
-    // Single pass over incomes to calculate totals and collect dates
     incomes.forEach(i => {
       if (i.isReceived) totalReceived += i.amount;
       totalIncome += i.amount;
@@ -215,7 +218,6 @@ export default function Reports() {
       if (!isNaN(time)) allDates.push(time);
     });
 
-    // Single pass over expenses to calculate totals and collect dates
     expenses.forEach(e => {
       if (e.isPaid) totalPaid += e.amount;
       totalExpense += e.amount;
@@ -225,24 +227,8 @@ export default function Reports() {
 
     const currentBalance = totalReceived - totalPaid;
 
-    // AI Insight Logic
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const currentMonthIncomes = incomes.filter(i => new Date(i.receiveDate).getMonth() === currentMonth && new Date(i.receiveDate).getFullYear() === currentYear).reduce((sum, i) => sum + i.amount, 0);
-    const currentMonthExpenses = expenses.filter(e => new Date(e.dueDate).getMonth() === currentMonth && new Date(e.dueDate).getFullYear() === currentYear).reduce((sum, e) => sum + e.amount, 0);
-    const currentMonthBalance = currentMonthIncomes - currentMonthExpenses;
-    
-    const formatMoney = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-    let insight = '';
-    
-    if (currentMonthBalance >= 0) {
-      insight = `Neste mês você economizou ${formatMoney(currentMonthBalance)}.`;
-    } else {
-      insight = `Cuidado: seus gastos superaram os ganhos em ${formatMoney(Math.abs(currentMonthBalance))}.`;
-    }
-
     if (allDates.length === 0) {
-      return { projectionData: [], totalAvailableBalance: currentBalance, aiInsight };
+      return [];
     }
 
     const firstTransactionDate = new Date(Math.min(...allDates));
@@ -259,8 +245,104 @@ export default function Reports() {
       return { name: format(futureDate, 'MMM/yy', { locale: ptBR }), Saldo: projectedBalance };
     });
 
-    return { projectionData: projData, totalAvailableBalance: currentBalance, aiInsight: insight };
+    return projData;
   }, [incomes, expenses]);
+
+  // Total Available Balance
+  const totalAvailableBalance = useMemo(() => {
+    if (!incomes || !expenses) return 0;
+    const totalReceived = incomes.filter(i => i.isReceived).reduce((sum, i) => sum + i.amount, 0);
+    const totalPaid = expenses.filter(e => e.isPaid).reduce((sum, e) => sum + e.amount, 0);
+    return totalReceived - totalPaid;
+  }, [incomes, expenses]);
+
+  // AI Insight Logic (Separated)
+  const aiInsight = useMemo(() => {
+    if (!incomes || !expenses || !categories) return 'Carregando análise...';
+    if (incomes.length === 0 && expenses.length === 0) return 'Adicione transações para receber insights.';
+
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    // 1. Trend Analysis
+    const getMonthExpenses = (offset: number) => {
+      const d = new Date(currentYear, currentMonth + offset, 1);
+      return expenses.filter(e => {
+        const ed = new Date(e.dueDate);
+        return ed.getMonth() === d.getMonth() && ed.getFullYear() === d.getFullYear();
+      });
+    };
+
+    const currentExpensesList = getMonthExpenses(0);
+    const currentMonthExpenses = currentExpensesList.reduce((sum, e) => sum + e.amount, 0);
+    
+    let prev3MonthsAvg = 0;
+    for(let i=1; i<=3; i++) {
+      prev3MonthsAvg += getMonthExpenses(-i).reduce((sum, e) => sum + e.amount, 0);
+    }
+    prev3MonthsAvg /= 3;
+
+    let trendAnalysis = "";
+    if (prev3MonthsAvg > 0) {
+      if (currentMonthExpenses > prev3MonthsAvg * 1.1) {
+        const catTotals: Record<string, number> = {};
+        currentExpensesList.forEach(e => {
+          const catName = categories.find(c => c.id === e.categoryId)?.name || 'Outros';
+          catTotals[catName] = (catTotals[catName] || 0) + e.amount;
+        });
+        const topCat = Object.entries(catTotals).sort((a,b) => b[1] - a[1])[0];
+        trendAnalysis = `📈 Seus gastos subiram em relação à média recente. A categoria '${topCat?.[0]}' foi a maior responsável.`;
+      } else if (currentMonthExpenses < prev3MonthsAvg * 0.9) {
+        trendAnalysis = `📉 Ótimo! Você reduziu seus gastos comparado à média dos últimos 3 meses.`;
+      } else {
+        trendAnalysis = `📊 Seus gastos estão estáveis, dentro da média recente.`;
+      }
+    } else {
+      trendAnalysis = `📊 Iniciando análise de tendências (coletando histórico).`;
+    }
+
+    // 2. Projection & Goals
+    const currentMonthIncomes = incomes.filter(i => {
+      const d = new Date(i.receiveDate);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).reduce((sum, i) => sum + i.amount, 0);
+
+    const balance = currentMonthIncomes - currentMonthExpenses;
+    
+    let projection = "";
+    if (balance > 0) {
+      const projectedYear = balance * 12;
+      projection = `🚀 Economizando ${formatMoney(balance)} todo mês, em 1 ano você terá **${formatMoney(projectedYear)}**! Sugestão: Aplique na sua Reserva de Emergência.`;
+    } else {
+      projection = `🛑 Atenção: Seus gastos superaram os ganhos este mês em ${formatMoney(Math.abs(balance))}. Priorize quitar dívidas antes de investir.`;
+    }
+
+    // 3. Actionable Tip
+    let tip = "";
+    const fees = currentExpensesList.filter(e => {
+      const desc = (e.description || '').toLowerCase();
+      const cat = (categories.find(c => c.id === e.categoryId)?.name || '').toLowerCase();
+      return desc.includes('taxa') || desc.includes('tarifa') || desc.includes('anuidade') || cat.includes('banco');
+    }).reduce((s, e) => s + e.amount, 0);
+
+    if (fees > 20) {
+      tip = `💡 Dica Prática: Você gastou ${formatMoney(fees)} com taxas bancárias. Considere uma conta digital gratuita.`;
+    } else {
+      const catTotals: Record<string, number> = {};
+      currentExpensesList.forEach(e => {
+        const catName = categories.find(c => c.id === e.categoryId)?.name || 'Outros';
+        catTotals[catName] = (catTotals[catName] || 0) + e.amount;
+      });
+      const topCat = Object.entries(catTotals).sort((a,b) => b[1] - a[1])[0];
+      if (topCat) {
+        tip = `💡 Dica Prática: '${topCat[0]}' representa uma grande parte do seu orçamento. Tente reduzir 10% nessa categoria.`;
+      } else {
+        tip = `💡 Dica Prática: Revise assinaturas e pequenos gastos diários.`;
+      }
+    }
+
+    return `${trendAnalysis}\n\n${projection}\n\n${tip}`;
+  }, [incomes, expenses, categories]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -509,6 +591,14 @@ export default function Reports() {
     const blob = await Packer.toBlob(doc);
     saveAs(blob, `relatorio-financeiro-${format(new Date(), 'yyyy-MM-dd')}.docx`);
   };
+
+  if (financeLoading || incomeLoading) {
+    return (
+      <div className="flex items-center justify-center h-[500px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
