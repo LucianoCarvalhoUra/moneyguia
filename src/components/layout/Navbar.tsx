@@ -23,7 +23,7 @@ const navItems = [
   { path: '/incomes', label: 'Receitas', icon: TrendingUp },
   { path: '/accounts', label: 'Contas', icon: CreditCard },
   { path: '/reconciliation', label: 'Conciliação', icon: FileCheck },
-  { path: '/reports', label: 'Relatórios', icon: FileText },
+  { path: '/reports', label: 'Gráficos e Relatórios', icon: FileText },
   { path: '/settings', label: 'Configurações', icon: Settings },
 ];
 
@@ -101,7 +101,9 @@ export default function Navbar() {
                     'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
                     location.pathname === item.path
                       ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'                  )}
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+                    item.path === '/admin' && 'text-primary hover:text-primary'
+                  )}
                 >
                   <item.icon className="w-5 h-5" />
                   {item.label}
