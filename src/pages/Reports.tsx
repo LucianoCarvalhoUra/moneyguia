@@ -1,7 +1,7 @@
 import { useState, useMemo, ReactNode } from 'react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Download, FileSpreadsheet, FileType, Calendar, Filter, ChevronDown, Wallet, Bot } from 'lucide-react';
+import { FileText, Download, FileSpreadsheet, FileType, Calendar, Filter, ChevronDown, Wallet, Bot, PieChart as PieChartIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -53,7 +53,7 @@ export default function Reports() {
 
   const NoDataPlaceholder = ({ children }: { children: ReactNode }) => (
     <div className="flex flex-col items-center justify-center h-[400px] text-center text-muted-foreground bg-muted/50 rounded-lg">
-      <PieChart className="w-16 h-16 mb-4 opacity-30" />
+      <PieChartIcon className="w-16 h-16 mb-4 opacity-30" />
       <h3 className="text-lg font-semibold">Sem dados para exibir</h3>
       <p className="text-sm">{children}</p>
     </div>
