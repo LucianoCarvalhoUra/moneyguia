@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import IncomeForm from '@/components/income/IncomeForm';
 import { Badge } from '@/components/ui/badge';
 
 export default function Incomes() {
+  const location = useLocation();
   const { incomes: fetchedIncomes, incomeCategories, incomeSubcategories, removeIncome, updateIncome } = useIncome();
   
   // Mock data for visualization if no real data exists
@@ -83,6 +85,14 @@ export default function Incomes() {
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState<any>(null);
+
+  // Handle Deep Link
+  useEffect(() => {
+    if (location.state?.filter === 'pending') {
+      setStatusFilter('pending');
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Filtered Subcategories
   const filteredSubcategories = useMemo(() => {

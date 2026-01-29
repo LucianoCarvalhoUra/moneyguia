@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [showOverdueAlert, setShowOverdueAlert] = useState(true);
+  const [alertConfig, setAlertConfig] = useState({ enabled: true, days: 2, type: 'expenses' });
 
   // Get monthly data
   const monthlyExpenses = getMonthlyExpenses(selectedYear, selectedMonth);
@@ -85,74 +86,79 @@ export default function Dashboard() {
     }
   };
 
-  // Overdue Expenses Logic
-  const overdueExpenses = expenses.filter(e => {
-    return !e.isPaid && isBefore(new Date(e.dueDate), startOfDay(new Date()));
-  });
+  // Load alert settings
+  useEffect(() => {
+    const enabled = localStorage.getItem('alert_enabled') !== 'false';
+    const days = parseInt(localStorage.getItem('alert_days_before') || '2');
+    const type = localStorage.getItem('alert_type') || 'expenses';
+    setAlertConfig({ enabled, days, type });
+  }, []);
 
-  const handleOverdueClick = () => {
-    if (overdueExpenses.length > 0) {
-      // Sort by due date to find oldest
-      const sorted = [...overdueExpenses].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-      const oldest = sorted[0];
-      
+  // Calculate Active Alerts
+  const activeAlerts = useMemo(() => {
+    if (!alertConfig.enabled) return { expenses: [], incomes: [] };
+
+    const today = startOfDay(new Date());
+    const limitDate = endOfDay(addDays(today, alertConfig.days));
+
+    let pendingExpenses: any[] = [];
+    let pendingIncomes: any[] = [];
+
+    if (alertConfig.type === 'expenses' || alertConfig.type === 'both') {
+      pendingExpenses = expenses.filter(e => {
+        if (e.isPaid) return false;
+        const dueDate = startOfDay(new Date(e.dueDate));
+        return dueDate <= limitDate; // Overdue or due soon
+      });
+    }
+
+    if (alertConfig.type === 'incomes' || alertConfig.type === 'both') {
+      pendingIncomes = incomes.filter(i => {
+        if (i.isReceived) return false;
+        const receiveDate = startOfDay(new Date(i.receiveDate));
+        return receiveDate <= limitDate;
+      });
+    }
+
+    return { expenses: pendingExpenses, incomes: pendingIncomes };
+  }, [expenses, incomes, alertConfig]);
+
+  const totalAlertCount = activeAlerts.expenses.length + activeAlerts.incomes.length;
+
+  const handleAlertClick = () => {
+    if (activeAlerts.expenses.length > 0) {
+      const sorted = [...activeAlerts.expenses].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
       navigate('/expenses', { 
         state: { 
           filter: 'overdue',
-          focusExpenseId: oldest.id 
+          focusExpenseId: sorted[0].id 
         } 
       });
+    } else if (activeAlerts.incomes.length > 0) {
+      navigate('/incomes', { state: { filter: 'pending' } });
     }
   };
-
-  // Smart Alert Logic
-  useEffect(() => {
-    const checkAlerts = () => {
-      const enabled = localStorage.getItem('alert_enabled') !== 'false';
-      if (!enabled) return;
-
-      const hasShown = sessionStorage.getItem('dashboard_alert_shown');
-      if (hasShown) return;
-
-      const days = parseInt(localStorage.getItem('alert_days_before') || '2');
-      const today = startOfDay(new Date());
-      const limitDate = endOfDay(addDays(today, days));
-
-      const upcomingExpenses = expenses.filter(e => {
-        if (e.isPaid) return false;
-        const dueDate = new Date(e.dueDate);
-        return dueDate >= today && dueDate <= limitDate;
-      });
-
-      if (upcomingExpenses.length > 0) {
-        toast.warning(`Atenção: Você tem ${upcomingExpenses.length} despesa(s) vencendo em breve!`, {
-          duration: 6000,
-          description: `Verifique suas contas para os próximos ${days} dias.`,
-        });
-        sessionStorage.setItem('dashboard_alert_shown', 'true');
-      }
-    };
-
-    if (expenses.length > 0) {
-      checkAlerts();
-    }
-  }, [expenses]);
 
   return (
     <div className="space-y-6">
       {/* Overdue Alert Banner */}
-      {showOverdueAlert && overdueExpenses.length > 0 && (
+      {showOverdueAlert && totalAlertCount > 0 && (
         <div 
           className="bg-red-600 text-white px-4 py-3 rounded-lg shadow-md flex items-center justify-between cursor-pointer hover:bg-red-700 transition-colors animate-in slide-in-from-top-2"
-          onClick={handleOverdueClick}
+          onClick={handleAlertClick}
         >
           <div className="flex items-center gap-3">
             <div className="bg-white/20 p-2 rounded-full">
               <AlertTriangle className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-bold">Atenção: Você possui {overdueExpenses.length} despesas vencidas!</p>
-              <p className="text-xs text-white/90">Clique para regularizar a situação</p>
+              <p className="font-bold">Atenção: Você possui {totalAlertCount} pendências próximas!</p>
+              <p className="text-xs text-white/90">
+                {activeAlerts.expenses.length > 0 && `${activeAlerts.expenses.length} despesa(s)`}
+                {activeAlerts.expenses.length > 0 && activeAlerts.incomes.length > 0 && ' e '}
+                {activeAlerts.incomes.length > 0 && `${activeAlerts.incomes.length} receita(s)`}
+                {' '}para regularizar.
+              </p>
             </div>
           </div>
           <Button 

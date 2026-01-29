@@ -31,6 +31,7 @@ export default function Settings() {
   const [isLoading, setIsLoading] = useState(true);
   const [alertDays, setAlertDays] = useState('2');
   const [alertEnabled, setAlertEnabled] = useState(true);
+  const [alertType, setAlertType] = useState('expenses');
 
   useEffect(() => {
     if (user?.id) {
@@ -44,6 +45,9 @@ export default function Settings() {
     
     const storedEnabled = localStorage.getItem('alert_enabled');
     if (storedEnabled !== null) setAlertEnabled(storedEnabled === 'true');
+
+    const storedType = localStorage.getItem('alert_type');
+    if (storedType) setAlertType(storedType);
   }, []);
 
   const loadProfile = async () => {
@@ -67,11 +71,13 @@ export default function Settings() {
     setIsLoading(false);
   };
 
-  const saveAlertSettings = (enabled: boolean, days: string) => {
+  const saveAlertSettings = (enabled: boolean, days: string, type: string) => {
     setAlertEnabled(enabled);
     setAlertDays(days);
+    setAlertType(type);
     localStorage.setItem('alert_enabled', String(enabled));
     localStorage.setItem('alert_days_before', days);
+    localStorage.setItem('alert_type', type);
     toast.success('Preferências de alerta atualizadas');
   };
 
@@ -130,32 +136,44 @@ export default function Settings() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
             <div className="space-y-0.5">
-              <Label className="text-base">Alerta ao Logar</Label>
+              <Label className="text-base">Alerta no Dashboard</Label>
               <p className="text-sm text-muted-foreground">
                 Mostrar aviso de contas próximas do vencimento
               </p>
             </div>
             <Button 
               className={cn(alertEnabled ? "bg-primary hover:bg-primary/90" : "bg-muted text-muted-foreground hover:bg-muted/80")}
-              onClick={() => saveAlertSettings(!alertEnabled, alertDays)}
+              onClick={() => saveAlertSettings(!alertEnabled, alertDays, alertType)}
             >
               {alertEnabled ? 'Ativado' : 'Desativado'}
             </Button>
           </div>
 
           {alertEnabled && (
-            <div className="space-y-2">
-              <Label>Antecedência do Alerta</Label>
-              <Select value={alertDays} onValueChange={(v) => saveAlertSettings(alertEnabled, v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 dia antes</SelectItem>
-                  <SelectItem value="2">2 dias antes</SelectItem>
-                  <SelectItem value="7">1 semana antes</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Alertar sobre</Label>
+                <Select value={alertType} onValueChange={(v) => saveAlertSettings(alertEnabled, alertDays, v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="expenses">Apenas Despesas</SelectItem>
+                    <SelectItem value="incomes">Apenas Receitas</SelectItem>
+                    <SelectItem value="both">Ambos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Antecedência (dias)</Label>
+                <Input 
+                  type="number" 
+                  min="0" 
+                  max="30"
+                  value={alertDays} 
+                  onChange={(e) => saveAlertSettings(alertEnabled, e.target.value, alertType)}
+                />
+              </div>
             </div>
           )}
         </CardContent>
