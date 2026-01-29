@@ -192,10 +192,14 @@ export default function Settings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <ardContent>
+          <ChangePasswordForm />
+          
+          <div className="border-t pt-4">
+            <h4 className="font-medium text-destructive mb-2">Zona de Perigo</h4>
+            <DeleteProfileDialog />
+          </div>
+        </CardContent>
       </Card>
-
-
     </div>
   );
 }
