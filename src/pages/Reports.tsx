@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, ReactNode } from 'react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { FileText, Download, FileSpreadsheet, FileType, Calendar, Filter, ChevronDown, Wallet, Bot } from 'lucide-react';
@@ -18,8 +18,8 @@ import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import { Document, Packer, Paragraph, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, TextRun, WidthType, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart } from 'recharts';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 type RecordType = 'all' | 'income' | 'expense';
 
@@ -38,6 +38,7 @@ export default function Reports() {
   const { user } = useAuth();
   const { expenses, categories, getCategoryById, getSubcategoryById } = useFinance();
   const { incomes, incomeCategories, getIncomeCategoryById, getIncomeSubcategoryById } = useIncome();
+  const [activeTab, setActiveTab] = useState('visual');
 
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -46,6 +47,17 @@ export default function Reports() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('all');
   // State for visual dashboard
   const [chartView, setChartView] = useState<'monthly' | 'annual'>('monthly');
+
+  // Helper to check for data
+  const hasData = useMemo(() => incomes.length > 0 || expenses.length > 0, [incomes, expenses]);
+
+  const NoDataPlaceholder = ({ children }: { children: ReactNode }) => (
+    <div className="flex flex-col items-center justify-center h-[400px] text-center text-muted-foreground bg-muted/50 rounded-lg">
+      <PieChart className="w-16 h-16 mb-4 opacity-30" />
+      <h3 className="text-lg font-semibold">Sem dados para exibir</h3>
+      <p className="text-sm">{children}</p>
+    </div>
+  );
 
   const allCategories = useMemo(() => {
     const expenseCats = categories.map(c => ({ id: c.id, name: c.name, type: 'expense' as const }));
@@ -505,212 +517,315 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <FileText className="w-6 h-6 text-primary" />
             Relatórios
           </h1>
-          <p className="text-muted-foreground">Gere relatórios detalhados das suas finanças</p>
+          <p className="text-muted-foreground">Gere relatórios detalhados e visualize suas finanças</p>
         </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="gradient-primary">
-              <Download className="w-4 h-4 mr-2" />
-              Exportar como...
-              <ChevronDown className="w-4 h-4 ml-2" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={exportToPDF}>
-              <FileText className="w-4 h-4 mr-2 text-red-500" />
-              Exportar PDF
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportToExcel}>
-              <FileSpreadsheet className="w-4 h-4 mr-2 text-green-500" />
-              Exportar Excel
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportToWord}>
-              <FileType className="w-4 h-4 mr-2 text-blue-500" />
-              Exportar Word
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Filter className="w-5 h-5" />
-            Filtros do Relatório
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startDate" className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Data Início
-              </Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="visual">Visão Gráfica</TabsTrigger>
+          <TabsTrigger value="detailed">Relatório Detalhado</TabsTrigger>
+        </TabsList>
 
-            <div className="space-y-2">
-              <Label htmlFor="endDate" className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Data Fim
-              </Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={recordType} onValueChange={(v) => setRecordType(v as RecordType)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="income">Receitas</SelectItem>
-                  <SelectItem value="expense">Despesas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Categoria</Label>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {allCategories
-                    .filter(c => recordType === 'all' || c.type === recordType)
-                    .map(cat => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name} ({cat.type === 'income' ? 'Receita' : 'Despesa'})
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Forma de Pagamento</Label>
-              <Select 
-                value={selectedPaymentMethod} 
-                onValueChange={setSelectedPaymentMethod}
-                disabled={recordType === 'income'}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="account">Conta Bancária</SelectItem>
-                  <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Total de Receitas</p>
-            <p className="text-2xl font-bold text-green-600">{formatCurrency(totals.income)}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-red-500">
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Total de Despesas</p>
-            <p className="text-2xl font-bold text-red-600">{formatCurrency(totals.expense)}</p>
-          </CardContent>
-        </Card>
-        <Card className={`border-l-4 ${totals.balance >= 0 ? 'border-l-blue-500' : 'border-l-orange-500'}`}>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Saldo do Período</p>
-            <p className={`text-2xl font-bold ${totals.balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-              {formatCurrency(totals.balance)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Data Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
-            Registros ({filteredData.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredData.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum registro encontrado para os filtros selecionados.</p>
-            </div>
+        {/* Visual Dashboard Tab */}
+        <TabsContent value="visual">
+          {!hasData ? (
+            <NoDataPlaceholder>Adicione transações para visualizar os gráficos.</NoDataPlaceholder>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Subcategoria</TableHead>
-                    <TableHead>Forma de Pagamento</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredData.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{format(parseISO(item.date), 'dd/MM/yyyy')}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          item.type === 'income' 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        }`}>
-                          {item.type === 'income' ? 'Receita' : 'Despesa'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">{item.description}</TableCell>
-                      <TableCell>{item.category}</TableCell>
-                      <TableCell>{item.subcategory}</TableCell>
-                      <TableCell>{item.paymentMethod}</TableCell>
-                      <TableCell className={`text-right font-medium ${
-                        item.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {item.type === 'income' ? '+' : '-'} {formatCurrency(item.amount)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-6 animate-in fade-in-50">
+              {/* Total Balance Card */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Saldo Total Disponível</CardTitle>
+                  <Wallet className="w-4 h-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${totalAvailableBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(totalAvailableBalance)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Soma de todas as receitas recebidas menos despesas pagas.</p>
+                </CardContent>
+              </Card>
+
+              {/* Comparative Chart */}
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <CardTitle>Ganhos vs. Gastos</CardTitle>
+                      <CardDescription>Comparativo de receitas e despesas.</CardDescription>
+                    </div>
+                    <Tabs value={chartView} onValueChange={(v) => setChartView(v as 'monthly' | 'annual')} className="mt-4 sm:mt-0">
+                      <TabsList>
+                        <TabsTrigger value="monthly">Mensal</TabsTrigger>
+                        <TabsTrigger value="annual">Anual</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={comparativeChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value / 1000}k`} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                        formatter={(value: number) => formatCurrency(value)}
+                      />
+                      <Legend />
+                      <Bar dataKey="Ganhos" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Gastos" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Projection Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Projeção de Saldo</CardTitle>
+                  <CardDescription>Estimativa do seu saldo para os próximos 12 meses.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={projectionData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value / 1000}k`} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                        formatter={(value: number) => formatCurrency(value)}
+                      />
+                      <Legend />
+                      <Line type="monotone" dataKey="Saldo" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 8 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* AI Insight */}
+              <Card className="bg-primary/5 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Bot className="w-5 h-5 text-primary" /> Insight da IA</CardTitle>
+                </CardHeader>
+                <CardContent><p className="text-sm text-foreground">{aiInsight}</p></CardContent>
+              </Card>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        {/* Detailed Report Tab */}
+        <TabsContent value="detailed">
+          <div className="space-y-6 animate-in fade-in-50">
+            {/* Export Button */}
+            <div className="flex justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="gradient-primary">
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar como...
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={exportToPDF}>
+                    <FileText className="w-4 h-4 mr-2 text-red-500" />
+                    Exportar PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToExcel}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2 text-green-500" />
+                    Exportar Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToWord}>
+                    <FileType className="w-4 h-4 mr-2 text-blue-500" />
+                    Exportar Word
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Filters */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Filter className="w-5 h-5" />
+                  Filtros do Relatório
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startDate" className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Data Início
+                    </Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="endDate" className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Data Fim
+                    </Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tipo</Label>
+                    <Select value={recordType} onValueChange={(v) => setRecordType(v as RecordType)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="income">Receitas</SelectItem>
+                        <SelectItem value="expense">Despesas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Categoria</Label>
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        {allCategories
+                          .filter(c => recordType === 'all' || c.type === recordType)
+                          .map(cat => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name} ({cat.type === 'income' ? 'Receita' : 'Despesa'})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Forma de Pagamento</Label>
+                    <Select 
+                      value={selectedPaymentMethod} 
+                      onValueChange={setSelectedPaymentMethod}
+                      disabled={recordType === 'income'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="account">Conta Bancária</SelectItem>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Card className="border-l-4 border-l-green-500">
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground">Total de Receitas</p>
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(totals.income)}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-red-500">
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground">Total de Despesas</p>
+                  <p className="text-2xl font-bold text-red-600">{formatCurrency(totals.expense)}</p>
+                </CardContent>
+              </Card>
+              <Card className={`border-l-4 ${totals.balance >= 0 ? 'border-l-blue-500' : 'border-l-orange-500'}`}>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground">Saldo do Período</p>
+                  <p className={`text-2xl font-bold ${totals.balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                    {formatCurrency(totals.balance)}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Data Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Registros ({filteredData.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {filteredData.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Nenhum registro encontrado para os filtros selecionados.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Categoria</TableHead>
+                          <TableHead>Subcategoria</TableHead>
+                          <TableHead>Forma de Pagamento</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredData.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>{format(parseISO(item.date), 'dd/MM/yyyy')}</TableCell>
+                            <TableCell>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                item.type === 'income' 
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              }`}>
+                                {item.type === 'income' ? 'Receita' : 'Despesa'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="max-w-[200px] truncate">{item.description}</TableCell>
+                            <TableCell>{item.category}</TableCell>
+                            <TableCell>{item.subcategory}</TableCell>
+                            <TableCell>{item.paymentMethod}</TableCell>
+                            <TableCell className={`text-right font-medium ${
+                              item.type === 'income' ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {item.type === 'income' ? '+' : '-'} {formatCurrency(item.amount)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
