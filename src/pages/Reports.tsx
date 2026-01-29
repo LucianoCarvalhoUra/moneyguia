@@ -18,7 +18,7 @@ import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import { Document, Packer, Paragraph, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, TextRun, WidthType, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 type RecordType = 'all' | 'income' | 'expense';
@@ -33,6 +33,14 @@ interface ReportItem {
   paymentMethod: string;
   amount: number;
 }
+
+const NoDataPlaceholder = ({ children }: { children: ReactNode }) => (
+  <div className="flex flex-col items-center justify-center h-[400px] text-center text-muted-foreground bg-muted/50 rounded-lg">
+    <PieChartIcon className="w-16 h-16 mb-4 opacity-30" />
+    <h3 className="text-lg font-semibold">Sem dados para exibir</h3>
+    <p className="text-sm">{children}</p>
+  </div>
+);
 
 export default function Reports() {
   const { user } = useAuth();
@@ -50,14 +58,6 @@ export default function Reports() {
 
   // Helper to check for data
   const hasData = useMemo(() => incomes.length > 0 || expenses.length > 0, [incomes, expenses]);
-
-  const NoDataPlaceholder = ({ children }: { children: ReactNode }) => (
-    <div className="flex flex-col items-center justify-center h-[400px] text-center text-muted-foreground bg-muted/50 rounded-lg">
-      <PieChartIcon className="w-16 h-16 mb-4 opacity-30" />
-      <h3 className="text-lg font-semibold">Sem dados para exibir</h3>
-      <p className="text-sm">{children}</p>
-    </div>
-  );
 
   const allCategories = useMemo(() => {
     const expenseCats = categories.map(c => ({ id: c.id, name: c.name, type: 'expense' as const }));
