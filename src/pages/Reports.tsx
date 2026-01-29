@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Download, FileSpreadsheet, FileType, Calendar, Filter, ChevronDown } from 'lucide-react';
+import { FileText, Download, FileSpreadsheet, FileType, Calendar, Filter, ChevronDown, Wallet, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,6 +18,8 @@ import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import { Document, Packer, Paragraph, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, TextRun, WidthType, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type RecordType = 'all' | 'income' | 'expense';
 
@@ -42,6 +44,8 @@ export default function Reports() {
   const [recordType, setRecordType] = useState<RecordType>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('all');
+  // State for visual dashboard
+  const [chartView, setChartView] = useState<'monthly' | 'annual'>('monthly');
 
   const allCategories = useMemo(() => {
     const expenseCats = categories.map(c => ({ id: c.id, name: c.name, type: 'expense' as const }));
@@ -113,6 +117,142 @@ export default function Reports() {
     const expenseTotal = filteredData.filter(i => i.type === 'expense').reduce((sum, i) => sum + i.amount, 0);
     return { income: incomeTotal, expense: expenseTotal, balance: incomeTotal - expenseTotal };
   }, [filteredData]);
+
+  // Data for Comparative Chart (Optimized)
+  const comparativeChartData = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+
+    if (chartView === 'monthly') {
+      // Initialize an array for 12 months
+      const monthlyData = Array.from({ length: 12 }, () => ({ Ganhos: 0, Gastos: 0 }));
+
+      // Single pass over incomes
+      incomes.forEach(inc => {
+        const d = new Date(inc.receiveDate);
+        if (d.getFullYear() === currentYear) {
+          monthlyData[d.getMonth()].Ganhos += inc.amount;
+        }
+      });
+
+      // Single pass over expenses
+      expenses.forEach(exp => {
+        const d = new Date(exp.dueDate);
+        if (d.getFullYear() === currentYear) {
+          monthlyData[d.getMonth()].Gastos += exp.amount;
+        }
+      });
+
+      // Map to final chart format
+      return monthlyData.map((data, i) => {
+        const monthName = format(new Date(currentYear, i), 'MMM', { locale: ptBR });
+        return {
+          name: monthName.charAt(0).toUpperCase() + monthName.slice(1),
+          ...data,
+        };
+      });
+    } else { // annual
+      const annualData: Record<string, { Ganhos: number, Gastos: number }> = {};
+      const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+      
+      // Initialize data structure for the last 5 years
+      years.forEach(year => {
+        annualData[year] = { Ganhos: 0, Gastos: 0 };
+      });
+
+      // Single pass over incomes
+      incomes.forEach(inc => {
+        const year = new Date(inc.receiveDate).getFullYear();
+        if (annualData[year]) {
+          annualData[year].Ganhos += inc.amount;
+        }
+      });
+
+      // Single pass over expenses
+      expenses.forEach(exp => {
+        const year = new Date(exp.dueDate).getFullYear();
+        if (annualData[year]) {
+          annualData[year].Gastos += exp.amount;
+        }
+      });
+
+      // Map to final chart format
+      return Object.entries(annualData)
+        .map(([year, data]) => ({
+          name: year,
+          ...data,
+        }))
+        .reverse();
+    }
+  }, [incomes, expenses, chartView]);
+
+  // Data for Projection Chart, Total Balance, and AI Insight (Optimized)
+  const { projectionData, totalAvailableBalance, aiInsight } = useMemo(() => {
+    let totalReceived = 0;
+    let totalPaid = 0;
+    let totalIncome = 0;
+    let totalExpense = 0;
+    const allDates: number[] = [];
+    const variableExpensesByCategory: Record<string, number> = {};
+
+    // Single pass over incomes to calculate totals and collect dates
+    incomes.forEach(i => {
+      if (i.isReceived) totalReceived += i.amount;
+      totalIncome += i.amount;
+      const time = new Date(i.receiveDate).getTime();
+      if (!isNaN(time)) allDates.push(time);
+    });
+
+    // Single pass over expenses to calculate totals and collect dates
+    expenses.forEach(e => {
+      if (e.isPaid) totalPaid += e.amount;
+      if (!e.isRecurring) variableExpensesByCategory[e.categoryId] = (variableExpensesByCategory[e.categoryId] || 0) + e.amount;
+      totalExpense += e.amount;
+      const time = new Date(e.expenseDate).getTime();
+      if (!isNaN(time)) allDates.push(time);
+    });
+
+    const currentBalance = totalReceived - totalPaid;
+
+    if (allDates.length === 0) {
+      return { projectionData: [], totalAvailableBalance: currentBalance, aiInsight: 'Sem dados suficientes para análise.' };
+    }
+
+    const firstTransactionDate = new Date(Math.min(...allDates));
+    const monthsOfHistory = Math.max(1, (new Date().getFullYear() - firstTransactionDate.getFullYear()) * 12 + (new Date().getMonth() - firstTransactionDate.getMonth()) + 1);
+    
+    const averageMonthlyIncome = totalIncome / monthsOfHistory;
+    const averageMonthlyExpense = totalExpense / monthsOfHistory;
+
+    let projectedBalance = currentBalance;
+    const projData = Array.from({ length: 12 }, (_, i) => {
+      const futureDate = new Date();
+      futureDate.setMonth(futureDate.getMonth() + i + 1);
+      projectedBalance += averageMonthlyIncome - averageMonthlyExpense;
+      return { name: format(futureDate, 'MMM/yy', { locale: ptBR }), Saldo: projectedBalance };
+    });
+
+    const emergencyGoal = averageMonthlyExpense * 6;
+    const shortfall = emergencyGoal - currentBalance;
+    let insight = 'Sua reserva de emergência parece estar em dia. Continue assim!';
+    if (shortfall > 0 && averageMonthlyExpense > 0) {
+      const topVariableCategory = Object.entries(variableExpensesByCategory).sort(([, a], [, b]) => b - a)[0];
+
+      if (topVariableCategory) {
+        const [catId, catAmount] = topVariableCategory;
+        const categoryName = getCategoryById(catId)?.name || 'Despesas Variáveis';
+        const savingsNeededPerMonth = shortfall / 12;
+        const percentToSave = Math.min(50, Math.max(5, (savingsNeededPerMonth / catAmount) * 100));
+        
+        if (percentToSave > 0 && isFinite(percentToSave)) {
+          insight = `Para atingir sua meta de reserva de emergência (${formatCurrency(emergencyGoal)}), sugiro economizar ${percentToSave.toFixed(0)}% na categoria '${categoryName}'.`;
+        } else {
+          insight = `Para atingir sua meta de reserva de emergência (${formatCurrency(emergencyGoal)}), você precisa aumentar sua receita ou cortar despesas.`;
+        }
+      }
+    }
+
+    return { projectionData: projData, totalAvailableBalance: currentBalance, aiInsight: insight };
+  }, [incomes, expenses, getCategoryById]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
