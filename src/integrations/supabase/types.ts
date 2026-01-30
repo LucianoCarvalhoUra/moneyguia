@@ -197,6 +197,42 @@ export type Database = {
           },
         ]
       }
+      goals: {
+        Row: {
+          color: string | null
+          created_at: string
+          current_amount: number
+          deadline: string | null
+          icon: string | null
+          id: string
+          target_amount: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          current_amount?: number
+          deadline?: string | null
+          icon?: string | null
+          id?: string
+          target_amount: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          current_amount?: number
+          deadline?: string | null
+          icon?: string | null
+          id?: string
+          target_amount?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       income_categories: {
         Row: {
           color: string
