@@ -39,15 +39,21 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 // Mapping for migrating old/default categories to new icons and colors
 const EXPENSE_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> = {
   'Alimentação': { icon: 'UtensilsCrossed', color: 'orange-500' },
-  'Transporte': { icon: 'CarFront', color: 'blue-600' },
-  'Carro': { icon: 'CarFront', color: 'blue-600' },
+  'Transporte': { icon: 'CarFront', color: 'slate-500' },
+  'Carro': { icon: 'CarFront', color: 'slate-500' },
   'Lazer': { icon: 'Sparkles', color: 'violet-500' },
   'Saúde': { icon: 'HeartPulse', color: 'red-500' },
   'Educação': { icon: 'BookOpenCheck', color: 'indigo-500' },
-  'Doação': { icon: 'Heart', color: 'rose-500' },
-  'Moradia': { icon: 'Home', color: 'emerald-500' },
-  'Casa': { icon: 'Home', color: 'emerald-500' },
+  'Doação': { icon: 'Heart', color: 'pink-500' },
+  'Doações': { icon: 'Heart', color: 'pink-500' },
+  'Moradia': { icon: 'Home', color: 'blue-500' },
+  'Casa': { icon: 'Home', color: 'blue-500' },
   'Compras': { icon: 'ShoppingBag', color: 'violet-500' },
+  'Cartão': { icon: 'CreditCard', color: 'indigo-500' },
+  'Contas Básicas': { icon: 'FileText', color: 'amber-500' },
+  'Contas': { icon: 'FileText', color: 'amber-500' },
+  'Dependentes': { icon: 'Users', color: 'cyan-500' },
+  'Pessoal': { icon: 'User', color: 'violet-500' },
 };
 
 export function FinanceProvider({ children }: { children: ReactNode }) {

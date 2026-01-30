@@ -348,7 +348,9 @@ export default function Incomes() {
                         {incomeCategories.map(cat => (
                           <SelectItem key={cat.id} value={cat.id}>
                             <span className="flex items-center gap-2">
-                              <CategoryIcon iconName={cat.icon} className={cn("w-4 h-4", `text-${cat.color}`)} /> 
+                              <div className={cn("w-6 h-6 rounded-full flex items-center justify-center", `bg-${cat.color}/10`)}>
+                                <CategoryIcon iconName={cat.icon} className={cn("w-3 h-3", `text-${cat.color}`)} />
+                              </div>
                               {cat.name}
                             </span>
                           </SelectItem>

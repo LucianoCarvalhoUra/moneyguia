@@ -286,7 +286,9 @@ export default function Expenses() {
                         {categories.map(cat => (
                           <SelectItem key={cat.id} value={cat.id}>
                             <span className="flex items-center gap-2">
-                              <CategoryIcon iconName={cat.icon} className={cn("w-4 h-4", `text-${cat.color}`)} /> 
+                              <div className={cn("w-6 h-6 rounded-full flex items-center justify-center", `bg-${cat.color}/10`)}>
+                                <CategoryIcon iconName={cat.icon} className={cn("w-3 h-3", `text-${cat.color}`)} />
+                              </div>
                               {cat.name}
                             </span>
                           </SelectItem>
@@ -397,7 +399,9 @@ export default function Expenses() {
                     <TableRow key={expense.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-5 h-5", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
+                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", category?.color ? `bg-${category.color}/10` : "bg-muted")}>
+                            <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
+                          </div>
                           <span>{category?.name || 'Sem categoria'}</span>
                         </div>
                         <div className="md:hidden text-xs text-muted-foreground mt-1 pl-7">
