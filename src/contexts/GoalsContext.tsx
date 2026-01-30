@@ -36,7 +36,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
         setGoals(data.map((g: any) => ({
           id: g.id,
           userId: g.user_id,
-          name: g.name,
+          name: g.title,
           targetAmount: Number(g.target_amount),
           currentAmount: Number(g.current_amount),
           deadline: g.deadline,
@@ -61,7 +61,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     const { error } = await supabase.from('goals' as any).insert({
       user_id: user.id,
-      name: goal.name,
+      title: goal.name,
       target_amount: goal.targetAmount,
       current_amount: goal.currentAmount,
       deadline: goal.deadline,
@@ -78,7 +78,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
 
   const updateGoal = async (id: string, goal: Partial<Goal>) => {
     const { error } = await supabase.from('goals' as any).update({
-      name: goal.name,
+      title: goal.name,
       target_amount: goal.targetAmount,
       current_amount: goal.currentAmount,
       deadline: goal.deadline,
