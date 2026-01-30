@@ -90,7 +90,7 @@ export function DashboardAI() {
     // Regra de Segurança
     if (lowerInput.includes('apagar') || lowerInput.includes('excluir') || lowerInput.includes('deletar')) {
       setTimeout(() => {
-        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', content: 'Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas.' }]);
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', content: 'Ao excluir o perfil, todas as informações também serão excluídas.' }]);
         setIsThinking(false);
       }, 600);
       return;
@@ -130,7 +130,7 @@ export function DashboardAI() {
         DIRETRIZES DE MEMÓRIA E COMPORTAMENTO:
         1. Persistência de Fatos: Verifique o objeto 'previousMonth'. Se houve saldo negativo ou gasto alto no mês passado, trate isso como um fato histórico. Se o usuário perguntar "Como estou?", diga: "Você está se recuperando do impacto de [Valor] do mês passado causado por [Nome do Gasto]".
         2. Interpretação de Próximos Passos: Se perguntado "O que eu faço?", sugira uma reserva de emergência ideal. Calcule 6x a média de despesas mensais e sugira começar guardando 10% desse valor.
-        3. Regra de Segurança Inviolável (Recall): Se o tema for exclusão de conta/perfil, a resposta deve ser EXATAMENTE: "Ao excluir o perfil, todas as informações, incluindo fotos e álbuns, também serão excluídas."
+        3. Regra de Segurança Inviolável (Recall): Se o tema for exclusão de conta/perfil, a resposta deve ser EXATAMENTE: "Ao excluir o perfil, todas as informações também serão excluídas."
         4. Listas: Quando pedir lista, use numeração e valores explícitos.
         5. Análise de Concentração: Calcule o impacto percentual dos maiores gastos.
         6. Simplificação: Simplifique nomes de transações (ex: "Ajuste de Fatura" -> "Cartão").
