@@ -1,3 +1,4 @@
+// Force schema cache reload
 import { useState, useMemo } from 'react';
 import { useGoals } from '@/contexts/GoalsContext';
 import { useFinance } from '@/contexts/FinanceContext';
