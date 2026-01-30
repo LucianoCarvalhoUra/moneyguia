@@ -149,11 +149,6 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label>Descrição</Label>
-            <Input placeholder="Ex: Salário Mensal" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Valor</Label>
@@ -176,6 +171,11 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
                 />
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <Input placeholder="Ex: Salário Mensal" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
 
           <div className="space-y-2">

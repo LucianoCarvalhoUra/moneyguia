@@ -160,11 +160,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label>Descrição</Label>
-            <Input placeholder="Ex: Supermercado" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Valor</Label>
@@ -187,6 +182,11 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 />
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <Input placeholder="Ex: Supermercado" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
 
           <div className="space-y-2">
