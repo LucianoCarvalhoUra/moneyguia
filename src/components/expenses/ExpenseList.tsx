@@ -274,15 +274,11 @@ export default function ExpenseList() {
                 return (
                   <div
                     key={expense.id}
-                    className={cn(
-                      "flex items-center gap-4 p-4 rounded-xl hover:bg-muted transition-colors group",
-                      expense.isPaid ? "bg-muted/30 opacity-75" : "bg-muted/50"
-                    )}
+                    className={cn("flex items-center gap-4 p-4 rounded-xl hover:bg-muted transition-colors group", expense.isPaid ? "bg-muted/30 opacity-75" : "bg-muted/50")}
                   >
                     <div
                       className={cn(
-                        'w-12 h-12 rounded-full flex items-center justify-center',
-                        category?.color ? `bg-${category.color}/10` : 'bg-muted/50'
+                        'w-12 h-12 rounded-full flex items-center justify-center', category?.color ? `bg-${category.color}/15` : 'bg-muted/50'
                       )}
                     >
                       <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-6 h-6", category?.color ? `text-${category.color}` : "text-muted-foreground")} />

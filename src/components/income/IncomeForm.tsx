@@ -149,6 +149,20 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             </div>
           )}
 
+          <div className="space-y-2">
+            <Label>Conta de Destino (Opcional)</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a conta" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map(acc => (
+                  <SelectItem key={acc.id} value={acc.id}>{acc.bankName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Valor</Label>
@@ -176,20 +190,6 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           <div className="space-y-2">
             <Label>Descrição</Label>
             <Input placeholder="Ex: Salário Mensal" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Conta de Destino (Opcional)</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a conta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map(acc => (
-                  <SelectItem key={acc.id} value={acc.id}>{acc.bankName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <DialogFooter>

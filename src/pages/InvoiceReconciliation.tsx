@@ -22,6 +22,7 @@ import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, CreditCard, AlertCircle, CheckCircle2, Calculator } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 const MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -375,7 +376,10 @@ export default function InvoiceReconciliation() {
                   <SelectContent>
                     {categories.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
+                        <span className="flex items-center gap-2">
+                          <CategoryIcon iconName={cat.icon} className="w-4 h-4" />
+                          {cat.name}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -503,7 +507,9 @@ export default function InvoiceReconciliation() {
                     className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-lg">{category?.icon || '📦'}</span>
+                      <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", category?.color ? `bg-${category.color}/10` : "bg-muted")}>
+                        <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
+                      </div>
                       <div>
                         <p className="font-medium text-sm text-foreground">{expense.description}</p>
                         <p className="text-xs text-muted-foreground">

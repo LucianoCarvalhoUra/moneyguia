@@ -35,7 +35,7 @@ const INCOME_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> =
   'Trabalho': { icon: 'Briefcase', color: 'slate-500' },
   'Investimentos': { icon: 'TrendingUp', color: 'green-500' },
   'Freelance': { icon: 'Coins', color: 'blue-500' },
-  'Aluguel': { icon: 'Key', color: 'emerald-500' },
+  'Aluguel': { icon: 'Building', color: 'emerald-500' },
 };
 
 export function IncomeProvider({ children }: { children: ReactNode }) {

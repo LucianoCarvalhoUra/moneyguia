@@ -50,8 +50,8 @@ const EXPENSE_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> 
   'Casa': { icon: 'Home', color: 'blue-500' },
   'Compras': { icon: 'ShoppingBag', color: 'violet-500' },
   'Cartão': { icon: 'CreditCard', color: 'indigo-500' },
-  'Contas Básicas': { icon: 'FileText', color: 'amber-500' },
-  'Contas': { icon: 'FileText', color: 'amber-500' },
+  'Contas Básicas': { icon: 'Zap', color: 'amber-500' },
+  'Contas': { icon: 'Zap', color: 'amber-500' },
   'Dependentes': { icon: 'Users', color: 'cyan-500' },
   'Pessoal': { icon: 'User', color: 'violet-500' },
 };
