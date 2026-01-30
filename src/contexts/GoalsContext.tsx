@@ -48,7 +48,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error fetching goals:', error);
       console.log('DEBUG: Erro detalhado ao buscar objetivos:', error);
-      toast.error('Erro ao carregar objetivos');
+      toast.error(`Erro: ${(error as any).message || 'Erro desconhecido ao carregar'}`);
     } finally {
       setIsLoading(false);
     }
@@ -65,13 +65,13 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
       title: goal.name,
       target_amount: goal.targetAmount,
       current_amount: goal.currentAmount,
-      deadline: goal.deadline,
+      deadline: new Date(goal.deadline).toISOString(),
       icon: goal.icon,
       color: goal.color,
     });
 
     if (error) {
-      toast.error('Erro ao criar objetivo');
+      toast.error(`Erro: ${error.message}`);
       throw error;
     }
     await fetchGoals();
@@ -82,13 +82,13 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
       title: goal.name,
       target_amount: goal.targetAmount,
       current_amount: goal.currentAmount,
-      deadline: goal.deadline,
+      deadline: goal.deadline ? new Date(goal.deadline).toISOString() : undefined,
       icon: goal.icon,
       color: goal.color,
     }).eq('id', id);
 
     if (error) {
-      toast.error('Erro ao atualizar objetivo');
+      toast.error(`Erro: ${error.message}`);
       throw error;
     }
     await fetchGoals();
@@ -97,7 +97,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
   const removeGoal = async (id: string) => {
     const { error } = await supabase.from('goals' as any).delete().eq('id', id);
     if (error) {
-      toast.error('Erro ao remover objetivo');
+      toast.error(`Erro: ${error.message}`);
       throw error;
     }
     setGoals(prev => prev.filter(g => g.id !== id));
