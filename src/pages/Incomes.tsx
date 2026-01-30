@@ -346,7 +346,12 @@ export default function Incomes() {
                       <SelectContent>
                         <SelectItem value="all">Todas</SelectItem>
                         {incomeCategories.map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}><span className="flex items-center gap-2"><CategoryIcon iconName={cat.icon} className="w-4 h-4" /> {cat.name}</span></SelectItem>
+                          <SelectItem key={cat.id} value={cat.id}>
+                            <span className="flex items-center gap-2">
+                              <CategoryIcon iconName={cat.icon} className={cn("w-4 h-4", `text-${cat.color}`)} /> 
+                              {cat.name}
+                            </span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -454,7 +459,7 @@ export default function Incomes() {
                     <TableRow key={income.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          <CategoryIcon iconName={category?.icon || 'Wallet'} className={cn("w-5 h-5", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
+                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", category?.color ? `bg-${category.color}/10` : "bg-muted")}><CategoryIcon iconName={category?.icon || 'Wallet'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} /></div>
                           <span>{category?.name || 'Sem categoria'}</span>
                         </div>
                         <div className="md:hidden text-xs text-muted-foreground mt-1 pl-7">

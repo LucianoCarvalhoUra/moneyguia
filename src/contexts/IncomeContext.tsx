@@ -31,7 +31,7 @@ const IncomeContext = createContext<IncomeContextType | undefined>(undefined);
 
 // Mapping for migrating old/default income categories
 const INCOME_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> = {
-  'Salário': { icon: 'Wallet', color: 'emerald-500' },
+  'Salário': { icon: 'Banknote', color: 'emerald-500' },
   'Trabalho': { icon: 'Briefcase', color: 'slate-500' },
   'Investimentos': { icon: 'TrendingUp', color: 'green-500' },
   'Freelance': { icon: 'Coins', color: 'blue-500' },

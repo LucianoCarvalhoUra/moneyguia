@@ -284,7 +284,12 @@ export default function Expenses() {
                       <SelectContent>
                         <SelectItem value="all">Todas</SelectItem>
                         {categories.map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}><span className="flex items-center gap-2"><CategoryIcon iconName={cat.icon} className="w-4 h-4" /> {cat.name}</span></SelectItem>
+                          <SelectItem key={cat.id} value={cat.id}>
+                            <span className="flex items-center gap-2">
+                              <CategoryIcon iconName={cat.icon} className={cn("w-4 h-4", `text-${cat.color}`)} /> 
+                              {cat.name}
+                            </span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

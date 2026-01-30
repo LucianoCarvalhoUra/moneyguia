@@ -38,12 +38,12 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 // Mapping for migrating old/default categories to new icons and colors
 const EXPENSE_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> = {
-  'Alimentação': { icon: 'Utensils', color: 'orange-500' },
-  'Transporte': { icon: 'CarFront', color: 'blue-500' },
-  'Carro': { icon: 'CarFront', color: 'blue-500' },
-  'Lazer': { icon: 'Palmtree', color: 'yellow-500' },
-  'Saúde': { icon: 'Stethoscope', color: 'red-500' },
-  'Educação': { icon: 'GraduationCap', color: 'indigo-500' },
+  'Alimentação': { icon: 'UtensilsCrossed', color: 'orange-500' },
+  'Transporte': { icon: 'CarFront', color: 'blue-600' },
+  'Carro': { icon: 'CarFront', color: 'blue-600' },
+  'Lazer': { icon: 'Sparkles', color: 'violet-500' },
+  'Saúde': { icon: 'HeartPulse', color: 'red-500' },
+  'Educação': { icon: 'BookOpenCheck', color: 'indigo-500' },
   'Doação': { icon: 'Heart', color: 'rose-500' },
   'Moradia': { icon: 'Home', color: 'emerald-500' },
   'Casa': { icon: 'Home', color: 'emerald-500' },

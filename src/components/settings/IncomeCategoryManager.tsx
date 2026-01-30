@@ -204,7 +204,7 @@ export default function IncomeCategoryManager() {
                       className="flex items-center gap-3 flex-1 min-w-0"
                     >
                       <div className={cn(
-                        'w-10 h-10 rounded-lg flex items-center justify-center text-lg',
+                        'w-10 h-10 rounded-full flex items-center justify-center',
                         `bg-${category.color}/20`
                       )}>
                         <CategoryIcon iconName={category.icon} className={`w-5 h-5 text-${category.color}`} />

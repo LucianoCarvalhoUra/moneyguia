@@ -34,7 +34,7 @@ import { CategoryIcon, iconMap } from '@/components/CategoryIcon';
 
 const AVAILABLE_COLORS = [
   'slate-500', 'red-500', 'orange-500', 'amber-500', 'yellow-500', 'lime-500',
-  'green-500', 'emerald-500', 'teal-500', 'cyan-500', 'sky-500', 'blue-500',
+  'green-500', 'emerald-500', 'teal-500', 'cyan-500', 'sky-500', 'blue-500', 'blue-600',
   'indigo-500', 'violet-500', 'purple-500', 'fuchsia-500', 'pink-500', 'rose-500'
 ];
 
@@ -204,7 +204,7 @@ export default function CategoryManager() {
                       className="flex items-center gap-3 flex-1 min-w-0"
                     >
                       <div className={cn(
-                        'w-10 h-10 rounded-lg flex items-center justify-center text-lg',
+                        'w-10 h-10 rounded-full flex items-center justify-center',
                         `bg-${category.color}/20`
                       )}>
                         <CategoryIcon iconName={category.icon} className={`w-5 h-5 text-${category.color}`} />
