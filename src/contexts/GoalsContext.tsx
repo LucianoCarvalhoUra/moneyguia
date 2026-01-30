@@ -25,7 +25,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('goals' as any)
+        .from('goals')
         .select('*')
         .eq('user_id', user.id)
         .order('deadline', { ascending: true });
@@ -60,7 +60,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
 
   const addGoal = async (goal: Omit<Goal, 'id' | 'userId' | 'createdAt'>) => {
     if (!user) return;
-    const { error } = await supabase.from('goals' as any).insert({
+    const { error } = await supabase.from('goals').insert({
       user_id: user.id,
       title: goal.name,
       target_amount: goal.targetAmount,
@@ -78,7 +78,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
   };
 
   const updateGoal = async (id: string, goal: Partial<Goal>) => {
-    const { error } = await supabase.from('goals' as any).update({
+    const { error } = await supabase.from('goals').update({
       title: goal.name,
       target_amount: goal.targetAmount,
       current_amount: goal.currentAmount,
@@ -95,7 +95,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
   };
 
   const removeGoal = async (id: string) => {
-    const { error } = await supabase.from('goals' as any).delete().eq('id', id);
+    const { error } = await supabase.from('goals').delete().eq('id', id);
     if (error) {
       toast.error(`Erro: ${error.message}`);
       throw error;

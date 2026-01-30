@@ -6,7 +6,7 @@ import { useIncome } from '@/contexts/IncomeContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Target, Calendar, TrendingUp, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Target, Calendar, TrendingUp, AlertTriangle, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { format, differenceInMonths, differenceInDays, parseISO } from 'date-fns';
@@ -16,7 +16,7 @@ import { Goal } from '@/types/goals';
 import { toast } from 'sonner';
 
 export default function Goals() {
-  const { goals, removeGoal } = useGoals();
+  const { goals, removeGoal, refreshGoals, isLoading } = useGoals();
   const { getMonthlyTotal, getMonthlyExpenses } = useFinance();
   const { getMonthlyIncomeTotal } = useIncome();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -71,10 +71,15 @@ export default function Goals() {
           </h1>
           <p className="text-muted-foreground">Planeje e realize seus sonhos</p>
         </div>
-        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingGoal(null); setIsFormOpen(true); }}>
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Objetivo
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={() => refreshGoals()} disabled={isLoading} title="Atualizar lista">
+            <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
+          </Button>
+          <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingGoal(null); setIsFormOpen(true); }}>
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Objetivo
+          </Button>
+        </div>
       </div>
 
       {/* Summary Card */}
@@ -112,7 +117,7 @@ export default function Goals() {
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
-                    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", `bg-${goal.color}/10`)}>
+                    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", `bg-${goal.color}/20`)}>
                       <CategoryIcon iconName={goal.icon} className={cn("w-5 h-5", `text-${goal.color}`)} />
                     </div>
                     <div>
