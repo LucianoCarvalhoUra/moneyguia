@@ -95,6 +95,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         cardId: paymentMethod === 'credit_card' ? cardId : undefined,
         isRecurring,
         installments: isRecurring ? parseInt(installments) : undefined,
+        isPaid: expense?.isPaid ?? false,
       };
 
       if (expense) {
