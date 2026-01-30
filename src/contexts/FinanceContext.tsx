@@ -36,6 +36,20 @@ interface FinanceContextType {
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
+// Mapping for migrating old/default categories to new icons and colors
+const EXPENSE_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> = {
+  'Alimentação': { icon: 'Utensils', color: 'orange-500' },
+  'Transporte': { icon: 'CarFront', color: 'blue-500' },
+  'Carro': { icon: 'CarFront', color: 'blue-500' },
+  'Lazer': { icon: 'Palmtree', color: 'yellow-500' },
+  'Saúde': { icon: 'Stethoscope', color: 'red-500' },
+  'Educação': { icon: 'GraduationCap', color: 'indigo-500' },
+  'Doação': { icon: 'Heart', color: 'rose-500' },
+  'Moradia': { icon: 'Home', color: 'emerald-500' },
+  'Casa': { icon: 'Home', color: 'emerald-500' },
+  'Compras': { icon: 'ShoppingBag', color: 'violet-500' },
+};
+
 export function FinanceProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
@@ -79,20 +93,42 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       }
 
       if (categoriesRes.data && categoriesRes.data.length > 0) {
-        setCategories(categoriesRes.data.map(c => ({
-          id: c.id,
-          name: c.name,
-          icon: c.icon,
-          color: c.color,
-          userId: c.user_id,
-          isDefault: c.is_default,
-        })).sort((a, b) => a.name.localeCompare(b.name)));
+        const loadedCategories = categoriesRes.data.map(c => {
+          // Check if this category needs migration
+          const mapping = EXPENSE_CATEGORY_MAPPING[c.name];
+          // Only migrate if it matches a known name and has a different icon/color (or default emoji)
+          if (mapping && (c.icon !== mapping.icon || c.color !== mapping.color)) {
+             // We'll update it in the background, but use the new values for state immediately
+             supabase.from('categories').update({ icon: mapping.icon, color: mapping.color }).eq('id', c.id).then();
+             return {
+               id: c.id,
+               name: c.name,
+               icon: mapping.icon,
+               color: mapping.color,
+               userId: c.user_id,
+               isDefault: c.is_default,
+             };
+          }
+          return {
+            id: c.id,
+            name: c.name,
+            icon: c.icon,
+            color: c.color,
+            userId: c.user_id,
+            isDefault: c.is_default,
+          };
+        });
+        setCategories(loadedCategories.sort((a, b) => a.name.localeCompare(b.name)));
       } else {
         // Initialize with default categories
-        const defaultCats = DEFAULT_CATEGORIES.map(cat => ({
+        const defaultCats = DEFAULT_CATEGORIES.map(cat => {
+          const mapping = EXPENSE_CATEGORY_MAPPING[cat.name];
+          return {
           ...cat,
+          icon: mapping ? mapping.icon : cat.icon,
+          color: mapping ? mapping.color : cat.color,
           user_id: user.id,
-        }));
+        }});
         
         const { data: insertedCats } = await supabase
           .from('categories')

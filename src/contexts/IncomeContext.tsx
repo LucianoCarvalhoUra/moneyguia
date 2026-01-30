@@ -29,6 +29,14 @@ interface IncomeContextType {
 
 const IncomeContext = createContext<IncomeContextType | undefined>(undefined);
 
+// Mapping for migrating old/default income categories
+const INCOME_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> = {
+  'Salário': { icon: 'Wallet', color: 'emerald-500' },
+  'Trabalho': { icon: 'Briefcase', color: 'slate-500' },
+  'Investimentos': { icon: 'TrendingUp', color: 'green-500' },
+  'Freelance': { icon: 'Coins', color: 'blue-500' },
+};
+
 export function IncomeProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -48,20 +56,41 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (categoriesRes.data && categoriesRes.data.length > 0) {
-        setIncomeCategories(categoriesRes.data.map(c => ({
-          id: c.id,
-          name: c.name,
-          icon: c.icon,
-          color: c.color,
-          userId: c.user_id,
-          isDefault: c.is_default,
-        })).sort((a, b) => a.name.localeCompare(b.name)));
+        const loadedCategories = categoriesRes.data.map(c => {
+          // Check if this category needs migration
+          const mapping = INCOME_CATEGORY_MAPPING[c.name];
+          if (mapping && (c.icon !== mapping.icon || c.color !== mapping.color)) {
+             // Update in background
+             supabase.from('income_categories').update({ icon: mapping.icon, color: mapping.color }).eq('id', c.id).then();
+             return {
+               id: c.id,
+               name: c.name,
+               icon: mapping.icon,
+               color: mapping.color,
+               userId: c.user_id,
+               isDefault: c.is_default,
+             };
+          }
+          return {
+            id: c.id,
+            name: c.name,
+            icon: c.icon,
+            color: c.color,
+            userId: c.user_id,
+            isDefault: c.is_default,
+          };
+        });
+        setIncomeCategories(loadedCategories.sort((a, b) => a.name.localeCompare(b.name)));
       } else {
         // Initialize with default income categories
-        const defaultCats = DEFAULT_INCOME_CATEGORIES.map(cat => ({
+        const defaultCats = DEFAULT_INCOME_CATEGORIES.map(cat => {
+          const mapping = INCOME_CATEGORY_MAPPING[cat.name];
+          return {
           ...cat,
+          icon: mapping ? mapping.icon : cat.icon,
+          color: mapping ? mapping.color : cat.color,
           user_id: user.id,
-        }));
+        }});
         
         const { data: insertedCats } = await supabase
           .from('income_categories')

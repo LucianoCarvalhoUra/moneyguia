@@ -4,7 +4,7 @@ import {
   LayoutGrid, CircleDollarSign, Landmark, Baby, BookOpen, Coffee, Shirt, Hammer,
   Bus, Zap, Wifi, Phone, Droplets, Tag, AlertCircle, Lightbulb, Anchor, Bike,
   CreditCard, DollarSign, Euro, Flag, Gem, Glasses, Key, Map, Medal, Package,
-  Rocket, Scissors, Trophy, Umbrella, Watch, Wrench
+  Rocket, Scissors, Trophy, Umbrella, Watch, Wrench, CarFront, Pizza, HeartPulse, TrendingUp, Coins
 } from 'lucide-react';
 
 export const iconMap: Record<string, any> = {
@@ -13,7 +13,8 @@ export const iconMap: Record<string, any> = {
   LayoutGrid, CircleDollarSign, Landmark, Baby, BookOpen, Coffee, Shirt, Hammer,
   Bus, Zap, Wifi, Phone, Droplets, Tag, AlertCircle, Lightbulb, Anchor, Bike,
   CreditCard, DollarSign, Euro, Flag, Gem, Glasses, Key, Map, Medal, Package,
-  Rocket, Scissors, Trophy, Umbrella, Watch, Wrench
+  Rocket, Scissors, Trophy, Umbrella, Watch, Wrench,
+  CarFront, Pizza, HeartPulse, TrendingUp, Coins
 };
 
 export function CategoryIcon({ iconName, className }: { iconName: string, className?: string }) {
