@@ -30,6 +30,7 @@ import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'paymentMethod' | 'amount';
 type SortOrder = 'asc' | 'desc';
@@ -280,11 +281,11 @@ export default function ExpenseList() {
                   >
                     <div
                       className={cn(
-                        'w-12 h-12 rounded-xl flex items-center justify-center text-xl',
-                        category?.color ? `bg-${category.color}/10` : 'bg-muted'
+                        'w-12 h-12 rounded-full flex items-center justify-center',
+                        category?.color ? `bg-${category.color}/10` : 'bg-muted/50'
                       )}
                     >
-                      {category?.icon || '📦'}
+                      <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-6 h-6", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
                     </div>
                     
                     <div className="flex-1 min-w-0">

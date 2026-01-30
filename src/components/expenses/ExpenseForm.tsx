@@ -124,35 +124,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Descrição</Label>
-            <Input placeholder="Ex: Supermercado" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Valor</Label>
-              <Input 
-                placeholder="R$ 0,00" 
-                value={amount} 
-                onChange={(e) => setAmount(formatCurrencyInput(e.target.value))}
-                className={cn("text-right font-medium", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Data</Label>
-              <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  type="date" 
-                  value={date} 
-                  onChange={(e) => setDate(e.target.value)} 
-                  className={cn("pl-9", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
             <Label>Categoria</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
@@ -188,6 +159,35 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
               </Select>
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <Input placeholder="Ex: Supermercado" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Valor</Label>
+              <Input 
+                placeholder="R$ 0,00" 
+                value={amount} 
+                onChange={(e) => setAmount(formatCurrencyInput(e.target.value))}
+                className={cn("text-right font-medium", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data</Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  type="date" 
+                  value={date} 
+                  onChange={(e) => setDate(e.target.value)} 
+                  className={cn("pl-9", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+                />
+              </div>
+            </div>
+          </div>
 
           <div className="space-y-2">
             <Label>Forma de Pagamento</Label>
