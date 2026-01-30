@@ -1,3 +1,4 @@
+// Force schema cache refresh
 export type Json =
   | string
   | number
