@@ -3,30 +3,14 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-import { Expense, PaymentMethod, PAYMENT_METHOD_LABELS } from '@/types/finance';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { cn } from '@/lib/utils';
+import { Expense, PaymentMethod } from '@/types/finance';
+import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 interface ExpenseFormProps {
   open: boolean;
@@ -35,41 +19,32 @@ interface ExpenseFormProps {
 }
 
 export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseFormProps) {
-  const { 
-    addExpense, 
-    updateExpense, 
-    categories, 
-    subcategories, 
-    accounts, 
-    cards 
-  } = useFinance();
-
+  const { addExpense, updateExpense, categories, subcategories, accounts, cards } = useFinance();
+  
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [categoryId, setCategoryId] = useState('');
-  const [subcategoryId, setSubcategoryId] = useState('none');
-  const [dueDate, setDueDate] = useState<Date | undefined>(new Date());
-  const [isPaid, setIsPaid] = useState(false);
+  const [subcategoryId, setSubcategoryId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
-  const [accountId, setAccountId] = useState<string>('none');
-  const [cardId, setCardId] = useState<string>('none');
+  const [accountId, setAccountId] = useState('');
+  const [cardId, setCardId] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
-  const [installments, setInstallments] = useState('');
+  const [installments, setInstallments] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (expense) {
       setDescription(expense.description);
-      setAmount(expense.amount.toString());
+      setAmount(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(expense.amount));
+      setDate(format(new Date(expense.dueDate), 'yyyy-MM-dd'));
       setCategoryId(expense.categoryId);
-      setSubcategoryId(expense.subcategoryId || 'none');
-      setDueDate(new Date(expense.dueDate));
-      setIsPaid(expense.isPaid);
+      setSubcategoryId(expense.subcategoryId || '');
       setPaymentMethod(expense.paymentMethod);
-      setAccountId(expense.accountId || 'none');
-      setCardId(expense.cardId || 'none');
+      setAccountId(expense.accountId || '');
+      setCardId(expense.cardId || '');
       setIsRecurring(expense.isRecurring);
-      setInstallments(expense.installments ? expense.installments.toString() : '');
+      setInstallments(expense.installments?.toString() || '1');
     } else {
       resetForm();
     }
@@ -78,59 +53,67 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const resetForm = () => {
     setDescription('');
     setAmount('');
+    setDate(format(new Date(), 'yyyy-MM-dd'));
     setCategoryId('');
-    setSubcategoryId('none');
-    setDueDate(new Date());
-    setIsPaid(false);
+    setSubcategoryId('');
     setPaymentMethod('pix');
-    setAccountId('none');
-    setCardId('none');
+    setAccountId('');
+    setCardId('');
     setIsRecurring(false);
-    setInstallments('');
+    setInstallments('1');
+  };
+
+  const formatCurrencyInput = (value: string) => {
+    const numericValue = value.replace(/\D/g, '');
+    const floatValue = Number(numericValue) / 100;
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(floatValue);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!description || !amount || !categoryId || !dueDate) {
+    if (!description || !amount || !date || !categoryId) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
 
     setIsSubmitting(true);
     try {
+      const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+      
       const expenseData = {
         description,
-        amount: parseFloat(amount.replace(',', '.')),
+        amount: numericAmount,
+        expenseDate: new Date(date),
+        dueDate: new Date(date),
         categoryId,
-        subcategoryId: subcategoryId === 'none' ? null : subcategoryId,
-        dueDate: dueDate,
-        expenseDate: dueDate, // Usando a data de vencimento como data da despesa por padrão
-        isPaid,
+        subcategoryId: subcategoryId || undefined,
         paymentMethod,
-        accountId: accountId === 'none' ? null : accountId,
-        cardId: cardId === 'none' ? null : cardId,
+        accountId: paymentMethod === 'account' ? accountId : undefined,
+        cardId: paymentMethod === 'credit_card' ? cardId : undefined,
         isRecurring,
-        installments: installments ? parseInt(installments) : null,
+        installments: isRecurring ? parseInt(installments) : undefined,
       };
 
       if (expense) {
         await updateExpense(expense.id, expenseData);
-        toast.success('Despesa atualizada com sucesso!');
+        toast.success('Despesa atualizada!');
       } else {
         await addExpense(expenseData);
-        toast.success('Despesa criada com sucesso!');
+        toast.success('Despesa criada!');
       }
       onOpenChange(false);
     } catch (error) {
       console.error(error);
-      toast.error('Erro ao salvar despesa');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const filteredSubcategories = subcategories.filter(s => s.categoryId === categoryId);
+  const selectedCategory = categories.find(c => c.id === categoryId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -138,31 +121,57 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         <DialogHeader>
           <DialogTitle>{expense ? 'Editar Despesa' : 'Nova Despesa'}</DialogTitle>
         </DialogHeader>
-        
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 1. Categoria */}
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <Input placeholder="Ex: Supermercado" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Valor</Label>
+              <Input 
+                placeholder="R$ 0,00" 
+                value={amount} 
+                onChange={(e) => setAmount(formatCurrencyInput(e.target.value))}
+                className={cn("text-right font-medium", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data</Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  type="date" 
+                  value={date} 
+                  onChange={(e) => setDate(e.target.value)} 
+                  className={cn("pl-9", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Categoria</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione a categoria" />
+                <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
                 {categories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
-                    <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-2">
                       <div className={cn("w-6 h-6 rounded-full flex items-center justify-center", `bg-${cat.color}/10`)}>
-                        <CategoryIcon iconName={cat.icon} className={cn("w-4 h-4", `text-${cat.color}`)} />
+                        <CategoryIcon iconName={cat.icon} className={cn("w-3 h-3", `text-${cat.color}`)} />
                       </div>
-                      <span>{cat.name}</span>
-                    </div>
+                      {cat.name}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* 2. Subcategoria */}
           {filteredSubcategories.length > 0 && (
             <div className="space-y-2">
               <Label>Subcategoria</Label>
@@ -171,75 +180,13 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   <SelectValue placeholder="Selecione (Opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
                   {filteredSubcategories.map((sub) => (
-                    <SelectItem key={sub.id} value={sub.id}>
-                      {sub.name}
-                    </SelectItem>
+                    <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           )}
-
-          {/* 3. Descrição */}
-          <div className="space-y-2">
-            <Label>Descrição</Label>
-            <Input 
-              placeholder="Ex: Compras do mês" 
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-
-          {/* Demais Campos */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Valor</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                <Input 
-                  type="number" 
-                  step="0.01" 
-                  className="pl-9" 
-                  placeholder="0,00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Vencimento</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dueDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={setDueDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <Label className="cursor-pointer" htmlFor="is-paid">Está pago?</Label>
-            <Switch id="is-paid" checked={isPaid} onCheckedChange={setIsPaid} />
-          </div>
 
           <div className="space-y-2">
             <Label>Forma de Pagamento</Label>
@@ -248,72 +195,29 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(PAYMENT_METHOD_LABELS).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>{label}</SelectItem>
-                ))}
+                <SelectItem value="pix">PIX / Dinheiro</SelectItem>
+                <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                <SelectItem value="account">Débito em Conta</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {paymentMethod === 'credit_card' && (
-             <div className="space-y-2">
-               <Label>Cartão</Label>
-               <Select value={cardId} onValueChange={setCardId}>
-                 <SelectTrigger>
-                   <SelectValue placeholder="Selecione o cartão" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="none">Selecione...</SelectItem>
-                   {cards.map((card) => (
-                     <SelectItem key={card.id} value={card.id}>
-                       {card.brand} •••• {card.lastFourDigits}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-             </div>
-          )}
-
-          {(paymentMethod === 'account' || paymentMethod === 'pix') && (
-             <div className="space-y-2">
-               <Label>Conta</Label>
-               <Select value={accountId} onValueChange={setAccountId}>
-                 <SelectTrigger>
-                   <SelectValue placeholder="Selecione a conta" />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="none">Selecione...</SelectItem>
-                   {accounts.map((acc) => (
-                     <SelectItem key={acc.id} value={acc.id}>
-                       {acc.bankName}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-             </div>
-          )}
-
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <Label className="cursor-pointer" htmlFor="is-recurring">É recorrente?</Label>
-            <Switch id="is-recurring" checked={isRecurring} onCheckedChange={setIsRecurring} />
-          </div>
-
-          {isRecurring && (
             <div className="space-y-2">
-              <Label>Parcelas (opcional)</Label>
-              <Input 
-                type="number" 
-                placeholder="Ex: 12" 
-                value={installments}
-                onChange={(e) => setInstallments(e.target.value)}
-              />
+              <Label>Cartão</Label>
+              <Select value={cardId} onValueChange={setCardId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o cartão" /></SelectTrigger>
+                <SelectContent>
+                  {cards.map(card => (
+                    <SelectItem key={card.id} value={card.id}>{card.brand} •••• {card.lastFourDigits}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar

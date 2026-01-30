@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { CategoryIcon, iconMap } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Goal } from '@/types/goals';
-import { Loader2, Calculator } from 'lucide-react';
+import { Loader2, Calculator, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInMonths } from 'date-fns';
 
@@ -36,12 +36,21 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
   const [color, setColor] = useState('blue-500');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const formatCurrencyInput = (value: string) => {
+    const numericValue = value.replace(/\D/g, '');
+    const floatValue = Number(numericValue) / 100;
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(floatValue);
+  };
+
   // Calculate monthly savings needed
   const monthlyProjection = useMemo(() => {
     if (!targetAmount || !deadline) return 0;
     
-    const target = parseFloat(targetAmount.replace(',', '.')) || 0;
-    const current = parseFloat(currentAmount.replace(',', '.')) || 0;
+    const target = parseFloat(targetAmount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    const current = parseFloat(currentAmount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
     const remaining = Math.max(0, target - current);
     
     const today = new Date();
@@ -55,8 +64,8 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
   useEffect(() => {
     if (goal) {
       setName(goal.name);
-      setTargetAmount(goal.targetAmount.toString());
-      setCurrentAmount(goal.currentAmount.toString());
+      setTargetAmount(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(goal.targetAmount));
+      setCurrentAmount(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(goal.currentAmount));
       setDeadline(goal.deadline);
       setIcon(goal.icon);
       setColor(goal.color);
@@ -85,8 +94,8 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
     try {
       const goalData = {
         name,
-        targetAmount: parseFloat(targetAmount.replace(',', '.')),
-        currentAmount: parseFloat(currentAmount.replace(',', '.')) || 0,
+        targetAmount: parseFloat(targetAmount.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
+        currentAmount: parseFloat(currentAmount.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
         deadline,
         icon,
         color,
@@ -123,26 +132,38 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
             <Input placeholder="Ex: Casa Própria" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Valor Alvo</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                <Input type="number" step="0.01" className="pl-9" placeholder="0,00" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value)} />
-              </div>
+              <Input 
+                placeholder="R$ 0,00" 
+                value={targetAmount} 
+                onChange={(e) => setTargetAmount(formatCurrencyInput(e.target.value))}
+                className="text-right font-medium"
+              />
             </div>
             <div className="space-y-2">
-              <Label>Valor Inicial</Label>
+              <Label>Data Limite</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                <Input type="number" step="0.01" className="pl-9" placeholder="0,00" value={currentAmount} onChange={(e) => setCurrentAmount(e.target.value)} />
+                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  type="date" 
+                  value={deadline} 
+                  onChange={(e) => setDeadline(e.target.value)} 
+                  className="pl-9"
+                />
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Data Limite</Label>
-            <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+            <Label>Valor Inicial (Já guardado)</Label>
+            <Input 
+              placeholder="R$ 0,00" 
+              value={currentAmount} 
+              onChange={(e) => setCurrentAmount(formatCurrencyInput(e.target.value))}
+              className="text-right font-medium"
+            />
           </div>
 
           {/* Calculation Feedback */}
