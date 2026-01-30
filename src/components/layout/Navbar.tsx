@@ -12,13 +12,15 @@ import {
   Menu,
   X,
   TrendingUp,
-  FileText
+  FileText,
+  Target
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/goals', label: 'Objetivos', icon: Target },
   { path: '/expenses', label: 'Despesas', icon: Receipt },
   { path: '/incomes', label: 'Receitas', icon: TrendingUp },
   { path: '/accounts', label: 'Contas', icon: CreditCard },
