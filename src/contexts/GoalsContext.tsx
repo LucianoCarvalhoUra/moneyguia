@@ -47,6 +47,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error fetching goals:', error);
+      console.log('DEBUG: Erro detalhado ao buscar objetivos:', error);
       toast.error('Erro ao carregar objetivos');
     } finally {
       setIsLoading(false);
