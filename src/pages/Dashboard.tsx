@@ -14,6 +14,7 @@ import PendingExpensesList from '@/components/dashboard/PendingExpensesList';
 import { toast } from 'sonner';
 import { addDays, startOfDay, endOfDay, isBefore } from 'date-fns';
 import { DashboardAI } from '@/components/DashboardAI';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 export default function Dashboard() {
   const navigate = useNavigate();

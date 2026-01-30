@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Income } from '@/types/income';
+import { Switch } from '@/components/ui/switch';
 import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -30,6 +31,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const [subcategoryId, setSubcategoryId] = useState('');
   const [accountId, setAccountId] = useState('');
   const [isReceived, setIsReceived] = useState(true);
+  const [isRecurring, setIsRecurring] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -41,6 +43,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       setSubcategoryId(income.subcategoryId || '');
       setAccountId(income.accountId || '');
       setIsReceived(income.isReceived);
+      setIsRecurring(income.isRecurring);
     } else {
       resetForm();
     }
@@ -54,6 +57,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     setSubcategoryId('');
     setAccountId('');
     setIsReceived(true);
+    setIsRecurring(false);
   };
 
   const formatCurrencyInput = (value: string) => {
@@ -84,7 +88,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         subcategoryId: subcategoryId || undefined,
         accountId: accountId || undefined,
         isReceived,
-        isRecurring: false,
+        isRecurring,
       };
 
       if (income) {
@@ -149,20 +153,6 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label>Conta de Destino (Opcional)</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a conta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map(acc => (
-                  <SelectItem key={acc.id} value={acc.id}>{acc.bankName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Valor</Label>
@@ -185,6 +175,28 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
                 />
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Conta de Destino (Opcional)</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a conta" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map(acc => (
+                  <SelectItem key={acc.id} value={acc.id}>{acc.bankName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-between space-x-2 border p-3 rounded-md">
+            <Label htmlFor="recurring-income" className="flex flex-col space-y-1">
+              <span>Receita Recorrente?</span>
+              <span className="font-normal text-xs text-muted-foreground">Repetir mensalmente (Ex: Salário)</span>
+            </Label>
+            <Switch id="recurring-income" checked={isRecurring} onCheckedChange={setIsRecurring} />
           </div>
 
           <div className="space-y-2">

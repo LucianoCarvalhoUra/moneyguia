@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Expense, PaymentMethod } from '@/types/finance';
+import { Switch } from '@/components/ui/switch';
 import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -211,6 +212,49 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
               </div>
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label>Forma de Pagamento</Label>
+            <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pix">PIX / Dinheiro</SelectItem>
+                <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                <SelectItem value="account">Débito em Conta</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {paymentMethod === 'credit_card' && (
+            <div className="space-y-2">
+              <Label>Cartão</Label>
+              <Select value={cardId} onValueChange={setCardId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o cartão" /></SelectTrigger>
+                <SelectContent>
+                  {cards.map(card => (
+                    <SelectItem key={card.id} value={card.id}>{card.brand} •••• {card.lastFourDigits}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between space-x-2 border p-3 rounded-md">
+            <Label htmlFor="recurring" className="flex flex-col space-y-1">
+              <span>Despesa Recorrente?</span>
+              <span className="font-normal text-xs text-muted-foreground">Repetir mensalmente</span>
+            </Label>
+            <Switch id="recurring" checked={isRecurring} onCheckedChange={setIsRecurring} />
+          </div>
+
+          {isRecurring && (
+            <div className="space-y-2">
+              <Label>Número de Parcelas (1 = Fixo Mensal)</Label>
+              <Input type="number" min="1" value={installments} onChange={(e) => setInstallments(e.target.value)} />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Descrição</Label>
