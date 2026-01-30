@@ -272,7 +272,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
              </div>
           )}
 
-          {(paymentMethod === 'debit_card' || paymentMethod === 'pix' || paymentMethod === 'bank_transfer') && (
+          {(paymentMethod === 'account' || paymentMethod === 'pix') && (
              <div className="space-y-2">
                <Label>Conta</Label>
                <Select value={accountId} onValueChange={setAccountId}>
