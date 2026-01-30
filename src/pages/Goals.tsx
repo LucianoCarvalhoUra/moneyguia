@@ -10,7 +10,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { format, differenceInMonths, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { GoalForm } from '@/components/goals/GoalForm';
+import { GoalForm } from '../components/goals/GoalForm';
 import { Goal } from '@/types/goals';
 import { toast } from 'sonner';
 

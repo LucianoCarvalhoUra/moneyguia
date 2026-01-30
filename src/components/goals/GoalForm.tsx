@@ -119,13 +119,13 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Nome</Label>
+            <Label>Nome do Objetivo</Label>
             <Input placeholder="Ex: Casa Própria" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Valor Total</Label>
+              <Label>Valor Alvo</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
                 <Input type="number" step="0.01" className="pl-9" placeholder="0,00" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value)} />
@@ -141,7 +141,7 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label>Data Final</Label>
+            <Label>Data Limite</Label>
             <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
           </div>
 

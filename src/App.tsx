@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { FinanceProvider } from "@/contexts/FinanceContext";
 import { IncomeProvider } from "@/contexts/IncomeContext";
+import { GoalsProvider } from "@/contexts/GoalsContext";
 import Layout from "@/components/layout/Layout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -15,6 +16,7 @@ import Accounts from "./pages/Accounts";
 import InvoiceReconciliation from "./pages/InvoiceReconciliation";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +66,7 @@ const AppRoutes = () => (
     <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
     <Route path="/reconciliation" element={<ProtectedRoute><InvoiceReconciliation /></ProtectedRoute>} />
     <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+    <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
@@ -79,7 +82,9 @@ const App = () => {
           <AuthProvider>
             <FinanceProvider>
               <IncomeProvider>
-                <AppRoutes />
+                <GoalsProvider>
+                  <AppRoutes />
+                </GoalsProvider>
               </IncomeProvider>
             </FinanceProvider>
           </AuthProvider>
