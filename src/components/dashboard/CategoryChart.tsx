@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFinance } from '@/contexts/FinanceContext';
 import { cn } from '@/lib/utils';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 interface CategoryChartProps {
   data: Record<string, number>;
@@ -51,7 +52,9 @@ export default function CategoryChart({ data, total }: CategoryChartProps) {
             <div key={categoryId} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{category?.icon || '📦'}</span>
+                  <div className={cn("w-6 h-6 rounded-full flex items-center justify-center", category?.color ? `bg-${category.color}/10` : "bg-muted")}>
+                    <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-3 h-3", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
+                  </div>
                   <span className="text-sm font-medium text-foreground">
                     {category?.name || 'Sem categoria'}
                   </span>

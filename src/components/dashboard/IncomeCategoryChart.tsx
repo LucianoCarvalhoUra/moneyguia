@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useIncome } from '@/contexts/IncomeContext';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 interface IncomeCategoryChartProps {
   data: Record<string, number>;
@@ -16,7 +17,7 @@ export default function IncomeCategoryChart({ data, total }: IncomeCategoryChart
       name: category?.name || 'Sem categoria',
       value,
       color: category?.color || '#94a3b8',
-      icon: category?.icon || '💰',
+      icon: category?.icon || 'Wallet',
     };
   }).sort((a, b) => b.value - a.value);
 
@@ -35,7 +36,7 @@ export default function IncomeCategoryChart({ data, total }: IncomeCategoryChart
       return (
         <div className="bg-popover border rounded-lg shadow-lg p-3">
           <p className="font-medium text-foreground flex items-center gap-2">
-            <span>{payload[0].payload.icon}</span>
+            <CategoryIcon iconName={payload[0].payload.icon} className="w-4 h-4" />
             {payload[0].name}
           </p>
           <p className="text-primary font-semibold">{formatCurrency(payload[0].value)}</p>
@@ -89,7 +90,7 @@ export default function IncomeCategoryChart({ data, total }: IncomeCategoryChart
                         style={{ backgroundColor: entry.color }}
                       />
                       <span className="flex items-center gap-1">
-                        <span>{entry.icon}</span>
+                        <CategoryIcon iconName={entry.icon} className="w-3 h-3" />
                         <span className="text-foreground">{entry.name}</span>
                       </span>
                     </div>

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { useFinance } from '@/contexts/FinanceContext';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 interface ExpenseCategoryChartProps {
   data: Record<string, number>;
@@ -25,7 +26,7 @@ export default function ExpenseCategoryChart({ data, total }: ExpenseCategoryCha
       return {
         name: category?.name || 'Sem categoria',
         value: amount,
-        icon: category?.icon || '📦',
+        icon: category?.icon || 'Package',
         percentage: total > 0 ? ((amount / total) * 100).toFixed(1) : '0',
       };
     });
@@ -46,7 +47,7 @@ export default function ExpenseCategoryChart({ data, total }: ExpenseCategoryCha
       return (
         <div className="bg-popover border rounded-lg shadow-lg p-3">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">{payload[0].payload.icon}</span>
+            <CategoryIcon iconName={payload[0].payload.icon} className="w-5 h-5" />
             <p className="font-medium text-foreground">{payload[0].name}</p>
           </div>
           <p className="text-primary font-semibold">{formatCurrency(payload[0].value)}</p>
@@ -66,7 +67,10 @@ export default function ExpenseCategoryChart({ data, total }: ExpenseCategoryCha
               className="w-3 h-3 rounded-full" 
               style={{ backgroundColor: COLORS[index % COLORS.length] }}
             />
-            <span className="text-xs text-muted-foreground">{entry.icon} {entry.name}</span>
+            <div className="flex items-center gap-1">
+              <CategoryIcon iconName={entry.icon} className="w-3 h-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">{entry.name}</span>
+            </div>
           </div>
         ))}
       </div>

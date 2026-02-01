@@ -178,7 +178,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           </div>
 
           <div className="space-y-2">
-            <Label>Conta de Destino (Opcional)</Label>
+            <Label>Conta de Destino / Recebimento</Label>
             <Select value={accountId} onValueChange={setAccountId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a conta" />

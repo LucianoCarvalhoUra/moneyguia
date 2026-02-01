@@ -7,6 +7,7 @@ import { ptBR } from 'date-fns/locale';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 interface RecentExpensesProps {
   expenses: Expense[];
@@ -61,7 +62,7 @@ export default function RecentExpenses({ expenses }: RecentExpensesProps) {
                       category?.color ? `bg-${category.color}/10` : 'bg-muted'
                     )}
                   >
-                    {category?.icon || '📦'}
+                    <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-5 h-5", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground truncate">
