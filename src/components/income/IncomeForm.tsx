@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 interface IncomeFormProps {
   open: boolean;
@@ -177,18 +178,35 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Conta de Destino / Recebimento</Label>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a conta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map(acc => (
-                  <SelectItem key={acc.id} value={acc.id}>{acc.bankName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-4 border rounded-md p-4 bg-muted/20">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="status-switch">Receita Recebida?</Label>
+                <div className="flex items-center gap-2">
+                  <Switch id="status-switch" checked={isReceived} onCheckedChange={setIsReceived} />
+                  <span className="text-sm text-muted-foreground">{isReceived ? 'Sim, recebido' : 'Não, pendente'}</span>
+                </div>
+              </div>
+              {isReceived ? (
+                <Badge className="bg-green-600 hover:bg-green-700">Recebido</Badge>
+              ) : (
+                <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-yellow-50">Pendente</Badge>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Conta de Destino / Recebimento</Label>
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map(acc => (
+                    <SelectItem key={acc.id} value={acc.id}>{acc.bankName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex items-center justify-between space-x-2 border p-3 rounded-md">

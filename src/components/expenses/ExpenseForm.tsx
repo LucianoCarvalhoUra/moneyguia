@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 interface ExpenseFormProps {
   open: boolean;
@@ -32,6 +33,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const [cardId, setCardId] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [installments, setInstallments] = useState('1');
+  const [isPaid, setIsPaid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -46,6 +48,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       setCardId(expense.cardId || '');
       setIsRecurring(expense.isRecurring);
       setInstallments(expense.installments?.toString() || '1');
+      setIsPaid(expense.isPaid ?? false);
     } else {
       resetForm();
     }
@@ -62,6 +65,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     setCardId('');
     setIsRecurring(false);
     setInstallments('1');
+    setIsPaid(false);
   };
 
   const formatCurrencyInput = (value: string) => {
@@ -96,7 +100,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         cardId: paymentMethod === 'credit_card' ? cardId : undefined,
         isRecurring,
         installments: isRecurring ? parseInt(installments) : undefined,
-        isPaid: expense?.isPaid ?? false,
+        isPaid,
       };
 
       if (expense) {
@@ -185,47 +189,64 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Forma de Pagamento</Label>
-            <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pix">PIX / Dinheiro</SelectItem>
-                <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                <SelectItem value="account">Débito em Conta</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-4 border rounded-md p-4 bg-muted/20">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="status-switch">Despesa Paga?</Label>
+                <div className="flex items-center gap-2">
+                  <Switch id="status-switch" checked={isPaid} onCheckedChange={setIsPaid} />
+                  <span className="text-sm text-muted-foreground">{isPaid ? 'Sim, já paguei' : 'Não, pendente'}</span>
+                </div>
+              </div>
+              {isPaid ? (
+                <Badge className="bg-green-600 hover:bg-green-700">Pago</Badge>
+              ) : (
+                <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-yellow-50">Pendente</Badge>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Forma de Pagamento</Label>
+              <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pix">PIX / Dinheiro</SelectItem>
+                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                  <SelectItem value="account">Débito em Conta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {paymentMethod === 'credit_card' && (
+              <div className="space-y-2">
+                <Label>Cartão</Label>
+                <Select value={cardId} onValueChange={setCardId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o cartão" /></SelectTrigger>
+                  <SelectContent>
+                    {cards.map(card => (
+                      <SelectItem key={card.id} value={card.id}>{card.brand} •••• {card.lastFourDigits}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {paymentMethod === 'account' && (
+              <div className="space-y-2">
+                <Label>Conta</Label>
+                <Select value={accountId} onValueChange={setAccountId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+                  <SelectContent>
+                    {accounts.map(acc => (
+                      <SelectItem key={acc.id} value={acc.id}>{acc.bankName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
-
-          {paymentMethod === 'credit_card' && (
-            <div className="space-y-2">
-              <Label>Cartão</Label>
-              <Select value={cardId} onValueChange={setCardId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o cartão" /></SelectTrigger>
-                <SelectContent>
-                  {cards.map(card => (
-                    <SelectItem key={card.id} value={card.id}>{card.brand} •••• {card.lastFourDigits}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {paymentMethod === 'account' && (
-            <div className="space-y-2">
-              <Label>Conta</Label>
-              <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
-                <SelectContent>
-                  {accounts.map(acc => (
-                    <SelectItem key={acc.id} value={acc.id}>{acc.bankName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           <div className="flex items-center justify-between space-x-2 border p-3 rounded-md">
             <Label htmlFor="recurring" className="flex flex-col space-y-1">
