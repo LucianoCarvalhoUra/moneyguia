@@ -114,17 +114,13 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         isPaid,
       };
 
-      // Validação de Recorrência (Obrigatória)
-      // Se for edição de uma despesa que é recorrente ou faz parte de uma série, intercepta o salvamento.
+      // Etapa 2: Interceptar o Submit para Recorrência
       const isRecurringSeries = expense && (expense.isRecurring || (expense as any).recurrenceId || (expense as any).recurrence_id);
 
       if (isRecurringSeries) {
-        const hasChanges = 
-          expenseData.amount !== expense.amount ||
-          expenseData.categoryId !== expense.categoryId ||
-          expenseData.subcategoryId !== (expense.subcategoryId || undefined);
-        
-        if (hasChanges || isRecurringSeries) { // Força a verificação sempre que for recorrente para garantir a escolha do escopo
+        // Se for uma edição de recorrente, SEMPRE pergunta o escopo, 
+        // pois o usuário pode querer alterar apenas esta ou todas.
+        if (expense) { 
           setPendingData(expenseData);
           setRecurrenceDialogOpen(true);
           setIsSubmitting(false);
@@ -317,6 +313,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         </form>
       </DialogContent>
 
+      {/* Etapa 1: Criar o Modal de Escolha */}
       <AlertDialog open={recurrenceDialogOpen} onOpenChange={setRecurrenceDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

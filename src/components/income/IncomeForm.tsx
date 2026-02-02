@@ -103,17 +103,11 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         isRecurring,
       };
 
-      // Validação de Recorrência (Obrigatória)
-      // Se for edição de uma receita que é recorrente ou faz parte de uma série, intercepta o salvamento.
+      // Etapa 2: Interceptar o Submit para Recorrência
       const isRecurringSeries = income && (income.isRecurring || (income as any).recurrenceId || (income as any).recurrence_id);
 
       if (isRecurringSeries) {
-        const hasChanges = 
-          incomeData.amount !== income.amount ||
-          incomeData.categoryId !== income.categoryId ||
-          incomeData.subcategoryId !== (income.subcategoryId || undefined);
-        
-        if (hasChanges || isRecurringSeries) { // Força a verificação sempre que for recorrente
+        if (income) {
           setPendingData(incomeData);
           setRecurrenceDialogOpen(true);
           setIsSubmitting(false);
@@ -271,6 +265,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         </form>
       </DialogContent>
 
+      {/* Etapa 1: Criar o Modal de Escolha */}
       <AlertDialog open={recurrenceDialogOpen} onOpenChange={setRecurrenceDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
