@@ -121,6 +121,7 @@ export type Database = {
           is_recurring: boolean
           observation: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          recurrence_id: string | null
           subcategory_id: string | null
           updated_at: string
           user_id: string
@@ -141,6 +142,7 @@ export type Database = {
           is_recurring?: boolean
           observation?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          recurrence_id?: string | null
           subcategory_id?: string | null
           updated_at?: string
           user_id: string
@@ -161,6 +163,7 @@ export type Database = {
           is_recurring?: boolean
           observation?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          recurrence_id?: string | null
           subcategory_id?: string | null
           updated_at?: string
           user_id?: string
@@ -311,6 +314,7 @@ export type Database = {
           is_received: boolean
           is_recurring: boolean
           receive_date: string
+          recurrence_id: string | null
           subcategory_id: string | null
           title: string
           updated_at: string
@@ -326,6 +330,7 @@ export type Database = {
           is_received?: boolean
           is_recurring?: boolean
           receive_date: string
+          recurrence_id?: string | null
           subcategory_id?: string | null
           title: string
           updated_at?: string
@@ -341,6 +346,7 @@ export type Database = {
           is_received?: boolean
           is_recurring?: boolean
           receive_date?: string
+          recurrence_id?: string | null
           subcategory_id?: string | null
           title?: string
           updated_at?: string

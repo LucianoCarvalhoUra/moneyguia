@@ -31,7 +31,7 @@ interface ExpenseFormProps {
 }
 
 export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseFormProps) {
-  const { addExpense, updateExpense, removeExpense, categories, subcategories, accounts, cards } = useFinance();
+  const { addExpense, updateExpense, removeExpense, categories, subcategories, accounts, cards, refreshData } = useFinance();
   
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -116,7 +116,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       };
 
       // Etapa 2: Interceptar o Submit para Recorrência
-      const isRecurringSeries = expense && (expense.isRecurring || (expense as any).recurrenceId || (expense as any).recurrence_id);
+      const isRecurringSeries = expense && (expense.isRecurring || expense.recurrenceId || (expense as any).recurrence_id);
 
       // Caso 1: Edição de uma série já existente (Modal de Confirmação)
       if (isRecurringSeries) {
@@ -174,51 +174,51 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
     setIsSubmitting(true);
     try {
-      const recurrenceId = (expense as any).recurrenceId || (expense as any).recurrence_id;
+      const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id;
 
-      // 1. Prioridade de Filtro: Se for 'Todas', usa APENAS recurrence_id
-      if (scope === 'all' && recurrenceId) {
+      if (scope === 'single' || !recurrenceId) {
+        // Atualização simples apenas deste registro
+        await updateExpense(expense!.id, pendingData);
+        toast.success('Despesa atualizada!');
+      } else if (scope === 'all') {
+        // Atualiza TODAS as despesas da série
         const { error } = await (supabase
           .from('expenses') as any)
           .update({
             description: pendingData.description,
             amount: pendingData.amount,
             category_id: pendingData.categoryId,
-            subcategory_id: pendingData.subcategoryId,
+            subcategory_id: pendingData.subcategoryId || null,
             payment_method: pendingData.paymentMethod,
-            account_id: pendingData.accountId,
-            card_id: pendingData.cardId,
+            account_id: pendingData.accountId || null,
+            card_id: pendingData.cardId || null,
           })
           .eq('recurrence_id', recurrenceId);
 
         if (error) throw error;
         toast.success('Todas as despesas da série foram atualizadas!');
-        // Atualiza o item atual na interface
-        await updateExpense(expense!.id, pendingData);
-      } else if (scope === 'future' && recurrenceId) {
-        // Update THIS and FUTURE records
+        // Recarrega os dados para refletir as mudanças
+        await refreshData();
+      } else if (scope === 'future') {
+        // Atualiza ESTA e FUTURAS despesas
         const { error } = await (supabase
           .from('expenses') as any)
           .update({
             description: pendingData.description,
             amount: pendingData.amount,
             category_id: pendingData.categoryId,
-            subcategory_id: pendingData.subcategoryId,
+            subcategory_id: pendingData.subcategoryId || null,
             payment_method: pendingData.paymentMethod,
-            account_id: pendingData.accountId,
-            card_id: pendingData.cardId,
+            account_id: pendingData.accountId || null,
+            card_id: pendingData.cardId || null,
           })
           .eq('recurrence_id', recurrenceId)
           .gte('due_date', format(new Date(pendingData.dueDate), 'yyyy-MM-dd'));
 
         if (error) throw error;
         toast.success('Despesa atual e futuras atualizadas!');
-        // Atualiza o item atual na interface
-        await updateExpense(expense!.id, pendingData);
-      } else {
-        // Single update
-        await updateExpense(expense!.id, { ...pendingData, recurrenceScope: 'single' });
-        toast.success('Despesa atualizada!');
+        // Recarrega os dados para refletir as mudanças
+        await refreshData();
       }
       onOpenChange(false);
     } catch (error) {

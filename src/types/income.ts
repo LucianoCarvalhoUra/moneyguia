@@ -25,6 +25,7 @@ export interface Income {
   isRecurring: boolean;
   isReceived: boolean;
   accountId?: string;
+  recurrenceId?: string;
   userId: string;
   createdAt: Date;
 }

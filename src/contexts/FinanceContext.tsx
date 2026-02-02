@@ -179,6 +179,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           currentInstallment: e.current_installment || undefined,
           observation: e.observation || undefined,
           isPaid: e.is_paid ?? false,
+          recurrenceId: (e as any).recurrence_id || undefined,
           userId: e.user_id,
           createdAt: new Date(e.created_at),
         })));
@@ -318,6 +319,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const addExpense = async (expense: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => {
     if (!user) return;
     
+    // Gera recurrence_id se for recorrente
+    const recurrenceId = expense.isRecurring ? (expense.recurrenceId || crypto.randomUUID()) : null;
+    
     const expensesToInsert: Array<{
       user_id: string;
       category_id: string | null;
@@ -333,6 +337,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       installments: number | null;
       current_installment: number | null;
       observation: string | null;
+      recurrence_id: string | null;
     }> = [];
     
     if (expense.isRecurring && expense.installments && expense.installments > 1) {
@@ -358,6 +363,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           installments: expense.installments || null,
           current_installment: i + 1,
           observation: expense.observation || null,
+          recurrence_id: recurrenceId,
         });
       }
     } else {
@@ -376,11 +382,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         installments: expense.installments || null,
         current_installment: expense.currentInstallment || null,
         observation: expense.observation || null,
+        recurrence_id: recurrenceId,
       });
     }
 
-    const { data, error } = await supabase
-      .from('expenses')
+    const { data, error } = await (supabase
+      .from('expenses') as any)
       .insert(expensesToInsert)
       .select();
     
@@ -391,7 +398,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
     
     if (data) {
-      const newExpenses: Expense[] = data.map(e => ({
+      const newExpenses: Expense[] = data.map((e: any) => ({
         id: e.id,
         categoryId: e.category_id || '',
         subcategoryId: e.subcategory_id || undefined,
@@ -407,6 +414,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         currentInstallment: e.current_installment || undefined,
         observation: e.observation || undefined,
         isPaid: e.is_paid ?? false,
+        recurrenceId: e.recurrence_id || undefined,
         userId: e.user_id,
         createdAt: new Date(e.created_at),
       }));
