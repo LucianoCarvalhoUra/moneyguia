@@ -103,8 +103,9 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         isRecurring,
       };
 
-      // Verifica se é uma receita recorrente (pai ou instância de uma série)
-      const isRecurringSeries = income && (income.isRecurring || (income as any).recurrenceId);
+      // Validação de Recorrência (Obrigatória)
+      // Se for edição de uma receita que é recorrente ou faz parte de uma série, intercepta o salvamento.
+      const isRecurringSeries = income && (income.isRecurring || (income as any).recurrenceId || (income as any).recurrence_id);
 
       if (isRecurringSeries) {
         const hasChanges = 
@@ -112,7 +113,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           incomeData.categoryId !== income.categoryId ||
           incomeData.subcategoryId !== (income.subcategoryId || undefined);
         
-        if (hasChanges) {
+        if (hasChanges || isRecurringSeries) { // Força a verificação sempre que for recorrente
           setPendingData(incomeData);
           setRecurrenceDialogOpen(true);
           setIsSubmitting(false);

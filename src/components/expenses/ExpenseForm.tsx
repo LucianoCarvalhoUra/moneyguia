@@ -114,8 +114,9 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         isPaid,
       };
 
-      // Verifica se é uma despesa recorrente (pai ou instância de uma série)
-      const isRecurringSeries = expense && (expense.isRecurring || (expense as any).recurrenceId);
+      // Validação de Recorrência (Obrigatória)
+      // Se for edição de uma despesa que é recorrente ou faz parte de uma série, intercepta o salvamento.
+      const isRecurringSeries = expense && (expense.isRecurring || (expense as any).recurrenceId || (expense as any).recurrence_id);
 
       if (isRecurringSeries) {
         const hasChanges = 
@@ -123,7 +124,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
           expenseData.categoryId !== expense.categoryId ||
           expenseData.subcategoryId !== (expense.subcategoryId || undefined);
         
-        if (hasChanges) {
+        if (hasChanges || isRecurringSeries) { // Força a verificação sempre que for recorrente para garantir a escolha do escopo
           setPendingData(expenseData);
           setRecurrenceDialogOpen(true);
           setIsSubmitting(false);
