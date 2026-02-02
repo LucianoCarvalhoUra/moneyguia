@@ -49,7 +49,7 @@ export default function Expenses() {
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
-  const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all' | null>(null);
+  const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
 
   const months = [
     { value: 0, label: 'Janeiro' }, { value: 1, label: 'Fevereiro' }, { value: 2, label: 'Março' },
@@ -139,7 +139,7 @@ export default function Expenses() {
       setDeleteDialogOpen(true);
     } else {
       setExpenseToDelete(expense);
-      setSelectedDeleteScope('single');
+      setSelectedDeleteScope(null); // Will trigger simple delete logic if null/single
       setDeleteDialogOpen(true);
     }
   };
@@ -151,7 +151,7 @@ export default function Expenses() {
       let query;
       const { recurrenceId, id, dueDate } = expenseToDelete;
       
-      if (selectedDeleteScope === 'single') {
+      if (selectedDeleteScope === 'single' || !recurrenceId) {
         query = supabase.from('expenses').delete().eq('id', id);
       } else if (selectedDeleteScope === 'future') {
         query = supabase.from('expenses').delete().eq('recurrence_id', recurrenceId).gte('due_date', format(new Date(dueDate), 'yyyy-MM-dd'));
@@ -171,7 +171,7 @@ export default function Expenses() {
     } finally {
       setDeleteDialogOpen(false);
       setExpenseToDelete(null);
-      setSelectedDeleteScope(null);
+      setSelectedDeleteScope('single');
     }
   };
 
@@ -293,28 +293,40 @@ export default function Expenses() {
           </AlertDialogHeader>
           {expenseToDelete?.recurrenceId && (
             <div className="flex flex-col gap-2 py-4">
-              <Button variant={selectedDeleteScope === 'single' ? 'secondary' : 'outline'} className="justify-start h-auto py-3 px-4" onClick={() => setSelectedDeleteScope('single')}>
+              <div 
+                className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'single' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
+                onClick={() => setSelectedDeleteScope('single')}
+              >
                   <div className="p-2 bg-muted rounded-full"><Calendar className="w-4 h-4" /></div>
                   <div className="text-left"><p className="font-medium">Apenas esta</p><p className="text-xs text-muted-foreground">Exclui somente este registro</p></div>
-              </Button>
-              <Button variant={selectedDeleteScope === 'future' ? 'secondary' : 'outline'} className="justify-start h-auto py-3 px-4" onClick={() => setSelectedDeleteScope('future')}>
+              </div>
+              <div 
+                className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'future' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
+                onClick={() => setSelectedDeleteScope('future')}
+              >
                   <div className="p-2 bg-muted rounded-full"><CalendarClock className="w-4 h-4" /></div>
                   <div className="text-left"><p className="font-medium">Esta e futuras</p><p className="text-xs text-muted-foreground">Exclui este e todos os próximos</p></div>
-              </Button>
-              <Button variant={selectedDeleteScope === 'past' ? 'secondary' : 'outline'} className="justify-start h-auto py-3 px-4" onClick={() => setSelectedDeleteScope('past')}>
+              </div>
+              <div 
+                className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'past' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
+                onClick={() => setSelectedDeleteScope('past')}
+              >
                   <div className="p-2 bg-muted rounded-full"><History className="w-4 h-4" /></div>
                   <div className="text-left"><p className="font-medium">Esta e Passadas</p><p className="text-xs text-muted-foreground">Exclui este e todos os anteriores</p></div>
-              </Button>
-              <Button variant={selectedDeleteScope === 'all' ? 'secondary' : 'outline'} className="justify-start h-auto py-3 px-4" onClick={() => setSelectedDeleteScope('all')}>
+              </div>
+              <div 
+                className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'all' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
+                onClick={() => setSelectedDeleteScope('all')}
+              >
                   <div className="p-2 bg-muted rounded-full"><CalendarDays className="w-4 h-4" /></div>
                   <div className="text-left"><p className="font-medium">Todas</p><p className="text-xs text-muted-foreground">Exclui toda a série histórica</p></div>
-              </Button>
+              </div>
             </div>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} disabled={!selectedDeleteScope} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Confirmar Exclusão
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
