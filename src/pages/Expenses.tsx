@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, isBefore, startOfDay } from 'date-fns';
 import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Copy } from 'lucide-react';
@@ -84,13 +85,6 @@ export default function Expenses() {
   useEffect(() => {
     if (location.state?.filter === 'overdue') {
       setStatusFilter('overdue');
-      if (location.state?.focusExpenseId) {
-        const expense = expenses.find(e => e.id === location.state.focusExpenseId);
-        if (expense) {
-          setEditingExpense(expense);
-          setIsFormOpen(true);
-        }
-      }
       window.history.replaceState({}, document.title);
     }
   }, [location.state, expenses]);
@@ -236,7 +230,57 @@ export default function Expenses() {
       </div>
 
       {isFiltersOpen && (
-        <Card><CardHeader className="pb-3"><CardTitle className="text-base font-medium">Filtros Avançados</CardTitle></CardHeader><CardContent>{/* ... */}</CardContent></Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium">Filtros Avançados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label>Buscar</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Descrição..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="paid">Pagos</SelectItem>
+                    <SelectItem value="pending">Pendentes</SelectItem>
+                    <SelectItem value="overdue">Vencidos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Categoria</Label>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Subcategoria</Label>
+                <Select value={subcategoryFilter} onValueChange={setSubcategoryFilter}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end mt-4">
+              <Button variant="ghost" onClick={handleClearFilters} size="sm">Limpar Filtros</Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <Card className="bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20">
@@ -253,7 +297,15 @@ export default function Expenses() {
       <Card>
         <CardContent className="p-0">
           <Table>
-            <TableHeader>{/* ... */}</TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Categoria</TableHead>
+                <TableHead className="hidden md:table-cell">Subcategoria</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {filteredExpenses.length === 0 ? (
                 <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>

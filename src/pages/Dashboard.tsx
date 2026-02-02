@@ -128,11 +128,9 @@ export default function Dashboard() {
 
   const handleAlertClick = () => {
     if (activeAlerts.expenses.length > 0) {
-      const sorted = [...activeAlerts.expenses].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
       navigate('/expenses', { 
         state: { 
-          filter: 'overdue',
-          focusExpenseId: sorted[0].id 
+          filter: 'overdue'
         } 
       });
     } else if (activeAlerts.incomes.length > 0) {

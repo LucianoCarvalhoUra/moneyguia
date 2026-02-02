@@ -445,8 +445,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="space-y-2">
               <Label htmlFor="amount">Valor <span className="text-red-500">*</span></Label>
               <Input 
                 id="amount"
@@ -455,7 +454,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 onChange={(e) => setAmount(formatCurrencyInput(e.target.value))}
                 className={cn("text-right font-medium", errors.amount && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
               />
-            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="expense-date">Data de Lançamento <span className="text-red-500">*</span></Label>
               <div className="relative">
@@ -469,7 +470,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 />
               </div>
             </div>
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2">
               <Label htmlFor="due-date">Data de Vencimento <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
