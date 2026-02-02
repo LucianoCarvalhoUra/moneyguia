@@ -323,99 +323,104 @@ export default function UnifiedCategoryManager() {
         {/* Lists */}
         <div className="space-y-8 mt-6">
           {['expense', 'income'].map((sectionType) => (
-            <div key={sectionType} className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1">
+            <div key={sectionType} className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1 border-b pb-2">
                 {sectionType === 'expense' ? 'Despesas' : 'Receitas'}
               </h3>
-              {(sectionType === 'expense' ? categories : incomeCategories).map(cat => {
-                const catSubcategories = sectionType === 'expense' 
-                  ? subcategories.filter(s => s.categoryId === cat.id)
-                  : incomeSubcategories.filter(s => s.categoryId === cat.id);
-                const isExpanded = expandedCategories.includes(cat.id);
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(sectionType === 'expense' ? categories : incomeCategories).map(cat => {
+                  const catSubcategories = sectionType === 'expense' 
+                    ? subcategories.filter(s => s.categoryId === cat.id)
+                    : incomeSubcategories.filter(s => s.categoryId === cat.id);
+                  const isExpanded = expandedCategories.includes(cat.id);
 
-                return (
-                  <Collapsible 
-                    key={cat.id} 
-                    open={isExpanded} 
-                    onOpenChange={() => toggleCategory(cat.id)}
-                    className="border rounded-lg bg-card overflow-hidden"
-                  >
-                    <div className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
-                      <CollapsibleTrigger asChild>
-                        <div className="flex items-center gap-3 flex-1 cursor-pointer">
-                          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", `bg-${cat.color}/10`)}>
-                            <CategoryIcon iconName={cat.icon} className={cn("w-5 h-5", `text-${cat.color}`)} />
+                  return (
+                    <Collapsible 
+                      key={cat.id} 
+                      open={isExpanded} 
+                      onOpenChange={() => toggleCategory(cat.id)}
+                      className={cn(
+                        "border rounded-lg bg-card transition-all duration-200",
+                        isExpanded ? "shadow-md ring-1 ring-primary/10" : "hover:bg-muted/50"
+                      )}
+                    >
+                      <div className="flex items-center justify-between p-3">
+                        <CollapsibleTrigger asChild>
+                          <div className="flex items-center gap-3 flex-1 cursor-pointer min-w-0">
+                            <div className={cn("w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center", `bg-${cat.color}/10`)}>
+                              <CategoryIcon iconName={cat.icon} className={cn("w-5 h-5", `text-${cat.color}`)} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="font-medium block truncate text-sm">{cat.name}</span>
+                              <span className="text-xs text-muted-foreground">{catSubcategories.length} sub</span>
+                            </div>
+                            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0", isExpanded && "rotate-180")} />
                           </div>
-                          <div className="flex-1">
-                            <span className="font-medium block">{cat.name}</span>
-                            <span className="text-xs text-muted-foreground">{catSubcategories.length} subcategorias</span>
-                          </div>
-                          <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", isExpanded && "rotate-180")} />
-                        </div>
-                      </CollapsibleTrigger>
-                    </div>
+                        </CollapsibleTrigger>
+                      </div>
 
-                    <CollapsibleContent>
-                      <div className="p-4 pt-0 space-y-4 border-t bg-muted/10">
-                        {/* Actions */}
-                        <div className="flex justify-end gap-2 pt-4">
-                          <Button variant="outline" size="sm" onClick={() => handleOpenEdit(cat, sectionType as 'expense' | 'income')}>
-                            <Pencil className="w-4 h-4 mr-2" />
-                            Editar
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDelete(cat.id, sectionType as 'expense' | 'income')}>
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Excluir
-                          </Button>
-                        </div>
-
-                        {/* Subcategories Section */}
-                        <div className="space-y-2">
-                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Subcategorias</Label>
-                          <div className="flex flex-wrap gap-2">
-                            {catSubcategories.length === 0 && (
-                              <span className="text-sm text-muted-foreground italic">Nenhuma subcategoria</span>
-                            )}
-                            {catSubcategories.map(sub => (
-                              <Badge key={sub.id} variant="secondary" className="gap-1 pr-1 hover:bg-secondary/80">
-                                {sub.name}
-                                <div 
-                                  className="cursor-pointer hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
-                                  onClick={() => handleRemoveSubcategory(sub.id, sectionType as 'expense' | 'income')}
-                                >
-                                  <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
-                                </div>
-                              </Badge>
-                            ))}
-                          </div>
-                          <div className="flex gap-2 max-w-sm mt-2">
-                            <Input 
-                              placeholder="Nova subcategoria..." 
-                              className="h-8 text-sm"
-                              value={subcatInputs[cat.id] || ''}
-                              onChange={(e) => setSubcatInputs(prev => ({ ...prev, [cat.id]: e.target.value }))}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  handleAddSubcategory(cat.id, sectionType as 'expense' | 'income');
-                                }
-                              }}
-                            />
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleAddSubcategory(cat.id, sectionType as 'expense' | 'income')}
-                            >
-                              <Plus className="w-4 h-4" />
+                      <CollapsibleContent>
+                        <div className="p-3 pt-0 space-y-3 border-t bg-muted/10">
+                          {/* Actions */}
+                          <div className="flex justify-end gap-2 pt-3">
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleOpenEdit(cat, sectionType as 'expense' | 'income')}>
+                              <Pencil className="w-3 h-3 mr-1" />
+                              Editar
+                            </Button>
+                            <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={() => handleDelete(cat.id, sectionType as 'expense' | 'income')}>
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Excluir
                             </Button>
                           </div>
+
+                          {/* Subcategories Section */}
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-semibold uppercase text-muted-foreground">Subcategorias</Label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {catSubcategories.length === 0 && (
+                                <span className="text-xs text-muted-foreground italic">Vazio</span>
+                              )}
+                              {catSubcategories.map(sub => (
+                                <Badge key={sub.id} variant="secondary" className="gap-1 pr-1 hover:bg-secondary/80 text-xs">
+                                  {sub.name}
+                                  <div 
+                                    className="cursor-pointer hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
+                                    onClick={() => handleRemoveSubcategory(sub.id, sectionType as 'expense' | 'income')}
+                                  >
+                                    <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                                  </div>
+                                </Badge>
+                              ))}
+                            </div>
+                            <div className="flex gap-2 mt-2">
+                              <Input 
+                                placeholder="Nova sub..." 
+                                className="h-7 text-xs"
+                                value={subcatInputs[cat.id] || ''}
+                                onChange={(e) => setSubcatInputs(prev => ({ ...prev, [cat.id]: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleAddSubcategory(cat.id, sectionType as 'expense' | 'income');
+                                  }
+                                }}
+                              />
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-7 w-7 p-0"
+                                onClick={() => handleAddSubcategory(cat.id, sectionType as 'expense' | 'income')}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                );
-              })}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </div>
