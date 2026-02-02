@@ -31,7 +31,7 @@ interface IncomeFormProps {
 }
 
 export default function IncomeForm({ open, onOpenChange, income }: IncomeFormProps) {
-  const { addIncome, updateIncome, incomeCategories, incomeSubcategories } = useIncome();
+  const { addIncome, updateIncome, removeIncome, incomeCategories, incomeSubcategories } = useIncome();
   const { accounts } = useFinance();
   
   const [title, setTitle] = useState('');
@@ -106,6 +106,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       // Etapa 2: Interceptar o Submit para Recorrência
       const isRecurringSeries = income && (income.isRecurring || (income as any).recurrenceId || (income as any).recurrence_id);
 
+      // Caso 1: Edição de uma série já existente (Modal de Confirmação)
       if (isRecurringSeries) {
         if (income) {
           setPendingData(incomeData);
@@ -113,6 +114,16 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           setIsSubmitting(false);
           return;
         }
+      }
+
+      // Caso 2: Transformação de Única para Recorrente (Geração Automática)
+      if (income && !isRecurringSeries && isRecurring) {
+        // Remove a receita antiga e cria uma nova para disparar a geração de recorrências
+        await removeIncome(income.id);
+        await addIncome(incomeData);
+        toast.success('Receita transformada em recorrente e lançamentos gerados!');
+        onOpenChange(false);
+        return;
       }
 
       if (income) {

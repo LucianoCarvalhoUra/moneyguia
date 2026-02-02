@@ -30,7 +30,7 @@ interface ExpenseFormProps {
 }
 
 export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseFormProps) {
-  const { addExpense, updateExpense, categories, subcategories, accounts, cards } = useFinance();
+  const { addExpense, updateExpense, removeExpense, categories, subcategories, accounts, cards } = useFinance();
   
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -117,6 +117,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       // Etapa 2: Interceptar o Submit para Recorrência
       const isRecurringSeries = expense && (expense.isRecurring || (expense as any).recurrenceId || (expense as any).recurrence_id);
 
+      // Caso 1: Edição de uma série já existente (Modal de Confirmação)
       if (isRecurringSeries) {
         // Se for uma edição de recorrente, SEMPRE pergunta o escopo, 
         // pois o usuário pode querer alterar apenas esta ou todas.
@@ -126,6 +127,16 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
           setIsSubmitting(false);
           return;
         }
+      }
+
+      // Caso 2: Transformação de Única para Recorrente (Geração Automática)
+      if (expense && !isRecurringSeries && isRecurring) {
+        // Remove a despesa antiga e cria uma nova para disparar a geração de parcelas
+        await removeExpense(expense.id);
+        await addExpense(expenseData);
+        toast.success('Despesa transformada em recorrente e parcelas geradas!');
+        onOpenChange(false);
+        return;
       }
 
       if (expense) {
