@@ -23,45 +23,93 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { 
-  Trash2, Plus, X, ChevronDown, Pencil,
-  CreditCard, Banknote, Receipt, Wallet, 
-  Home, Zap, Droplets, 
-  CarFront, Fuel, Bus, 
-  Stethoscope, Dumbbell, Pill, 
-  ShoppingBasket, Utensils, Plane, Gift, Gamepad, PawPrint, Tv,
-  Baby, School, ShieldCheck, Briefcase
+  Trash2, Plus, X, ChevronDown, Pencil, 
+  CreditCard, Banknote, Receipt, Wallet, TrendingUp, Gem, Coins,
+  Home, Zap, Droplets, Wifi, Phone, ShieldCheck, Key,
+  CarFront, Fuel, Bus, Truck, Plane,
+  UserRound, Heart, Stethoscope, Pill, Dumbbell, Sparkles, Baby, PawPrint,
+  GraduationCap, School, Briefcase, Laptop,
+  ShoppingBasket, Utensils, Coffee, Gift, Shirt, Tv, Gamepad2, Camera, Music
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-// Icon configuration with specific colors
-const ICONS = [
-  { name: 'CreditCard', icon: CreditCard, color: 'indigo', label: 'Crédito' },
-  { name: 'Banknote', icon: Banknote, color: 'emerald', label: 'Dinheiro' },
-  { name: 'Receipt', icon: Receipt, color: 'slate', label: 'Comprovante' },
-  { name: 'Wallet', icon: Wallet, color: 'green', label: 'Carteira' },
-  { name: 'Home', icon: Home, color: 'blue', label: 'Casa' },
-  { name: 'Zap', icon: Zap, color: 'amber', label: 'Energia' },
-  { name: 'Droplets', icon: Droplets, color: 'cyan', label: 'Água' },
-  { name: 'Trash2', icon: Trash2, color: 'gray', label: 'Lixo' },
-  { name: 'CarFront', icon: CarFront, color: 'slate', label: 'Carro' },
-  { name: 'Fuel', icon: Fuel, color: 'orange', label: 'Combustível' },
-  { name: 'Bus', icon: Bus, color: 'blue', label: 'Ônibus' },
-  { name: 'Stethoscope', icon: Stethoscope, color: 'red', label: 'Saúde' },
-  { name: 'Dumbbell', icon: Dumbbell, color: 'rose', label: 'Treino' },
-  { name: 'Pill', icon: Pill, color: 'pink', label: 'Farmácia' },
-  { name: 'ShoppingBasket', icon: ShoppingBasket, color: 'purple', label: 'Mercado' },
-  { name: 'Utensils', icon: Utensils, color: 'orange', label: 'Comida' },
-  { name: 'Plane', icon: Plane, color: 'teal', label: 'Viagem' },
-  { name: 'Gift', icon: Gift, color: 'red', label: 'Presente' },
-  { name: 'Gamepad', icon: Gamepad, color: 'violet', label: 'Jogos' },
-  { name: 'PawPrint', icon: PawPrint, color: 'amber', label: 'Pets' },
-  { name: 'Tv', icon: Tv, color: 'sky', label: 'Streaming' },
-  { name: 'Baby', icon: Baby, color: 'pink', label: 'Filhos' },
-  { name: 'School', icon: School, color: 'blue', label: 'Educação' },
-  { name: 'ShieldCheck', icon: ShieldCheck, color: 'emerald', label: 'Seguros' },
-  { name: 'Briefcase', icon: Briefcase, color: 'slate', label: 'Trabalho' },
+// Icon configuration with groups
+const ICON_GROUPS = [
+  {
+    label: 'Financeiro',
+    icons: [
+      { name: 'CreditCard', icon: CreditCard, color: 'indigo', label: 'Crédito' },
+      { name: 'Banknote', icon: Banknote, color: 'emerald', label: 'Dinheiro' },
+      { name: 'Wallet', icon: Wallet, color: 'green', label: 'Carteira' },
+      { name: 'Receipt', icon: Receipt, color: 'slate', label: 'Comprovante' },
+      { name: 'TrendingUp', icon: TrendingUp, color: 'blue', label: 'Investimento' },
+      { name: 'Gem', icon: Gem, color: 'purple', label: 'Renda Extra' },
+      { name: 'Coins', icon: Coins, color: 'amber', label: 'Diversos' },
+    ]
+  },
+  {
+    label: 'Casa & Serviços',
+    icons: [
+      { name: 'Home', icon: Home, color: 'blue', label: 'Casa' },
+      { name: 'Zap', icon: Zap, color: 'amber', label: 'Energia' },
+      { name: 'Droplets', icon: Droplets, color: 'cyan', label: 'Água' },
+      { name: 'Trash2', icon: Trash2, color: 'gray', label: 'Lixo' },
+      { name: 'Wifi', icon: Wifi, color: 'sky', label: 'Internet' },
+      { name: 'Phone', icon: Phone, color: 'indigo', label: 'Celular' },
+      { name: 'ShieldCheck', icon: ShieldCheck, color: 'emerald', label: 'Seguros' },
+      { name: 'Key', icon: Key, color: 'amber', label: 'Aluguel' },
+    ]
+  },
+  {
+    label: 'Transporte',
+    icons: [
+      { name: 'CarFront', icon: CarFront, color: 'slate', label: 'Carro' },
+      { name: 'Fuel', icon: Fuel, color: 'orange', label: 'Combustível' },
+      { name: 'Bus', icon: Bus, color: 'blue', label: 'Ônibus' },
+      { name: 'Truck', icon: Truck, color: 'slate', label: 'Entregas' },
+      { name: 'Plane', icon: Plane, color: 'teal', label: 'Viagem' },
+    ]
+  },
+  {
+    label: 'Pessoal & Saúde',
+    icons: [
+      { name: 'UserRound', icon: UserRound, color: 'cyan', label: 'Pessoal' },
+      { name: 'Heart', icon: Heart, color: 'rose', label: 'Saúde' },
+      { name: 'Stethoscope', icon: Stethoscope, color: 'red', label: 'Médico' },
+      { name: 'Pill', icon: Pill, color: 'pink', label: 'Farmácia' },
+      { name: 'Dumbbell', icon: Dumbbell, color: 'rose', label: 'Treino' },
+      { name: 'Sparkles', icon: Sparkles, color: 'purple', label: 'Beleza' },
+      { name: 'Baby', icon: Baby, color: 'pink', label: 'Filhos' },
+      { name: 'PawPrint', icon: PawPrint, color: 'amber', label: 'Pets' },
+    ]
+  },
+  {
+    label: 'Educação & Trabalho',
+    icons: [
+      { name: 'GraduationCap', icon: GraduationCap, color: 'blue', label: 'Estudos' },
+      { name: 'School', icon: School, color: 'indigo', label: 'Escola' },
+      { name: 'Briefcase', icon: Briefcase, color: 'slate', label: 'Trabalho' },
+      { name: 'Laptop', icon: Laptop, color: 'zinc', label: 'Tecnologia' },
+    ]
+  },
+  {
+    label: 'Lazer & Compras',
+    icons: [
+      { name: 'ShoppingBasket', icon: ShoppingBasket, color: 'emerald', label: 'Mercado' },
+      { name: 'Utensils', icon: Utensils, color: 'orange', label: 'Comida' },
+      { name: 'Coffee', icon: Coffee, color: 'brown', label: 'Café' },
+      { name: 'Gift', icon: Gift, color: 'red', label: 'Presentes' },
+      { name: 'Shirt', icon: Shirt, color: 'violet', label: 'Roupas' },
+      { name: 'Tv', icon: Tv, color: 'sky', label: 'Streaming' },
+      { name: 'Gamepad2', icon: Gamepad2, color: 'violet', label: 'Games' },
+      { name: 'Camera', icon: Camera, color: 'pink', label: 'Hobby' },
+      { name: 'Music', icon: Music, color: 'fuchsia', label: 'Música' },
+    ]
+  }
 ];
+
+const ICONS = ICON_GROUPS.flatMap(group => group.icons);
 
 export default function UnifiedCategoryManager() {
   const { categories, subcategories, addCategory, updateCategory, removeCategory, addSubcategory, removeSubcategory } = useFinance();
@@ -235,26 +283,33 @@ export default function UnifiedCategoryManager() {
                   <ChevronDown className="w-4 h-4 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[320px] p-4" align="start">
-                <div className="grid grid-cols-5 gap-2">
-                  {ICONS.map(({ name: iconName, icon: Icon, color: iconColor, label }) => (
-                    <button
-                      key={iconName}
-                      type="button"
-                      onClick={() => {
-                        setIcon(iconName);
-                        setColor(iconColor);
-                        setIsIconOpen(false);
-                      }}
-                      className={cn(
-                        "flex items-center justify-center w-10 h-10 rounded-full transition-all relative",
-                        `bg-${iconColor}-500/15 hover:bg-${iconColor}-500/25`,
-                        icon === iconName ? `ring-2 ring-${iconColor}-500 ring-offset-2` : ""
-                      )}
-                      title={label}
-                    >
-                      <Icon className={cn("w-5 h-5", `text-${iconColor}-500`)} />
-                    </button>
+              <PopoverContent className="w-[340px] p-0 max-h-[400px] overflow-y-auto" align="start">
+                <div className="p-4 space-y-4">
+                  {ICON_GROUPS.map((group) => (
+                    <div key={group.label}>
+                      <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">{group.label}</h4>
+                      <div className="grid grid-cols-5 gap-2">
+                        {group.icons.map(({ name: iconName, icon: Icon, color: iconColor, label }) => (
+                          <button
+                            key={iconName}
+                            type="button"
+                            onClick={() => {
+                              setIcon(iconName);
+                              setColor(iconColor);
+                              setIsIconOpen(false);
+                            }}
+                            className={cn(
+                              "flex items-center justify-center w-10 h-10 rounded-full transition-all relative",
+                              `bg-${iconColor}-500/15 hover:bg-${iconColor}-500/25`,
+                              icon === iconName ? `ring-2 ring-${iconColor}-500 ring-offset-2` : ""
+                            )}
+                            title={label}
+                          >
+                            <Icon className={cn("w-5 h-5", `text-${iconColor}-500`)} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </PopoverContent>
@@ -402,24 +457,31 @@ export default function UnifiedCategoryManager() {
                       <ChevronDown className="w-4 h-4 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[320px] p-4" align="start">
-                    <div className="grid grid-cols-5 gap-2">
-                      {ICONS.map(({ name: iconName, icon: Icon, color: iconColor, label }) => (
-                        <button
-                          key={iconName}
-                          type="button"
-                          onClick={() => {
-                            setEditingCategory({ ...editingCategory, icon: iconName, color: iconColor });
-                          }}
-                          className={cn(
-                            "flex items-center justify-center w-10 h-10 rounded-full transition-all relative",
-                            `bg-${iconColor}-500/15 hover:bg-${iconColor}-500/25`,
-                            editingCategory.icon === iconName ? `ring-2 ring-${iconColor}-500 ring-offset-2` : ""
-                          )}
-                          title={label}
-                        >
-                          <Icon className={cn("w-5 h-5", `text-${iconColor}-500`)} />
-                        </button>
+                  <PopoverContent className="w-[340px] p-0 max-h-[400px] overflow-y-auto" align="start">
+                    <div className="p-4 space-y-4">
+                      {ICON_GROUPS.map((group) => (
+                        <div key={group.label}>
+                          <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">{group.label}</h4>
+                          <div className="grid grid-cols-5 gap-2">
+                            {group.icons.map(({ name: iconName, icon: Icon, color: iconColor, label }) => (
+                              <button
+                                key={iconName}
+                                type="button"
+                                onClick={() => {
+                                  setEditingCategory({ ...editingCategory, icon: iconName, color: iconColor });
+                                }}
+                                className={cn(
+                                  "flex items-center justify-center w-10 h-10 rounded-full transition-all relative",
+                                  `bg-${iconColor}-500/15 hover:bg-${iconColor}-500/25`,
+                                  editingCategory.icon === iconName ? `ring-2 ring-${iconColor}-500 ring-offset-2` : ""
+                                )}
+                                title={label}
+                              >
+                                <Icon className={cn("w-5 h-5", `text-${iconColor}-500`)} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </PopoverContent>
