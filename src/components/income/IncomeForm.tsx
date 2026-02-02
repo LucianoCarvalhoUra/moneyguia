@@ -160,8 +160,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     try {
       const recurrenceId = (income as any).recurrenceId || (income as any).recurrence_id;
 
+      // 1. Prioridade de Filtro: Se for 'Todas', usa APENAS recurrence_id
       if (scope === 'all' && recurrenceId) {
-        // Update ALL records in the series
         const { error } = await (supabase
           .from('incomes') as any)
           .update({
@@ -171,7 +171,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             subcategory_id: pendingData.subcategoryId,
             account_id: pendingData.accountId,
             is_received: pendingData.isReceived,
-          } as any)
+          })
           .eq('recurrence_id', recurrenceId);
 
         if (error) throw error;
@@ -189,7 +189,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             subcategory_id: pendingData.subcategoryId,
             account_id: pendingData.accountId,
             is_received: pendingData.isReceived,
-          } as any)
+          })
           .eq('recurrence_id', recurrenceId)
           .gte('receive_date', format(new Date(pendingData.receiveDate), 'yyyy-MM-dd'));
 
