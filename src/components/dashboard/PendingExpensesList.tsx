@@ -7,6 +7,7 @@ import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { CategoryIcon } from '@/components/CategoryIcon';
 
 interface PendingExpensesListProps {
   selectedMonth: number;
@@ -14,7 +15,7 @@ interface PendingExpensesListProps {
 }
 
 export default function PendingExpensesList({ selectedMonth, selectedYear }: PendingExpensesListProps) {
-  const { expenses, updateExpense } = useFinance();
+  const { expenses, updateExpense, categories, subcategories } = useFinance();
 
   // Filtra despesas não pagas pelo vencimento no mês selecionado
   const pendingExpenses = expenses
@@ -60,7 +61,8 @@ export default function PendingExpensesList({ selectedMonth, selectedYear }: Pen
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Descrição</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead className="hidden md:table-cell">Subcategoria</TableHead>
                 <TableHead>Vencimento</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
@@ -70,17 +72,30 @@ export default function PendingExpensesList({ selectedMonth, selectedYear }: Pen
               {pendingExpenses.map((expense) => {
                 const dueDate = new Date(expense.dueDate);
                 const isOverdue = isPast(dueDate) && !isToday(dueDate);
+                const category = categories.find(c => c.id === expense.categoryId);
+                const subcategory = subcategories.find(s => s.id === expense.subcategoryId);
                 
                 return (
                   <TableRow key={expense.id} className={cn(isOverdue ? "bg-red-50/50 dark:bg-red-900/10" : "")}>
-                    <TableCell className="font-medium">
-                      {expense.description}
-                      {isOverdue && (
-                        <span className="flex items-center text-xs text-red-600 dark:text-red-400 mt-1">
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          Vencida
-                        </span>
-                      )}
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0", category?.color ? `bg-${category.color}/10` : "bg-muted")}>
+                          <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{category?.name || 'Sem categoria'}</p>
+                          <p className="text-xs text-muted-foreground">{expense.description}</p>
+                          {isOverdue && (
+                            <span className="flex items-center text-xs text-red-600 dark:text-red-400 mt-0.5">
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              Vencida
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                      {subcategory?.name || '-'}
                     </TableCell>
                     <TableCell>
                       <div className={cn("flex items-center gap-2", isOverdue ? "text-red-600 dark:text-red-400 font-medium" : "text-muted-foreground")}>
