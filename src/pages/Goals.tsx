@@ -1,4 +1,3 @@
-// Force schema cache reload
 import { useState, useMemo } from 'react';
 import { useGoals } from '@/contexts/GoalsContext';
 import { useFinance } from '@/contexts/FinanceContext';
@@ -6,7 +5,7 @@ import { useIncome } from '@/contexts/IncomeContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Target, Calendar, TrendingUp, AlertTriangle, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Target, Calendar, TrendingUp, AlertTriangle, Pencil, Trash2, RefreshCw, ChevronLeft, ChevronRight, Wallet } from 'lucide-react';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { format, differenceInMonths, differenceInDays, parseISO } from 'date-fns';
@@ -14,13 +13,102 @@ import { ptBR } from 'date-fns/locale';
 import { GoalForm } from '../components/goals/GoalForm';
 import { Goal } from '@/types/goals';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 export default function Goals() {
-  const { goals, removeGoal, refreshGoals, isLoading } = useGoals();
+  const { goals, removeGoal, updateGoal, refreshGoals, isLoading } = useGoals();
   const { getMonthlyTotal, getMonthlyExpenses } = useFinance();
   const { getMonthlyIncomeTotal } = useIncome();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  
+  // Date Selector State
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  // Add Funds State
+  const [isAddFundsOpen, setIsAddFundsOpen] = useState(false);
+  const [goalToAddFunds, setGoalToAddFunds] = useState<Goal | null>(null);
+  const [amountToAdd, setAmountToAdd] = useState('');
+
+  const months = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+
+  const handlePreviousMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(selectedYear - 1);
+    } else {
+      setSelectedMonth(selectedMonth - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(selectedYear + 1);
+    } else {
+      setSelectedMonth(selectedMonth + 1);
+    }
+  };
+
+  const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+  const formatCurrencyInput = (value: string) => {
+    const numericValue = value.replace(/\D/g, '');
+    const floatValue = Number(numericValue) / 100;
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(floatValue);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este objetivo?')) {
+      await removeGoal(id);
+      toast.success('Objetivo removido');
+    }
+  };
+
+  const handleAddFunds = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!goalToAddFunds || !amountToAdd) return;
+
+    const value = parseFloat(amountToAdd.replace(/[^\d,]/g, '').replace(',', '.'));
+    if (isNaN(value) || value <= 0) {
+        toast.error('Valor inválido');
+        return;
+    }
+
+    try {
+        await updateGoal(goalToAddFunds.id, {
+            currentAmount: (goalToAddFunds.currentAmount || 0) + value
+        });
+        toast.success('Valor adicionado com sucesso!');
+        setIsAddFundsOpen(false);
+        setAmountToAdd('');
+        setGoalToAddFunds(null);
+    } catch (error) {
+        console.error(error);
+        toast.error('Erro ao adicionar valor');
+    }
+  };
+
+  const openAddFunds = (goal: Goal) => {
+    setGoalToAddFunds(goal);
+    setAmountToAdd('');
+    setIsAddFundsOpen(true);
+  };
+
+  const nearestGoal = useMemo(() => {
+    if (goals.length === 0) return null;
+    // Sort by deadline
+    return [...goals].sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())[0];
+  }, [goals]);
 
   // Calculate average savings (last 3 months)
   const averageSavings = useMemo(() => {
@@ -37,32 +125,9 @@ export default function Goals() {
     return totalSavings / 3;
   }, [getMonthlyTotal, getMonthlyIncomeTotal]);
 
-  // Calculate current total balance (simplified for this context as sum of incomes - sum of expenses for current month, or use a global balance if available)
-  // Using the same logic as Dashboard for "Real Balance" approximation or just sum of goal currents
-  const currentTotalBalance = useMemo(() => {
-    // This is a placeholder. Ideally, fetch real account balances.
-    // For now, we use the sum of "currentAmount" in goals to show allocated funds, 
-    // OR we could use the FinanceContext to get real account balances if available.
-    // Let's use the average savings as a proxy for "capacity" and goal.currentAmount as "saved".
-    return goals.reduce((acc, g) => acc + g.currentAmount, 0);
-  }, [goals]);
-
-  const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este objetivo?')) {
-      await removeGoal(id);
-      toast.success('Objetivo removido');
-    }
-  };
-
-  const nearestGoal = useMemo(() => {
-    if (goals.length === 0) return null;
-    return [...goals].sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())[0];
-  }, [goals]);
-
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -82,7 +147,24 @@ export default function Goals() {
         </div>
       </div>
 
-      {/* Summary Card */}
+      {/* Date Selector (Standardized) */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-center gap-4">
+            <Button variant="ghost" size="icon" onClick={handlePreviousMonth}>
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+            <span className="text-lg font-semibold min-w-[160px] text-center capitalize">
+              {months[selectedMonth]} {selectedYear}
+            </span>
+            <Button variant="ghost" size="icon" onClick={handleNextMonth}>
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Summary Card - Focused on Nearest/Selected Goal */}
       {nearestGoal && (
         <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-100 dark:border-blue-900">
           <CardContent className="p-6 flex items-center gap-4">
@@ -90,12 +172,13 @@ export default function Goals() {
               <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Resumo de Progresso</p>
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Foco Principal: {nearestGoal.name}</p>
               <p className="text-lg text-foreground">
-                Você já guardou <span className="font-bold text-blue-600 dark:text-blue-400">{formatCurrency(currentTotalBalance)}</span>. 
+                Você já guardou <span className="font-bold text-blue-600 dark:text-blue-400">{formatCurrency(nearestGoal.currentAmount)}</span> de <span className="text-muted-foreground">{formatCurrency(nearestGoal.targetAmount)}</span>.
+                <br/>
                 Isso representa <span className="font-bold">
-                  {((currentTotalBalance / nearestGoal.targetAmount) * 100).toFixed(1)}%
-                </span> do seu objetivo mais próximo: <strong>{nearestGoal.name}</strong>.
+                  {((nearestGoal.currentAmount / nearestGoal.targetAmount) * 100).toFixed(1)}%
+                </span> da meta.
               </p>
             </div>
           </CardContent>
@@ -142,9 +225,9 @@ export default function Goals() {
                     <span className="font-medium">{progress.toFixed(0)}%</span>
                   </div>
                   <Progress value={progress} className={cn("h-2", `bg-${goal.color}/20`)} />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{formatCurrency(goal.currentAmount)}</span>
-                    <span>Faltam {formatCurrency(remainingAmount)}</span>
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-primary">{formatCurrency(goal.currentAmount)}</span>
+                    <span className="text-muted-foreground">/ {formatCurrency(goal.targetAmount)}</span>
                   </div>
                 </div>
 
@@ -161,6 +244,15 @@ export default function Goals() {
                     <span className="font-medium text-primary">{formatCurrency(monthlyNeeded)}</span>
                   </div>
                 </div>
+
+                <Button 
+                    variant="outline" 
+                    className="w-full mt-2 gap-2 border-primary/20 hover:bg-primary/5 text-primary"
+                    onClick={() => openAddFunds(goal)}
+                >
+                    <Wallet className="w-4 h-4" />
+                    Adicionar Valor
+                </Button>
 
                 {isHard && remainingAmount > 0 && (
                   <div className="bg-amber-50 dark:bg-amber-900/20 p-2 rounded-md flex gap-2 items-start text-xs text-amber-700 dark:text-amber-400">
@@ -184,6 +276,34 @@ export default function Goals() {
         }} 
         goal={editingGoal} 
       />
+
+      {/* Add Funds Dialog */}
+      <Dialog open={isAddFundsOpen} onOpenChange={setIsAddFundsOpen}>
+        <DialogContent className="max-w-sm">
+            <DialogHeader>
+                <DialogTitle>Adicionar Valor</DialogTitle>
+                <CardDescription>
+                    Adicionar economia para: <strong>{goalToAddFunds?.name}</strong>
+                </CardDescription>
+            </DialogHeader>
+            <form onSubmit={handleAddFunds} className="space-y-4">
+                <div className="space-y-2">
+                    <Label>Valor a adicionar</Label>
+                    <Input 
+                        placeholder="R$ 0,00" 
+                        value={amountToAdd}
+                        onChange={(e) => setAmountToAdd(formatCurrencyInput(e.target.value))}
+                        className="text-lg font-bold text-center"
+                        autoFocus
+                    />
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsAddFundsOpen(false)}>Cancelar</Button>
+                    <Button type="submit">Confirmar</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

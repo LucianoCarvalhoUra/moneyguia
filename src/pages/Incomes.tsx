@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { Search, Plus, Pencil, Trash2, CheckCircle2, AlertCircle, Calendar, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, CheckCircle2, AlertCircle, Calendar, Filter, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import IncomeForm from '@/components/income/IncomeForm';
@@ -192,24 +192,6 @@ export default function Incomes() {
     }).format(value);
   };
 
-  const handlePreviousMonth = () => {
-    if (selectedMonth === 0) {
-      setSelectedMonth(11);
-      setSelectedYear(selectedYear - 1);
-    } else {
-      setSelectedMonth(selectedMonth - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (selectedMonth === 11) {
-      setSelectedMonth(0);
-      setSelectedYear(selectedYear + 1);
-    } else {
-      setSelectedMonth(selectedMonth + 1);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -233,16 +215,38 @@ export default function Incomes() {
       {/* Month Selector */}
       <Card>
         <CardContent className="py-4">
-          <div className="flex items-center justify-center gap-4">
-            <Button variant="ghost" size="icon" onClick={handlePreviousMonth}>
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
-            <span className="text-lg font-semibold min-w-[160px] text-center capitalize">
-              {months[selectedMonth].label} {selectedYear}
-            </span>
-            <Button variant="ghost" size="icon" onClick={handleNextMonth}>
-              <ChevronRight className="w-5 h-5" />
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-4">
+              <Select
+                value={selectedMonth.toString()}
+                onValueChange={(v) => setSelectedMonth(parseInt(v))}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((month) => (
+                    <SelectItem key={month.value} value={month.value.toString()}>
+                      {month.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={selectedYear.toString()}
+                onValueChange={(v) => setSelectedYear(parseInt(v))}
+              >
+                <SelectTrigger className="w-full sm:w-[120px]">
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
           </div>
         </CardContent>
       </Card>
