@@ -199,15 +199,15 @@ export default function Dashboard() {
 
       {/* Balance Cards */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className={projectedBalance >= 0 ? 'border-primary/50 bg-primary/5' : 'border-warning/50 bg-warning/5'}>
+        <Card className={projectedBalance >= 0 ? 'border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10' : 'border-warning/50 bg-warning/5'}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${projectedBalance >= 0 ? 'bg-primary/10' : 'bg-warning/10'}`}>
-                <TrendingUp className={`w-6 h-6 ${projectedBalance >= 0 ? 'text-primary' : 'text-warning'}`} />
+              <div className={`p-3 rounded-xl ${projectedBalance >= 0 ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-warning/10'}`}>
+                <TrendingUp className={`w-6 h-6 ${projectedBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-warning'}`} />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Saldo Previsto (Final do Mês)</p>
-                <p className={`text-2xl font-bold ${projectedBalance >= 0 ? 'text-primary' : 'text-warning'}`}>
+                <p className={`text-2xl font-bold ${projectedBalance >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-warning'}`}>
                   {formatCurrency(projectedBalance)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -218,10 +218,10 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className={realBalance >= 0 ? 'border-success/50 bg-success/5' : 'border-destructive/50 bg-destructive/5'}>
+        <Card className={realBalance >= 0 ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/10' : 'border-destructive/50 bg-destructive/5'}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${realBalance >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
+              <div className={`p-3 rounded-xl ${realBalance >= 0 ? 'bg-green-100 dark:bg-green-900/50' : 'bg-destructive/10'}`}>
                 <Wallet className={`w-6 h-6 ${realBalance >= 0 ? 'text-success' : 'text-destructive'}`} />
               </div>
               <div>

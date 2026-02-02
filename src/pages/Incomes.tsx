@@ -253,6 +253,16 @@ export default function Incomes() {
         </Card>
       )}
 
+      <Card className="bg-green-50/50 dark:bg-green-900/10 border-green-100 dark:border-green-900/20">
+        <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Total de Receitas ({months[selectedMonth].label}/{selectedYear})</p>
+            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.reduce((acc, curr) => acc + curr.amount, 0))}</p>
+          </div>
+          <div className="text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-full border">{filteredIncomes.length} registro(s) encontrado(s)</div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="p-0">
           <Table>

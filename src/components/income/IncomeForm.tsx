@@ -38,7 +38,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [incomeDate, setIncomeDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [receiveDate, setReceiveDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
   const [accountId, setAccountId] = useState('');
@@ -58,7 +59,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     if (income) {
       setTitle(income.title);
       setAmount(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(income.amount));
-      setDate(format(new Date(income.receiveDate), 'yyyy-MM-dd'));
+      setIncomeDate(format(new Date((income as any).incomeDate || income.receiveDate), 'yyyy-MM-dd'));
+      setReceiveDate(format(new Date(income.receiveDate), 'yyyy-MM-dd'));
       setCategoryId(income.categoryId);
       setSubcategoryId(income.subcategoryId || '');
       setAccountId(income.accountId || '');
@@ -73,7 +75,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const resetForm = () => {
     setTitle('');
     setAmount('');
-    setDate(format(new Date(), 'yyyy-MM-dd'));
+    setIncomeDate(format(new Date(), 'yyyy-MM-dd'));
+    setReceiveDate(format(new Date(), 'yyyy-MM-dd'));
     setCategoryId('');
     setSubcategoryId('');
     setAccountId('');
@@ -98,7 +101,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
 
     if (!title.trim()) newErrors.title = true;
     if (numericAmount <= 0) newErrors.amount = true;
-    if (!date) newErrors.date = true;
+    if (!incomeDate) newErrors.incomeDate = true;
+    if (!receiveDate) newErrors.receiveDate = true;
     if (!categoryId) newErrors.categoryId = true;
     if (filteredSubcategories.length > 0 && !subcategoryId) newErrors.subcategoryId = true;
 
@@ -107,7 +111,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     if (Object.keys(newErrors).length > 0) {
       if (newErrors.title) toast.error('O campo Descrição é obrigatório.');
       if (newErrors.amount) toast.error('O campo Valor é obrigatório e deve ser maior que zero.');
-      if (newErrors.date) toast.error('O campo Data é obrigatório.');
+      if (newErrors.incomeDate) toast.error('A Data de Lançamento é obrigatória.');
+      if (newErrors.receiveDate) toast.error('A Data de Recebimento é obrigatória.');
       if (newErrors.categoryId) toast.error('O campo Categoria é obrigatório.');
       if (newErrors.subcategoryId) toast.error('O campo Subcategoria é obrigatório para esta categoria.');
       return false;
@@ -130,7 +135,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       const incomeData = {
         title,
         amount: numericAmount,
-        receiveDate: new Date(date),
+        incomeDate: new Date(incomeDate),
+        receiveDate: new Date(receiveDate),
         categoryId,
         subcategoryId: subcategoryId || undefined,
         accountId: accountId || undefined,
@@ -155,7 +161,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           
           // Create next 11 entries
           for (let i = 1; i <= 11; i++) {
-            const nextDate = addMonths(new Date(date), i);
+            const nextDate = addMonths(new Date(receiveDate), i);
             await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId });
           }
           toast.success('Receita transformada em recorrente!');
@@ -170,7 +176,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           
           // Create next 11 entries
           for (let i = 1; i <= 11; i++) {
-            const nextDate = addMonths(new Date(date), i);
+            const nextDate = addMonths(new Date(receiveDate), i);
             await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId });
           }
           toast.success('Receita recorrente criada!');
@@ -218,7 +224,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       let successMessage = '';
 
       if (scope === 'single') {
-        const singleData = { ...dados, receive_date: data.receiveDate };
+        const singleData = { ...dados, receive_date: format(data.receiveDate, 'yyyy-MM-dd'), income_date: format(data.incomeDate, 'yyyy-MM-dd') };
         const { error } = await supabase.from('incomes').update(singleData).eq('id', income!.id);
         if (error) throw error;
         successMessage = 'Receita atualizada com sucesso!';
@@ -231,14 +237,14 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       } else if (scope === 'past') {
         const { error } = await supabase.from('incomes').update(dados)
           .eq('recurrence_id', recurrenceId)
-          .lte('receive_date', format(new Date(data.receiveDate), 'yyyy-MM-dd'));
+          .lte('receive_date', format(data.receiveDate, 'yyyy-MM-dd'));
         if (error) throw error;
         successMessage = 'Receita atual e passadas atualizadas!';
       
       } else if (scope === 'future') {
         const { error } = await supabase.from('incomes').update(dados)
           .eq('recurrence_id', recurrenceId)
-          .gte('receive_date', format(new Date(data.receiveDate), 'yyyy-MM-dd'));
+          .gte('receive_date', format(data.receiveDate, 'yyyy-MM-dd'));
         if (error) throw error;
         successMessage = 'Receitas futuras atualizadas com sucesso!';
       }
@@ -384,17 +390,32 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="income-date">Data de Recebimento <span className="text-red-500">*</span></Label>
-            <div className="relative">
-              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                id="income-date"
-                type="date" 
-                value={date} 
-                onChange={(e) => setDate(e.target.value)} 
-                className={cn("pl-9", errors.date && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
-              />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="income-date">Data de Lançamento <span className="text-red-500">*</span></Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  id="income-date"
+                  type="date" 
+                  value={incomeDate} 
+                  onChange={(e) => setIncomeDate(e.target.value)} 
+                  className={cn("pl-9", errors.incomeDate && "border-red-500")}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="receive-date">Data de Recebimento <span className="text-red-500">*</span></Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  id="receive-date"
+                  type="date" 
+                  value={receiveDate} 
+                  onChange={(e) => setReceiveDate(e.target.value)} 
+                  className={cn("pl-9", errors.receiveDate && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+                />
+              </div>
             </div>
           </div>
 
