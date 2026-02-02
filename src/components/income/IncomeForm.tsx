@@ -32,7 +32,7 @@ interface IncomeFormProps {
 }
 
 export default function IncomeForm({ open, onOpenChange, income }: IncomeFormProps) {
-  const { addIncome, updateIncome, removeIncome, incomeCategories, incomeSubcategories } = useIncome();
+  const { addIncome, updateIncome, removeIncome, incomeCategories, incomeSubcategories, refreshData } = useIncome();
   const { accounts } = useFinance();
   
   const [title, setTitle] = useState('');
@@ -105,7 +105,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       };
 
       // Etapa 2: Interceptar o Submit para Recorrência
-      const isRecurringSeries = income && (income.isRecurring || (income as any).recurrenceId || (income as any).recurrence_id);
+      const isRecurringSeries = income && (income.isRecurring || income.recurrenceId || (income as any).recurrence_id);
 
       // Caso 1: Edição de uma série já existente (Modal de Confirmação)
       if (isRecurringSeries) {
@@ -158,36 +158,40 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
     setIsSubmitting(true);
     try {
-      const recurrenceId = (income as any).recurrenceId || (income as any).recurrence_id;
+      const recurrenceId = income?.recurrenceId || (income as any)?.recurrence_id;
 
-      // 1. Prioridade de Filtro: Se for 'Todas', usa APENAS recurrence_id
-      if (scope === 'all' && recurrenceId) {
+      if (scope === 'single' || !recurrenceId) {
+        // Atualização simples apenas deste registro
+        await updateIncome(income!.id, pendingData);
+        toast.success('Receita atualizada!');
+      } else if (scope === 'all') {
+        // Atualiza TODAS as receitas da série
         const { error } = await (supabase
           .from('incomes') as any)
           .update({
             title: pendingData.title,
             amount: pendingData.amount,
             category_id: pendingData.categoryId,
-            subcategory_id: pendingData.subcategoryId,
-            account_id: pendingData.accountId,
+            subcategory_id: pendingData.subcategoryId || null,
+            account_id: pendingData.accountId || null,
             is_received: pendingData.isReceived,
           })
           .eq('recurrence_id', recurrenceId);
 
         if (error) throw error;
         toast.success('Todas as receitas da série foram atualizadas!');
-        // Atualiza o item atual na interface
-        await updateIncome(income!.id, pendingData);
-      } else if (scope === 'future' && recurrenceId) {
-        // Update THIS and FUTURE records
+        // Recarrega os dados para refletir as mudanças
+        await refreshData();
+      } else if (scope === 'future') {
+        // Atualiza ESTA e FUTURAS receitas
         const { error } = await (supabase
           .from('incomes') as any)
           .update({
             title: pendingData.title,
             amount: pendingData.amount,
             category_id: pendingData.categoryId,
-            subcategory_id: pendingData.subcategoryId,
-            account_id: pendingData.accountId,
+            subcategory_id: pendingData.subcategoryId || null,
+            account_id: pendingData.accountId || null,
             is_received: pendingData.isReceived,
           })
           .eq('recurrence_id', recurrenceId)
@@ -195,11 +199,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
 
         if (error) throw error;
         toast.success('Receita atual e futuras atualizadas!');
-        // Atualiza o item atual na interface
-        await updateIncome(income!.id, pendingData);
-      } else {
-        await updateIncome(income!.id, { ...pendingData, recurrenceScope: scope });
-        toast.success('Receita atualizada!');
+        // Recarrega os dados para refletir as mudanças
+        await refreshData();
       }
       onOpenChange(false);
     } catch (error) {
