@@ -368,35 +368,34 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="income-amount">Valor <span className="text-red-500">*</span></Label>
-              <Input 
-                id="income-amount"
-                placeholder="R$ 0,00" 
-                value={amount} 
-                onChange={(e) => setAmount(formatCurrencyInput(e.target.value))}
-                className={cn("text-right font-medium", errors.amount && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="income-date">Data <span className="text-red-500">*</span></Label>
-              <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="income-date"
-                  type="date" 
-                  value={date} 
-                  onChange={(e) => setDate(e.target.value)} 
-                  className={cn("pl-9", errors.date && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
-                />
-              </div>
-            </div>
-          </div>
-          
           <div className="space-y-2">
             <Label htmlFor="income-title">Descrição <span className="text-red-500">*</span></Label>
             <Input id="income-title" placeholder="Ex: Salário Mensal" value={title} onChange={(e) => setTitle(e.target.value)} className={cn(errors.title && "border-red-500")} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="income-amount">Valor <span className="text-red-500">*</span></Label>
+            <Input 
+              id="income-amount"
+              placeholder="R$ 0,00" 
+              value={amount} 
+              onChange={(e) => setAmount(formatCurrencyInput(e.target.value))}
+              className={cn("text-right font-medium", errors.amount && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="income-date">Data de Recebimento <span className="text-red-500">*</span></Label>
+            <div className="relative">
+              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                id="income-date"
+                type="date" 
+                value={date} 
+                onChange={(e) => setDate(e.target.value)} 
+                className={cn("pl-9", errors.date && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -501,7 +500,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={performSimpleDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={performSimpleDelete} className="bg-destructive hover:bg-destructive/90">Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

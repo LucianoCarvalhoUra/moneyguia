@@ -41,6 +41,7 @@ export default function Accounts() {
   // Card form
   const [brand, setBrand] = useState('');
   const [lastFourDigits, setLastFourDigits] = useState('');
+  const [limit, setLimit] = useState('');
 
   const handleAddAccount = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,10 +65,10 @@ export default function Accounts() {
     }
     
     if (editingCard) {
-      await updateCard(editingCard.id, { brand, lastFourDigits });
+      await updateCard(editingCard.id, { brand, lastFourDigits, limit: parseFloat(limit) || 0 } as any);
       toast.success('Cartão atualizado com sucesso!');
     } else {
-      await addCard({ brand, lastFourDigits });
+      await addCard({ brand, lastFourDigits, limit: parseFloat(limit) || 0 } as any);
       toast.success('Cartão adicionado com sucesso!');
     }
     
@@ -78,6 +79,7 @@ export default function Accounts() {
     setEditingCard(card);
     setBrand(card.brand);
     setLastFourDigits(card.lastFourDigits);
+    setLimit((card as any).limit?.toString() || '');
     setCardDialogOpen(true);
   };
 
@@ -86,6 +88,7 @@ export default function Accounts() {
     setEditingCard(null);
     setBrand('');
     setLastFourDigits('');
+    setLimit('');
   };
 
   const confirmDeleteAccount = () => {
@@ -110,6 +113,15 @@ export default function Accounts() {
     if (!number) return '';
     if (number.length <= 4) return number;
     return '•'.repeat(number.length - 4) + number.slice(-4);
+  };
+
+  const formatCurrencyInput = (value: string) => {
+    const numericValue = value.replace(/\D/g, '');
+    const floatValue = Number(numericValue) / 100;
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(floatValue);
   };
 
   return (
@@ -214,6 +226,11 @@ export default function Accounts() {
                         <p className="text-sm text-muted-foreground">
                           •••• •••• •••• {card.lastFourDigits}
                         </p>
+                        {(card as any).limit > 0 && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Limite: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((card as any).limit)}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -329,6 +346,15 @@ export default function Accounts() {
                 value={lastFourDigits}
                 onChange={(e) => setLastFourDigits(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="limit">Limite do Cartão</Label>
+              <Input
+                id="limit"
+                placeholder="R$ 0,00"
+                value={limit}
+                onChange={(e) => setLimit(formatCurrencyInput(e.target.value).replace('R$', '').trim().replace(/\./g, '').replace(',', '.'))}
               />
             </div>
             <div className="flex gap-3 pt-4">

@@ -446,14 +446,19 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           )}
 
           <div className="space-y-2">
-              <Label htmlFor="amount">Valor <span className="text-red-500">*</span></Label>
-              <Input 
-                id="amount"
-                placeholder="R$ 0,00" 
-                value={amount} 
-                onChange={(e) => setAmount(formatCurrencyInput(e.target.value))}
-                className={cn("text-right font-medium", errors.amount && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
-              />
+            <Label htmlFor="description">Descrição <span className="text-red-500">*</span></Label>
+            <Input id="description" placeholder="Ex: Supermercado" value={description} onChange={(e) => setDescription(e.target.value)} className={cn(errors.description && "border-red-500")} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="amount">Valor <span className="text-red-500">*</span></Label>
+            <Input 
+              id="amount"
+              placeholder="R$ 0,00" 
+              value={amount} 
+              onChange={(e) => setAmount(formatCurrencyInput(e.target.value))}
+              className={cn("text-right font-medium", errors.amount && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -483,11 +488,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 />
               </div>
             </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição <span className="text-red-500">*</span></Label>
-            <Input id="description" placeholder="Ex: Supermercado" value={description} onChange={(e) => setDescription(e.target.value)} className={cn(errors.description && "border-red-500")} />
           </div>
 
           <div className="space-y-2">
@@ -625,7 +625,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={performSimpleDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={performSimpleDelete} className="bg-destructive hover:bg-destructive/90">Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
