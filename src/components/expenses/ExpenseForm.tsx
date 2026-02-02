@@ -29,9 +29,10 @@ interface ExpenseFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   expense?: Expense | null;
+  initialData?: Partial<Expense> | null;
 }
 
-export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseFormProps) {
+export default function ExpenseForm({ open, onOpenChange, expense, initialData }: ExpenseFormProps) {
   const { addExpense, updateExpense, removeExpense, categories, subcategories, accounts, cards, refreshData } = useFinance();
   
   const [description, setDescription] = useState('');
@@ -69,10 +70,23 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       setInstallments(expense.installments?.toString() || '1');
       setIsPaid(expense.isPaid ?? false);
       setErrors({});
+    } else if (initialData) {
+      setDescription(initialData.description || '');
+      setAmount(initialData.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.amount) : '');
+      setDate(initialData.dueDate ? format(new Date(initialData.dueDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+      setCategoryId(initialData.categoryId || '');
+      setSubcategoryId(initialData.subcategoryId || '');
+      setPaymentMethod(initialData.paymentMethod || 'pix');
+      setAccountId(initialData.accountId || '');
+      setCardId(initialData.cardId || '');
+      setIsRecurring(initialData.isRecurring || false);
+      setInstallments(initialData.installments?.toString() || '1');
+      setIsPaid(initialData.isPaid ?? false);
+      setErrors({});
     } else {
       resetForm();
     }
-  }, [expense, open]);
+  }, [expense, initialData, open]);
 
   const resetForm = () => {
     setDescription('');

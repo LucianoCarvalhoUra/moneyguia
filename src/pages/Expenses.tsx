@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, isBefore, startOfDay } from 'date-fns';
-import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
@@ -44,6 +44,7 @@ export default function Expenses() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [duplicatingExpense, setDuplicatingExpense] = useState<Expense | null>(null);
   const [sortField, setSortField] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
   
@@ -189,6 +190,16 @@ export default function Expenses() {
     setIsFormOpen(true);
   };
 
+  const handleDuplicate = (expense: Expense) => {
+    setDuplicatingExpense({
+      ...expense,
+      description: `${expense.description} (Cópia)`,
+      dueDate: new Date(), // Define para hoje por conveniência
+      isPaid: false,
+    });
+    setIsFormOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header, Date Selector, Filters, etc. */}
@@ -197,7 +208,7 @@ export default function Expenses() {
           <h1 className="text-2xl font-bold text-foreground">Despesas</h1>
           <p className="text-muted-foreground">Gerencie seus gastos</p>
         </div>
-        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingExpense(null); setIsFormOpen(true); }}>
+        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingExpense(null); setDuplicatingExpense(null); setIsFormOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Nova Despesa
         </Button>
       </div>
@@ -265,6 +276,7 @@ export default function Expenses() {
                       <TableCell className="font-medium">{formatCurrency(expense.amount)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDuplicate(expense)} title="Duplicar"><Copy className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(expense)}><Pencil className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(expense)}><Trash2 className="w-4 h-4" /></Button>
                         </div>
@@ -278,7 +290,7 @@ export default function Expenses() {
         </CardContent>
       </Card>
 
-      <ExpenseForm open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingExpense(null); }} expense={editingExpense} />
+      <ExpenseForm open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) { setEditingExpense(null); setDuplicatingExpense(null); } }} expense={editingExpense} initialData={duplicatingExpense} />
       
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
