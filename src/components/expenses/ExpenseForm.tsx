@@ -180,7 +180,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         // Update ALL records in the series
         const { error } = await (supabase
           .from('expenses') as any) // Cast to any to bypass strict type checking on dynamic update
-          // Não atualizamos datas para não mover todo o histórico para o mesmo dia
           .update({
             description: pendingData.description,
             amount: pendingData.amount,
@@ -189,6 +188,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             payment_method: pendingData.paymentMethod,
             account_id: pendingData.accountId,
             card_id: pendingData.cardId,
+            // Note: We do NOT update dates here to preserve the history/future schedule
           } as any)
           .eq('recurrence_id', recurrenceId);
 

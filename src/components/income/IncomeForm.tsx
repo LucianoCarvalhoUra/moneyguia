@@ -164,7 +164,6 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         // Update ALL records in the series
         const { error } = await (supabase
           .from('incomes') as any)
-          // Não atualizamos datas para não mover todo o histórico para o mesmo dia
           .update({
             title: pendingData.title,
             amount: pendingData.amount,
@@ -172,6 +171,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             subcategory_id: pendingData.subcategoryId,
             account_id: pendingData.accountId,
             is_received: pendingData.isReceived,
+            // Note: We do NOT update dates here to preserve the history/future schedule
           } as any)
           .eq('recurrence_id', recurrenceId);
 
