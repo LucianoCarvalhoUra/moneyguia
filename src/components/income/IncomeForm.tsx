@@ -5,6 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
@@ -34,6 +43,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const [isReceived, setIsReceived] = useState(true);
   const [isRecurring, setIsRecurring] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<any>(null);
 
   useEffect(() => {
     if (income) {
@@ -92,6 +103,20 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         isRecurring,
       };
 
+      if (income && income.isRecurring) {
+        const hasChanges = 
+          incomeData.amount !== income.amount ||
+          incomeData.categoryId !== income.categoryId ||
+          incomeData.subcategoryId !== (income.subcategoryId || undefined);
+        
+        if (hasChanges) {
+          setPendingData(incomeData);
+          setRecurrenceDialogOpen(true);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       if (income) {
         await updateIncome(income.id, incomeData);
         toast.success('Receita atualizada!');
@@ -104,6 +129,22 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       console.error(error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
+    setIsSubmitting(true);
+    try {
+      // @ts-ignore
+      await updateIncome(income!.id, { ...pendingData, recurrenceScope: scope });
+      toast.success('Receita atualizada!');
+      onOpenChange(false);
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao atualizar receita');
+    } finally {
+      setIsSubmitting(false);
+      setRecurrenceDialogOpen(false);
     }
   };
 
@@ -225,6 +266,31 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <AlertDialog open={recurrenceDialogOpen} onOpenChange={setRecurrenceDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alteração em Receita Recorrente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta receita faz parte de uma série. Como você deseja aplicar as alterações de valor/categoria?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-4">
+            <Button variant="outline" className="justify-start" onClick={() => handleRecurrenceUpdate('single')}>
+              Apenas esta (Mês atual)
+            </Button>
+            <Button variant="outline" className="justify-start" onClick={() => handleRecurrenceUpdate('future')}>
+              Esta e futuras (A partir de agora)
+            </Button>
+            <Button variant="outline" className="justify-start" onClick={() => handleRecurrenceUpdate('all')}>
+              Todas (Inclusive passadas)
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

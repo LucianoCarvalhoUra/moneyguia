@@ -4,6 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
@@ -35,6 +44,8 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const [installments, setInstallments] = useState('1');
   const [isPaid, setIsPaid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<any>(null);
 
   useEffect(() => {
     if (expense) {
@@ -103,6 +114,20 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         isPaid,
       };
 
+      if (expense && expense.isRecurring) {
+        const hasChanges = 
+          expenseData.amount !== expense.amount ||
+          expenseData.categoryId !== expense.categoryId ||
+          expenseData.subcategoryId !== (expense.subcategoryId || undefined);
+        
+        if (hasChanges) {
+          setPendingData(expenseData);
+          setRecurrenceDialogOpen(true);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       if (expense) {
         await updateExpense(expense.id, expenseData);
         toast.success('Despesa atualizada!');
@@ -115,6 +140,22 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       console.error(error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
+    setIsSubmitting(true);
+    try {
+      // @ts-ignore - recurrenceScope might not be in the type definition yet but is handled by backend/context
+      await updateExpense(expense!.id, { ...pendingData, recurrenceScope: scope });
+      toast.success('Despesa atualizada!');
+      onOpenChange(false);
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao atualizar despesa');
+    } finally {
+      setIsSubmitting(false);
+      setRecurrenceDialogOpen(false);
     }
   };
 
@@ -271,6 +312,31 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <AlertDialog open={recurrenceDialogOpen} onOpenChange={setRecurrenceDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alteração em Despesa Recorrente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta despesa faz parte de uma série. Como você deseja aplicar as alterações de valor/categoria?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-4">
+            <Button variant="outline" className="justify-start" onClick={() => handleRecurrenceUpdate('single')}>
+              Apenas esta (Mês atual)
+            </Button>
+            <Button variant="outline" className="justify-start" onClick={() => handleRecurrenceUpdate('future')}>
+              Esta e futuras (A partir de agora)
+            </Button>
+            <Button variant="outline" className="justify-start" onClick={() => handleRecurrenceUpdate('all')}>
+              Todas (Inclusive passadas)
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
