@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useIncome } from '@/contexts/IncomeContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useFinance } from '@/contexts/FinanceContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -125,13 +126,13 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         const newRecurrenceId = crypto.randomUUID();
         
         // Cria a atual
-        await addIncome({ ...incomeData, recurrenceId: newRecurrenceId });
+        await addIncome({ ...incomeData, recurrenceId: newRecurrenceId } as any);
         
         // Loop para futuras (12 meses padrão para receitas recorrentes)
         const baseDate = new Date(date);
         for (let i = 1; i <= 11; i++) {
           const nextDate = addMonths(baseDate, i);
-          await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId });
+          await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId } as any);
         }
 
         toast.success('Receita transformada em recorrente e registros futuros gerados!');
@@ -157,19 +158,43 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
     setIsSubmitting(true);
     try {
-      if (scope === 'future') {
-        // 1º: Atualizar a receita atual
-        await updateIncome(income!.id, { ...pendingData, recurrenceScope: 'single' });
+      const recurrenceId = (income as any).recurrenceId || (income as any).recurrence_id;
 
-        // 2º e 3º: Disparar loop para criar novos registros futuros
-        const baseDate = new Date(pendingData.receiveDate);
-        const recurrenceId = (income as any).recurrenceId || (income as any).recurrence_id || crypto.randomUUID();
+      if (scope === 'all' && recurrenceId) {
+        // Update ALL records in the series
+        const { error } = await (supabase
+          .from('incomes') as any)
+          .update({
+            title: pendingData.title,
+            amount: pendingData.amount,
+            category_id: pendingData.categoryId,
+            subcategory_id: pendingData.subcategoryId,
+            account_id: pendingData.accountId,
+            is_received: pendingData.isReceived,
+          })
+          .eq('recurrence_id', recurrenceId);
 
-        for (let i = 1; i <= 11; i++) {
-          const nextDate = addMonths(baseDate, i);
-          await addIncome({ ...pendingData, receiveDate: nextDate, recurrenceId });
-        }
+        if (error) throw error;
+        toast.success('Todas as receitas da série foram atualizadas!');
+        await updateIncome(income!.id, pendingData);
+      } else if (scope === 'future' && recurrenceId) {
+        // Update THIS and FUTURE records
+        const { error } = await (supabase
+          .from('incomes') as any)
+          .update({
+            title: pendingData.title,
+            amount: pendingData.amount,
+            category_id: pendingData.categoryId,
+            subcategory_id: pendingData.subcategoryId,
+            account_id: pendingData.accountId,
+            is_received: pendingData.isReceived,
+          })
+          .eq('recurrence_id', recurrenceId)
+          .gte('receive_date', format(new Date(pendingData.receiveDate), 'yyyy-MM-dd'));
+
+        if (error) throw error;
         toast.success('Receita atual e futuras atualizadas!');
+        await updateIncome(income!.id, pendingData);
       } else {
         await updateIncome(income!.id, { ...pendingData, recurrenceScope: scope });
         toast.success('Receita atualizada!');

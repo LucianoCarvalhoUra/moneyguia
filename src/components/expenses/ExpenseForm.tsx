@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -138,7 +139,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         const newRecurrenceId = crypto.randomUUID();
         
         // Cria a despesa atual com o ID de recorrência
-        await addExpense({ ...expenseData, recurrenceId: newRecurrenceId });
+        await addExpense({ ...expenseData, recurrenceId: newRecurrenceId } as any);
         
         // Loop para gerar as futuras (12 meses ou conforme parcelas)
         const limit = installments ? parseInt(installments) - 1 : 11;
@@ -147,7 +148,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         for (let i = 1; i <= limit; i++) {
           const nextDate = addMonths(baseDate, i);
           // Clona os dados, ajusta a data e mantém o vínculo
-          await addExpense({ ...expenseData, dueDate: nextDate, expenseDate: nextDate, recurrenceId: newRecurrenceId });
+          await addExpense({ ...expenseData, dueDate: nextDate, expenseDate: nextDate, recurrenceId: newRecurrenceId } as any);
         }
 
         toast.success('Despesa transformada em recorrente e registros futuros gerados!');
@@ -173,24 +174,52 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
     setIsSubmitting(true);
     try {
-      if (scope === 'future') {
-        // 1º: Atualizar a despesa atual
-        await updateExpense(expense!.id, { ...pendingData, recurrenceScope: 'single' });
+      const recurrenceId = (expense as any).recurrenceId || (expense as any).recurrence_id;
 
-        // 2º e 3º: Disparar loop para criar novos registros futuros
-        const limit = pendingData.installments ? parseInt(pendingData.installments) - 1 : 11;
-        const baseDate = new Date(pendingData.dueDate);
-        // Garante que usamos o mesmo ID de grupo
-        const recurrenceId = (expense as any).recurrenceId || (expense as any).recurrence_id || crypto.randomUUID();
+      if (scope === 'all' && recurrenceId) {
+        // Update ALL records in the series
+        const { error } = await (supabase
+          .from('expenses') as any)
+          .update({
+            description: pendingData.description,
+            amount: pendingData.amount,
+            category_id: pendingData.categoryId,
+            subcategory_id: pendingData.subcategoryId,
+            payment_method: pendingData.paymentMethod,
+            account_id: pendingData.accountId,
+            card_id: pendingData.cardId,
+          })
+          .eq('recurrence_id', recurrenceId);
 
-        for (let i = 1; i <= limit; i++) {
-          const nextDate = addMonths(baseDate, i);
-          await addExpense({ ...pendingData, dueDate: nextDate, expenseDate: nextDate, recurrenceId });
-        }
+        if (error) throw error;
+        toast.success('Todas as despesas da série foram atualizadas!');
+        
+        // Trigger context refresh for the current item
+        await updateExpense(expense!.id, pendingData);
+      } else if (scope === 'future' && recurrenceId) {
+        // Update THIS and FUTURE records
+        const { error } = await (supabase
+          .from('expenses') as any)
+          .update({
+            description: pendingData.description,
+            amount: pendingData.amount,
+            category_id: pendingData.categoryId,
+            subcategory_id: pendingData.subcategoryId,
+            payment_method: pendingData.paymentMethod,
+            account_id: pendingData.accountId,
+            card_id: pendingData.cardId,
+          })
+          .eq('recurrence_id', recurrenceId)
+          .gte('due_date', format(new Date(pendingData.dueDate), 'yyyy-MM-dd'));
+
+        if (error) throw error;
         toast.success('Despesa atual e futuras atualizadas!');
+        
+        // Trigger context refresh
+        await updateExpense(expense!.id, pendingData);
       } else {
-        // @ts-ignore
-        await updateExpense(expense!.id, { ...pendingData, recurrenceScope: scope });
+        // Single update
+        await updateExpense(expense!.id, { ...pendingData, recurrenceScope: 'single' });
         toast.success('Despesa atualizada!');
       }
       onOpenChange(false);
