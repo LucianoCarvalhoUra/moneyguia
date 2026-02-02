@@ -317,7 +317,7 @@ export default function UnifiedCategoryManager() {
 
           <Button type="submit" className="w-full">
             <Plus className="w-4 h-4 mr-2" />
-            Criar Categoria
+            Adicionar Categoria
           </Button>
         </form>
 
