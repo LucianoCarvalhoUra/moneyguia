@@ -18,7 +18,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Expense, PaymentMethod } from '@/types/finance';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -317,20 +317,44 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       <AlertDialog open={recurrenceDialogOpen} onOpenChange={setRecurrenceDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Alteração em Despesa Recorrente</AlertDialogTitle>
+            <AlertDialogTitle>Alteração em Recorrência</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta despesa faz parte de uma série. Como você deseja aplicar as alterações de valor/categoria?
+              Esta despesa é recorrente. Como deseja aplicar as alterações?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex flex-col gap-2 py-4">
-            <Button variant="outline" className="justify-start" onClick={() => handleRecurrenceUpdate('single')}>
-              Apenas esta (Mês atual)
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('single')}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-muted rounded-full">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">Apenas esta</p>
+                  <p className="text-xs text-muted-foreground">Altera somente este registro</p>
+                </div>
+              </div>
             </Button>
-            <Button variant="outline" className="justify-start" onClick={() => handleRecurrenceUpdate('future')}>
-              Esta e futuras (A partir de agora)
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('future')}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-muted rounded-full">
+                  <CalendarClock className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">Esta e futuras</p>
+                  <p className="text-xs text-muted-foreground">Deste vencimento em diante</p>
+                </div>
+              </div>
             </Button>
-            <Button variant="outline" className="justify-start" onClick={() => handleRecurrenceUpdate('all')}>
-              Todas (Inclusive passadas)
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-muted rounded-full">
+                  <CalendarDays className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">Todas</p>
+                  <p className="text-xs text-muted-foreground">Todo o histórico da série</p>
+                </div>
+              </div>
             </Button>
           </div>
           <AlertDialogFooter>

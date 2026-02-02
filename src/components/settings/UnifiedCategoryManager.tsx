@@ -327,7 +327,6 @@ export default function UnifiedCategoryManager() {
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1 border-b pb-2">
                 {sectionType === 'expense' ? 'Despesas' : 'Receitas'}
               </h3>
-              {/* Etapa 3: Categorias em Grid de 3 colunas */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {(sectionType === 'expense' ? categories : incomeCategories).map(cat => {
                   const catSubcategories = sectionType === 'expense' 
