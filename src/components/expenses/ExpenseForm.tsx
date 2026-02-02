@@ -189,23 +189,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             </div>
           </div>
 
-          <div className="space-y-4 border rounded-md p-4 bg-muted/20">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="status-switch">Despesa Paga?</Label>
-                <div className="flex items-center gap-2">
-                  <Switch id="status-switch" checked={isPaid} onCheckedChange={setIsPaid} />
-                  <span className="text-sm text-muted-foreground">{isPaid ? 'Sim, já paguei' : 'Não, pendente'}</span>
-                </div>
-              </div>
-              {isPaid ? (
-                <Badge className="bg-green-600 hover:bg-green-700">Pago</Badge>
-              ) : (
-                <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-yellow-50">Pendente</Badge>
-              )}
-            </div>
-
-            <div className="space-y-2">
+          <div className="space-y-2">
               <Label>Forma de Pagamento</Label>
               <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
                 <SelectTrigger>
@@ -217,9 +201,9 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   <SelectItem value="account">Débito em Conta</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+          </div>
 
-            {paymentMethod === 'credit_card' && (
+          {paymentMethod === 'credit_card' && (
               <div className="space-y-2">
                 <Label>Cartão</Label>
                 <Select value={cardId} onValueChange={setCardId}>
@@ -231,9 +215,9 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   </SelectContent>
                 </Select>
               </div>
-            )}
+          )}
 
-            {paymentMethod === 'account' && (
+          {paymentMethod === 'account' && (
               <div className="space-y-2">
                 <Label>Conta</Label>
                 <Select value={accountId} onValueChange={setAccountId}>
@@ -245,23 +229,33 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   </SelectContent>
                 </Select>
               </div>
+          )}
+
+          {/* Bloco de Controle (Agrupado) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border rounded-md p-4 bg-muted/20">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="status-switch" className="text-sm font-medium">Status do Pagamento</Label>
+              <div className="flex items-center justify-between bg-background p-2 rounded-md border">
+                <span className="text-sm text-muted-foreground">{isPaid ? 'Pago' : 'Pendente'}</span>
+                <Switch id="status-switch" checked={isPaid} onCheckedChange={setIsPaid} />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="recurring" className="text-sm font-medium">Recorrência</Label>
+              <div className="flex items-center justify-between bg-background p-2 rounded-md border">
+                <span className="text-sm text-muted-foreground">{isRecurring ? 'Sim' : 'Não'}</span>
+                <Switch id="recurring" checked={isRecurring} onCheckedChange={setIsRecurring} />
+              </div>
+            </div>
+
+            {isRecurring && (
+              <div className="sm:col-span-2 space-y-2 animate-in fade-in slide-in-from-top-2">
+                <Label>Número de Parcelas (1 = Fixo Mensal)</Label>
+                <Input type="number" min="1" value={installments} onChange={(e) => setInstallments(e.target.value)} />
+              </div>
             )}
           </div>
-
-          <div className="flex items-center justify-between space-x-2 border p-3 rounded-md">
-            <Label htmlFor="recurring" className="flex flex-col space-y-1">
-              <span>Despesa Recorrente?</span>
-              <span className="font-normal text-xs text-muted-foreground">Repetir mensalmente</span>
-            </Label>
-            <Switch id="recurring" checked={isRecurring} onCheckedChange={setIsRecurring} />
-          </div>
-
-          {isRecurring && (
-            <div className="space-y-2">
-              <Label>Número de Parcelas (1 = Fixo Mensal)</Label>
-              <Input type="number" min="1" value={installments} onChange={(e) => setInstallments(e.target.value)} />
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label>Descrição</Label>

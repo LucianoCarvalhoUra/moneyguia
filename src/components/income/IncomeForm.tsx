@@ -178,23 +178,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             </div>
           </div>
 
-          <div className="space-y-4 border rounded-md p-4 bg-muted/20">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="status-switch">Receita Recebida?</Label>
-                <div className="flex items-center gap-2">
-                  <Switch id="status-switch" checked={isReceived} onCheckedChange={setIsReceived} />
-                  <span className="text-sm text-muted-foreground">{isReceived ? 'Sim, recebido' : 'Não, pendente'}</span>
-                </div>
-              </div>
-              {isReceived ? (
-                <Badge className="bg-green-600 hover:bg-green-700">Recebido</Badge>
-              ) : (
-                <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-yellow-50">Pendente</Badge>
-              )}
-            </div>
-
-            <div className="space-y-2">
+          <div className="space-y-2">
               <Label>Conta de Destino / Recebimento</Label>
               <Select value={accountId} onValueChange={setAccountId}>
                 <SelectTrigger>
@@ -206,15 +190,25 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
                   ))}
                 </SelectContent>
               </Select>
-            </div>
           </div>
 
-          <div className="flex items-center justify-between space-x-2 border p-3 rounded-md">
-            <Label htmlFor="recurring-income" className="flex flex-col space-y-1">
-              <span>Receita Recorrente?</span>
-              <span className="font-normal text-xs text-muted-foreground">Repetir mensalmente (Ex: Salário)</span>
-            </Label>
-            <Switch id="recurring-income" checked={isRecurring} onCheckedChange={setIsRecurring} />
+          {/* Bloco de Controle (Agrupado) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border rounded-md p-4 bg-muted/20">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="status-switch" className="text-sm font-medium">Status do Recebimento</Label>
+              <div className="flex items-center justify-between bg-background p-2 rounded-md border">
+                <span className="text-sm text-muted-foreground">{isReceived ? 'Recebido' : 'Pendente'}</span>
+                <Switch id="status-switch" checked={isReceived} onCheckedChange={setIsReceived} />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="recurring-income" className="text-sm font-medium">Recorrência</Label>
+              <div className="flex items-center justify-between bg-background p-2 rounded-md border">
+                <span className="text-sm text-muted-foreground">{isRecurring ? 'Sim' : 'Não'}</span>
+                <Switch id="recurring-income" checked={isRecurring} onCheckedChange={setIsRecurring} />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
