@@ -20,7 +20,7 @@ import { Expense, PaymentMethod } from '@/types/finance';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
 interface ExpenseFormProps {
@@ -131,10 +131,26 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
       // Caso 2: Transformação de Única para Recorrente (Geração Automática)
       if (expense && !isRecurringSeries && isRecurring) {
-        // Remove a despesa antiga e cria uma nova para disparar a geração de parcelas
+        // Remove a despesa antiga
         await removeExpense(expense.id);
-        await addExpense(expenseData);
-        toast.success('Despesa transformada em recorrente e parcelas geradas!');
+        
+        // Gera ID de recorrência para vincular o grupo
+        const newRecurrenceId = crypto.randomUUID();
+        
+        // Cria a despesa atual com o ID de recorrência
+        await addExpense({ ...expenseData, recurrenceId: newRecurrenceId });
+        
+        // Loop para gerar as futuras (12 meses ou conforme parcelas)
+        const limit = installments ? parseInt(installments) - 1 : 11;
+        const baseDate = new Date(date);
+
+        for (let i = 1; i <= limit; i++) {
+          const nextDate = addMonths(baseDate, i);
+          // Clona os dados, ajusta a data e mantém o vínculo
+          await addExpense({ ...expenseData, dueDate: nextDate, expenseDate: nextDate, recurrenceId: newRecurrenceId });
+        }
+
+        toast.success('Despesa transformada em recorrente e registros futuros gerados!');
         onOpenChange(false);
         return;
       }
@@ -157,9 +173,26 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
     setIsSubmitting(true);
     try {
-      // @ts-ignore - recurrenceScope might not be in the type definition yet but is handled by backend/context
-      await updateExpense(expense!.id, { ...pendingData, recurrenceScope: scope });
-      toast.success('Despesa atualizada!');
+      if (scope === 'future') {
+        // 1º: Atualizar a despesa atual
+        await updateExpense(expense!.id, { ...pendingData, recurrenceScope: 'single' });
+
+        // 2º e 3º: Disparar loop para criar novos registros futuros
+        const limit = pendingData.installments ? parseInt(pendingData.installments) - 1 : 11;
+        const baseDate = new Date(pendingData.dueDate);
+        // Garante que usamos o mesmo ID de grupo
+        const recurrenceId = (expense as any).recurrenceId || (expense as any).recurrence_id || crypto.randomUUID();
+
+        for (let i = 1; i <= limit; i++) {
+          const nextDate = addMonths(baseDate, i);
+          await addExpense({ ...pendingData, dueDate: nextDate, expenseDate: nextDate, recurrenceId });
+        }
+        toast.success('Despesa atual e futuras atualizadas!');
+      } else {
+        // @ts-ignore
+        await updateExpense(expense!.id, { ...pendingData, recurrenceScope: scope });
+        toast.success('Despesa atualizada!');
+      }
       onOpenChange(false);
     } catch (error) {
       console.error(error);

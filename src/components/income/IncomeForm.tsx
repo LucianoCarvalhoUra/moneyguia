@@ -21,7 +21,7 @@ import { Income } from '@/types/income';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
 interface IncomeFormProps {
@@ -118,10 +118,23 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
 
       // Caso 2: Transformação de Única para Recorrente (Geração Automática)
       if (income && !isRecurringSeries && isRecurring) {
-        // Remove a receita antiga e cria uma nova para disparar a geração de recorrências
+        // Remove a receita antiga
         await removeIncome(income.id);
-        await addIncome(incomeData);
-        toast.success('Receita transformada em recorrente e lançamentos gerados!');
+        
+        // Gera ID de recorrência
+        const newRecurrenceId = crypto.randomUUID();
+        
+        // Cria a atual
+        await addIncome({ ...incomeData, recurrenceId: newRecurrenceId });
+        
+        // Loop para futuras (12 meses padrão para receitas recorrentes)
+        const baseDate = new Date(date);
+        for (let i = 1; i <= 11; i++) {
+          const nextDate = addMonths(baseDate, i);
+          await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId });
+        }
+
+        toast.success('Receita transformada em recorrente e registros futuros gerados!');
         onOpenChange(false);
         return;
       }
@@ -144,9 +157,23 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
     setIsSubmitting(true);
     try {
-      // @ts-ignore
-      await updateIncome(income!.id, { ...pendingData, recurrenceScope: scope });
-      toast.success('Receita atualizada!');
+      if (scope === 'future') {
+        // 1º: Atualizar a receita atual
+        await updateIncome(income!.id, { ...pendingData, recurrenceScope: 'single' });
+
+        // 2º e 3º: Disparar loop para criar novos registros futuros
+        const baseDate = new Date(pendingData.receiveDate);
+        const recurrenceId = (income as any).recurrenceId || (income as any).recurrence_id || crypto.randomUUID();
+
+        for (let i = 1; i <= 11; i++) {
+          const nextDate = addMonths(baseDate, i);
+          await addIncome({ ...pendingData, receiveDate: nextDate, recurrenceId });
+        }
+        toast.success('Receita atual e futuras atualizadas!');
+      } else {
+        await updateIncome(income!.id, { ...pendingData, recurrenceScope: scope });
+        toast.success('Receita atualizada!');
+      }
       onOpenChange(false);
     } catch (error) {
       console.error(error);
