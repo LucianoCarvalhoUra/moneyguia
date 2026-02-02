@@ -84,7 +84,6 @@ export default function PendingExpensesList({ selectedMonth, selectedYear }: Pen
                         </div>
                         <div>
                           <p className="font-medium text-sm">{category?.name || 'Sem categoria'}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[120px]">{expense.description}</p>
                           {isOverdue && (
                             <span className="flex items-center text-xs text-red-600 dark:text-red-400 mt-0.5">
                               <AlertCircle className="w-3 h-3 mr-1" />
