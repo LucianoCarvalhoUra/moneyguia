@@ -103,7 +103,10 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         isRecurring,
       };
 
-      if (income && income.isRecurring) {
+      // Verifica se é uma receita recorrente (pai ou instância de uma série)
+      const isRecurringSeries = income && (income.isRecurring || (income as any).recurrenceId);
+
+      if (isRecurringSeries) {
         const hasChanges = 
           incomeData.amount !== income.amount ||
           incomeData.categoryId !== income.categoryId ||

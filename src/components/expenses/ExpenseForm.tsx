@@ -114,7 +114,10 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         isPaid,
       };
 
-      if (expense && expense.isRecurring) {
+      // Verifica se é uma despesa recorrente (pai ou instância de uma série)
+      const isRecurringSeries = expense && (expense.isRecurring || (expense as any).recurrenceId);
+
+      if (isRecurringSeries) {
         const hasChanges = 
           expenseData.amount !== expense.amount ||
           expenseData.categoryId !== expense.categoryId ||
