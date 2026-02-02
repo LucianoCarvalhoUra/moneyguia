@@ -136,6 +136,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             isRecurring: i.is_recurring,
             isReceived: i.is_received ?? false,
             accountId: i.account_id || undefined,
+            recurrenceId: (i as any).recurrence_id || undefined,
             userId: i.user_id,
             createdAt: new Date(i.created_at),
           };
@@ -162,6 +163,9 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
   const addIncome = async (income: Omit<Income, 'id' | 'userId' | 'createdAt'>) => {
     if (!user) return;
     
+    // Gera recurrence_id se for recorrente
+    const recurrenceId = income.isRecurring ? (income.recurrenceId || crypto.randomUUID()) : null;
+    
     const incomesToInsert: Array<{
       user_id: string;
       category_id: string | null;
@@ -173,6 +177,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       is_recurring: boolean;
       is_received: boolean;
       account_id: string | null;
+      recurrence_id: string | null;
     }> = [];
 
     // If recurring, create 12 months of income
@@ -192,6 +197,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           is_recurring: income.isRecurring,
           is_received: income.isReceived ?? false,
           account_id: income.accountId || null,
+          recurrence_id: recurrenceId,
         });
       }
     } else {
@@ -206,11 +212,12 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         is_recurring: income.isRecurring,
         is_received: income.isReceived ?? false,
         account_id: income.accountId || null,
+        recurrence_id: recurrenceId,
       });
     }
 
-    const { data, error } = await supabase
-      .from('incomes')
+    const { data, error } = await (supabase
+      .from('incomes') as any)
       .insert(incomesToInsert)
       .select();
     
@@ -221,7 +228,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     }
     
     if (data) {
-      const newIncomes = data.map(i => {
+      const newIncomes = data.map((i: any) => {
         // Parse date string as local date to avoid timezone issues
         const [year, month, day] = i.receive_date.split('-').map(Number);
         const receiveDate = new Date(year, month - 1, day);
@@ -237,6 +244,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           isRecurring: i.is_recurring,
           isReceived: i.is_received ?? false,
           accountId: i.account_id || undefined,
+          recurrenceId: i.recurrence_id || undefined,
           userId: i.user_id,
           createdAt: new Date(i.created_at),
         };

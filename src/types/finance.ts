@@ -47,6 +47,7 @@ export interface Expense {
   currentInstallment?: number;
   observation?: string;
   isPaid: boolean;
+  recurrenceId?: string;
   userId: string;
   createdAt: Date;
 }
