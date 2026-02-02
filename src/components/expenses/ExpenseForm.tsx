@@ -47,6 +47,10 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
+
+  const filteredSubcategories = subcategories.filter(s => s.categoryId === categoryId);
+  const selectedCategory = categories.find(c => c.id === categoryId);
 
   useEffect(() => {
     if (expense) {
@@ -61,6 +65,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       setIsRecurring(expense.isRecurring);
       setInstallments(expense.installments?.toString() || '1');
       setIsPaid(expense.isPaid ?? false);
+      setErrors({});
     } else {
       resetForm();
     }
@@ -78,21 +83,45 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     setIsRecurring(false);
     setInstallments('1');
     setIsPaid(false);
+    setErrors({});
   };
 
   const formatCurrencyInput = (value: string) => {
     const numericValue = value.replace(/\D/g, '');
+    if (!numericValue) return '';
     const floatValue = Number(numericValue) / 100;
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     }).format(floatValue);
   };
+  
+  const validate = () => {
+    const newErrors: Record<string, boolean> = {};
+    const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+
+    if (!description.trim()) newErrors.description = true;
+    if (numericAmount <= 0) newErrors.amount = true;
+    if (!date) newErrors.date = true;
+    if (!categoryId) newErrors.categoryId = true;
+    if (filteredSubcategories.length > 0 && !subcategoryId) newErrors.subcategoryId = true;
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      if (newErrors.description) toast.error('O campo Descrição é obrigatório.');
+      if (newErrors.amount) toast.error('O campo Valor é obrigatório e deve ser maior que zero.');
+      if (newErrors.date) toast.error('O campo Data é obrigatório.');
+      if (newErrors.categoryId) toast.error('O campo Categoria é obrigatório.');
+      if (newErrors.subcategoryId) toast.error('O campo Subcategoria é obrigatório para esta categoria.');
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description || !amount || !date || !categoryId) {
-      toast.error('Preencha os campos obrigatórios');
+    if (!validate()) {
       return;
     }
 
@@ -115,57 +144,59 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         isPaid,
       };
 
-      // Etapa 2: Interceptar o Submit para Recorrência
       const isRecurringSeries = expense && (expense.isRecurring || expense.recurrenceId || (expense as any).recurrence_id);
 
-      // Caso 1: Edição de uma série já existente (Modal de Confirmação)
-      if (isRecurringSeries) {
-        // Se for uma edição de recorrente, SEMPRE pergunta o escopo, 
-        // pois o usuário pode querer alterar apenas esta ou todas.
-        if (expense) { 
+      if (expense) { // Editing an existing expense
+        if (isRecurringSeries) {
           setPendingData(expenseData);
           setRecurrenceDialogOpen(true);
           setIsSubmitting(false);
           return;
         }
-      }
+        
+        // From single to recurring
+        if (!isRecurringSeries && isRecurring) {
+          await removeExpense(expense.id);
+          
+          const newRecurrenceId = crypto.randomUUID();
+          await addExpense({ ...expenseData, recurrenceId: newRecurrenceId });
+          
+          const limit = installments ? parseInt(installments) - 1 : 11;
+          for (let i = 1; i <= limit; i++) {
+            const nextDate = addMonths(new Date(date), i);
+            await addExpense({ ...expenseData, dueDate: nextDate, expenseDate: nextDate, recurrenceId: newRecurrenceId });
+          }
 
-      // Caso 2: Transformação de Única para Recorrente (Geração Automática)
-      if (expense && !isRecurringSeries && isRecurring) {
-        // Remove a despesa antiga
-        await removeExpense(expense.id);
-        
-        // Gera ID de recorrência para vincular o grupo
-        const newRecurrenceId = crypto.randomUUID();
-        
-        // Cria a despesa atual com o ID de recorrência
-        await addExpense({ ...expenseData, recurrenceId: newRecurrenceId } as any);
-        
-        // Loop para gerar as futuras (12 meses ou conforme parcelas)
-        const limit = installments ? parseInt(installments) - 1 : 11;
-        const baseDate = new Date(date);
-
-        for (let i = 1; i <= limit; i++) {
-          const nextDate = addMonths(baseDate, i);
-          // Clona os dados, ajusta a data e mantém o vínculo
-          await addExpense({ ...expenseData, dueDate: nextDate, expenseDate: nextDate, recurrenceId: newRecurrenceId } as any);
+          toast.success('Despesa transformada em recorrente!');
+        } else {
+          await updateExpense(expense.id, expenseData);
+          toast.success('Despesa atualizada!');
         }
-
-        toast.success('Despesa transformada em recorrente e registros futuros gerados!');
-        onOpenChange(false);
-        return;
+      } else { // Creating a new expense
+        if (isRecurring) {
+          const newRecurrenceId = crypto.randomUUID();
+          await addExpense({ ...expenseData, recurrenceId: newRecurrenceId });
+          
+          const limit = installments ? parseInt(installments) - 1 : 11;
+          for (let i = 1; i <= limit; i++) {
+            const nextDate = addMonths(new Date(date), i);
+            await addExpense({ ...expenseData, dueDate: nextDate, expenseDate: nextDate, recurrenceId: newRecurrenceId });
+          }
+          toast.success('Despesa recorrente criada!');
+        } else {
+          await addExpense(expenseData);
+          toast.success('Despesa criada!');
+        }
       }
-
-      if (expense) {
-        await updateExpense(expense.id, expenseData);
-        toast.success('Despesa atualizada!');
-      } else {
-        await addExpense(expenseData);
-        toast.success('Despesa criada!');
-      }
+      
       onOpenChange(false);
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+       console.error('Erro detalhado do Supabase:', {
+        message: error.message,
+        details: error.details,
+        code: error.code,
+      });
+      toast.error(`Erro ao salvar: ${error.details || error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -177,7 +208,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id;
       if (!recurrenceId && scope !== 'single') {
         toast.info("Esta não é uma despesa recorrente. Apenas este registro será atualizado.");
-        // Fallback to single update if something goes wrong
         await handleRecurrenceUpdate('single'); 
         return;
       }
@@ -232,7 +262,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
             if (countError) throw countError;
 
-            if (desiredInstallments > count) {
+            if (count !== null && desiredInstallments > count) {
                 const { data: lastExpense, error: lastExpenseError } = await supabase.from('expenses')
                     .select('due_date').eq('recurrence_id', recurrenceId).order('due_date', { ascending: false }).limit(1).single();
                 
@@ -244,10 +274,19 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                     const nextDate = addMonths(lastDate, i);
                     newExpenses.push({
                       ...dados,
+                      description: pendingData.description,
+                      amount: pendingData.amount,
+                      category_id: pendingData.categoryId,
+                      subcategory_id: pendingData.subcategoryId || null,
+                      payment_method: pendingData.paymentMethod,
+                      account_id: pendingData.accountId || null,
+                      card_id: pendingData.cardId || null,
+                      is_recurring: pendingData.isRecurring,
+                      installments: pendingData.installments,
                       recurrence_id: recurrenceId,
                       due_date: format(nextDate, 'yyyy-MM-dd'),
                       expense_date: format(nextDate, 'yyyy-MM-dd'),
-                      is_paid: false, // New future expenses are not paid
+                      is_paid: false,
                       user_id: expense?.userId
                     });
                 }
@@ -275,9 +314,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     }
   };
 
-  const filteredSubcategories = subcategories.filter(s => s.categoryId === categoryId);
-  const selectedCategory = categories.find(c => c.id === categoryId);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
@@ -286,9 +322,9 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Categoria</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger>
+            <Label htmlFor="category">Categoria <span className="text-red-500">*</span></Label>
+            <Select value={categoryId} onValueChange={(value) => { setCategoryId(value); setSubcategoryId(''); setErrors(prev => ({...prev, categoryId: false, subcategoryId: false})); }}>
+              <SelectTrigger id="category" className={cn(errors.categoryId && "border-red-500")}>
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
@@ -308,10 +344,10 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
           {filteredSubcategories.length > 0 && (
             <div className="space-y-2">
-              <Label>Subcategoria</Label>
-              <Select value={subcategoryId} onValueChange={setSubcategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione (Opcional)" />
+              <Label htmlFor="subcategory">Subcategoria <span className="text-red-500">*</span></Label>
+              <Select value={subcategoryId} onValueChange={(value) => { setSubcategoryId(value); setErrors(prev => ({...prev, subcategoryId: false})); }}>
+                <SelectTrigger id="subcategory" className={cn(errors.subcategoryId && "border-red-500")}>
+                  <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
                   {filteredSubcategories.map((sub) => (
@@ -324,34 +360,39 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Valor</Label>
+              <Label htmlFor="amount">Valor <span className="text-red-500">*</span></Label>
               <Input 
+                id="amount"
                 placeholder="R$ 0,00" 
                 value={amount} 
                 onChange={(e) => setAmount(formatCurrencyInput(e.target.value))}
-                className={cn("text-right font-medium", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+                className={cn("text-right font-medium", errors.amount && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
               />
             </div>
             <div className="space-y-2">
-              <Label>Data</Label>
+              <Label htmlFor="date">Data <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
+                  id="date"
                   type="date" 
                   value={date} 
                   onChange={(e) => setDate(e.target.value)} 
-                  className={cn("pl-9", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+                  className={cn("pl-9", errors.date && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
                 />
               </div>
             </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description">Descrição <span className="text-red-500">*</span></Label>
+            <Input id="description" placeholder="Ex: Supermercado" value={description} onChange={(e) => setDescription(e.target.value)} className={cn(errors.description && "border-red-500")} />
           </div>
 
           <div className="space-y-2">
               <Label>Forma de Pagamento</Label>
               <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pix">PIX / Dinheiro</SelectItem>
                   <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
@@ -388,7 +429,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
               </div>
           )}
 
-          {/* Bloco de Controle (Agrupado) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border rounded-md p-4 bg-muted/20">
             <div className="flex flex-col gap-2">
               <Label htmlFor="status-switch" className="text-sm font-medium">Status do Pagamento</Label>
@@ -414,11 +454,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label>Descrição</Label>
-            <Input placeholder="Ex: Supermercado" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={isSubmitting}>
@@ -428,8 +463,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
           </DialogFooter>
         </form>
       </DialogContent>
-
-      {/* Etapa 1: Criar o Modal de Escolha */}
       <AlertDialog open={recurrenceDialogOpen} onOpenChange={setRecurrenceDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -46,6 +46,10 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
+
+  const filteredSubcategories = incomeSubcategories.filter(s => s.categoryId === categoryId);
+  const selectedCategory = incomeCategories.find(c => c.id === categoryId);
 
   useEffect(() => {
     if (income) {
@@ -57,6 +61,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       setAccountId(income.accountId || '');
       setIsReceived(income.isReceived);
       setIsRecurring(income.isRecurring);
+      setErrors({});
     } else {
       resetForm();
     }
@@ -71,10 +76,12 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     setAccountId('');
     setIsReceived(true);
     setIsRecurring(false);
+    setErrors({});
   };
 
   const formatCurrencyInput = (value: string) => {
     const numericValue = value.replace(/\D/g, '');
+    if (!numericValue) return '';
     const floatValue = Number(numericValue) / 100;
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -82,10 +89,32 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     }).format(floatValue);
   };
 
+  const validate = () => {
+    const newErrors: Record<string, boolean> = {};
+    const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+
+    if (!title.trim()) newErrors.title = true;
+    if (numericAmount <= 0) newErrors.amount = true;
+    if (!date) newErrors.date = true;
+    if (!categoryId) newErrors.categoryId = true;
+    if (filteredSubcategories.length > 0 && !subcategoryId) newErrors.subcategoryId = true;
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      if (newErrors.title) toast.error('O campo Descrição é obrigatório.');
+      if (newErrors.amount) toast.error('O campo Valor é obrigatório e deve ser maior que zero.');
+      if (newErrors.date) toast.error('O campo Data é obrigatório.');
+      if (newErrors.categoryId) toast.error('O campo Categoria é obrigatório.');
+      if (newErrors.subcategoryId) toast.error('O campo Subcategoria é obrigatório para esta categoria.');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !amount || !date || !categoryId) {
-      toast.error('Preencha os campos obrigatórios');
+    if (!validate()) {
       return;
     }
 
@@ -104,52 +133,58 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         isRecurring,
       };
 
-      // Etapa 2: Interceptar o Submit para Recorrência
       const isRecurringSeries = income && (income.isRecurring || income.recurrenceId || (income as any).recurrence_id);
 
-      // Caso 1: Edição de uma série já existente (Modal de Confirmação)
-      if (isRecurringSeries) {
-        if (income) {
+      if (income) { // Editing an existing income
+        if (isRecurringSeries) {
           setPendingData(incomeData);
           setRecurrenceDialogOpen(true);
           setIsSubmitting(false);
           return;
         }
-      }
 
-      // Caso 2: Transformação de Única para Recorrente (Geração Automática)
-      if (income && !isRecurringSeries && isRecurring) {
-        // Remove a receita antiga
-        await removeIncome(income.id);
-        
-        // Gera ID de recorrência
-        const newRecurrenceId = crypto.randomUUID();
-        
-        // Cria a atual
-        await addIncome({ ...incomeData, recurrenceId: newRecurrenceId } as any);
-        
-        // Loop para futuras (12 meses padrão para receitas recorrentes)
-        const baseDate = new Date(date);
-        for (let i = 1; i <= 11; i++) {
-          const nextDate = addMonths(baseDate, i);
-          await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId } as any);
+        // From single to recurring
+        if (!isRecurringSeries && isRecurring) {
+          await removeIncome(income.id);
+          
+          const newRecurrenceId = crypto.randomUUID();
+          await addIncome({ ...incomeData, recurrenceId: newRecurrenceId });
+          
+          // Create next 11 entries
+          for (let i = 1; i <= 11; i++) {
+            const nextDate = addMonths(new Date(date), i);
+            await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId });
+          }
+          toast.success('Receita transformada em recorrente!');
+        } else {
+          await updateIncome(income.id, incomeData);
+          toast.success('Receita atualizada!');
         }
-
-        toast.success('Receita transformada em recorrente e registros futuros gerados!');
-        onOpenChange(false);
-        return;
+      } else { // Creating a new income
+        if (isRecurring) {
+          const newRecurrenceId = crypto.randomUUID();
+          await addIncome({ ...incomeData, recurrenceId: newRecurrenceId });
+          
+          // Create next 11 entries
+          for (let i = 1; i <= 11; i++) {
+            const nextDate = addMonths(new Date(date), i);
+            await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId });
+          }
+          toast.success('Receita recorrente criada!');
+        } else {
+          await addIncome(incomeData);
+          toast.success('Receita criada!');
+        }
       }
-
-      if (income) {
-        await updateIncome(income.id, incomeData);
-        toast.success('Receita atualizada!');
-      } else {
-        await addIncome(incomeData);
-        toast.success('Receita criada!');
-      }
+      
       onOpenChange(false);
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error('Erro detalhado do Supabase:', {
+        message: error.message,
+        details: error.details,
+        code: error.code,
+      });
+      toast.error(`Erro ao salvar: ${error.details || error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -222,9 +257,6 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     }
   };
 
-  const filteredSubcategories = incomeSubcategories.filter(s => s.categoryId === categoryId);
-  const selectedCategory = incomeCategories.find(c => c.id === categoryId);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
@@ -232,10 +264,10 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           <DialogTitle>{income ? 'Editar Receita' : 'Nova Receita'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Categoria</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger>
+           <div className="space-y-2">
+            <Label htmlFor="income-category">Categoria <span className="text-red-500">*</span></Label>
+            <Select value={categoryId} onValueChange={(value) => { setCategoryId(value); setSubcategoryId(''); setErrors(prev => ({...prev, categoryId: false, subcategoryId: false})); }}>
+              <SelectTrigger id="income-category" className={cn(errors.categoryId && "border-red-500")}>
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
@@ -255,10 +287,10 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
 
           {filteredSubcategories.length > 0 && (
             <div className="space-y-2">
-              <Label>Subcategoria</Label>
-              <Select value={subcategoryId} onValueChange={setSubcategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione (Opcional)" />
+              <Label htmlFor="income-subcategory">Subcategoria <span className="text-red-500">*</span></Label>
+              <Select value={subcategoryId} onValueChange={(value) => { setSubcategoryId(value); setErrors(prev => ({...prev, subcategoryId: false})); }}>
+                <SelectTrigger id="income-subcategory" className={cn(errors.subcategoryId && "border-red-500")}>
+                  <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
                   {filteredSubcategories.map((sub) => (
@@ -271,26 +303,33 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Valor</Label>
+              <Label htmlFor="income-amount">Valor <span className="text-red-500">*</span></Label>
               <Input 
+                id="income-amount"
                 placeholder="R$ 0,00" 
                 value={amount} 
                 onChange={(e) => setAmount(formatCurrencyInput(e.target.value))}
-                className={cn("text-right font-medium", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+                className={cn("text-right font-medium", errors.amount && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
               />
             </div>
             <div className="space-y-2">
-              <Label>Data</Label>
+              <Label htmlFor="income-date">Data <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
+                  id="income-date"
                   type="date" 
                   value={date} 
                   onChange={(e) => setDate(e.target.value)} 
-                  className={cn("pl-9", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+                  className={cn("pl-9", errors.date && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
                 />
               </div>
             </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="income-title">Descrição <span className="text-red-500">*</span></Label>
+            <Input id="income-title" placeholder="Ex: Salário Mensal" value={title} onChange={(e) => setTitle(e.target.value)} className={cn(errors.title && "border-red-500")} />
           </div>
 
           <div className="space-y-2">
@@ -307,7 +346,6 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
               </Select>
           </div>
 
-          {/* Bloco de Controle (Agrupado) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border rounded-md p-4 bg-muted/20">
             <div className="flex flex-col gap-2">
               <Label htmlFor="status-switch" className="text-sm font-medium">Status do Recebimento</Label>
@@ -326,11 +364,6 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Descrição</Label>
-            <Input placeholder="Ex: Salário Mensal" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={isSubmitting}>
@@ -340,8 +373,6 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           </DialogFooter>
         </form>
       </DialogContent>
-
-      {/* Etapa 1: Criar o Modal de Escolha */}
       <AlertDialog open={recurrenceDialogOpen} onOpenChange={setRecurrenceDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

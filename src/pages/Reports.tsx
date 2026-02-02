@@ -18,6 +18,7 @@ import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import { Document, Packer, Paragraph, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, TextRun, WidthType, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
+import { useIdleTimeout } from '@/hooks/useIdleTimeout';
 // Temporarily disabled charts to fix build error
 // import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -48,6 +49,8 @@ const NoDataPlaceholder = ({ children }: { children: ReactNode }) => (
 const formatMoney = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
 export default function Reports() {
+  useIdleTimeout(); // Set up idle timeout for this page
+
   const { user } = useAuth();
   const { expenses, categories, getCategoryById, getSubcategoryById, isLoading: financeLoading } = useFinance();
   const { incomes, incomeCategories, getIncomeCategoryById, getIncomeSubcategoryById, isLoading: incomeLoading } = useIncome();
