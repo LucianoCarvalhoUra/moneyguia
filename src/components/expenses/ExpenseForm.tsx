@@ -46,9 +46,11 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const [installments, setInstallments] = useState('1');
   const [isPaid, setIsPaid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [simpleDeleteDialogOpen, setSimpleDeleteDialogOpen] = useState(false);
+  const [actionType, setActionType] = useState<'save' | 'delete' | null>(null);
+  const [pendingData, setPendingData] = useState<any>(null);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
-  const [scope, setScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
 
   const filteredSubcategories = subcategories.filter(s => s.categoryId === categoryId);
   const selectedCategory = categories.find(c => c.id === categoryId);
@@ -67,7 +69,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       setInstallments(expense.installments?.toString() || '1');
       setIsPaid(expense.isPaid ?? false);
       setErrors({});
-      setScope('single');
     } else {
       resetForm();
     }
@@ -86,7 +87,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     setInstallments('1');
     setIsPaid(false);
     setErrors({});
-    setScope('single');
   };
 
   const formatCurrencyInput = (value: string) => {
@@ -151,7 +151,9 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
       if (expense) { // Editing an existing expense
         if (isRecurringSeries) {
-          await handleRecurrenceUpdate(scope, expenseData);
+          setPendingData(expenseData);
+          setActionType('save');
+          setScopeDialogOpen(true);
           return;
         }
         
@@ -314,7 +316,17 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    if (!expense) return;
+    if (isRecurringSeries) {
+      setActionType('delete');
+      setScopeDialogOpen(true);
+    } else {
+      setSimpleDeleteDialogOpen(true);
+    }
+  };
+
+  const performDelete = async (scope: 'single' | 'future' | 'past' | 'all') => {
     if (!expense) return;
     setIsSubmitting(true);
     try {
@@ -341,8 +353,32 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       toast.error(`Erro ao excluir: ${error.message}`);
     } finally {
       setIsSubmitting(false);
-      setDeleteDialogOpen(false);
+      setScopeDialogOpen(false);
     }
+  };
+
+  const performSimpleDelete = async () => {
+    if (!expense) return;
+    setIsSubmitting(true);
+    try {
+      await removeExpense(expense.id);
+      toast.success('Despesa excluída com sucesso!');
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error(`Erro ao excluir: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+      setSimpleDeleteDialogOpen(false);
+    }
+  };
+
+  const handleScopeSelection = (scope: 'single' | 'future' | 'past' | 'all') => {
+    if (actionType === 'save') {
+      handleRecurrenceUpdate(scope, pendingData);
+    } else if (actionType === 'delete') {
+      performDelete(scope);
+    }
+    setScopeDialogOpen(false);
   };
 
   return (
@@ -485,40 +521,9 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             )}
           </div>
 
-          {isRecurringSeries && (
-            <div className="space-y-3 pt-2 border-t">
-              <Label className="text-base font-medium">Aplicar alterações para:</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {[
-                  { value: 'single', label: 'Apenas esta', desc: 'Apenas este registro', icon: Calendar },
-                  { value: 'future', label: 'Esta e futuras', desc: 'Deste vencimento em diante', icon: CalendarClock },
-                  { value: 'past', label: 'Esta e passadas', desc: 'Do vencimento atual para trás', icon: History },
-                  { value: 'all', label: 'Todas', desc: 'Todo o histórico da série', icon: CalendarDays },
-                ].map((option) => (
-                  <div
-                    key={option.value}
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-accent",
-                      scope === option.value ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
-                    )}
-                    onClick={() => setScope(option.value as any)}
-                  >
-                    <div className="p-2 bg-muted rounded-full">
-                      <option.icon className="w-4 h-4" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-medium text-sm">{option.label}</p>
-                      <p className="text-xs text-muted-foreground">{option.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <DialogFooter className="gap-2 sm:gap-0">
             {expense && (
-              <Button type="button" variant="destructive" className="mr-auto" onClick={() => setDeleteDialogOpen(true)}>
+              <Button type="button" variant="destructive" className="mr-auto" onClick={handleDeleteClick}>
                 <Trash2 className="w-4 h-4 mr-2" />
                 Excluir
               </Button>
@@ -533,15 +538,60 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
           </DialogFooter>
         </form>
       </DialogContent>
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      
+      {/* Scope Selection Dialog */}
+      <AlertDialog open={scopeDialogOpen} onOpenChange={setScopeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {actionType === 'save' ? 'Confirmar Alteração' : 'Confirmar Exclusão'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta despesa é recorrente. Como deseja aplicar a {actionType === 'save' ? 'alteração' : 'exclusão'}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-4">
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleScopeSelection('single')}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-muted rounded-full"><Calendar className="w-4 h-4" /></div>
+                <div className="text-left"><p className="font-medium">Apenas esta</p><p className="text-xs text-muted-foreground">Apenas este registro</p></div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleScopeSelection('future')}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-muted rounded-full"><CalendarClock className="w-4 h-4" /></div>
+                <div className="text-left"><p className="font-medium">Esta e futuras</p><p className="text-xs text-muted-foreground">Deste vencimento em diante</p></div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleScopeSelection('past')}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-muted rounded-full"><History className="w-4 h-4" /></div>
+                <div className="text-left"><p className="font-medium">Esta e passadas</p><p className="text-xs text-muted-foreground">Do vencimento atual para trás</p></div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleScopeSelection('all')}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-muted rounded-full"><CalendarDays className="w-4 h-4" /></div>
+                <div className="text-left"><p className="font-medium">Todas</p><p className="text-xs text-muted-foreground">Todo o histórico da série</p></div>
+              </div>
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Simple Delete Confirmation */}
+      <AlertDialog open={simpleDeleteDialogOpen} onOpenChange={setSimpleDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-            <AlertDialogDescription>Tem certeza que deseja excluir {scope === 'single' ? 'esta despesa' : 'as despesas selecionadas'}?</AlertDialogDescription>
+            <AlertDialogDescription>Tem certeza que deseja excluir esta despesa?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={performSimpleDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
