@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -19,7 +20,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Expense, PaymentMethod } from '@/types/finance';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays, History } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays, History, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addMonths } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -45,9 +46,9 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const [installments, setInstallments] = useState('1');
   const [isPaid, setIsPaid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
-  const [pendingData, setPendingData] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [scope, setScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
 
   const filteredSubcategories = subcategories.filter(s => s.categoryId === categoryId);
   const selectedCategory = categories.find(c => c.id === categoryId);
@@ -66,6 +67,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       setInstallments(expense.installments?.toString() || '1');
       setIsPaid(expense.isPaid ?? false);
       setErrors({});
+      setScope('single');
     } else {
       resetForm();
     }
@@ -84,6 +86,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     setInstallments('1');
     setIsPaid(false);
     setErrors({});
+    setScope('single');
   };
 
   const formatCurrencyInput = (value: string) => {
@@ -119,6 +122,8 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     return true;
   };
 
+  const isRecurringSeries = expense && (expense.isRecurring || expense.recurrenceId || (expense as any).recurrence_id);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) {
@@ -144,13 +149,9 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         isPaid,
       };
 
-      const isRecurringSeries = expense && (expense.isRecurring || expense.recurrenceId || (expense as any).recurrence_id);
-
       if (expense) { // Editing an existing expense
         if (isRecurringSeries) {
-          setPendingData(expenseData);
-          setRecurrenceDialogOpen(true);
-          setIsSubmitting(false);
+          await handleRecurrenceUpdate(scope, expenseData);
           return;
         }
         
@@ -202,34 +203,34 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     }
   };
 
-  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all') => {
+  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all', data: any) => {
     setIsSubmitting(true);
     try {
       const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id;
       if (!recurrenceId && scope !== 'single') {
         toast.info("Esta não é uma despesa recorrente. Apenas este registro será atualizado.");
-        await handleRecurrenceUpdate('single'); 
+        await handleRecurrenceUpdate('single', data); 
         return;
       }
       
       console.log('Filtro utilizado:', recurrenceId, 'Escopo:', scope);
 
       const dados = {
-        description: pendingData.description,
-        amount: pendingData.amount,
-        category_id: pendingData.categoryId,
-        subcategory_id: pendingData.subcategoryId || null,
-        payment_method: pendingData.paymentMethod,
-        account_id: pendingData.accountId || null,
-        card_id: pendingData.cardId || null,
-        is_recurring: pendingData.isRecurring,
-        installments: pendingData.installments,
+        description: data.description,
+        amount: data.amount,
+        category_id: data.categoryId,
+        subcategory_id: data.subcategoryId || null,
+        payment_method: data.paymentMethod,
+        account_id: data.accountId || null,
+        card_id: data.cardId || null,
+        is_recurring: data.isRecurring,
+        installments: data.installments,
       };
 
       let successMessage = '';
 
       if (scope === 'single') {
-        const singleData = { ...dados, due_date: pendingData.dueDate, expense_date: pendingData.expenseDate, is_paid: pendingData.isPaid };
+        const singleData = { ...dados, due_date: data.dueDate, expense_date: data.expenseDate, is_paid: data.isPaid };
         const { error } = await supabase.from('expenses').update(singleData).eq('id', expense!.id);
         if (error) throw error;
         successMessage = 'Despesa atualizada com sucesso!';
@@ -242,7 +243,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       } else if (scope === 'past') {
         const { error } = await supabase.from('expenses').update(dados)
           .eq('recurrence_id', recurrenceId)
-          .lte('due_date', format(new Date(pendingData.dueDate), 'yyyy-MM-dd'));
+          .lte('due_date', format(new Date(data.dueDate), 'yyyy-MM-dd'));
         if (error) throw error;
         successMessage = 'Despesa atual e passadas atualizadas!';
       
@@ -250,12 +251,12 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         // 1. Update
         const { error: updateError } = await supabase.from('expenses').update(dados)
           .eq('recurrence_id', recurrenceId)
-          .gte('due_date', format(new Date(pendingData.dueDate), 'yyyy-MM-dd'));
+          .gte('due_date', format(new Date(data.dueDate), 'yyyy-MM-dd'));
         if (updateError) throw updateError;
 
         // 2. Insert if installments increased
-        const desiredInstallments = pendingData.installments || 0;
-        if (pendingData.isRecurring && desiredInstallments > 1) {
+        const desiredInstallments = data.installments || 0;
+        if (data.isRecurring && desiredInstallments > 1) {
             const { count, error: countError } = await supabase.from('expenses')
                 .select('*', { count: 'exact', head: true })
                 .eq('recurrence_id', recurrenceId);
@@ -274,15 +275,15 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                     const nextDate = addMonths(lastDate, i);
                     newExpenses.push({
                       ...dados,
-                      description: pendingData.description,
-                      amount: pendingData.amount,
-                      category_id: pendingData.categoryId,
-                      subcategory_id: pendingData.subcategoryId || null,
-                      payment_method: pendingData.paymentMethod,
-                      account_id: pendingData.accountId || null,
-                      card_id: pendingData.cardId || null,
-                      is_recurring: pendingData.isRecurring,
-                      installments: pendingData.installments,
+                      description: data.description,
+                      amount: data.amount,
+                      category_id: data.categoryId,
+                      subcategory_id: data.subcategoryId || null,
+                      payment_method: data.paymentMethod,
+                      account_id: data.accountId || null,
+                      card_id: data.cardId || null,
+                      is_recurring: data.isRecurring,
+                      installments: data.installments,
                       recurrence_id: recurrenceId,
                       due_date: format(nextDate, 'yyyy-MM-dd'),
                       expense_date: format(nextDate, 'yyyy-MM-dd'),
@@ -310,7 +311,37 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       toast.error(`Erro ao atualizar: ${error.details || error.message}`);
     } finally {
       setIsSubmitting(false);
-      setRecurrenceDialogOpen(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!expense) return;
+    setIsSubmitting(true);
+    try {
+      const { recurrenceId, id, dueDate } = expense;
+      let query;
+
+      if (scope === 'single' || !recurrenceId) {
+        query = supabase.from('expenses').delete().eq('id', id);
+      } else if (scope === 'future') {
+        query = supabase.from('expenses').delete().eq('recurrence_id', recurrenceId).gte('due_date', format(new Date(dueDate), 'yyyy-MM-dd'));
+      } else if (scope === 'past') {
+        query = supabase.from('expenses').delete().eq('recurrence_id', recurrenceId).lte('due_date', format(new Date(dueDate), 'yyyy-MM-dd'));
+      } else { // 'all'
+        query = supabase.from('expenses').delete().eq('recurrence_id', recurrenceId);
+      }
+
+      const { error } = await query;
+      if (error) throw error;
+
+      toast.success('Despesa(s) excluída(s) com sucesso!');
+      await refreshData();
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error(`Erro ao excluir: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -454,71 +485,63 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             )}
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
+          {isRecurringSeries && (
+            <div className="space-y-3 pt-2 border-t">
+              <Label className="text-base font-medium">Aplicar alterações para:</Label>
+              <div className="grid grid-cols-1 gap-2">
+                {[
+                  { value: 'single', label: 'Apenas esta', desc: 'Apenas este registro', icon: Calendar },
+                  { value: 'future', label: 'Esta e futuras', desc: 'Deste vencimento em diante', icon: CalendarClock },
+                  { value: 'past', label: 'Esta e passadas', desc: 'Do vencimento atual para trás', icon: History },
+                  { value: 'all', label: 'Todas', desc: 'Todo o histórico da série', icon: CalendarDays },
+                ].map((option) => (
+                  <div
+                    key={option.value}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-accent",
+                      scope === option.value ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
+                    )}
+                    onClick={() => setScope(option.value as any)}
+                  >
+                    <div className="p-2 bg-muted rounded-full">
+                      <option.icon className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-sm">{option.label}</p>
+                      <p className="text-xs text-muted-foreground">{option.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            {expense && (
+              <Button type="button" variant="destructive" className="mr-auto" onClick={() => setDeleteDialogOpen(true)}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
-      <AlertDialog open={recurrenceDialogOpen} onOpenChange={setRecurrenceDialogOpen}>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Alteração em Recorrência</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta despesa é recorrente. Como deseja aplicar as alterações?
-            </AlertDialogDescription>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja excluir {scope === 'single' ? 'esta despesa' : 'as despesas selecionadas'}?</AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="flex flex-col gap-2 py-4">
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('single')}>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded-full">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Apenas esta</p>
-                  <p className="text-xs text-muted-foreground">Altera somente este registro</p>
-                </div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('future')}>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded-full">
-                  <CalendarClock className="w-4 h-4" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Esta e futuras</p>
-                  <p className="text-xs text-muted-foreground">Deste vencimento em diante</p>
-                </div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('past')}>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded-full">
-                  <History className="w-4 h-4" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Esta e Passadas</p>
-                  <p className="text-xs text-muted-foreground">Do vencimento atual para trás</p>
-                </div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded-full">
-                  <CalendarDays className="w-4 h-4" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Todas</p>
-                  <p className="text-xs text-muted-foreground">Todo o histórico da série</p>
-                </div>
-              </div>
-            </Button>
-          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

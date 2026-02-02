@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -20,7 +21,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Income } from '@/types/income';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays, History } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays, History, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addMonths } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -44,9 +45,9 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const [isReceived, setIsReceived] = useState(true);
   const [isRecurring, setIsRecurring] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [recurrenceDialogOpen, setRecurrenceDialogOpen] = useState(false);
-  const [pendingData, setPendingData] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [scope, setScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
 
   const filteredSubcategories = incomeSubcategories.filter(s => s.categoryId === categoryId);
   const selectedCategory = incomeCategories.find(c => c.id === categoryId);
@@ -62,6 +63,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       setIsReceived(income.isReceived);
       setIsRecurring(income.isRecurring);
       setErrors({});
+      setScope('single');
     } else {
       resetForm();
     }
@@ -77,6 +79,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     setIsReceived(true);
     setIsRecurring(false);
     setErrors({});
+    setScope('single');
   };
 
   const formatCurrencyInput = (value: string) => {
@@ -112,6 +115,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     return true;
   };
 
+  const isRecurringSeries = income && (income.isRecurring || income.recurrenceId || (income as any).recurrence_id);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) {
@@ -133,13 +138,9 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         isRecurring,
       };
 
-      const isRecurringSeries = income && (income.isRecurring || income.recurrenceId || (income as any).recurrence_id);
-
       if (income) { // Editing an existing income
         if (isRecurringSeries) {
-          setPendingData(incomeData);
-          setRecurrenceDialogOpen(true);
-          setIsSubmitting(false);
+          await handleRecurrenceUpdate(scope, incomeData);
           return;
         }
 
@@ -190,32 +191,32 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     }
   };
 
-  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all') => {
+  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all', data: any) => {
     setIsSubmitting(true);
     try {
       const recurrenceId = income?.recurrenceId || (income as any)?.recurrence_id;
        if (!recurrenceId && scope !== 'single') {
         toast.info("Esta não é uma receita recorrente. Apenas este registro será atualizado.");
-        await handleRecurrenceUpdate('single');
+        await handleRecurrenceUpdate('single', data);
         return;
       }
 
       console.log('Filtro utilizado:', recurrenceId, 'Escopo:', scope);
 
       const dados = {
-        title: pendingData.title,
-        amount: pendingData.amount,
-        category_id: pendingData.categoryId,
-        subcategory_id: pendingData.subcategoryId || null,
-        account_id: pendingData.accountId || null,
-        is_received: pendingData.isReceived,
-        is_recurring: pendingData.isRecurring,
+        title: data.title,
+        amount: data.amount,
+        category_id: data.categoryId,
+        subcategory_id: data.subcategoryId || null,
+        account_id: data.accountId || null,
+        is_received: data.isReceived,
+        is_recurring: data.isRecurring,
       };
 
       let successMessage = '';
 
       if (scope === 'single') {
-        const singleData = { ...dados, receive_date: pendingData.receiveDate };
+        const singleData = { ...dados, receive_date: data.receiveDate };
         const { error } = await supabase.from('incomes').update(singleData).eq('id', income!.id);
         if (error) throw error;
         successMessage = 'Receita atualizada com sucesso!';
@@ -228,14 +229,14 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       } else if (scope === 'past') {
         const { error } = await supabase.from('incomes').update(dados)
           .eq('recurrence_id', recurrenceId)
-          .lte('receive_date', format(new Date(pendingData.receiveDate), 'yyyy-MM-dd'));
+          .lte('receive_date', format(new Date(data.receiveDate), 'yyyy-MM-dd'));
         if (error) throw error;
         successMessage = 'Receita atual e passadas atualizadas!';
       
       } else if (scope === 'future') {
         const { error } = await supabase.from('incomes').update(dados)
           .eq('recurrence_id', recurrenceId)
-          .gte('receive_date', format(new Date(pendingData.receiveDate), 'yyyy-MM-dd'));
+          .gte('receive_date', format(new Date(data.receiveDate), 'yyyy-MM-dd'));
         if (error) throw error;
         successMessage = 'Receitas futuras atualizadas com sucesso!';
       }
@@ -253,7 +254,37 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       toast.error(`Erro ao atualizar: ${error.details || error.message}`);
     } finally {
       setIsSubmitting(false);
-      setRecurrenceDialogOpen(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!income) return;
+    setIsSubmitting(true);
+    try {
+      const { recurrenceId, id, receiveDate } = income;
+      let query;
+
+      if (scope === 'single' || !recurrenceId) {
+        query = supabase.from('incomes').delete().eq('id', id);
+      } else if (scope === 'future') {
+        query = supabase.from('incomes').delete().eq('recurrence_id', recurrenceId).gte('receive_date', format(new Date(receiveDate), 'yyyy-MM-dd'));
+      } else if (scope === 'past') {
+        query = supabase.from('incomes').delete().eq('recurrence_id', recurrenceId).lte('receive_date', format(new Date(receiveDate), 'yyyy-MM-dd'));
+      } else { // 'all'
+        query = supabase.from('incomes').delete().eq('recurrence_id', recurrenceId);
+      }
+
+      const { error } = await query;
+      if (error) throw error;
+
+      toast.success('Receita(s) excluída(s) com sucesso!');
+      await refreshData();
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error(`Erro ao excluir: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -364,71 +395,63 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
+          {isRecurringSeries && (
+            <div className="space-y-3 pt-2 border-t">
+              <Label className="text-base font-medium">Aplicar alterações para:</Label>
+              <div className="grid grid-cols-1 gap-2">
+                {[
+                  { value: 'single', label: 'Apenas esta', desc: 'Apenas este registro', icon: Calendar },
+                  { value: 'future', label: 'Esta e futuras', desc: 'Deste vencimento em diante', icon: CalendarClock },
+                  { value: 'past', label: 'Esta e passadas', desc: 'Do vencimento atual para trás', icon: History },
+                  { value: 'all', label: 'Todas', desc: 'Todo o histórico da série', icon: CalendarDays },
+                ].map((option) => (
+                  <div
+                    key={option.value}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-accent",
+                      scope === option.value ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
+                    )}
+                    onClick={() => setScope(option.value as any)}
+                  >
+                    <div className="p-2 bg-muted rounded-full">
+                      <option.icon className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-sm">{option.label}</p>
+                      <p className="text-xs text-muted-foreground">{option.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            {income && (
+              <Button type="button" variant="destructive" className="mr-auto" onClick={() => setDeleteDialogOpen(true)}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
-      <AlertDialog open={recurrenceDialogOpen} onOpenChange={setRecurrenceDialogOpen}>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Alteração em Recorrência</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta receita é recorrente. Como deseja aplicar as alterações?
-            </AlertDialogDescription>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja excluir {scope === 'single' ? 'esta receita' : 'as receitas selecionadas'}?</AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="flex flex-col gap-2 py-4">
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('single')}>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded-full">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Apenas esta</p>
-                  <p className="text-xs text-muted-foreground">Altera somente este registro</p>
-                </div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('future')}>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded-full">
-                  <CalendarClock className="w-4 h-4" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Esta e futuras</p>
-                  <p className="text-xs text-muted-foreground">Deste vencimento em diante</p>
-                </div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('past')}>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded-full">
-                  <History className="w-4 h-4" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Esta e Passadas</p>
-                  <p className="text-xs text-muted-foreground">Do vencimento atual para trás</p>
-                </div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded-full">
-                  <CalendarDays className="w-4 h-4" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Todas</p>
-                  <p className="text-xs text-muted-foreground">Todo o histórico da série</p>
-                </div>
-              </div>
-            </Button>
-          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
