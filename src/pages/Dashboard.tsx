@@ -5,7 +5,6 @@ import { useIncome } from '@/contexts/IncomeContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp, AlertTriangle, X } from 'lucide-react';
-import ExpenseSummaryCard from '@/components/dashboard/ExpenseSummaryCard';
 import CategoryChart from '@/components/dashboard/CategoryChart';
 import RecentExpenses from '@/components/dashboard/RecentExpenses';
 import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
@@ -14,7 +13,6 @@ import PendingExpensesList from '@/components/dashboard/PendingExpensesList';
 import { toast } from 'sonner';
 import { addDays, startOfDay, endOfDay, isBefore } from 'date-fns';
 import { DashboardAI } from '@/components/DashboardAI';
-import { CategoryIcon } from '@/components/CategoryIcon';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -199,50 +197,8 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <ExpenseSummaryCard
-          title="Total de Ganhos"
-          value={currentIncomeTotal}
-          previousValue={previousIncomeTotal}
-          icon="income"
-        />
-        <ExpenseSummaryCard
-          title="Total de Gastos"
-          value={currentExpenseTotal}
-          previousValue={previousExpenseTotal}
-          icon="expense"
-        />
-        <ExpenseSummaryCard
-          title="Saldo Previsto"
-          value={projectedBalance}
-          previousValue={previousBalance}
-          icon="balance"
-          className={projectedBalance < 0 ? 'border-destructive/50' : 'border-success/50'}
-        />
-      </div>
-
-      {/* Real Balance Card */}
+      {/* Balance Cards */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className={realBalance >= 0 ? 'border-success/50 bg-success/5' : 'border-destructive/50 bg-destructive/5'}>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${realBalance >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
-                <Wallet className={`w-6 h-6 ${realBalance >= 0 ? 'text-success' : 'text-destructive'}`} />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Saldo Real</p>
-                <p className={`text-2xl font-bold ${realBalance >= 0 ? 'text-success' : 'text-destructive'}`}>
-                  {formatCurrency(realBalance)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Receitas recebidas ({formatCurrency(receivedIncomesTotal)}) - Despesas pagas ({formatCurrency(paidExpensesTotal)})
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         <Card className={projectedBalance >= 0 ? 'border-primary/50 bg-primary/5' : 'border-warning/50 bg-warning/5'}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -256,6 +212,25 @@ export default function Dashboard() {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Todas receitas ({formatCurrency(currentIncomeTotal)}) - Todas despesas ({formatCurrency(currentExpenseTotal)})
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={realBalance >= 0 ? 'border-success/50 bg-success/5' : 'border-destructive/50 bg-destructive/5'}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-xl ${realBalance >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
+                <Wallet className={`w-6 h-6 ${realBalance >= 0 ? 'text-success' : 'text-destructive'}`} />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Saldo Real</p>
+                <p className={`text-2xl font-bold ${realBalance >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {formatCurrency(realBalance)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Receitas recebidas ({formatCurrency(receivedIncomesTotal)}) - Despesas pagas ({formatCurrency(paidExpensesTotal)})
                 </p>
               </div>
             </div>

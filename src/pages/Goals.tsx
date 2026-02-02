@@ -187,7 +187,7 @@ export default function Goals() {
                 Você já guardou <span className="font-bold text-blue-600 dark:text-blue-400">{formatCurrency(nearestGoal.currentAmount)}</span> de <span className="text-muted-foreground">{formatCurrency(nearestGoal.targetAmount)}</span>.
                 <br/>
                 Isso representa <span className="font-bold">
-                  {Math.min(100, (nearestGoal.currentAmount / (nearestGoal.targetAmount || 1)) * 100).toFixed(1)}%
+                  {((nearestGoal.currentAmount / (nearestGoal.targetAmount || 1)) * 100).toFixed(1)}%
                 </span> da meta.
               </p>
             </div>
