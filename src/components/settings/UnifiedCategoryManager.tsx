@@ -327,7 +327,7 @@ export default function UnifiedCategoryManager() {
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1 border-b pb-2">
                 {sectionType === 'expense' ? 'Despesas' : 'Receitas'}
               </h3>
-              <div className="grid grid-cols-3 gap-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              <div className="grid gap-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                 {(sectionType === 'expense' ? categories : incomeCategories).map(cat => {
                   const catSubcategories = sectionType === 'expense' 
                     ? subcategories.filter(s => s.categoryId === cat.id)

@@ -172,7 +172,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             subcategory_id: pendingData.subcategoryId,
             account_id: pendingData.accountId,
             is_received: pendingData.isReceived,
-          })
+          } as any)
           .eq('recurrence_id', recurrenceId);
 
         if (error) throw error;
@@ -190,7 +190,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             subcategory_id: pendingData.subcategoryId,
             account_id: pendingData.accountId,
             is_received: pendingData.isReceived,
-          })
+          } as any)
           .eq('recurrence_id', recurrenceId)
           .gte('receive_date', format(new Date(pendingData.receiveDate), 'yyyy-MM-dd'));
 

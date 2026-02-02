@@ -179,7 +179,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       if (scope === 'all' && recurrenceId) {
         // Update ALL records in the series
         const { error } = await (supabase
-          .from('expenses') as any)
+          .from('expenses') as any) // Cast to any to bypass strict type checking on dynamic update
           // Não atualizamos datas para não mover todo o histórico para o mesmo dia
           .update({
             description: pendingData.description,
@@ -189,7 +189,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             payment_method: pendingData.paymentMethod,
             account_id: pendingData.accountId,
             card_id: pendingData.cardId,
-          })
+          } as any)
           .eq('recurrence_id', recurrenceId);
 
         if (error) throw error;
@@ -208,7 +208,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             payment_method: pendingData.paymentMethod,
             account_id: pendingData.accountId,
             card_id: pendingData.cardId,
-          })
+          } as any)
           .eq('recurrence_id', recurrenceId)
           .gte('due_date', format(new Date(pendingData.dueDate), 'yyyy-MM-dd'));
 
