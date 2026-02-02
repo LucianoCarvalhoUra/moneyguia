@@ -247,23 +247,9 @@ export default function UnifiedCategoryManager() {
       <CardContent className="space-y-6">
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4 border p-4 rounded-lg bg-muted/5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Nome da Categoria</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Alimentação" />
-            </div>
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={type} onValueChange={(v: 'expense' | 'income') => setType(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="expense">Despesa</SelectItem>
-                  <SelectItem value="income">Receita</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Nome da Categoria</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Alimentação" />
           </div>
 
           <div className="space-y-2">
@@ -314,6 +300,19 @@ export default function UnifiedCategoryManager() {
                 </div>
               </PopoverContent>
             </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <Select value={type} onValueChange={(v: 'expense' | 'income') => setType(v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="expense">Despesa</SelectItem>
+                <SelectItem value="income">Receita</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <Button type="submit" className="w-full">
