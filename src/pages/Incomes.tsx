@@ -178,7 +178,19 @@ export default function Incomes() {
       </div>
 
       <Card>
-        <CardContent className="py-4">{/* Date selector JSX */}</CardContent>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-center gap-4">
+            <Button variant="ghost" size="icon" onClick={handlePreviousMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-full w-8 h-8">
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+            <span className="text-lg font-bold min-w-[160px] text-center capitalize text-foreground">
+              {months[selectedMonth].label} {selectedYear}
+            </span>
+            <Button variant="ghost" size="icon" onClick={handleNextMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-full w-8 h-8">
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          </div>
+        </CardContent>
       </Card>
       
       {/* ... Other filter/summary JSX ... */}

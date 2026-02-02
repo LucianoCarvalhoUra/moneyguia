@@ -37,7 +37,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [expenseDate, setExpenseDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [dueDate, setDueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
@@ -60,7 +61,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     if (expense) {
       setDescription(expense.description);
       setAmount(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(expense.amount));
-      setDate(format(new Date(expense.dueDate), 'yyyy-MM-dd'));
+      setExpenseDate(format(new Date(expense.expenseDate), 'yyyy-MM-dd'));
+      setDueDate(format(new Date(expense.dueDate), 'yyyy-MM-dd'));
       setCategoryId(expense.categoryId);
       setSubcategoryId(expense.subcategoryId || '');
       setPaymentMethod(expense.paymentMethod);
@@ -73,7 +75,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     } else if (initialData) {
       setDescription(initialData.description || '');
       setAmount(initialData.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.amount) : '');
-      setDate(initialData.dueDate ? format(new Date(initialData.dueDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+      setExpenseDate(initialData.expenseDate ? format(new Date(initialData.expenseDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+      setDueDate(initialData.dueDate ? format(new Date(initialData.dueDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
       setCategoryId(initialData.categoryId || '');
       setSubcategoryId(initialData.subcategoryId || '');
       setPaymentMethod(initialData.paymentMethod || 'pix');
@@ -91,7 +94,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const resetForm = () => {
     setDescription('');
     setAmount('');
-    setDate(format(new Date(), 'yyyy-MM-dd'));
+    setExpenseDate(format(new Date(), 'yyyy-MM-dd'));
+    setDueDate(format(new Date(), 'yyyy-MM-dd'));
     setCategoryId('');
     setSubcategoryId('');
     setPaymentMethod('pix');
@@ -119,7 +123,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
     if (!description.trim()) newErrors.description = true;
     if (numericAmount <= 0) newErrors.amount = true;
-    if (!date) newErrors.date = true;
+    if (!expenseDate) newErrors.expenseDate = true;
+    if (!dueDate) newErrors.dueDate = true;
     if (!categoryId) newErrors.categoryId = true;
     if (filteredSubcategories.length > 0 && !subcategoryId) newErrors.subcategoryId = true;
 
@@ -128,7 +133,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     if (Object.keys(newErrors).length > 0) {
       if (newErrors.description) toast.error('O campo Descrição é obrigatório.');
       if (newErrors.amount) toast.error('O campo Valor é obrigatório e deve ser maior que zero.');
-      if (newErrors.date) toast.error('O campo Data é obrigatório.');
+      if (newErrors.expenseDate) toast.error('A Data de Lançamento é obrigatória.');
+      if (newErrors.dueDate) toast.error('A Data de Vencimento é obrigatória.');
       if (newErrors.categoryId) toast.error('O campo Categoria é obrigatório.');
       if (newErrors.subcategoryId) toast.error('O campo Subcategoria é obrigatório para esta categoria.');
       return false;
@@ -151,8 +157,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       const expenseData = {
         description,
         amount: numericAmount,
-        expenseDate: new Date(date),
-        dueDate: new Date(date),
+        expenseDate: new Date(expenseDate),
+        dueDate: new Date(dueDate),
         categoryId,
         subcategoryId: subcategoryId || undefined,
         paymentMethod,
@@ -180,8 +186,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           
           const limit = installments ? parseInt(installments) - 1 : 11;
           for (let i = 1; i <= limit; i++) {
-            const nextDate = addMonths(new Date(date), i);
-            await addExpense({ ...expenseData, dueDate: nextDate, expenseDate: nextDate, recurrenceId: newRecurrenceId });
+            const nextDueDate = addMonths(new Date(dueDate), i);
+            await addExpense({ ...expenseData, dueDate: nextDueDate, expenseDate: nextDueDate, recurrenceId: newRecurrenceId });
           }
 
           toast.success('Despesa transformada em recorrente!');
@@ -196,8 +202,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           
           const limit = installments ? parseInt(installments) - 1 : 11;
           for (let i = 1; i <= limit; i++) {
-            const nextDate = addMonths(new Date(date), i);
-            await addExpense({ ...expenseData, dueDate: nextDate, expenseDate: nextDate, recurrenceId: newRecurrenceId });
+            const nextDueDate = addMonths(new Date(dueDate), i);
+            await addExpense({ ...expenseData, dueDate: nextDueDate, expenseDate: nextDueDate, recurrenceId: newRecurrenceId });
           }
           toast.success('Despesa recorrente criada!');
         } else {
@@ -246,7 +252,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       let successMessage = '';
 
       if (scope === 'single') {
-        const singleData = { ...dados, due_date: data.dueDate, expense_date: data.expenseDate, is_paid: data.isPaid };
+        const singleData = { ...dados, due_date: format(data.dueDate, 'yyyy-MM-dd'), expense_date: format(data.expenseDate, 'yyyy-MM-dd'), is_paid: data.isPaid };
         const { error } = await supabase.from('expenses').update(singleData).eq('id', expense!.id);
         if (error) throw error;
         successMessage = 'Despesa atualizada com sucesso!';
@@ -259,7 +265,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       } else if (scope === 'past') {
         const { error } = await supabase.from('expenses').update(dados)
           .eq('recurrence_id', recurrenceId)
-          .lte('due_date', format(new Date(data.dueDate), 'yyyy-MM-dd'));
+          .lte('due_date', format(data.dueDate, 'yyyy-MM-dd'));
         if (error) throw error;
         successMessage = 'Despesa atual e passadas atualizadas!';
       
@@ -267,7 +273,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         // 1. Update
         const { error: updateError } = await supabase.from('expenses').update(dados)
           .eq('recurrence_id', recurrenceId)
-          .gte('due_date', format(new Date(data.dueDate), 'yyyy-MM-dd'));
+          .gte('due_date', format(data.dueDate, 'yyyy-MM-dd'));
         if (updateError) throw updateError;
 
         // 2. Insert if installments increased
@@ -451,15 +457,28 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="date">Data <span className="text-red-500">*</span></Label>
+              <Label htmlFor="expense-date">Data de Lançamento <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  id="date"
+                  id="expense-date"
                   type="date" 
-                  value={date} 
-                  onChange={(e) => setDate(e.target.value)} 
-                  className={cn("pl-9", errors.date && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
+                  value={expenseDate} 
+                  onChange={(e) => setExpenseDate(e.target.value)} 
+                  className={cn("pl-9", errors.expenseDate && "border-red-500")}
+                />
+              </div>
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="due-date">Data de Vencimento <span className="text-red-500">*</span></Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  id="due-date"
+                  type="date" 
+                  value={dueDate} 
+                  onChange={(e) => setDueDate(e.target.value)} 
+                  className={cn("pl-9", errors.dueDate && "border-red-500", selectedCategory?.color ? `focus-visible:ring-${selectedCategory.color}` : "")}
                 />
               </div>
             </div>
