@@ -14,8 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { User, Shield, Loader2, Bell } from 'lucide-react';
-import CategoryManager from '@/components/settings/CategoryManager';
-import IncomeCategoryManager from '@/components/settings/IncomeCategoryManager';
+import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
 import ChangePasswordForm from '@/components/settings/ChangePasswordForm';
 import { toast } from 'sonner';
@@ -119,11 +118,8 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      {/* Expense Categories Manager */}
-      <CategoryManager />
-
-      {/* Income Categories Manager */}
-      <IncomeCategoryManager />
+      {/* Unified Categories Manager */}
+      <UnifiedCategoryManager />
 
       {/* Smart Notifications */}
       <Card>
