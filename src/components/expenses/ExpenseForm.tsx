@@ -193,6 +193,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             account_id: pendingData.accountId || null,
             card_id: pendingData.cardId || null,
           })
+          // Ação 'Todas': Filtra APENAS pelo recurrence_id, sem filtro de data
           .eq('recurrence_id', recurrenceId);
 
         if (error) throw error;
@@ -213,6 +214,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             card_id: pendingData.cardId || null,
           })
           .eq('recurrence_id', recurrenceId)
+          // Ação 'Esta e futuras': Filtra por recurrence_id e data >= data da edição
           .gte('due_date', format(new Date(pendingData.dueDate), 'yyyy-MM-dd'));
 
         if (error) throw error;

@@ -176,6 +176,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             account_id: pendingData.accountId || null,
             is_received: pendingData.isReceived,
           })
+          // Ação 'Todas': Filtra APENAS pelo recurrence_id
           .eq('recurrence_id', recurrenceId);
 
         if (error) throw error;
@@ -195,6 +196,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
             is_received: pendingData.isReceived,
           })
           .eq('recurrence_id', recurrenceId)
+          // Ação 'Esta e futuras': Filtra por recurrence_id e data >= data da edição
           .gte('receive_date', format(new Date(pendingData.receiveDate), 'yyyy-MM-dd'));
 
         if (error) throw error;

@@ -151,13 +151,23 @@ export default function Goals() {
       <Card>
         <CardContent className="py-4">
           <div className="flex items-center justify-center gap-4">
-            <Button variant="ghost" size="icon" onClick={handlePreviousMonth}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handlePreviousMonth}
+              className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-full w-8 h-8"
+            >
               <ChevronLeft className="w-5 h-5" />
             </Button>
-            <span className="text-lg font-semibold min-w-[160px] text-center capitalize">
+            <span className="text-lg font-bold min-w-[160px] text-center capitalize text-foreground">
               {months[selectedMonth]} {selectedYear}
             </span>
-            <Button variant="ghost" size="icon" onClick={handleNextMonth}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleNextMonth}
+              className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-full w-8 h-8"
+            >
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
@@ -177,7 +187,7 @@ export default function Goals() {
                 Você já guardou <span className="font-bold text-blue-600 dark:text-blue-400">{formatCurrency(nearestGoal.currentAmount)}</span> de <span className="text-muted-foreground">{formatCurrency(nearestGoal.targetAmount)}</span>.
                 <br/>
                 Isso representa <span className="font-bold">
-                  {((nearestGoal.currentAmount / nearestGoal.targetAmount) * 100).toFixed(1)}%
+                  {Math.min(100, (nearestGoal.currentAmount / nearestGoal.targetAmount) * 100).toFixed(1)}%
                 </span> da meta.
               </p>
             </div>
@@ -246,12 +256,12 @@ export default function Goals() {
                 </div>
 
                 <Button 
-                    variant="outline" 
+                    variant="default" 
                     className="w-full mt-2 gap-2 border-primary/20 hover:bg-primary/5 text-primary"
                     onClick={() => openAddFunds(goal)}
                 >
-                    <Wallet className="w-4 h-4" />
-                    Adicionar Valor
+                    <Wallet className="w-4 h-4 text-white" />
+                    <span className="text-white">Adicionar Aporte</span>
                 </Button>
 
                 {isHard && remainingAmount > 0 && (
