@@ -8,27 +8,40 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CategoryIcon } from '@/components/CategoryIcon';
-import { Trash2, Plus, CreditCard, Zap, CarFront, Home, Heart, Users, ShoppingBag, Utensils, Stethoscope, GraduationCap, Plane, Banknote, Dumbbell, Gamepad, Coffee } from 'lucide-react';
+import { 
+  Trash2, Plus, 
+  CreditCard, Banknote, Receipt, Wallet, 
+  Home, Zap, Droplets, 
+  CarFront, Fuel, Bus, 
+  Stethoscope, Dumbbell, Pill, 
+  ShoppingBag, Utensils, Plane, Gift, Gamepad, Dog, Wifi 
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 // Icon configuration with specific colors
 const ICONS = [
   { name: 'CreditCard', icon: CreditCard, color: 'indigo', label: 'Crédito' },
-  { name: 'Zap', icon: Zap, color: 'amber', label: 'Contas' },
-  { name: 'CarFront', icon: CarFront, color: 'slate', label: 'Transporte' },
-  { name: 'Home', icon: Home, color: 'blue', label: 'Moradia' },
-  { name: 'Heart', icon: Heart, color: 'pink', label: 'Saúde' },
-  { name: 'Users', icon: Users, color: 'cyan', label: 'Pessoal' },
-  { name: 'ShoppingBag', icon: ShoppingBag, color: 'purple', label: 'Compras' },
-  { name: 'Utensils', icon: Utensils, color: 'orange', label: 'Alimentação' },
-  { name: 'Stethoscope', icon: Stethoscope, color: 'red', label: 'Médico' },
-  { name: 'GraduationCap', icon: GraduationCap, color: 'blue', label: 'Educação' },
-  { name: 'Plane', icon: Plane, color: 'teal', label: 'Viagem' },
   { name: 'Banknote', icon: Banknote, color: 'emerald', label: 'Dinheiro' },
-  { name: 'Dumbbell', icon: Dumbbell, color: 'rose', label: 'Lazer' },
+  { name: 'Receipt', icon: Receipt, color: 'slate', label: 'Comprovante' },
+  { name: 'Wallet', icon: Wallet, color: 'green', label: 'Carteira' },
+  { name: 'Home', icon: Home, color: 'blue', label: 'Casa' },
+  { name: 'Zap', icon: Zap, color: 'amber', label: 'Energia' },
+  { name: 'Droplets', icon: Droplets, color: 'cyan', label: 'Água' },
+  { name: 'Trash2', icon: Trash2, color: 'gray', label: 'Lixo' },
+  { name: 'CarFront', icon: CarFront, color: 'slate', label: 'Carro' },
+  { name: 'Fuel', icon: Fuel, color: 'orange', label: 'Combustível' },
+  { name: 'Bus', icon: Bus, color: 'blue', label: 'Ônibus' },
+  { name: 'Stethoscope', icon: Stethoscope, color: 'red', label: 'Saúde' },
+  { name: 'Dumbbell', icon: Dumbbell, color: 'rose', label: 'Treino' },
+  { name: 'Pill', icon: Pill, color: 'pink', label: 'Farmácia' },
+  { name: 'ShoppingBag', icon: ShoppingBag, color: 'purple', label: 'Compras' },
+  { name: 'Utensils', icon: Utensils, color: 'orange', label: 'Comida' },
+  { name: 'Plane', icon: Plane, color: 'teal', label: 'Viagem' },
+  { name: 'Gift', icon: Gift, color: 'red', label: 'Presente' },
   { name: 'Gamepad', icon: Gamepad, color: 'violet', label: 'Jogos' },
-  { name: 'Coffee', icon: Coffee, color: 'brown', label: 'Outros' },
+  { name: 'Dog', icon: Dog, color: 'amber', label: 'Pet' },
+  { name: 'Wifi', icon: Wifi, color: 'sky', label: 'Internet' },
 ];
 
 export default function UnifiedCategoryManager() {
@@ -105,8 +118,8 @@ export default function UnifiedCategoryManager() {
 
           <div className="space-y-2">
             <Label>Ícone e Cor</Label>
-            <div className="grid grid-cols-5 gap-4 p-4 border rounded-lg bg-muted/10">
-              {ICONS.map(({ name: iconName, icon: Icon, color: iconColor }) => (
+            <div className="grid grid-cols-4 sm:grid-cols-7 gap-4 p-4 border rounded-lg bg-muted/10">
+              {ICONS.map(({ name: iconName, icon: Icon, color: iconColor, label }) => (
                 <button
                   key={iconName}
                   type="button"
@@ -119,7 +132,7 @@ export default function UnifiedCategoryManager() {
                     `bg-${iconColor}-500/15 hover:bg-${iconColor}-500/25`,
                     icon === iconName ? `ring-2 ring-${iconColor}-500 ring-offset-2` : "hover:scale-110"
                   )}
-                  title={iconName}
+                  title={label}
                 >
                   <Icon className={cn("w-6 h-6 transition-colors", `text-${iconColor}-500`)} />
                 </button>
