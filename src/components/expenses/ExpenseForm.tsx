@@ -180,6 +180,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         // Update ALL records in the series
         const { error } = await (supabase
           .from('expenses') as any)
+          // Não atualizamos datas para não mover todo o histórico para o mesmo dia
           .update({
             description: pendingData.description,
             amount: pendingData.amount,
@@ -193,8 +194,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
         if (error) throw error;
         toast.success('Todas as despesas da série foram atualizadas!');
-        
-        // Trigger context refresh for the current item
+        // Atualiza o item atual na interface
         await updateExpense(expense!.id, pendingData);
       } else if (scope === 'future' && recurrenceId) {
         // Update THIS and FUTURE records
@@ -214,8 +214,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
         if (error) throw error;
         toast.success('Despesa atual e futuras atualizadas!');
-        
-        // Trigger context refresh
+        // Atualiza o item atual na interface
         await updateExpense(expense!.id, pendingData);
       } else {
         // Single update

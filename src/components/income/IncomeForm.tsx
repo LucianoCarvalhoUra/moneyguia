@@ -164,6 +164,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         // Update ALL records in the series
         const { error } = await (supabase
           .from('incomes') as any)
+          // Não atualizamos datas para não mover todo o histórico para o mesmo dia
           .update({
             title: pendingData.title,
             amount: pendingData.amount,
@@ -176,6 +177,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
 
         if (error) throw error;
         toast.success('Todas as receitas da série foram atualizadas!');
+        // Atualiza o item atual na interface
         await updateIncome(income!.id, pendingData);
       } else if (scope === 'future' && recurrenceId) {
         // Update THIS and FUTURE records
@@ -194,6 +196,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
 
         if (error) throw error;
         toast.success('Receita atual e futuras atualizadas!');
+        // Atualiza o item atual na interface
         await updateIncome(income!.id, pendingData);
       } else {
         await updateIncome(income!.id, { ...pendingData, recurrenceScope: scope });
