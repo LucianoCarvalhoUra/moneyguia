@@ -19,7 +19,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Expense, PaymentMethod } from '@/types/finance';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addMonths } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -171,13 +171,19 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     }
   };
 
-  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
+  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all') => {
     setIsSubmitting(true);
     try {
       const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id;
-      console.log('Filtro utilizado:', recurrenceId);
+      if (!recurrenceId && scope !== 'single') {
+        toast.info("Esta não é uma despesa recorrente. Apenas este registro será atualizado.");
+        // Fallback to single update if something goes wrong
+        await handleRecurrenceUpdate('single'); 
+        return;
+      }
+      
+      console.log('Filtro utilizado:', recurrenceId, 'Escopo:', scope);
 
-      // O objeto 'dados' com os campos que podem ser atualizados em lote.
       const dados = {
         description: pendingData.description,
         amount: pendingData.amount,
@@ -186,51 +192,83 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         payment_method: pendingData.paymentMethod,
         account_id: pendingData.accountId || null,
         card_id: pendingData.cardId || null,
+        is_recurring: pendingData.isRecurring,
+        installments: pendingData.installments,
       };
 
-      let query;
       let successMessage = '';
 
-      // Lógica de Filtro por Escolha
       if (scope === 'single') {
-        // 'Apenas esta': atualiza também data e status no registro específico.
-        const singleData = {
-          ...dados,
-          due_date: pendingData.dueDate,
-          expense_date: pendingData.expenseDate,
-          is_paid: pendingData.isPaid,
-        };
-        query = supabase.from('expenses').update(singleData).eq('id', expense!.id);
+        const singleData = { ...dados, due_date: pendingData.dueDate, expense_date: pendingData.expenseDate, is_paid: pendingData.isPaid };
+        const { error } = await supabase.from('expenses').update(singleData).eq('id', expense!.id);
+        if (error) throw error;
         successMessage = 'Despesa atualizada com sucesso!';
 
+      } else if (scope === 'all') {
+        const { error } = await supabase.from('expenses').update(dados).eq('recurrence_id', recurrenceId);
+        if (error) throw error;
+        successMessage = 'Todas as despesas da série foram atualizadas!';
+
+      } else if (scope === 'past') {
+        const { error } = await supabase.from('expenses').update(dados)
+          .eq('recurrence_id', recurrenceId)
+          .lte('due_date', format(new Date(pendingData.dueDate), 'yyyy-MM-dd'));
+        if (error) throw error;
+        successMessage = 'Despesa atual e passadas atualizadas!';
+      
       } else if (scope === 'future') {
-        // 'Esta e futuras': atualiza em lote a partir da data atual.
-        query = supabase.from('expenses').update(dados)
+        // 1. Update
+        const { error: updateError } = await supabase.from('expenses').update(dados)
           .eq('recurrence_id', recurrenceId)
           .gte('due_date', format(new Date(pendingData.dueDate), 'yyyy-MM-dd'));
-        successMessage = 'Despesa atual e futuras atualizadas!';
+        if (updateError) throw updateError;
 
-      } else { // scope === 'all'
-        // 'Todas': atualiza em lote todos os registros da série, sem filtro de data.
-        query = supabase.from('expenses').update(dados).eq('recurrence_id', recurrenceId);
-        successMessage = 'Todas as despesas da série foram atualizadas!';
-      }
-      
-      const { error } = await (query as any);
+        // 2. Insert if installments increased
+        const desiredInstallments = pendingData.installments || 0;
+        if (pendingData.isRecurring && desiredInstallments > 1) {
+            const { count, error: countError } = await supabase.from('expenses')
+                .select('*', { count: 'exact', head: true })
+                .eq('recurrence_id', recurrenceId);
 
-      if (error) {
-        console.error('Erro no Supabase:', error);
-        throw error;
+            if (countError) throw countError;
+
+            if (desiredInstallments > count) {
+                const { data: lastExpense, error: lastExpenseError } = await supabase.from('expenses')
+                    .select('due_date').eq('recurrence_id', recurrenceId).order('due_date', { ascending: false }).limit(1).single();
+                
+                if (lastExpenseError) throw lastExpenseError;
+
+                const lastDate = new Date(lastExpense.due_date);
+                const newExpenses = [];
+                for (let i = 1; i <= desiredInstallments - count; i++) {
+                    const nextDate = addMonths(lastDate, i);
+                    newExpenses.push({
+                      ...dados,
+                      recurrence_id: recurrenceId,
+                      due_date: format(nextDate, 'yyyy-MM-dd'),
+                      expense_date: format(nextDate, 'yyyy-MM-dd'),
+                      is_paid: false, // New future expenses are not paid
+                      user_id: expense?.userId
+                    });
+                }
+                const { error: insertError } = await supabase.from('expenses').insert(newExpenses);
+                if (insertError) throw insertError;
+            }
+        }
+        successMessage = 'Despesas futuras atualizadas e/ou criadas!';
       }
       
       toast.success(successMessage);
-      
       await refreshData();
       onOpenChange(false);
 
-    } catch (error) {
-      console.error('Erro em handleRecurrenceUpdate:', error);
-      toast.error('Ocorreu um erro ao atualizar a despesa.');
+    } catch (error: any) {
+      console.error('Erro detalhado do Supabase:', {
+        message: error.message,
+        details: error.details,
+        code: error.code,
+      });
+      toast.error(`Erro ao atualizar: ${error.details || error.message}`);
     } finally {
       setIsSubmitting(false);
       setRecurrenceDialogOpen(false);
@@ -420,6 +458,17 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 <div className="text-left">
                   <p className="font-medium">Esta e futuras</p>
                   <p className="text-xs text-muted-foreground">Deste vencimento em diante</p>
+                </div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('past')}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-muted rounded-full">
+                  <History className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">Esta e Passadas</p>
+                  <p className="text-xs text-muted-foreground">Do vencimento atual para trás</p>
                 </div>
               </div>
             </Button>

@@ -20,7 +20,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Income } from '@/types/income';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addMonths } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -155,13 +155,18 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     }
   };
 
-  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
+  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all') => {
     setIsSubmitting(true);
     try {
       const recurrenceId = income?.recurrenceId || (income as any)?.recurrence_id;
-      console.log('Filtro utilizado:', recurrenceId);
+       if (!recurrenceId && scope !== 'single') {
+        toast.info("Esta não é uma receita recorrente. Apenas este registro será atualizado.");
+        await handleRecurrenceUpdate('single');
+        return;
+      }
 
-      // O objeto 'dados' com os campos que podem ser atualizados em lote.
+      console.log('Filtro utilizado:', recurrenceId, 'Escopo:', scope);
+
       const dados = {
         title: pendingData.title,
         amount: pendingData.amount,
@@ -169,49 +174,48 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         subcategory_id: pendingData.subcategoryId || null,
         account_id: pendingData.accountId || null,
         is_received: pendingData.isReceived,
+        is_recurring: pendingData.isRecurring,
       };
 
-      let query;
       let successMessage = '';
 
-      // Lógica de Filtro por Escolha
       if (scope === 'single') {
-        // 'Apenas esta': atualiza também data no registro específico.
-        const singleData = {
-          ...dados,
-          receive_date: pendingData.receiveDate,
-        };
-        query = supabase.from('incomes').update(singleData).eq('id', income!.id);
+        const singleData = { ...dados, receive_date: pendingData.receiveDate };
+        const { error } = await supabase.from('incomes').update(singleData).eq('id', income!.id);
+        if (error) throw error;
         successMessage = 'Receita atualizada com sucesso!';
 
+      } else if (scope === 'all') {
+        const { error } = await supabase.from('incomes').update(dados).eq('recurrence_id', recurrenceId);
+        if (error) throw error;
+        successMessage = 'Todas as receitas da série foram atualizadas!';
+
+      } else if (scope === 'past') {
+        const { error } = await supabase.from('incomes').update(dados)
+          .eq('recurrence_id', recurrenceId)
+          .lte('receive_date', format(new Date(pendingData.receiveDate), 'yyyy-MM-dd'));
+        if (error) throw error;
+        successMessage = 'Receita atual e passadas atualizadas!';
+      
       } else if (scope === 'future') {
-        // 'Esta e futuras': atualiza em lote a partir da data atual.
-        query = supabase.from('incomes').update(dados)
+        const { error } = await supabase.from('incomes').update(dados)
           .eq('recurrence_id', recurrenceId)
           .gte('receive_date', format(new Date(pendingData.receiveDate), 'yyyy-MM-dd'));
-        successMessage = 'Receita atual e futuras atualizadas!';
-
-      } else { // scope === 'all'
-        // 'Todas': atualiza em lote todos os registros da série, sem filtro de data.
-        query = supabase.from('incomes').update(dados).eq('recurrence_id', recurrenceId);
-        successMessage = 'Todas as receitas da série foram atualizadas!';
-      }
-      
-      const { error } = await (query as any);
-
-      if (error) {
-        console.error('Erro no Supabase:', error);
-        throw error;
+        if (error) throw error;
+        successMessage = 'Receitas futuras atualizadas com sucesso!';
       }
       
       toast.success(successMessage);
-      
       await refreshData();
       onOpenChange(false);
 
-    } catch (error) {
-      console.error('Erro em handleRecurrenceUpdate:', error);
-      toast.error('Ocorreu um erro ao atualizar a receita.');
+    } catch (error: any) {
+      console.error('Erro detalhado do Supabase:', {
+        message: error.message,
+        details: error.details,
+        code: error.code,
+      });
+      toast.error(`Erro ao atualizar: ${error.details || error.message}`);
     } finally {
       setIsSubmitting(false);
       setRecurrenceDialogOpen(false);
@@ -366,6 +370,17 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
                 <div className="text-left">
                   <p className="font-medium">Esta e futuras</p>
                   <p className="text-xs text-muted-foreground">Deste vencimento em diante</p>
+                </div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('past')}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-muted rounded-full">
+                  <History className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium">Esta e Passadas</p>
+                  <p className="text-xs text-muted-foreground">Do vencimento atual para trás</p>
                 </div>
               </div>
             </Button>

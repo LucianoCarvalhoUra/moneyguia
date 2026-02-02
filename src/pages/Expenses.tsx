@@ -390,7 +390,6 @@ export default function Expenses() {
                 <TableHead>Categoria</TableHead>
                 <TableHead className="hidden md:table-cell">Subcategoria</TableHead>
                 <TableHead>Vencimento</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -398,7 +397,7 @@ export default function Expenses() {
             <TableBody>
               {filteredExpenses.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     Nenhuma despesa encontrada.
                   </TableCell>
                 </TableRow>
@@ -428,28 +427,6 @@ export default function Expenses() {
                           <Calendar className="w-4 h-4 text-muted-foreground" />
                           {format(new Date(expense.dueDate), 'dd/MM/yyyy')}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="outline" 
-                          className={cn(
-                            "cursor-pointer hover:opacity-80 transition-opacity",
-                            expense.isPaid 
-                              ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900" 
-                              : "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900"
-                          )}
-                          onClick={() => handlePay(expense.id, expense.isPaid)}
-                        >
-                          {expense.isPaid ? (
-                            <span className="flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> Pago
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" /> Pendente
-                            </span>
-                          )}
-                        </Badge>
                       </TableCell>
                       <TableCell className="font-medium">
                         {formatCurrency(expense.amount)}
