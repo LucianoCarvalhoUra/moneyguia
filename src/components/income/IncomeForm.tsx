@@ -159,55 +159,59 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     setIsSubmitting(true);
     try {
       const recurrenceId = income?.recurrenceId || (income as any)?.recurrence_id;
+      console.log('Filtro utilizado:', recurrenceId);
 
-      if (scope === 'single' || !recurrenceId) {
-        // Atualização simples apenas deste registro
-        await updateIncome(income!.id, pendingData);
-        toast.success('Receita atualizada!');
-      } else if (scope === 'all') {
-        // Atualiza TODAS as receitas da série
-        const { error } = await (supabase
-          .from('incomes') as any)
-          .update({
-            title: pendingData.title,
-            amount: pendingData.amount,
-            category_id: pendingData.categoryId,
-            subcategory_id: pendingData.subcategoryId || null,
-            account_id: pendingData.accountId || null,
-            is_received: pendingData.isReceived,
-          })
-          // Ação 'Todas': Filtra APENAS pelo recurrence_id
-          .eq('recurrence_id', recurrenceId);
+      // O objeto 'dados' com os campos que podem ser atualizados em lote.
+      const dados = {
+        title: pendingData.title,
+        amount: pendingData.amount,
+        category_id: pendingData.categoryId,
+        subcategory_id: pendingData.subcategoryId || null,
+        account_id: pendingData.accountId || null,
+        is_received: pendingData.isReceived,
+      };
 
-        if (error) throw error;
-        toast.success('Todas as receitas da série foram atualizadas!');
-        // Recarrega os dados para refletir as mudanças
-        await refreshData();
+      let query;
+      let successMessage = '';
+
+      // Lógica de Filtro por Escolha
+      if (scope === 'single') {
+        // 'Apenas esta': atualiza também data no registro específico.
+        const singleData = {
+          ...dados,
+          receive_date: pendingData.receiveDate,
+        };
+        query = supabase.from('incomes').update(singleData).eq('id', income!.id);
+        successMessage = 'Receita atualizada com sucesso!';
+
       } else if (scope === 'future') {
-        // Atualiza ESTA e FUTURAS receitas
-        const { error } = await (supabase
-          .from('incomes') as any)
-          .update({
-            title: pendingData.title,
-            amount: pendingData.amount,
-            category_id: pendingData.categoryId,
-            subcategory_id: pendingData.subcategoryId || null,
-            account_id: pendingData.accountId || null,
-            is_received: pendingData.isReceived,
-          })
+        // 'Esta e futuras': atualiza em lote a partir da data atual.
+        query = supabase.from('incomes').update(dados)
           .eq('recurrence_id', recurrenceId)
-          // Ação 'Esta e futuras': Filtra por recurrence_id e data >= data da edição
           .gte('receive_date', format(new Date(pendingData.receiveDate), 'yyyy-MM-dd'));
+        successMessage = 'Receita atual e futuras atualizadas!';
 
-        if (error) throw error;
-        toast.success('Receita atual e futuras atualizadas!');
-        // Recarrega os dados para refletir as mudanças
-        await refreshData();
+      } else { // scope === 'all'
+        // 'Todas': atualiza em lote todos os registros da série, sem filtro de data.
+        query = supabase.from('incomes').update(dados).eq('recurrence_id', recurrenceId);
+        successMessage = 'Todas as receitas da série foram atualizadas!';
       }
+      
+      const { error } = await (query as any);
+
+      if (error) {
+        console.error('Erro no Supabase:', error);
+        throw error;
+      }
+      
+      toast.success(successMessage);
+      
+      await refreshData();
       onOpenChange(false);
+
     } catch (error) {
-      console.error(error);
-      toast.error('Erro ao atualizar receita');
+      console.error('Erro em handleRecurrenceUpdate:', error);
+      toast.error('Ocorreu um erro ao atualizar a receita.');
     } finally {
       setIsSubmitting(false);
       setRecurrenceDialogOpen(false);

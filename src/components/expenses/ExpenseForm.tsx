@@ -175,57 +175,62 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     setIsSubmitting(true);
     try {
       const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id;
+      console.log('Filtro utilizado:', recurrenceId);
 
-      if (scope === 'single' || !recurrenceId) {
-        // Atualização simples apenas deste registro
-        await updateExpense(expense!.id, pendingData);
-        toast.success('Despesa atualizada!');
-      } else if (scope === 'all') {
-        // Atualiza TODAS as despesas da série
-        const { error } = await (supabase
-          .from('expenses') as any)
-          .update({
-            description: pendingData.description,
-            amount: pendingData.amount,
-            category_id: pendingData.categoryId,
-            subcategory_id: pendingData.subcategoryId || null,
-            payment_method: pendingData.paymentMethod,
-            account_id: pendingData.accountId || null,
-            card_id: pendingData.cardId || null,
-          })
-          // Ação 'Todas': Filtra APENAS pelo recurrence_id, sem filtro de data
-          .eq('recurrence_id', recurrenceId);
+      // O objeto 'dados' com os campos que podem ser atualizados em lote.
+      const dados = {
+        description: pendingData.description,
+        amount: pendingData.amount,
+        category_id: pendingData.categoryId,
+        subcategory_id: pendingData.subcategoryId || null,
+        payment_method: pendingData.paymentMethod,
+        account_id: pendingData.accountId || null,
+        card_id: pendingData.cardId || null,
+      };
 
-        if (error) throw error;
-        toast.success('Todas as despesas da série foram atualizadas!');
-        // Recarrega os dados para refletir as mudanças
-        await refreshData();
+      let query;
+      let successMessage = '';
+
+      // Lógica de Filtro por Escolha
+      if (scope === 'single') {
+        // 'Apenas esta': atualiza também data e status no registro específico.
+        const singleData = {
+          ...dados,
+          due_date: pendingData.dueDate,
+          expense_date: pendingData.expenseDate,
+          is_paid: pendingData.isPaid,
+        };
+        query = supabase.from('expenses').update(singleData).eq('id', expense!.id);
+        successMessage = 'Despesa atualizada com sucesso!';
+
       } else if (scope === 'future') {
-        // Atualiza ESTA e FUTURAS despesas
-        const { error } = await (supabase
-          .from('expenses') as any)
-          .update({
-            description: pendingData.description,
-            amount: pendingData.amount,
-            category_id: pendingData.categoryId,
-            subcategory_id: pendingData.subcategoryId || null,
-            payment_method: pendingData.paymentMethod,
-            account_id: pendingData.accountId || null,
-            card_id: pendingData.cardId || null,
-          })
+        // 'Esta e futuras': atualiza em lote a partir da data atual.
+        query = supabase.from('expenses').update(dados)
           .eq('recurrence_id', recurrenceId)
-          // Ação 'Esta e futuras': Filtra por recurrence_id e data >= data da edição
           .gte('due_date', format(new Date(pendingData.dueDate), 'yyyy-MM-dd'));
+        successMessage = 'Despesa atual e futuras atualizadas!';
 
-        if (error) throw error;
-        toast.success('Despesa atual e futuras atualizadas!');
-        // Recarrega os dados para refletir as mudanças
-        await refreshData();
+      } else { // scope === 'all'
+        // 'Todas': atualiza em lote todos os registros da série, sem filtro de data.
+        query = supabase.from('expenses').update(dados).eq('recurrence_id', recurrenceId);
+        successMessage = 'Todas as despesas da série foram atualizadas!';
       }
+      
+      const { error } = await (query as any);
+
+      if (error) {
+        console.error('Erro no Supabase:', error);
+        throw error;
+      }
+      
+      toast.success(successMessage);
+      
+      await refreshData();
       onOpenChange(false);
+
     } catch (error) {
-      console.error(error);
-      toast.error('Erro ao atualizar despesa');
+      console.error('Erro em handleRecurrenceUpdate:', error);
+      toast.error('Ocorreu um erro ao atualizar a despesa.');
     } finally {
       setIsSubmitting(false);
       setRecurrenceDialogOpen(false);
