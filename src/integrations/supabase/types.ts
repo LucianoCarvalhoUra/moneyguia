@@ -1,4 +1,3 @@
-// Force schema cache refresh
 export type Json =
   | string
   | number
@@ -200,8 +199,8 @@ export type Database = {
       goals: {
         Row: {
           color: string | null
-          created_at: string
-          current_amount: number
+          created_at: string | null
+          current_amount: number | null
           deadline: string | null
           icon: string | null
           id: string
@@ -211,8 +210,8 @@ export type Database = {
         }
         Insert: {
           color?: string | null
-          created_at?: string
-          current_amount?: number
+          created_at?: string | null
+          current_amount?: number | null
           deadline?: string | null
           icon?: string | null
           id?: string
@@ -222,8 +221,8 @@ export type Database = {
         }
         Update: {
           color?: string | null
-          created_at?: string
-          current_amount?: number
+          created_at?: string | null
+          current_amount?: number | null
           deadline?: string | null
           icon?: string | null
           id?: string
