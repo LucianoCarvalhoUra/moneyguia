@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -322,16 +321,14 @@ export default function UnifiedCategoryManager() {
         </form>
 
         {/* Lists */}
-        <Tabs defaultValue="expense">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="expense">Despesas</TabsTrigger>
-            <TabsTrigger value="income">Receitas</TabsTrigger>
-          </TabsList>
-          
-          {['expense', 'income'].map((tabType) => (
-            <TabsContent key={tabType} value={tabType} className="space-y-2 mt-4">
-              {(tabType === 'expense' ? categories : incomeCategories).map(cat => {
-                const catSubcategories = tabType === 'expense' 
+        <div className="space-y-8 mt-6">
+          {['expense', 'income'].map((sectionType) => (
+            <div key={sectionType} className="space-y-2">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1">
+                {sectionType === 'expense' ? 'Despesas' : 'Receitas'}
+              </h3>
+              {(sectionType === 'expense' ? categories : incomeCategories).map(cat => {
+                const catSubcategories = sectionType === 'expense' 
                   ? subcategories.filter(s => s.categoryId === cat.id)
                   : incomeSubcategories.filter(s => s.categoryId === cat.id);
                 const isExpanded = expandedCategories.includes(cat.id);
@@ -362,11 +359,11 @@ export default function UnifiedCategoryManager() {
                       <div className="p-4 pt-0 space-y-4 border-t bg-muted/10">
                         {/* Actions */}
                         <div className="flex justify-end gap-2 pt-4">
-                          <Button variant="outline" size="sm" onClick={() => handleOpenEdit(cat, tabType as 'expense' | 'income')}>
+                          <Button variant="outline" size="sm" onClick={() => handleOpenEdit(cat, sectionType as 'expense' | 'income')}>
                             <Pencil className="w-4 h-4 mr-2" />
                             Editar
                           </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDelete(cat.id, tabType as 'expense' | 'income')}>
+                          <Button variant="destructive" size="sm" onClick={() => handleDelete(cat.id, sectionType as 'expense' | 'income')}>
                             <Trash2 className="w-4 h-4 mr-2" />
                             Excluir
                           </Button>
@@ -384,7 +381,7 @@ export default function UnifiedCategoryManager() {
                                 {sub.name}
                                 <div 
                                   className="cursor-pointer hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
-                                  onClick={() => handleRemoveSubcategory(sub.id, tabType as 'expense' | 'income')}
+                                  onClick={() => handleRemoveSubcategory(sub.id, sectionType as 'expense' | 'income')}
                                 >
                                   <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
                                 </div>
@@ -400,7 +397,7 @@ export default function UnifiedCategoryManager() {
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   e.preventDefault();
-                                  handleAddSubcategory(cat.id, tabType as 'expense' | 'income');
+                                  handleAddSubcategory(cat.id, sectionType as 'expense' | 'income');
                                 }
                               }}
                             />
@@ -408,7 +405,7 @@ export default function UnifiedCategoryManager() {
                               size="sm" 
                               variant="outline" 
                               className="h-8 w-8 p-0"
-                              onClick={() => handleAddSubcategory(cat.id, tabType as 'expense' | 'income')}
+                              onClick={() => handleAddSubcategory(cat.id, sectionType as 'expense' | 'income')}
                             >
                               <Plus className="w-4 h-4" />
                             </Button>
@@ -419,9 +416,9 @@ export default function UnifiedCategoryManager() {
                   </Collapsible>
                 );
               })}
-            </TabsContent>
+            </div>
           ))}
-        </Tabs>
+        </div>
       </CardContent>
 
       {/* Edit Dialog */}
