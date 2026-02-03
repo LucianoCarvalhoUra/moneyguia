@@ -248,7 +248,7 @@ export default function Dashboard() {
       <PendingExpensesList selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
       {/* Recent Expenses */}
-      <RecentExpenses expenses={monthlyExpenses} />
+      <RecentExpenses expenses={expenses} />
 
       {/* Expense Form */}
       <ExpenseForm open={formOpen} onOpenChange={setFormOpen} />

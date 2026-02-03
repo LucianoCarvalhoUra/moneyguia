@@ -23,8 +23,12 @@ export default function RecentExpenses({ expenses }: RecentExpensesProps) {
     }).format(amount);
   };
 
-  const recentExpenses = expenses
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  const recentExpenses = [...expenses]
+    .sort((a, b) => {
+      const dateA = new Date((a as any).updatedAt || a.createdAt).getTime();
+      const dateB = new Date((b as any).updatedAt || b.createdAt).getTime();
+      return dateB - dateA;
+    })
     .slice(0, 5);
 
   return (
