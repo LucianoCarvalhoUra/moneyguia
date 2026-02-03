@@ -20,9 +20,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { format } from 'date-fns';
+import { format, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, Check, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, Check, Clock, AlertTriangle } from 'lucide-react';
 import { Expense, PAYMENT_METHOD_LABELS } from '@/types/finance';
 import ExpenseForm from './ExpenseForm';
 import ExpenseCategoryChart from '@/components/dashboard/ExpenseCategoryChart';
@@ -271,10 +271,21 @@ export default function ExpenseList() {
               {sortedExpenses.map((expense) => {
                 const category = getCategoryById(expense.categoryId);
                 const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
+                
+                const dueDate = new Date(expense.dueDate);
+                const isOverdue = !expense.isPaid && isBefore(startOfDay(dueDate), startOfDay(new Date()));
+
                 return (
                   <div
                     key={expense.id}
-                    className={cn("flex items-center gap-4 p-4 rounded-xl hover:bg-muted transition-colors group", expense.isPaid ? "bg-muted/30 opacity-75" : "bg-muted/50")}
+                    className={cn(
+                      "flex items-center gap-4 p-4 rounded-xl hover:bg-muted transition-colors group",
+                      expense.isPaid 
+                        ? "bg-muted/30 opacity-75" 
+                        : isOverdue 
+                          ? "bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/50" 
+                          : "bg-muted/50"
+                    )}
                   >
                     <div
                       className={cn(
@@ -287,8 +298,8 @@ export default function ExpenseList() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className={cn(
-                          "font-medium text-foreground truncate",
-                          expense.isPaid && "line-through text-muted-foreground"
+                          "font-medium truncate",
+                          expense.isPaid ? "line-through text-muted-foreground" : "text-foreground"
                         )}>
                           {expense.description || category?.name || 'Sem categoria'}
                         </p>
@@ -296,6 +307,11 @@ export default function ExpenseList() {
                           <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-xs">
                             <Check className="w-3 h-3 mr-1" />
                             Pago
+                          </Badge>
+                        ) : isOverdue ? (
+                          <Badge variant="outline" className="bg-red-100 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 text-xs">
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            Vencido
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">
@@ -320,13 +336,14 @@ export default function ExpenseList() {
 
                     <div className="text-right">
                       <p className={cn(
-                        "font-bold text-lg",
+                        "font-bold text-lg flex items-center justify-end gap-1",
                         expense.isPaid 
                           ? "text-muted-foreground" 
-                          : !expense.isPaid && new Date(expense.dueDate) < new Date() 
-                            ? "text-destructive" 
+                          : isOverdue 
+                            ? "text-red-600 dark:text-red-400" 
                             : "text-foreground"
                       )}>
+                        {isOverdue && <AlertTriangle className="w-4 h-4" />}
                         {formatCurrency(expense.amount)}
                       </p>
                     </div>
