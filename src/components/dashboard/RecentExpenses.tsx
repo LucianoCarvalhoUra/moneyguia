@@ -122,11 +122,8 @@ export default function RecentExpenses() {
                     <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-5 h-5", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {category?.name || 'Sem categoria'}
-                    </p>
                     <p className="font-medium text-foreground truncate">
-                      {expense.description || 'Sem descrição'}
+                      {category?.name || 'Sem categoria'} - {expense.description || 'Sem descrição'}
                     </p>
                   </div>
                   <div className="text-right">

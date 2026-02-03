@@ -392,7 +392,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="income-date">Data de Lançamento <span className="text-red-500">*</span></Label>
+              <Label htmlFor="income-date">Data de Lançamento (Hoje) <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
