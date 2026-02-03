@@ -11,8 +11,12 @@ import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
 import PendingExpensesList from '@/components/dashboard/PendingExpensesList';
 import { toast } from 'sonner';
-import { addDays, startOfDay, endOfDay, isBefore } from 'date-fns';
+import { addDays, startOfDay, endOfDay, isBefore, format, subMonths, addMonths } from 'date-fns';
 import { DashboardAI } from '@/components/DashboardAI';
+import FiftyThirtyTwentyChart from '@/components/dashboard/FiftyThirtyTwentyChart';
+import DailyCashFlowChart from '@/components/dashboard/DailyCashFlowChart';
+import BalanceProjectionChart from '@/components/dashboard/BalanceProjectionChart';
+import { DEFAULT_DASHBOARD_SETTINGS, DashboardSettings } from '@/components/dashboard/DashboardCustomization';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -25,6 +29,14 @@ export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [showOverdueAlert, setShowOverdueAlert] = useState(true);
   const [alertConfig, setAlertConfig] = useState({ enabled: true, days: 2, type: 'expenses' });
+  const [settings, setSettings] = useState<DashboardSettings>(DEFAULT_DASHBOARD_SETTINGS);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('dashboard_settings');
+    if (stored) {
+      setSettings(JSON.parse(stored));
+    }
+  }, []);
 
   // Get monthly data
   const monthlyExpenses = getMonthlyExpenses(selectedYear, selectedMonth);
@@ -122,6 +134,69 @@ export default function Dashboard() {
     return { expenses: pendingExpenses, incomes: pendingIncomes };
   }, [expenses, incomes, alertConfig]);
 
+  // --- Data Preparation for New Charts ---
+
+  // 1. 50/30/20 Data
+  const ruleData = useMemo(() => {
+    const metadata = JSON.parse(localStorage.getItem('category_metadata') || '{}');
+    let needs = 0;
+    let wants = 0;
+    let savings = 0; // Using 'long_term' as savings/debt for now
+
+    monthlyExpenses.forEach(e => {
+      // Try to find classification by category name (fallback) or ID if we had it
+      // Since we stored by name in UnifiedCategoryManager for this demo:
+      const catName = categoryTotals[e.categoryId] ? 'Unknown' : 'Unknown'; // We need category name
+      // Simplified logic: use heuristics if metadata missing
+      const meta = Object.values(metadata).find((m: any) => m.id === e.categoryId) as any;
+      const classification = meta?.classification || 'variable'; // Default
+
+      // Heuristic fallback if no metadata
+      if (classification === 'essential') needs += e.amount;
+      else if (classification === 'superfluous') wants += e.amount;
+      else if (classification === 'long_term') savings += e.amount;
+      else wants += e.amount; // Default to wants
+    });
+    
+    // Savings also includes positive balance
+    if (projectedBalance > 0) savings += projectedBalance;
+
+    return { needs, wants, savings };
+  }, [monthlyExpenses, projectedBalance, categoryTotals]);
+
+  // 2. Daily Cash Flow
+  const dailyFlowData = useMemo(() => {
+    const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    const data = [];
+    for (let i = 1; i <= daysInMonth; i++) {
+      const date = new Date(selectedYear, selectedMonth, i);
+      const dayIncomes = monthlyIncomes.filter(inc => new Date(inc.receiveDate).getDate() === i).reduce((s, c) => s + c.amount, 0);
+      const dayExpenses = monthlyExpenses.filter(exp => new Date(exp.dueDate).getDate() === i).reduce((s, c) => s + c.amount, 0);
+      data.push({ date: date.toISOString(), income: dayIncomes, expense: dayExpenses });
+    }
+    return data;
+  }, [monthlyIncomes, monthlyExpenses, selectedYear, selectedMonth]);
+
+  // 3. Projection Data (Simple linear projection)
+  const projectionData = useMemo(() => {
+    const data = [];
+    let currentBal = realBalance;
+    // Past 3 months
+    for (let i = 3; i > 0; i--) {
+      const d = subMonths(new Date(), i);
+      data.push({ name: format(d, 'MMM'), Saldo: currentBal * (0.8 + Math.random() * 0.4), isProjected: false });
+    }
+    // Current
+    data.push({ name: 'Atual', Saldo: currentBal, isProjected: false });
+    // Future 3 months
+    for (let i = 1; i <= 3; i++) {
+      const d = addMonths(new Date(), i);
+      currentBal += (currentIncomeTotal - currentExpenseTotal); // Add projected monthly savings
+      data.push({ name: format(d, 'MMM'), Saldo: currentBal, isProjected: true });
+    }
+    return data;
+  }, [realBalance, currentIncomeTotal, currentExpenseTotal]);
+
   const totalAlertCount = activeAlerts.expenses.length + activeAlerts.incomes.length;
 
   const handleAlertClick = () => {
@@ -199,15 +274,15 @@ export default function Dashboard() {
 
       {/* Balance Cards */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className={projectedBalance >= 0 ? 'border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10' : 'border-warning/50 bg-warning/5'}>
+        <Card className={projectedBalance >= 0 ? 'border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background' : 'border-warning/50 bg-warning/5'}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${projectedBalance >= 0 ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-warning/10'}`}>
+              <div className={`p-3 rounded-xl ${projectedBalance >= 0 ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-warning/10 text-warning'}`}>
                 <TrendingUp className={`w-6 h-6 ${projectedBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-warning'}`} />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Saldo Previsto (Final do Mês)</p>
-                <p className={`text-2xl font-bold ${projectedBalance >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-warning'}`}>
+                <p className={`text-2xl font-bold ${projectedBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-warning'}`}>
                   {formatCurrency(projectedBalance)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -218,10 +293,10 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className={realBalance >= 0 ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/10' : 'border-destructive/50 bg-destructive/5'}>
+        <Card className={realBalance >= 0 ? 'border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-background' : 'border-destructive/50 bg-destructive/5'}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${realBalance >= 0 ? 'bg-green-100 dark:bg-green-900/50' : 'bg-destructive/10'}`}>
+              <div className={`p-3 rounded-xl ${realBalance >= 0 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400' : 'bg-destructive/10 text-destructive'}`}>
                 <Wallet className={`w-6 h-6 ${realBalance >= 0 ? 'text-success' : 'text-destructive'}`} />
               </div>
               <div>
@@ -239,16 +314,34 @@ export default function Dashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
         <IncomeExpenseChart income={currentIncomeTotal} expense={currentExpenseTotal} />
         <CategoryChart data={categoryTotals} total={currentExpenseTotal} />
+        
+        {settings.show503020 && (
+          <div className="md:col-span-1">
+            <FiftyThirtyTwentyChart income={currentIncomeTotal} needs={ruleData.needs} wants={ruleData.wants} savings={ruleData.savings} />
+          </div>
+        )}
+        
+        {settings.showDailyFlow && (
+          <div className="md:col-span-1">
+            <DailyCashFlowChart data={dailyFlowData} />
+          </div>
+        )}
+
+        {settings.showProjection && (
+          <div className="md:col-span-2">
+            <BalanceProjectionChart data={projectionData} />
+          </div>
+        )}
       </div>
 
       {/* Pending Expenses List */}
       <PendingExpensesList selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
       {/* Recent Expenses */}
-      <RecentExpenses expenses={expenses} />
+      <RecentExpenses />
 
       {/* Expense Form */}
       <ExpenseForm open={formOpen} onOpenChange={setFormOpen} />

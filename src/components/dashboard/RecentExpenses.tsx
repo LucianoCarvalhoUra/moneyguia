@@ -1,20 +1,20 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Expense, PAYMENT_METHOD_LABELS } from '@/types/finance';
 import { useFinance } from '@/contexts/FinanceContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { supabase } from '@/integrations/supabase/client';
 
-interface RecentExpensesProps {
-  expenses: Expense[];
-}
-
-export default function RecentExpenses({ expenses }: RecentExpensesProps) {
+export default function RecentExpenses() {
   const { getCategoryById } = useFinance();
+  const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -23,22 +23,62 @@ export default function RecentExpenses({ expenses }: RecentExpensesProps) {
     }).format(amount);
   };
 
-  const recentExpenses = [...expenses]
-    .sort((a, b) => {
-      // Check for both camelCase and snake_case properties for robustness
-      const dateAStr = (a as any).updated_at || (a as any).updatedAt || (a as any).created_at || a.createdAt;
-      const dateBStr = (b as any).updated_at || (b as any).updatedAt || (b as any).created_at || b.createdAt;
-      
-      const dateA = new Date(dateAStr).getTime();
-      const dateB = new Date(dateBStr).getTime();
-      
-      // Handle invalid dates by treating them as older (0)
-      const timeA = isNaN(dateA) ? 0 : dateA;
-      const timeB = isNaN(dateB) ? 0 : dateB;
-      
-      return timeB - timeA;
-    })
-    .slice(0, 5);
+  useEffect(() => {
+    const fetchRecent = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('expenses')
+          .select('*')
+          .order('updated_at', { ascending: false }) // Garante ordenação por atualização
+          .limit(5);
+
+        if (error) throw error;
+
+        if (data) {
+          const mapped: Expense[] = data.map((item: any) => ({
+            id: item.id,
+            userId: item.user_id,
+            description: item.description,
+            amount: item.amount,
+            expenseDate: item.expense_date,
+            dueDate: item.due_date,
+            categoryId: item.category_id,
+            subcategoryId: item.subcategory_id,
+            paymentMethod: item.payment_method,
+            installments: item.installments,
+            isRecurring: item.is_recurring,
+            isPaid: item.is_paid,
+            recurrenceId: item.recurrence_id,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
+            observation: item.observation,
+            cardId: item.card_id,
+            accountId: item.account_id
+          }));
+          setRecentExpenses(mapped);
+        }
+      } catch (err) {
+        console.error('Error fetching recent expenses:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecent();
+
+    const channel = supabase
+      .channel('recent_expenses_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'expenses' },
+        () => fetchRecent()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   return (
     <Card>
@@ -52,7 +92,11 @@ export default function RecentExpenses({ expenses }: RecentExpensesProps) {
         </Button>
       </CardHeader>
       <CardContent>
-        {recentExpenses.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : recentExpenses.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
             <p>Nenhuma despesa registrada</p>
             <Button variant="link" asChild className="mt-2">
@@ -78,12 +122,11 @@ export default function RecentExpenses({ expenses }: RecentExpensesProps) {
                     <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-5 h-5", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">
-                      {expense.description || category?.name || 'Sem categoria'}
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {category?.name || 'Sem categoria'}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {PAYMENT_METHOD_LABELS[expense.paymentMethod]} •{' '}
-                      {format(new Date(expense.dueDate), "dd 'de' MMM", { locale: ptBR })}
+                    <p className="font-medium text-foreground truncate">
+                      {expense.description || 'Sem descrição'}
                     </p>
                   </div>
                   <div className="text-right">

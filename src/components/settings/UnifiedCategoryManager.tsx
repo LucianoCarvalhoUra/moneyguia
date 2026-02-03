@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { 
+import {
   Trash2, Plus, X, ChevronDown, Pencil, 
   CreditCard, Banknote, Receipt, Wallet, TrendingUp, Gem, Coins,
   Home, Zap, Droplets, Wifi, Phone, ShieldCheck, Key,
@@ -29,7 +29,7 @@ import {
   UserRound, Heart, Stethoscope, Pill, Dumbbell, Sparkles, Baby, PawPrint,
   GraduationCap, School, Briefcase, Laptop,
   ShoppingBasket, Utensils, Coffee, Gift, Shirt, Tv, Gamepad2, Camera, Music
-} from 'lucide-react';
+, Brain } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -120,6 +120,36 @@ export default function UnifiedCategoryManager() {
   const [icon, setIcon] = useState('CreditCard');
   const [color, setColor] = useState('indigo');
   const [isIconOpen, setIsIconOpen] = useState(false);
+  
+  // AI Classification State
+  const [classification, setClassification] = useState<'essential' | 'superfluous' | 'long_term'>('essential');
+  const [recurrence, setRecurrence] = useState<'fixed' | 'variable'>('fixed');
+
+  // AI Suggestion Logic
+  const suggestClassification = (inputName: string) => {
+    const lower = inputName.toLowerCase();
+    
+    // Heuristics for AI suggestion
+    if (lower.match(/aluguel|condom|luz|agua|água|internet|escola|faculdade|plano|seguro/)) {
+      setClassification('essential');
+      setRecurrence('fixed');
+    } else if (lower.match(/mercado|farmacia|farmácia|combustivel|combustível|transporte/)) {
+      setClassification('essential');
+      setRecurrence('variable');
+    } else if (lower.match(/lazer|stream|netflix|spotify|ifood|restaurante|bar|viagem|jogos/)) {
+      setClassification('superfluous');
+      setRecurrence(lower.match(/netflix|spotify|amazon/) ? 'fixed' : 'variable');
+    } else if (lower.match(/investimento|poupanca|poupança|reserva/)) {
+      setClassification('long_term');
+      setRecurrence('variable');
+    }
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setName(newName);
+    if (type === 'expense') suggestClassification(newName);
+  };
 
   // Management State
   const [subcatInputs, setSubcatInputs] = useState<Record<string, string>>({});
@@ -144,7 +174,14 @@ export default function UnifiedCategoryManager() {
 
     try {
       if (type === 'expense') {
-        await addCategory({ name, icon, color });
+        const newCat = await addCategory({ name, icon, color });
+        // Save metadata to localStorage since DB schema might not support it yet
+        // In a real app, this would go to the database
+        const metadata = JSON.parse(localStorage.getItem('category_metadata') || '{}');
+        // We use name as key fallback if ID isn't returned immediately, 
+        // but ideally we'd use the ID. For now, we'll store by name for the demo logic.
+        metadata[name] = { classification, recurrence };
+        localStorage.setItem('category_metadata', JSON.stringify(metadata));
       } else {
         await addIncomeCategory({ name, icon, color });
       }
@@ -248,7 +285,7 @@ export default function UnifiedCategoryManager() {
         <form onSubmit={handleSubmit} className="space-y-4 border p-4 rounded-lg bg-muted/5">
           <div className="space-y-2">
             <Label>Nome da Categoria</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Alimentação" />
+            <Input value={name} onChange={handleNameChange} placeholder="Ex: Alimentação" />
           </div>
 
           <div className="space-y-2">
@@ -313,6 +350,40 @@ export default function UnifiedCategoryManager() {
               </SelectContent>
             </Select>
           </div>
+
+          {type === 'expense' && (
+            <div className="grid grid-cols-2 gap-4 p-3 bg-primary/5 rounded-lg border border-primary/10">
+              <div className="col-span-2 flex items-center gap-2 text-xs font-medium text-primary">
+                <Brain className="w-3 h-3" />
+                Sugestão Inteligente (IA)
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Classificação</Label>
+                <Select value={classification} onValueChange={(v: any) => setClassification(v)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="essential">Essencial</SelectItem>
+                    <SelectItem value="superfluous">Supérfluo</SelectItem>
+                    <SelectItem value="long_term">Longo Prazo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Recorrência</Label>
+                <Select value={recurrence} onValueChange={(v: any) => setRecurrence(v)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed">Fixa</SelectItem>
+                    <SelectItem value="variable">Variável</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
 
           <Button type="submit" className="w-full">
             <Plus className="w-4 h-4 mr-2" />

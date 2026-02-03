@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { User, Shield, Loader2, Bell } from 'lucide-react';
 import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
+import DashboardCustomization from '@/components/dashboard/DashboardCustomization';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
 import ChangePasswordForm from '@/components/settings/ChangePasswordForm';
 import { toast } from 'sonner';
@@ -120,6 +121,9 @@ export default function Settings() {
 
       {/* Unified Categories Manager */}
       <UnifiedCategoryManager />
+
+      {/* Dashboard Customization */}
+      <DashboardCustomization />
 
       {/* Smart Notifications */}
       <Card>
