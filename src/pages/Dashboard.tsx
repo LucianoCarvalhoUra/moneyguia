@@ -13,10 +13,10 @@ import PendingExpensesList from '@/components/dashboard/PendingExpensesList';
 import { toast } from 'sonner';
 import { addDays, startOfDay, endOfDay, isBefore, format, subMonths, addMonths } from 'date-fns';
 import { DashboardAI } from '@/components/DashboardAI';
-// import FiftyThirtyTwentyChart from '@/components/dashboard/FiftyThirtyTwentyChart';
-// import DailyCashFlowChart from '@/components/dashboard/DailyCashFlowChart';
-// import BalanceProjectionChart from '@/components/dashboard/BalanceProjectionChart';
-// import { DEFAULT_DASHBOARD_SETTINGS, DashboardSettings } from '@/components/dashboard/DashboardCustomization';
+import FiftyThirtyTwentyChart from '@/components/dashboard/FiftyThirtyTwentyChart';
+import DailyCashFlowChart from '@/components/dashboard/DailyCashFlowChart';
+import BalanceProjectionChart from '@/components/dashboard/BalanceProjectionChart';
+import { DEFAULT_DASHBOARD_SETTINGS, DashboardSettings } from '@/components/dashboard/DashboardCustomization';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -29,14 +29,14 @@ export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [showOverdueAlert, setShowOverdueAlert] = useState(true);
   const [alertConfig, setAlertConfig] = useState({ enabled: true, days: 2, type: 'expenses' });
-  // const [settings, setSettings] = useState<DashboardSettings>(DEFAULT_DASHBOARD_SETTINGS);
+  const [settings, setSettings] = useState<DashboardSettings>(DEFAULT_DASHBOARD_SETTINGS);
 
-  // useEffect(() => {
-  //   const stored = localStorage.getItem('dashboard_settings');
-  //   if (stored) {
-  //     setSettings(JSON.parse(stored));
-  //   }
-  // }, []);
+  useEffect(() => {
+    const stored = localStorage.getItem('dashboard_settings');
+    if (stored) {
+      setSettings(JSON.parse(stored));
+    }
+  }, []);
 
   // Get monthly data
   const monthlyExpenses = getMonthlyExpenses(selectedYear, selectedMonth);
@@ -318,23 +318,23 @@ export default function Dashboard() {
         <IncomeExpenseChart income={currentIncomeTotal} expense={currentExpenseTotal} />
         <CategoryChart data={categoryTotals} total={currentExpenseTotal} />
         
-        {/* {settings.show503020 && (
+        {settings.show503020 && (
           <div className="md:col-span-1">
             <FiftyThirtyTwentyChart income={currentIncomeTotal} needs={ruleData.needs} wants={ruleData.wants} savings={ruleData.savings} />
           </div>
-        )} */}
+        )}
         
-        {/* {settings.showDailyFlow && (
+        {settings.showDailyFlow && (
           <div className="md:col-span-1">
             <DailyCashFlowChart data={dailyFlowData} />
           </div>
-        )} */}
+        )}
 
-        {/* {settings.showProjection && (
+        {settings.showProjection && (
           <div className="md:col-span-2">
             <BalanceProjectionChart data={projectionData} />
           </div>
-        )} */}
+        )}
       </div>
 
       {/* Pending Expenses List */}

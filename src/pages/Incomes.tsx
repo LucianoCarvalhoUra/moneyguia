@@ -23,13 +23,14 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, isBefore, startOfDay } from 'date-fns';
 import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import IncomeForm from '@/components/income/IncomeForm';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { Income } from '@/types/income';
+import { Badge } from '@/components/ui/badge';
 
 export default function Incomes() {
   const location = useLocation();
@@ -283,6 +284,10 @@ export default function Incomes() {
                   const category = incomeCategories.find(c => c.id === income.categoryId);
                   const subcategory = incomeSubcategories.find(s => s.id === income.subcategoryId);
                   
+                  const receiveDate = new Date(income.receiveDate);
+                  const isOverdue = !income.isReceived && isBefore(startOfDay(receiveDate), startOfDay(new Date()));
+                  const isReceived = income.isReceived;
+                  
                   return (
                     <TableRow key={income.id}>
                       <TableCell className="font-medium">
@@ -293,9 +298,17 @@ export default function Incomes() {
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{subcategory?.name || '-'}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-muted-foreground" />{format(new Date(income.receiveDate), 'dd/MM/yyyy')}</div>
+                        <div className="flex flex-col gap-1">
+                          <div className={cn("flex items-center gap-2", isOverdue ? "text-destructive font-bold" : "text-muted-foreground")}>
+                            <Calendar className="w-4 h-4" />
+                            {format(receiveDate, 'dd/MM/yyyy')}
+                          </div>
+                          {isOverdue && <Badge variant="destructive" className="w-fit text-[10px] h-5 px-1.5">Atrasado</Badge>}
+                          {isReceived && <Badge variant="outline" className="w-fit text-[10px] h-5 px-1.5 bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">Recebido</Badge>}
+                          {!isReceived && !isOverdue && <Badge variant="outline" className="w-fit text-[10px] h-5 px-1.5 bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800">Pendente</Badge>}
+                        </div>
                       </TableCell>
-                      <TableCell className="font-medium text-green-600 dark:text-green-400">{formatCurrency(income.amount)}</TableCell>
+                      <TableCell className={cn("font-medium", isReceived ? "text-green-600 dark:text-green-400" : "")}>{formatCurrency(income.amount)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(income)}><Pencil className="w-4 h-4" /></Button>
