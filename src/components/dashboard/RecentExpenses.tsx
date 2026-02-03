@@ -25,9 +25,18 @@ export default function RecentExpenses({ expenses }: RecentExpensesProps) {
 
   const recentExpenses = [...expenses]
     .sort((a, b) => {
-      const dateA = new Date((a as any).updatedAt || a.createdAt).getTime();
-      const dateB = new Date((b as any).updatedAt || b.createdAt).getTime();
-      return dateB - dateA;
+      // Check for both camelCase and snake_case properties for robustness
+      const dateAStr = (a as any).updated_at || (a as any).updatedAt || (a as any).created_at || a.createdAt;
+      const dateBStr = (b as any).updated_at || (b as any).updatedAt || (b as any).created_at || b.createdAt;
+      
+      const dateA = new Date(dateAStr).getTime();
+      const dateB = new Date(dateBStr).getTime();
+      
+      // Handle invalid dates by treating them as older (0)
+      const timeA = isNaN(dateA) ? 0 : dateA;
+      const timeB = isNaN(dateB) ? 0 : dateB;
+      
+      return timeB - timeA;
     })
     .slice(0, 5);
 
