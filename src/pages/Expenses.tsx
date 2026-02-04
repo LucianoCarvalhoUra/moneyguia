@@ -129,24 +129,21 @@ export default function Expenses() {
   };
 
   const handleDelete = (expense: Expense) => {
-    if (expense.recurrenceId) {
-      setExpenseToDelete(expense);
-      setSelectedDeleteScope(null); // Reset scope on open
-      setDeleteDialogOpen(true);
-    } else {
-      setExpenseToDelete(expense);
-      setSelectedDeleteScope(null); // Will trigger simple delete logic if null/single
-      setDeleteDialogOpen(true);
-    }
+    setExpenseToDelete(expense);
+    // Define 'single' como padrão para garantir que o botão Confirmar funcione para itens únicos
+    // Se for recorrente, o usuário poderá alterar no modal
+    setSelectedDeleteScope('single');
+    setDeleteDialogOpen(true);
   };
   
   const handleConfirmDelete = async () => {
-    if (!expenseToDelete || !selectedDeleteScope) return;
+    if (!expenseToDelete) return;
 
     try {
       let query;
       const { recurrenceId, id, dueDate } = expenseToDelete;
       
+      // Se for exclusão única ou não tiver recorrência
       if (selectedDeleteScope === 'single' || !recurrenceId) {
         query = supabase.from('expenses').delete().eq('id', id);
       } else if (selectedDeleteScope === 'future') {

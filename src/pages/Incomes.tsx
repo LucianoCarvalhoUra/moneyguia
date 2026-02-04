@@ -13,6 +13,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogAction,
 } from '@/components/ui/alert-dialog';
 import {
   Select,
@@ -50,6 +51,7 @@ export default function Incomes() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState<Income | null>(null);
+  const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
 
   const months = [
     { value: 0, label: 'Janeiro' }, { value: 1, label: 'Fevereiro' }, { value: 2, label: 'Março' },
@@ -120,28 +122,23 @@ export default function Incomes() {
   };
 
   const handleDelete = (income: Income) => {
-    if (income.recurrenceId) {
-      setIncomeToDelete(income);
-      setDeleteDialogOpen(true);
-    } else {
-      if (confirm('Tem certeza que deseja remover esta receita?')) {
-        removeIncome(income.id).then(() => toast.success('Receita removida.'));
-      }
-    }
+    setIncomeToDelete(income);
+    setSelectedDeleteScope('single');
+    setDeleteDialogOpen(true);
   };
   
-  const handleConfirmDelete = async (scope: 'single' | 'future' | 'past' | 'all') => {
+  const handleConfirmDelete = async () => {
     if (!incomeToDelete) return;
 
     try {
       let query;
       const { recurrenceId, id, receiveDate } = incomeToDelete;
       
-      if (scope === 'single') {
+      if (selectedDeleteScope === 'single' || !recurrenceId) {
         query = supabase.from('incomes').delete().eq('id', id);
-      } else if (scope === 'future') {
+      } else if (selectedDeleteScope === 'future') {
         query = supabase.from('incomes').delete().eq('recurrence_id', recurrenceId).gte('receive_date', format(new Date(receiveDate), 'yyyy-MM-dd'));
-      } else if (scope === 'past') {
+      } else if (selectedDeleteScope === 'past') {
         query = supabase.from('incomes').delete().eq('recurrence_id', recurrenceId).lte('receive_date', format(new Date(receiveDate), 'yyyy-MM-dd'));
       } else { // 'all'
         query = supabase.from('incomes').delete().eq('recurrence_id', recurrenceId);
@@ -157,6 +154,7 @@ export default function Incomes() {
     } finally {
       setDeleteDialogOpen(false);
       setIncomeToDelete(null);
+      setSelectedDeleteScope('single');
     }
   };
 
@@ -329,29 +327,51 @@ export default function Incomes() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Transação Recorrente</AlertDialogTitle>
-            <AlertDialogDescription>Esta receita faz parte de uma série. Como você gostaria de excluí-la?</AlertDialogDescription>
+            <AlertDialogTitle>Excluir Receita</AlertDialogTitle>
+            <AlertDialogDescription>
+              {incomeToDelete?.recurrenceId 
+                ? "Esta receita é recorrente. Como você gostaria de excluí-la?"
+                : "Tem certeza que deseja excluir esta receita?"
+              }
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="flex flex-col gap-2 py-4">
-             <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleConfirmDelete('single')}>
-                <div className="p-2 bg-muted rounded-full"><Calendar className="w-4 h-4" /></div>
-                <div className="text-left"><p className="font-medium">Apenas esta</p><p className="text-xs text-muted-foreground">Exclui somente este registro</p></div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleConfirmDelete('future')}>
-                <div className="p-2 bg-muted rounded-full"><CalendarClock className="w-4 h-4" /></div>
-                <div className="text-left"><p className="font-medium">Esta e futuras</p><p className="text-xs text-muted-foreground">Exclui este e todos os próximos</p></div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleConfirmDelete('past')}>
-                <div className="p-2 bg-muted rounded-full"><History className="w-4 h-4" /></div>
-                <div className="text-left"><p className="font-medium">Esta e Passadas</p><p className="text-xs text-muted-foreground">Exclui este e todos os anteriores</p></div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleConfirmDelete('all')}>
-                <div className="p-2 bg-muted rounded-full"><CalendarDays className="w-4 h-4" /></div>
-                <div className="text-left"><p className="font-medium">Todas</p><p className="text-xs text-muted-foreground">Exclui toda a série histórica</p></div>
-            </Button>
-          </div>
+          {incomeToDelete?.recurrenceId && (
+            <div className="flex flex-col gap-2 py-4">
+              <div 
+                className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'single' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
+                onClick={() => setSelectedDeleteScope('single')}
+              >
+                  <div className="p-2 bg-muted rounded-full"><Calendar className="w-4 h-4" /></div>
+                  <div className="text-left"><p className="font-medium">Apenas esta</p><p className="text-xs text-muted-foreground">Exclui somente este registro</p></div>
+              </div>
+              <div 
+                className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'future' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
+                onClick={() => setSelectedDeleteScope('future')}
+              >
+                  <div className="p-2 bg-muted rounded-full"><CalendarClock className="w-4 h-4" /></div>
+                  <div className="text-left"><p className="font-medium">Esta e futuras</p><p className="text-xs text-muted-foreground">Exclui este e todos os próximos</p></div>
+              </div>
+              <div 
+                className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'past' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
+                onClick={() => setSelectedDeleteScope('past')}
+              >
+                  <div className="p-2 bg-muted rounded-full"><History className="w-4 h-4" /></div>
+                  <div className="text-left"><p className="font-medium">Esta e Passadas</p><p className="text-xs text-muted-foreground">Exclui este e todos os anteriores</p></div>
+              </div>
+              <div 
+                className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'all' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
+                onClick={() => setSelectedDeleteScope('all')}
+              >
+                  <div className="p-2 bg-muted rounded-full"><CalendarDays className="w-4 h-4" /></div>
+                  <div className="text-left"><p className="font-medium">Todas</p><p className="text-xs text-muted-foreground">Exclui toda a série histórica</p></div>
+              </div>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Confirmar
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
