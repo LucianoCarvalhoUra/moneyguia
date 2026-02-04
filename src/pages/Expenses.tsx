@@ -86,6 +86,10 @@ export default function Expenses() {
   useEffect(() => {
     if (location.state?.filter === 'overdue') {
       setStatusFilter('overdue');
+      if (location.state.month !== undefined && location.state.year !== undefined) {
+        setSelectedMonth(location.state.month);
+        setSelectedYear(location.state.year);
+      }
       window.history.replaceState({}, document.title);
     }
   }, [location.state, expenses]);

@@ -251,19 +251,6 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* Month Navigation */}
-      <div className="flex items-center justify-center gap-4 py-2">
-        <Button className="hover:bg-accent hover:text-accent-foreground" size="icon" onClick={handlePreviousMonth}>
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-        <div className="text-lg font-semibold text-foreground min-w-[180px] text-center">
-          {months[selectedMonth]} {selectedYear}
-        </div>
-        <Button className="hover:bg-accent hover:text-accent-foreground" size="icon" onClick={handleNextMonth}>
-          <ChevronRight className="w-5 h-5" />
-        </Button>
-      </div>
-
       {/* Balance Cards */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className={projectedBalance >= 0 ? 'border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background' : 'border-warning/50 bg-warning/5'}>
