@@ -270,18 +270,16 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         successMessage = 'Despesa atual e passadas atualizadas!';
       
       } else if (scope === 'future') {
-        // When updating 'future', we apply the changes to the current record and all subsequent ones.
+        // New logic for 'Esta e as próximas'
+        // This will update the current expense and all future ones with the same recurrence_id
         const { error } = await supabase
           .from('expenses')
           .update(dados)
           .eq('recurrence_id', recurrenceId)
           .gte('due_date', format(data.dueDate, 'yyyy-MM-dd'));
-        
+
         if (error) throw error;
-        
-        // Note: This approach doesn't handle adding/removing future installments,
-        // it only propagates data changes (like description, value, category) to existing future records.
-        // A more complex logic would be needed to handle changes in the number of installments.
+
         successMessage = 'Despesa atual e futuras foram atualizadas!';
       }
       

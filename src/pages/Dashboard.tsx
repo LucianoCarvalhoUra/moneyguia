@@ -192,11 +192,18 @@ export default function Dashboard() {
   const totalOverdueCount = overdueItems.expenses.length + overdueItems.incomes.length;
 
   const handleAlertClick = () => {
-    if (overdueItems.expenses.length > 0) {
+    const overdueExpenses = overdueItems.expenses;
+    if (overdueExpenses.length > 0) {
+      // Find the oldest overdue expense
+      const oldestOverdue = overdueExpenses.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+      const oldestDate = new Date(oldestOverdue.dueDate);
+
       navigate('/expenses', { 
         state: { 
-          filter: 'overdue'
-        } 
+          filter: 'overdue',
+          month: oldestDate.getMonth(),
+          year: oldestDate.getFullYear(),
+        }
       });
     } else if (overdueItems.incomes.length > 0) {
       navigate('/incomes', { state: { filter: 'pending' } }); // Or overdue logic if implemented
