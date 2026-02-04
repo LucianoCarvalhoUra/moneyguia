@@ -25,7 +25,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, isBefore, startOfDay } from 'date-fns';
-import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Check } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import IncomeForm from '@/components/income/IncomeForm';
@@ -48,6 +48,7 @@ export default function Incomes() {
   const [sortOrder, setSortOrder] = useState<string>('asc');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
+  const [duplicatingIncome, setDuplicatingIncome] = useState<Income | null>(null);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState<Income | null>(null);
@@ -162,6 +163,16 @@ export default function Incomes() {
     setIsFormOpen(true);
   };
 
+  const handleDuplicate = (income: Income) => {
+    setDuplicatingIncome({
+      ...income,
+      title: `${income.title} (Cópia)`,
+      receiveDate: new Date().toISOString() as unknown as Date, // Define para hoje por conveniência
+      isReceived: false,
+    });
+    setIsFormOpen(true);
+  };
+
   const handleToggleReceived = async (id: string, currentStatus: boolean) => {
     try {
       await updateIncome(id, { isReceived: !currentStatus });
@@ -180,7 +191,7 @@ export default function Incomes() {
           <h1 className="text-2xl font-bold text-foreground">Receitas</h1>
           <p className="text-muted-foreground">Gerencie seus ganhos</p>
         </div>
-        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingIncome(null); setIsFormOpen(true); }}>
+        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingIncome(null); setDuplicatingIncome(null); setIsFormOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Nova Receita
         </Button>
       </div>
@@ -324,6 +335,7 @@ export default function Incomes() {
                             onClick={() => handleToggleReceived(income.id, income.isReceived)}
                             title={income.isReceived ? "Marcar como pendente" : "Confirmar recebimento"}
                           ><Check className="w-4 h-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDuplicate(income)} title="Duplicar"><Copy className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(income)}><Pencil className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(income)}><Trash2 className="w-4 h-4" /></Button>
                         </div>
@@ -337,7 +349,7 @@ export default function Incomes() {
         </CardContent>
       </Card>
 
-      <IncomeForm open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingIncome(null); }} income={editingIncome} />
+      <IncomeForm open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) { setEditingIncome(null); setDuplicatingIncome(null); } }} income={editingIncome} initialData={duplicatingIncome} />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

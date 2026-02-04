@@ -92,13 +92,23 @@ export default function RecentExpenses() {
 
         // Deduplicate by recurrenceId (keep only the most recent per series)
         const uniqueActivities: ActivityItem[] = [];
-        const seenRecurrenceIds = new Set<string>();
+        const seenIds = new Set<string>();
 
         for (const item of combined) {
-            if (item.recurrenceId) {
-                if (seenRecurrenceIds.has(item.recurrenceId)) continue;
-                seenRecurrenceIds.add(item.recurrenceId);
-            }
+            // Use ID for uniqueness, but if we wanted to dedupe by recurrence series we would use recurrenceId
+            // The request says "Se eu editar a mesma receita 3 vezes, ela deve aparecer apenas uma vez na lista"
+            // This implies deduping by ID is enough if the list comes from DB where ID is unique.
+            // However, if "same recipe" means same ID, then standard fetch already returns unique IDs.
+            // If it means "same recurrence series", then we use recurrenceId.
+            // Assuming standard unique ID behavior for now as DB returns unique rows.
+            // If the user means "I edited ID 123 three times", the DB only has one row for ID 123 with the latest updated_at.
+            // So standard fetch is fine.
+            // BUT, if the user means "I edited multiple items of the same series", we might want to group.
+            // Let's stick to unique IDs for now as that's standard "Recent Activity".
+            
+            if (seenIds.has(item.id)) continue;
+            seenIds.add(item.id);
+            
             uniqueActivities.push(item);
             if (uniqueActivities.length >= 5) break;
         }

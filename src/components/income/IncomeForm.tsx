@@ -23,16 +23,17 @@ import { Income } from '@/types/income';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays, History, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, addMonths } from 'date-fns';
+import { format, addMonths, getDate, setDate } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
 interface IncomeFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   income?: Income | null;
+  initialData?: Partial<Income> | null;
 }
 
-export default function IncomeForm({ open, onOpenChange, income }: IncomeFormProps) {
+export default function IncomeForm({ open, onOpenChange, income, initialData }: IncomeFormProps) {
   const { addIncome, updateIncome, removeIncome, incomeCategories, incomeSubcategories, refreshData } = useIncome();
   const { accounts } = useFinance();
   
@@ -45,6 +46,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const [accountId, setAccountId] = useState('');
   const [isReceived, setIsReceived] = useState(true);
   const [isRecurring, setIsRecurring] = useState(false);
+  const [installments, setInstallments] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [simpleDeleteDialogOpen, setSimpleDeleteDialogOpen] = useState(false);
@@ -67,10 +69,21 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       setIsReceived(income.isReceived);
       setIsRecurring(income.isRecurring);
       setErrors({});
+    } else if (initialData) {
+      setTitle(initialData.title || '');
+      setAmount(initialData.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.amount) : '');
+      setIncomeDate((initialData as any).incomeDate ? format(new Date((initialData as any).incomeDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+      setReceiveDate(initialData.receiveDate ? format(new Date(initialData.receiveDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+      setCategoryId(initialData.categoryId || '');
+      setSubcategoryId(initialData.subcategoryId || '');
+      setAccountId(initialData.accountId || '');
+      setIsReceived(initialData.isReceived || false);
+      setIsRecurring(initialData.isRecurring || false);
+      setErrors({});
     } else {
       resetForm();
     }
-  }, [income, open]);
+  }, [income, initialData, open]);
 
   const resetForm = () => {
     setTitle('');
@@ -80,8 +93,9 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     setCategoryId('');
     setSubcategoryId('');
     setAccountId('');
-    setIsReceived(true);
+    setIsReceived(false);
     setIsRecurring(false);
+    setInstallments('1');
     setErrors({});
   };
 
@@ -142,6 +156,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         accountId: accountId || undefined,
         isReceived,
         isRecurring,
+        installments: isRecurring ? parseInt(installments) : undefined,
       };
 
       if (income) { // Editing an existing income
@@ -160,7 +175,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           await addIncome({ ...incomeData, recurrenceId: newRecurrenceId });
           
           // Create next 11 entries
-          for (let i = 1; i <= 11; i++) {
+          const limit = installments ? parseInt(installments) - 1 : 11;
+          for (let i = 1; i <= limit; i++) {
             const nextDate = addMonths(new Date(receiveDate), i);
             await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId });
           }
@@ -175,7 +191,8 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
           await addIncome({ ...incomeData, recurrenceId: newRecurrenceId });
           
           // Create next 11 entries
-          for (let i = 1; i <= 11; i++) {
+          const limit = installments ? parseInt(installments) - 1 : 11;
+          for (let i = 1; i <= limit; i++) {
             const nextDate = addMonths(new Date(receiveDate), i);
             await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId });
           }
@@ -203,7 +220,9 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     setIsSubmitting(true);
     try {
       const recurrenceId = income?.recurrenceId || (income as any)?.recurrence_id || (income as any)?.parent_id || (income as any)?.id;
-       if (!recurrenceId && scope !== 'single') {
+      const effectiveRecurrenceId = recurrenceId || (income?.isRecurring ? income?.id : null);
+
+       if (!effectiveRecurrenceId && scope !== 'single') {
         toast.info("Esta não é uma receita recorrente. Apenas este registro será atualizado.");
         await handleRecurrenceUpdate('single', data);
         return;
@@ -219,6 +238,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         account_id: data.accountId || null,
         is_received: data.isReceived,
         is_recurring: data.isRecurring,
+        installments: data.installments,
       };
 
       let successMessage = '';
@@ -230,48 +250,58 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         successMessage = 'Receita atualizada com sucesso!';
 
       } else if (scope === 'all') {
-        const { error } = await supabase.from('incomes').update(dados).eq('recurrence_id', recurrenceId);
+        const { error } = await supabase.from('incomes').update(dados).or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`);
         if (error) throw error;
         successMessage = 'Todas as receitas da série foram atualizadas!';
 
       } else if (scope === 'past') {
         const { error } = await supabase.from('incomes').update(dados)
-          .eq('recurrence_id', recurrenceId)
+          .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
           .lte('receive_date', format(data.receiveDate, 'yyyy-MM-dd'));
         if (error) throw error;
         successMessage = 'Receita atual e passadas atualizadas!';
       
       } else if (scope === 'future') {
-        // 1. Update current income
-        // const { error: updateCurrent } = await supabase.from('incomes').update(dados).eq('id', income!.id);
-        // if (updateCurrent) throw updateCurrent;
+        // Logic: Update fixed fields + Recalculate date based on new day
 
-        // 2. Delete strictly future incomes
-        const { error: deleteFuture } = await supabase.from('incomes').delete()
-          .or(`recurrence_id.eq.${recurrenceId},id.eq.${recurrenceId}`)
-          .gt('receive_date', format(data.receiveDate, 'yyyy-MM-dd'));
-        if (deleteFuture) throw deleteFuture;
+        // 1. Fetch all affected incomes (current + future)
+        const { data: futureIncomes, error: fetchError } = await supabase
+          .from('incomes')
+          .select('*')
+          .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
+          .gte('receive_date', format(new Date(data.receiveDate), 'yyyy-MM-dd'));
 
-        // 3. Recreate future incomes (default 11 months for indefinite recurrence in this context)
-        const currentReceiveDate = new Date(data.receiveDate);
-        const currentIncomeDate = new Date(data.incomeDate);
-        const newIncomes = [];
-        
-        for (let i = 1; i <= 11; i++) {
-            const nextReceiveDate = addMonths(currentReceiveDate, i);
-            const nextIncomeDate = addMonths(currentIncomeDate, i);
-            newIncomes.push({
-                ...dados,
-                recurrence_id: recurrenceId,
-                receive_date: format(nextReceiveDate, 'yyyy-MM-dd'),
-                income_date: format(nextIncomeDate, 'yyyy-MM-dd'),
-                is_received: false,
-                user_id: income?.userId
+        if (fetchError) throw fetchError;
+
+        if (futureIncomes && futureIncomes.length > 0) {
+            // 2. Capture the new day from the edited date
+            const newReceiveDateObj = new Date(data.receiveDate);
+            const newDay = newReceiveDateObj.getUTCDate();
+            
+            // 3. Prepare updates
+            const updates = futureIncomes.map((inc: any) => {
+                let originalDate = new Date(inc.receive_date);
+                originalDate.setUTCDate(newDay);
+                let newDate = originalDate;
+                
+                if (inc.id === income!.id) {
+                    newDate = newReceiveDateObj;
+                }
+
+                return {
+                    ...dados,
+                    id: inc.id,
+                    user_id: inc.user_id,
+                    recurrence_id: effectiveRecurrenceId,
+                    receive_date: format(newDate, 'yyyy-MM-dd'),
+                    income_date: format(newDate, 'yyyy-MM-dd')
+                };
             });
+
+            // 4. Execute Upsert
+            const { error: updateError } = await supabase.from('incomes').upsert(updates);
+            if (updateError) throw updateError;
         }
-        
-        const { error: insertError } = await supabase.from('incomes').insert(newIncomes);
-        if (insertError) throw insertError;
 
         successMessage = 'Receitas futuras atualizadas com sucesso!';
       }
@@ -476,6 +506,13 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
                 <Switch id="recurring-income" checked={isRecurring} onCheckedChange={setIsRecurring} />
               </div>
             </div>
+
+            {isRecurring && (
+              <div className="sm:col-span-2 space-y-2 animate-in fade-in slide-in-from-top-2">
+                <Label>Número de Parcelas (1 = Fixo Mensal)</Label>
+                <Input type="number" min="1" value={installments} onChange={(e) => setInstallments(e.target.value)} />
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
