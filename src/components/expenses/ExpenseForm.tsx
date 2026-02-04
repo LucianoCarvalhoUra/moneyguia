@@ -228,10 +228,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all', data: any) => {
     setIsSubmitting(true);
     try {
-      // Ensure we catch the recurrence ID correctly.
+      // Ensure we catch the recurrence ID correctly. If it's a series, recurrenceId should be present.
       const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id || (expense as any)?.parent_id;
       
-      const effectiveRecurrenceId = recurrenceId || (expense?.isRecurring ? expense?.id : null);
+      const effectiveRecurrenceId = recurrenceId || (expense?.isRecurring ? expense?.id : undefined);
       
       if (!recurrenceId && scope !== 'single') {
         toast.info("Esta não é uma despesa recorrente. Apenas este registro será atualizado.");
@@ -276,9 +276,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       } else if (scope === 'future') {
         // New logic for 'Esta e as próximas'
         // This will update the current expense and all future ones with the same recurrence_id
-        // Logic: Update fixed fields + Recalculate date based on new day
-
-        // 1. Fetch all affected expenses (current + future)
+        
+        // 1. Fetch all affected expenses (current + future) to handle date updates correctly
         const { data: futureExpenses, error: fetchError } = await supabase
           .from('expenses')
           .select('*')
@@ -288,36 +287,44 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         if (fetchError) throw fetchError;
 
         if (futureExpenses && futureExpenses.length > 0) {
-            // 2. Capture the new day from the edited date
+            // 2. Capture the new day from the edited date (from form)
             const newDueDateObj = new Date(data.dueDate);
-            // Use getUTCDate to reliably get the day from YYYY-MM-DD string
-            const newDay = newDueDateObj.getUTCDate();
+            // Use getUTCDate because input type="date" value is YYYY-MM-DD which parses as UTC midnight
+            const newDay = newDueDateObj.getUTCDate(); 
             
             // 3. Prepare updates
             const updates = futureExpenses.map((exp: any) => {
                 // Original date of the record being updated
                 let originalDate = new Date(exp.due_date);
                 
-                // Set the new day using UTC to preserve month/year correctly without timezone shift
+                // Set the new day using UTC to preserve month/year correctly without timezone shift.
+                // This effectively keeps the month/year of the original record but changes the day.
                 originalDate.setUTCDate(newDay);
                 let newDate = originalDate;
                 
-                // If the current record is the one being edited (by ID), we ensure it matches exactly the form data
-                // But the logic above (setDate) should yield the same result if data.dueDate is consistent.
-                // However, to be safe and ensure the "current" one gets exactly what user picked:
+                // If the current record is the one being edited (by ID), we ensure it matches exactly the form data.
                 if (exp.id === expense!.id) {
                     newDate = newDueDateObj;
                 }
 
                 return {
-                    ...dados,
+                    // Spread the new data (amount, category, description, etc.)
+                    description: data.description,
+                    amount: data.amount,
+                    category_id: data.categoryId,
+                    subcategory_id: data.subcategoryId || null,
+                    payment_method: data.paymentMethod,
+                    account_id: data.accountId || null,
+                    card_id: data.cardId || null,
+                    is_recurring: true, // Ensure it stays recurring
+                    installments: data.installments,
+                    
+                    // Identity fields
                     id: exp.id,
                     user_id: exp.user_id,
-                    // Ensure recurrence link is maintained/fixed if missing
-                    recurrence_id: effectiveRecurrenceId, 
+                    recurrence_id: effectiveRecurrenceId, // Ensure link is maintained
                     due_date: format(newDate, 'yyyy-MM-dd'),
-                    // Update expense_date to match due_date for consistency in this context
-                    expense_date: format(newDate, 'yyyy-MM-dd') 
+                    expense_date: format(newDate, 'yyyy-MM-dd') // Sync expense_date
                 };
             });
 
