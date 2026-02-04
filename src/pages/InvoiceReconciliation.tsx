@@ -23,6 +23,7 @@ import { CalendarIcon, CreditCard, AlertCircle, CheckCircle2, Calculator } from 
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { getUserFriendlyError } from '@/lib/errorMapper';
 
 const MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -144,8 +145,7 @@ export default function InvoiceReconciliation() {
       setAdjustmentPaymentDate(undefined);
       setAdjustmentAccountId('');
     } catch (error) {
-      toast.error('Erro ao registrar ajuste');
-      console.error(error);
+      toast.error(getUserFriendlyError(error));
     } finally {
       setIsSubmitting(false);
     }
