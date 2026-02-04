@@ -228,10 +228,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all', data: any) => {
     setIsSubmitting(true);
     try {
+      // Ensure we catch the recurrence ID correctly.
       const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id || (expense as any)?.parent_id;
       
       const effectiveRecurrenceId = recurrenceId || (expense?.isRecurring ? expense?.id : null);
-
+      
       if (!recurrenceId && scope !== 'single') {
         toast.info("Esta não é uma despesa recorrente. Apenas este registro será atualizado.");
         await handleRecurrenceUpdate('single', data); 
@@ -275,8 +276,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       } else if (scope === 'future') {
         // New logic for 'Esta e as próximas'
         // This will update the current expense and all future ones with the same recurrence_id
-        
-        // First, fetch all future expenses to handle date updates correctly
+        // Logic: Update fixed fields + Recalculate date based on new day
+
+        // 1. Fetch all affected expenses (current + future)
         const { data: futureExpenses, error: fetchError } = await supabase
           .from('expenses')
           .select('*')
@@ -286,36 +288,38 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         if (fetchError) throw fetchError;
 
         if (futureExpenses && futureExpenses.length > 0) {
-            const newDay = getDate(new Date(data.dueDate));
+            // 2. Capture the new day from the edited date
+            const newDueDateObj = new Date(data.dueDate);
+            const newDay = getDate(newDueDateObj);
             
-            // Prepare updates
+            // 3. Prepare updates
             const updates = futureExpenses.map((exp: any) => {
-                // Calculate new due date preserving month/year but setting new day
-                // Handle edge cases (e.g. setting day 31 for February) -> date-fns setDate handles this by rolling over, 
-                // but usually for bills we might want the last valid day of month. 
-                // For simplicity here, we assume setDate behavior is acceptable or user picks a valid day.
-                // Ideally, we should check if the original date was "end of month" logic, but here we strictly follow "change day".
-                
+                // Original date of the record being updated
                 let originalDate = new Date(exp.due_date);
-                // If we are updating the current one (which is in the list), we use the exact date provided.
-                // For others, we adjust the day.
-                // Actually, since we filtered by gte data.dueDate, the first one IS the current one (or close to it).
                 
-                // Correct logic: For each expense, keep its month/year, set the day to the new day.
+                // Set the new day, preserving month and year
                 let newDate = setDate(originalDate, newDay);
                 
+                // If the current record is the one being edited (by ID), we ensure it matches exactly the form data
+                // But the logic above (setDate) should yield the same result if data.dueDate is consistent.
+                // However, to be safe and ensure the "current" one gets exactly what user picked:
+                if (exp.id === expense!.id) {
+                    newDate = newDueDateObj;
+                }
+
                 return {
                     ...dados,
                     id: exp.id,
                     user_id: exp.user_id,
+                    // Ensure recurrence link is maintained/fixed if missing
+                    recurrence_id: effectiveRecurrenceId, 
                     due_date: format(newDate, 'yyyy-MM-dd'),
-                    // We should also update expense_date if it's usually same as due_date, or keep offset?
-                    // Requirement says "update all future expenses... to expire on day 15". 
-                    // Let's assume expense_date follows due_date logic or is set to same.
+                    // Update expense_date to match due_date for consistency in this context
                     expense_date: format(newDate, 'yyyy-MM-dd') 
                 };
             });
 
+            // 4. Execute Upsert
             const { error: updateError } = await supabase.from('expenses').upsert(updates);
             if (updateError) throw updateError;
         }
