@@ -228,7 +228,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all', data: any) => {
     setIsSubmitting(true);
     try {
-      const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id || (expense as any)?.parent_id || (expense as any)?.id; // Fallback to ID if it's the parent itself
+      const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id || (expense as any)?.parent_id;
+      
+      const effectiveRecurrenceId = recurrenceId || (expense?.isRecurring ? expense?.id : null);
+
       if (!recurrenceId && scope !== 'single') {
         toast.info("Esta não é uma despesa recorrente. Apenas este registro será atualizado.");
         await handleRecurrenceUpdate('single', data); 
@@ -258,13 +261,13 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         successMessage = 'Despesa atualizada com sucesso!';
 
       } else if (scope === 'all') {
-        const { error } = await supabase.from('expenses').update(dados).eq('recurrence_id', recurrenceId);
+        const { error } = await supabase.from('expenses').update(dados).or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`);
         if (error) throw error;
         successMessage = 'Todas as despesas da série foram atualizadas!';
 
       } else if (scope === 'past') {
         const { error } = await supabase.from('expenses').update(dados)
-          .eq('recurrence_id', recurrenceId)
+          .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
           .lte('due_date', format(data.dueDate, 'yyyy-MM-dd'));
         if (error) throw error;
         successMessage = 'Despesa atual e passadas atualizadas!';
@@ -277,7 +280,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         const { error } = await supabase
           .from('expenses')
           .update(dados)
-          .or(`recurrence_id.eq.${recurrenceId},id.eq.${recurrenceId}`) // Cover both children and parent if ID matches
+          .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`) // Cover both children and parent if ID matches
           .gte('due_date', format(new Date(data.dueDate), 'yyyy-MM-dd'));
 
         if (error) throw error;
