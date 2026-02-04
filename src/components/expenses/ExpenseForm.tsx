@@ -290,15 +290,17 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         if (futureExpenses && futureExpenses.length > 0) {
             // 2. Capture the new day from the edited date
             const newDueDateObj = new Date(data.dueDate);
-            const newDay = getDate(newDueDateObj);
+            // Use getUTCDate to reliably get the day from YYYY-MM-DD string
+            const newDay = newDueDateObj.getUTCDate();
             
             // 3. Prepare updates
             const updates = futureExpenses.map((exp: any) => {
                 // Original date of the record being updated
                 let originalDate = new Date(exp.due_date);
                 
-                // Set the new day, preserving month and year
-                let newDate = setDate(originalDate, newDay);
+                // Set the new day using UTC to preserve month/year correctly without timezone shift
+                originalDate.setUTCDate(newDay);
+                let newDate = originalDate;
                 
                 // If the current record is the one being edited (by ID), we ensure it matches exactly the form data
                 // But the logic above (setDate) should yield the same result if data.dueDate is consistent.

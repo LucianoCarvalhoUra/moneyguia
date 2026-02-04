@@ -25,7 +25,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, isBefore, startOfDay } from 'date-fns';
-import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import IncomeForm from '@/components/income/IncomeForm';
@@ -160,6 +160,15 @@ export default function Incomes() {
   const handleEdit = (income: Income) => {
     setEditingIncome(income);
     setIsFormOpen(true);
+  };
+
+  const handleToggleReceived = async (id: string, currentStatus: boolean) => {
+    try {
+      await updateIncome(id, { isReceived: !currentStatus });
+      toast.success(currentStatus ? 'Receita marcada como pendente' : 'Recebimento confirmado!');
+    } catch (error) {
+      toast.error('Erro ao atualizar status');
+    }
   };
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -308,6 +317,13 @@ export default function Incomes() {
                       <TableCell className={cn("font-medium", isReceived ? "text-green-600 dark:text-green-400" : "")}>{formatCurrency(income.amount)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className={cn("h-8 w-8", income.isReceived ? "text-green-600 hover:text-green-700" : "text-muted-foreground hover:text-green-600")}
+                            onClick={() => handleToggleReceived(income.id, income.isReceived)}
+                            title={income.isReceived ? "Marcar como pendente" : "Confirmar recebimento"}
+                          ><Check className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(income)}><Pencil className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(income)}><Trash2 className="w-4 h-4" /></Button>
                         </div>

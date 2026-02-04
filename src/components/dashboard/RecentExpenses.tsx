@@ -22,6 +22,7 @@ interface ActivityItem {
   categoryId: string;
   subcategoryId?: string;
   isPaid: boolean; // isReceived for income
+  recurrenceId?: string;
 }
 
 export default function RecentExpenses() {
@@ -45,7 +46,7 @@ export default function RecentExpenses() {
           .from('expenses')
           .select('*')
           .order('updated_at', { ascending: false })
-          .limit(5);
+          .limit(20); // Fetch more to allow deduplication
 
         if (expensesError) throw expensesError;
 
@@ -67,7 +68,8 @@ export default function RecentExpenses() {
             updatedAt: item.updated_at,
             categoryId: item.category_id,
             subcategoryId: item.subcategory_id,
-            isPaid: item.is_paid
+            isPaid: item.is_paid,
+            recurrenceId: item.recurrence_id
         }));
 
         const mappedIncomes: ActivityItem[] = (incomesData || []).map((item: any) => ({
@@ -79,15 +81,29 @@ export default function RecentExpenses() {
             updatedAt: item.updated_at,
             categoryId: item.category_id,
             subcategoryId: item.subcategory_id,
-            isPaid: item.is_received
+            isPaid: item.is_received,
+            recurrenceId: item.recurrence_id
         }));
 
         // Merge and Sort
-        const combined = [...mappedExpenses, ...mappedIncomes].sort((a, b) => 
+        const combined = [...mappedExpenses, ...mappedIncomes].sort((a, b) =>
             new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        ).slice(0, 5);
+        );
 
-        setActivities(combined);
+        // Deduplicate by recurrenceId (keep only the most recent per series)
+        const uniqueActivities: ActivityItem[] = [];
+        const seenRecurrenceIds = new Set<string>();
+
+        for (const item of combined) {
+            if (item.recurrenceId) {
+                if (seenRecurrenceIds.has(item.recurrenceId)) continue;
+                seenRecurrenceIds.add(item.recurrenceId);
+            }
+            uniqueActivities.push(item);
+            if (uniqueActivities.length >= 5) break;
+        }
+
+        setActivities(uniqueActivities);
       } catch (err) {
         console.error('Error fetching recent expenses:', err);
       } finally {
