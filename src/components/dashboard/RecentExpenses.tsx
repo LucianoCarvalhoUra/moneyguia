@@ -45,7 +45,7 @@ export default function RecentExpenses() {
           .from('expenses')
           .select('*')
           .order('updated_at', { ascending: false })
-          .limit(10);
+          .limit(5);
 
         if (expensesError) throw expensesError;
 
@@ -54,7 +54,7 @@ export default function RecentExpenses() {
           .from('incomes')
           .select('*')
           .order('updated_at', { ascending: false })
-          .limit(10);
+          .limit(5);
 
         if (incomesError) throw incomesError;
 
@@ -85,7 +85,7 @@ export default function RecentExpenses() {
         // Merge and Sort
         const combined = [...mappedExpenses, ...mappedIncomes].sort((a, b) => 
             new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        ).slice(0, 10);
+        ).slice(0, 5);
 
         setActivities(combined);
       } catch (err) {
@@ -167,12 +167,12 @@ export default function RecentExpenses() {
                           {category?.name || 'Sem categoria'}
                         </span>
                         {subcategory && (
-                          <span className="text-xs text-muted-foreground truncate hidden sm:inline-block">
+                          <span className="text-[10px] text-muted-foreground truncate hidden sm:inline-block">
                             • {subcategory.name}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                         <span>{format(itemDate, "dd 'de' MMM", { locale: ptBR })}</span>
                         {isOverdue && (
                           <Badge variant="destructive" className="h-4 px-1 text-[10px]">Atrasado</Badge>
