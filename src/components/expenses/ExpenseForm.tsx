@@ -142,7 +142,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     return true;
   };
 
-  const isRecurringSeries = expense && (expense.isRecurring || !!expense.recurrenceId || !!(expense as any).recurrence_id);
+  const isRecurringSeries = expense && (expense.isRecurring || !!expense.recurrenceId || !!(expense as any).recurrence_id || !!(expense as any).parent_id);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,7 +228,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all', data: any) => {
     setIsSubmitting(true);
     try {
-      const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id || (expense as any)?.parent_id;
+      const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id || (expense as any)?.parent_id || (expense as any)?.id; // Fallback to ID if it's the parent itself
       if (!recurrenceId && scope !== 'single') {
         toast.info("Esta não é uma despesa recorrente. Apenas este registro será atualizado.");
         await handleRecurrenceUpdate('single', data); 
@@ -272,11 +272,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       } else if (scope === 'future') {
         // New logic for 'Esta e as próximas'
         // This will update the current expense and all future ones with the same recurrence_id
-        // We use the recurrence_id (which acts as the parent_id/group_id) to find related records
+        // We use the recurrence_id (which acts as the parent_id/group_id) to find related records.
+        // Note: If the current record IS the parent (recurrenceId is null but isRecurring is true), we might need to handle that.
         const { error } = await supabase
           .from('expenses')
           .update(dados)
-          .eq('recurrence_id', recurrenceId)
+          .or(`recurrence_id.eq.${recurrenceId},id.eq.${recurrenceId}`) // Cover both children and parent if ID matches
           .gte('due_date', format(new Date(data.dueDate), 'yyyy-MM-dd'));
 
         if (error) throw error;

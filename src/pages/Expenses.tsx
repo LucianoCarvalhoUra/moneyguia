@@ -66,6 +66,10 @@ export default function Expenses() {
   const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   const handlePreviousMonth = () => {
+    if (statusFilter === 'overdue') {
+      setStatusFilter('all');
+    }
+
     if (selectedMonth === 0) {
       setSelectedMonth(11);
       setSelectedYear(selectedYear - 1);
@@ -75,6 +79,10 @@ export default function Expenses() {
   };
 
   const handleNextMonth = () => {
+    if (statusFilter === 'overdue') {
+      setStatusFilter('all');
+    }
+
     if (selectedMonth === 11) {
       setSelectedMonth(0);
       setSelectedYear(selectedYear + 1);

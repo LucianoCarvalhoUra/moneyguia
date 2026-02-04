@@ -120,7 +120,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
     return true;
   };
 
-  const isRecurringSeries = income && (income.isRecurring || income.recurrenceId || (income as any).recurrence_id);
+  const isRecurringSeries = income && (income.isRecurring || !!income.recurrenceId || !!(income as any).recurrence_id || !!(income as any).parent_id);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,7 +202,7 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all', data: any) => {
     setIsSubmitting(true);
     try {
-      const recurrenceId = income?.recurrenceId || (income as any)?.recurrence_id;
+      const recurrenceId = income?.recurrenceId || (income as any)?.recurrence_id || (income as any)?.parent_id || (income as any)?.id;
        if (!recurrenceId && scope !== 'single') {
         toast.info("Esta não é uma receita recorrente. Apenas este registro será atualizado.");
         await handleRecurrenceUpdate('single', data);
@@ -243,12 +243,12 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
       
       } else if (scope === 'future') {
         // 1. Update current income
-        const { error: updateCurrent } = await supabase.from('incomes').update(dados).eq('id', income!.id);
-        if (updateCurrent) throw updateCurrent;
+        // const { error: updateCurrent } = await supabase.from('incomes').update(dados).eq('id', income!.id);
+        // if (updateCurrent) throw updateCurrent;
 
         // 2. Delete strictly future incomes
         const { error: deleteFuture } = await supabase.from('incomes').delete()
-          .eq('recurrence_id', recurrenceId)
+          .or(`recurrence_id.eq.${recurrenceId},id.eq.${recurrenceId}`)
           .gt('receive_date', format(data.receiveDate, 'yyyy-MM-dd'));
         if (deleteFuture) throw deleteFuture;
 
