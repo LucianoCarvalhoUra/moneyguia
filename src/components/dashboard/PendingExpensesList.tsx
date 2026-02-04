@@ -8,6 +8,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { getUserFriendlyError } from '@/lib/errorMapper';
 
 interface PendingExpensesListProps {
   selectedMonth: number;
@@ -34,8 +35,7 @@ export default function PendingExpensesList({ selectedMonth, selectedYear }: Pen
       await updateExpense(id, { isPaid: true });
       toast.success('Despesa marcada como paga!');
     } catch (error) {
-      console.error(error);
-      toast.error('Erro ao atualizar despesa');
+      toast.error(getUserFriendlyError(error));
     }
   };
 
