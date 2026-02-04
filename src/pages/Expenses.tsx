@@ -159,12 +159,11 @@ export default function Expenses() {
 
       toast.success('Despesa(s) removida(s) com sucesso!');
       await refreshData();
-    } catch (error: any) {
-      toast.error(`Erro ao remover despesa(s): ${error.message}`);
-    } finally {
-      setDeleteDialogOpen(false);
+      setDeleteDialogOpen(false); // Ensure dialog closes immediately
       setExpenseToDelete(null);
       setSelectedDeleteScope('single');
+    } catch (error: any) {
+      toast.error(`Erro ao remover despesa(s): ${error.message}`);
     }
   };
 

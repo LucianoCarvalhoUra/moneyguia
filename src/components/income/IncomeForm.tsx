@@ -242,10 +242,37 @@ export default function IncomeForm({ open, onOpenChange, income }: IncomeFormPro
         successMessage = 'Receita atual e passadas atualizadas!';
       
       } else if (scope === 'future') {
-        const { error } = await supabase.from('incomes').update(dados)
+        // 1. Update current income
+        const { error: updateCurrent } = await supabase.from('incomes').update(dados).eq('id', income!.id);
+        if (updateCurrent) throw updateCurrent;
+
+        // 2. Delete strictly future incomes
+        const { error: deleteFuture } = await supabase.from('incomes').delete()
           .eq('recurrence_id', recurrenceId)
-          .gte('receive_date', format(data.receiveDate, 'yyyy-MM-dd'));
-        if (error) throw error;
+          .gt('receive_date', format(data.receiveDate, 'yyyy-MM-dd'));
+        if (deleteFuture) throw deleteFuture;
+
+        // 3. Recreate future incomes (default 11 months for indefinite recurrence in this context)
+        const currentReceiveDate = new Date(data.receiveDate);
+        const currentIncomeDate = new Date(data.incomeDate);
+        const newIncomes = [];
+        
+        for (let i = 1; i <= 11; i++) {
+            const nextReceiveDate = addMonths(currentReceiveDate, i);
+            const nextIncomeDate = addMonths(currentIncomeDate, i);
+            newIncomes.push({
+                ...dados,
+                recurrence_id: recurrenceId,
+                receive_date: format(nextReceiveDate, 'yyyy-MM-dd'),
+                income_date: format(nextIncomeDate, 'yyyy-MM-dd'),
+                is_received: false,
+                user_id: income?.userId
+            });
+        }
+        
+        const { error: insertError } = await supabase.from('incomes').insert(newIncomes);
+        if (insertError) throw insertError;
+
         successMessage = 'Receitas futuras atualizadas com sucesso!';
       }
       

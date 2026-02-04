@@ -149,12 +149,11 @@ export default function Incomes() {
 
       toast.success('Receita(s) removida(s) com sucesso!');
       await refreshData();
-    } catch (error: any) {
-      toast.error(`Erro ao remover receita(s): ${error.message}`);
-    } finally {
-      setDeleteDialogOpen(false);
+      setDeleteDialogOpen(false); // Ensure dialog closes immediately
       setIncomeToDelete(null);
       setSelectedDeleteScope('single');
+    } catch (error: any) {
+      toast.error(`Erro ao remover receita(s): ${error.message}`);
     }
   };
 
