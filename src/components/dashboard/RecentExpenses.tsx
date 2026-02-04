@@ -6,7 +6,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { format, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowRight, Loader2, ArrowUpCircle, ArrowDownCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -113,14 +113,8 @@ export default function RecentExpenses() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle className="text-lg">Atividade Recente</CardTitle>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/expenses" className="flex items-center gap-1 text-xs">
-            Ver tudo
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </Button>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -135,7 +129,7 @@ export default function RecentExpenses() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {activities.map((item) => {
               const isExpense = item.type === 'expense';
               const category = isExpense 
@@ -151,7 +145,7 @@ export default function RecentExpenses() {
               return (
                 <div
                   key={`${item.type}-${item.id}`}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                 >
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div className={cn(
