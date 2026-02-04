@@ -105,34 +105,26 @@ export default function Dashboard() {
     setAlertConfig({ enabled, days, type });
   }, []);
 
-  // Calculate Active Alerts
-  const activeAlerts = useMemo(() => {
-    if (!alertConfig.enabled) return { expenses: [], incomes: [] };
+  // Calculate Overdue Items (Global - All time)
+  const overdueItems = useMemo(() => {
+    // if (!alertConfig.enabled) return { expenses: [], incomes: [] }; // Optional: force show overdue regardless of config
 
     const today = startOfDay(new Date());
-    const limitDate = endOfDay(addDays(today, alertConfig.days));
 
-    let pendingExpenses: any[] = [];
-    let pendingIncomes: any[] = [];
+    const overdueExp = expenses.filter(e => {
+      if (e.isPaid) return false;
+      const dueDate = startOfDay(new Date(e.dueDate));
+      return isBefore(dueDate, today); // Strictly overdue (< today)
+    });
 
-    if (alertConfig.type === 'expenses' || alertConfig.type === 'both') {
-      pendingExpenses = expenses.filter(e => {
-        if (e.isPaid) return false;
-        const dueDate = startOfDay(new Date(e.dueDate));
-        return dueDate <= limitDate; // Overdue or due soon
-      });
-    }
+    const overdueInc = incomes.filter(i => {
+      if (i.isReceived) return false;
+      const receiveDate = startOfDay(new Date(i.receiveDate));
+      return isBefore(receiveDate, today); // Strictly overdue (< today)
+    });
 
-    if (alertConfig.type === 'incomes' || alertConfig.type === 'both') {
-      pendingIncomes = incomes.filter(i => {
-        if (i.isReceived) return false;
-        const receiveDate = startOfDay(new Date(i.receiveDate));
-        return receiveDate <= limitDate;
-      });
-    }
-
-    return { expenses: pendingExpenses, incomes: pendingIncomes };
-  }, [expenses, incomes, alertConfig]);
+    return { expenses: overdueExp, incomes: overdueInc };
+  }, [expenses, incomes]);
 
   // --- Data Preparation for New Charts ---
 
@@ -197,24 +189,24 @@ export default function Dashboard() {
     return data;
   }, [realBalance, currentIncomeTotal, currentExpenseTotal]);
 
-  const totalAlertCount = activeAlerts.expenses.length + activeAlerts.incomes.length;
+  const totalOverdueCount = overdueItems.expenses.length + overdueItems.incomes.length;
 
   const handleAlertClick = () => {
-    if (activeAlerts.expenses.length > 0) {
+    if (overdueItems.expenses.length > 0) {
       navigate('/expenses', { 
         state: { 
           filter: 'overdue'
         } 
       });
-    } else if (activeAlerts.incomes.length > 0) {
-      navigate('/incomes', { state: { filter: 'pending' } });
+    } else if (overdueItems.incomes.length > 0) {
+      navigate('/incomes', { state: { filter: 'pending' } }); // Or overdue logic if implemented
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Overdue Alert Banner */}
-      {showOverdueAlert && totalAlertCount > 0 && (
+      {showOverdueAlert && totalOverdueCount > 0 && (
         <div 
           className="bg-red-600 text-white px-4 py-3 rounded-lg shadow-md flex items-center justify-between cursor-pointer hover:bg-red-700 transition-colors animate-in slide-in-from-top-2"
           onClick={handleAlertClick}
@@ -224,12 +216,12 @@ export default function Dashboard() {
               <AlertTriangle className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-bold">Atenção: Você possui {totalAlertCount} pendências próximas!</p>
+              <p className="font-bold">Atenção: Você possui {totalOverdueCount} itens vencidos!</p>
               <p className="text-xs text-white/90">
-                {activeAlerts.expenses.length > 0 && `${activeAlerts.expenses.length} despesa(s)`}
-                {activeAlerts.expenses.length > 0 && activeAlerts.incomes.length > 0 && ' e '}
-                {activeAlerts.incomes.length > 0 && `${activeAlerts.incomes.length} receita(s)`}
-                {' '}para regularizar.
+                {overdueItems.expenses.length > 0 && `${overdueItems.expenses.length} despesa(s)`}
+                {overdueItems.expenses.length > 0 && overdueItems.incomes.length > 0 && ' e '}
+                {overdueItems.incomes.length > 0 && `${overdueItems.incomes.length} receita(s)`}
+                {' '}em atraso. Clique para resolver.
               </p>
             </div>
           </div>

@@ -341,7 +341,7 @@ export default function Expenses() {
                           {!isPaid && !isOverdue && <Badge variant="outline" className="w-fit text-[10px] h-5 px-1.5 bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800">Pendente</Badge>}
                         </div>
                       </TableCell>
-                      <TableCell className={cn("font-medium", isOverdue ? "text-destructive" : isPaid ? "text-green-600 dark:text-green-400" : "")}>
+                      <TableCell className={cn("font-medium", isOverdue ? "text-destructive font-bold" : isPaid ? "text-green-600 dark:text-green-400" : "")}>
                         {formatCurrency(expense.amount)}
                       </TableCell>
                       <TableCell className="text-right">
