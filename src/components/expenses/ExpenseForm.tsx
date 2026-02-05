@@ -160,8 +160,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       const expenseData = {
         description,
         amount: numericAmount,
-        expenseDate: new Date(expenseDate + 'T12:00:00'), // Fix: Adiciona hora para evitar problemas de timezone (UTC vs Local)
-        dueDate: new Date(dueDate + 'T12:00:00'),         // Fix: Garante que o dia selecionado seja respeitado
+        expenseDate: expenseDate, // Fix: Usa string direta (yyyy-MM-dd) para evitar Timezone UTC
+        dueDate: dueDate,         // Fix: Usa string direta (yyyy-MM-dd) para evitar Timezone UTC
         categoryId,
         subcategoryId: subcategoryId || undefined,
         paymentMethod,
@@ -172,8 +172,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         isPaid,
       };
 
-      console.log('Iniciando salvamento...', expenseData);
-      console.log('Data capturada do formulário:', expenseData.dueDate); // Log de Auditoria (Item 4)
+      console.log('Data final enviada ao banco:', expenseData.dueDate); // Log solicitado (Item 4)
 
       if (expense) { // Editing an existing expense
         // 3. Regra de Visibilidade: SÓ exibe o diálogo se o switch estiver ATIVADO
@@ -188,8 +187,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         const { error: updateError } = await supabase.from('expenses').update({
           description: expenseData.description,
           amount: expenseData.amount,
-          due_date: dueDate, // Usa a string direta do input para evitar conversões (Item 1 e 2)
-          expense_date: expenseDate,
+          due_date: expenseData.dueDate, // Usa string direta
+          expense_date: expenseData.expenseDate, // Usa string direta
           category_id: expenseData.categoryId,
           subcategory_id: expenseData.subcategoryId,
           payment_method: expenseData.paymentMethod,
@@ -212,14 +211,17 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           const newRecurrenceId = crypto.randomUUID(); // New parent_id for the new group
           const newExpenses = [];
           const limit = parseInt(installments);
-          const startDate = new Date(dueDate);
+          // Fix: Cria data ao meio-dia para garantir que addMonths não pule dias por fuso horário
+          const [y, m, d] = dueDate.split('-').map(Number);
+          const startDate = new Date(y, m - 1, d, 12);
 
           for (let i = 0; i < limit; i++) {
             const nextDueDate = addMonths(startDate, i);
+            const nextDueDateStr = format(nextDueDate, 'yyyy-MM-dd');
             newExpenses.push({
               description, amount: numericAmount,
-              due_date: format(nextDueDate, 'yyyy-MM-dd'),
-              expense_date: format(nextDueDate, 'yyyy-MM-dd'), // Sync expense date
+              due_date: nextDueDateStr,
+              expense_date: nextDueDateStr, // Sync expense date
               category_id: categoryId, subcategory_id: subcategoryId || null,
               payment_method: paymentMethod, account_id: accountId || null, card_id: cardId || null,
               is_recurring: true, installments: limit, is_paid: false, // New installments are not paid
@@ -235,8 +237,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           const { error } = await supabase.from('expenses').insert([{
             description: expenseData.description,
             amount: expenseData.amount,
-            due_date: format(expenseData.dueDate, 'yyyy-MM-dd'),
-            expense_date: format(expenseData.expenseDate, 'yyyy-MM-dd'),
+            due_date: expenseData.dueDate,
+            expense_date: expenseData.expenseDate,
             category_id: expenseData.categoryId,
             subcategory_id: expenseData.subcategoryId,
             payment_method: expenseData.paymentMethod,
@@ -272,8 +274,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      console.log('Data capturada do formulário (Recorrência):', data.dueDate); // Log de Auditoria
-
       // 1. Identification of Link (Parent ID)
       const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id || (expense as any)?.parent_id;
       
@@ -312,7 +312,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
       // 2. Update Scoping Logic
       if (scope === 'single') {
-          const singleData = { ...dados, due_date: format(data.dueDate, 'yyyy-MM-dd'), expense_date: format(data.expenseDate, 'yyyy-MM-dd'), is_paid: data.isPaid };
+          const singleData = { ...dados, due_date: data.dueDate, expense_date: data.expenseDate, is_paid: data.isPaid };
           const { error: singleError } = await supabase.from('expenses').update(singleData).eq('id', expense!.id);
           if (singleError) throw singleError;
           successMessage = 'Despesa atualizada com sucesso!';
@@ -328,7 +328,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       } else if (scope === 'past') {
           const { error: pastError } = await supabase.from('expenses').update(dados)
             .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
-            .lte('due_date', format(data.dueDate, 'yyyy-MM-dd'));
+            .lte('due_date', data.dueDate);
           if (pastError) throw pastError;
           successMessage = 'Despesa atual e passadas atualizadas!';
       } else if (scope === 'future') {
@@ -338,18 +338,21 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             .from('expenses')
             .select('*')
             .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
-            .gte('due_date', format(new Date(data.dueDate), 'yyyy-MM-dd'));
+            .gte('due_date', data.dueDate);
 
           if (fetchError) throw fetchError;
 
           if (futureExpenses && futureExpenses.length > 0) {
               // Calculate new day (e.g. day 10)
-              const newDay = getDate(data.dueDate);
+              const newDay = parseInt(data.dueDate.split('-')[2]);
               
               const updates = futureExpenses.map((exp: any) => {
-                  let originalDate = new Date(exp.due_date + 'T12:00:00'); // Fix: Parse local para manter mês correto
+                  // Fix: Parse local seguro para manter mês correto
+                  const [y, m, d] = exp.due_date.split('-').map(Number);
+                  const originalDate = new Date(y, m - 1, d, 12);
                   // 3. Date Handling: Preserve Month/Year, change Day
                   const newDate = setDate(originalDate, newDay);
+                  const newDateStr = format(newDate, 'yyyy-MM-dd');
 
                   return {
                       description: data.description,
@@ -365,8 +368,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                       id: exp.id,
                       user_id: exp.user_id,
                       recurrence_id: effectiveRecurrenceId,
-                      due_date: format(newDate, 'yyyy-MM-dd'),
-                      expense_date: format(newDate, 'yyyy-MM-dd')
+                      due_date: newDateStr,
+                      expense_date: newDateStr
                   };
               });
 
