@@ -220,9 +220,14 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     setIsSubmitting(true);
     try {
       const recurrenceId = income?.recurrenceId || (income as any)?.recurrence_id || (income as any)?.parent_id || (income as any)?.id;
-      const effectiveRecurrenceId = recurrenceId || (income?.isRecurring ? income?.id : null);
+      let effectiveRecurrenceId = recurrenceId || (income?.isRecurring ? income?.id : null);
 
-       if (!effectiveRecurrenceId && scope !== 'single') {
+      if (!effectiveRecurrenceId && income?.isRecurring) {
+          effectiveRecurrenceId = income.id;
+          await supabase.from('incomes').update({ recurrence_id: effectiveRecurrenceId }).eq('id', income.id);
+      }
+
+      if (!effectiveRecurrenceId && scope !== 'single') {
         toast.info("Esta não é uma receita recorrente. Apenas este registro será atualizado.");
         await handleRecurrenceUpdate('single', data);
         return;
@@ -243,67 +248,70 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
       let successMessage = '';
 
-      if (scope === 'single') {
-        const singleData = { ...dados, receive_date: format(data.receiveDate, 'yyyy-MM-dd'), income_date: format(data.incomeDate, 'yyyy-MM-dd') };
-        const { error } = await supabase.from('incomes').update(singleData).eq('id', income!.id);
-        if (error) throw error;
-        successMessage = 'Receita atualizada com sucesso!';
+      switch (scope) {
+        case 'single':
+          const singleData = { ...dados, receive_date: format(data.receiveDate, 'yyyy-MM-dd'), income_date: format(data.incomeDate, 'yyyy-MM-dd') };
+          const { error: singleError } = await supabase.from('incomes').update(singleData).eq('id', income!.id);
+          if (singleError) throw singleError;
+          successMessage = 'Receita atualizada com sucesso!';
+          break;
 
-      } else if (scope === 'all') {
-        const { error } = await supabase.from('incomes').update(dados).or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`);
-        if (error) throw error;
-        successMessage = 'Todas as receitas da série foram atualizadas!';
+        case 'all':
+          const { error: allError } = await supabase.from('incomes').update(dados).or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`);
+          if (allError) throw allError;
+          successMessage = 'Todas as receitas da série foram atualizadas!';
+          break;
 
-      } else if (scope === 'past') {
-        const { error } = await supabase.from('incomes').update(dados)
-          .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
-          .lte('receive_date', format(data.receiveDate, 'yyyy-MM-dd'));
-        if (error) throw error;
-        successMessage = 'Receita atual e passadas atualizadas!';
-      
-      } else if (scope === 'future') {
-        // Logic: Update fixed fields + Recalculate date based on new day
+        case 'past':
+          const { error: pastError } = await supabase.from('incomes').update(dados)
+            .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
+            .lte('receive_date', format(data.receiveDate, 'yyyy-MM-dd'));
+          if (pastError) throw pastError;
+          successMessage = 'Receita atual e passadas atualizadas!';
+          break;
 
-        // 1. Fetch all affected incomes (current + future)
-        const { data: futureIncomes, error: fetchError } = await supabase
-          .from('incomes')
-          .select('*')
-          .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
-          .gte('receive_date', format(new Date(data.receiveDate), 'yyyy-MM-dd'));
+        case 'future':
+          // 1. Fetch all affected incomes (current + future)
+          const { data: futureIncomes, error: fetchError } = await supabase
+            .from('incomes')
+            .select('*')
+            .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
+            .gte('receive_date', format(new Date(data.receiveDate), 'yyyy-MM-dd'));
 
-        if (fetchError) throw fetchError;
+          if (fetchError) throw fetchError;
 
-        if (futureIncomes && futureIncomes.length > 0) {
-            // 2. Capture the new day from the edited date
-            const newReceiveDateObj = new Date(data.receiveDate);
-            const newDay = newReceiveDateObj.getUTCDate();
-            
-            // 3. Prepare updates
-            const updates = futureIncomes.map((inc: any) => {
-                let originalDate = new Date(inc.receive_date);
-                originalDate.setUTCDate(newDay);
-                let newDate = originalDate;
-                
-                if (inc.id === income!.id) {
-                    newDate = newReceiveDateObj;
-                }
+          if (futureIncomes && futureIncomes.length > 0) {
+              // 2. Capture the new day from the edited date
+              const newReceiveDateObj = new Date(data.receiveDate);
+              const newDay = newReceiveDateObj.getUTCDate();
+              
+              // 3. Prepare updates
+              const updates = futureIncomes.map((inc: any) => {
+                  let originalDate = new Date(inc.receive_date);
+                  originalDate.setUTCDate(newDay);
+                  let newDate = originalDate;
+                  
+                  if (inc.id === income!.id) {
+                      newDate = newReceiveDateObj;
+                  }
 
-                return {
-                    ...dados,
-                    id: inc.id,
-                    user_id: inc.user_id,
-                    recurrence_id: effectiveRecurrenceId,
-                    receive_date: format(newDate, 'yyyy-MM-dd'),
-                    income_date: format(newDate, 'yyyy-MM-dd')
-                };
-            });
+                  return {
+                      ...dados,
+                      id: inc.id,
+                      user_id: inc.user_id,
+                      recurrence_id: effectiveRecurrenceId,
+                      receive_date: format(newDate, 'yyyy-MM-dd'),
+                      income_date: format(newDate, 'yyyy-MM-dd')
+                  };
+              });
 
-            // 4. Execute Upsert
-            const { error: updateError } = await supabase.from('incomes').upsert(updates);
-            if (updateError) throw updateError;
-        }
+              // 4. Execute Upsert
+              const { error: updateError } = await supabase.from('incomes').upsert(updates);
+              if (updateError) throw updateError;
+          }
 
-        successMessage = 'Receitas futuras atualizadas com sucesso!';
+          successMessage = 'Receitas futuras atualizadas com sucesso!';
+          break;
       }
       
       toast.success(successMessage);
