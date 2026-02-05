@@ -143,7 +143,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   };
 
 
-  const isRecurringSeries = expense && (expense.isRecurring || !!expense.recurrenceId || !!(expense as any).recurrence_id || !!(expense as any).parent_id);
+  // Verifica se a despesa faz parte de uma série recorrente (tem recurrence_id)
+  const isRecurringSeries = expense && !!expense.recurrenceId;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,27 +176,28 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       console.log('Iniciando salvamento...', expenseData);
 
       if (expense) { // Editing an existing expense
-        if (isRecurring) { // 1. Conditional Edit Logic: Only show scope dialog if switch is ON
+        // Se a despesa pertence a uma série recorrente, mostrar diálogo de escopo
+        if (isRecurringSeries) {
           setPendingData(expenseData);
           setActionType('save');
           setScopeDialogOpen(true);
+          setIsSubmitting(false);
           return;
         }
 
-        // If switch is OFF, just update the single record and ensure it's not recurring
+        // Despesa avulsa (não faz parte de série) - atualizar diretamente
         const { error: updateError } = await supabase.from('expenses').update({
           description: expenseData.description,
           amount: expenseData.amount,
           due_date: format(expenseData.dueDate, 'yyyy-MM-dd'),
           expense_date: format(expenseData.expenseDate, 'yyyy-MM-dd'),
           category_id: expenseData.categoryId,
-          subcategory_id: expenseData.subcategoryId,
+          subcategory_id: expenseData.subcategoryId || null,
           payment_method: expenseData.paymentMethod,
-          account_id: expenseData.accountId,
-          card_id: expenseData.cardId,
-          is_recurring: false, // Explicitly set to false
-          recurrence_id: null, // Unlink from any series
-          installments: null,
+          account_id: expenseData.accountId || null,
+          card_id: expenseData.cardId || null,
+          is_recurring: expenseData.isRecurring,
+          installments: expenseData.installments || null,
           is_paid: expenseData.isPaid
         }).eq('id', expense.id);
 
@@ -270,27 +272,42 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      // 1. Identification of Link (Parent ID)
-      const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id || (expense as any)?.parent_id;
+      const recurrenceId = expense?.recurrenceId;
       
-      let effectiveRecurrenceId = recurrenceId || (expense?.isRecurring ? expense?.id : undefined);
-      
-      if (!recurrenceId && scope !== 'single') {
-        toast.info("Esta não é uma despesa recorrente. Apenas este registro será atualizado.");
-        await handleRecurrenceUpdate('single', data); 
+      console.log('Iniciando atualização recorrente...', { recurrenceId, scope, data });
+
+      // Opção "Apenas esta" - atualiza só esse registro
+      if (scope === 'single') {
+        const { error: singleError } = await supabase.from('expenses').update({
+          description: data.description,
+          amount: data.amount,
+          due_date: format(data.dueDate, 'yyyy-MM-dd'),
+          expense_date: format(data.expenseDate, 'yyyy-MM-dd'),
+          category_id: data.categoryId,
+          subcategory_id: data.subcategoryId || null,
+          payment_method: data.paymentMethod,
+          account_id: data.accountId || null,
+          card_id: data.cardId || null,
+          is_paid: data.isPaid,
+          // Mantém os campos de recorrência intactos
+          is_recurring: expense?.isRecurring ?? true,
+          installments: expense?.installments || null,
+          recurrence_id: recurrenceId || null,
+        }).eq('id', expense!.id);
+
+        if (singleError) throw singleError;
+        toast.success('Despesa atualizada com sucesso!');
+        await refreshData();
+        onOpenChange(false);
         return;
       }
-      
-      // If we are updating a recurring item that somehow lost its ID or is the parent itself without explicit ID in DB
-      // We ensure it has one for the group update.
-      if (!effectiveRecurrenceId && expense?.isRecurring) {
-          // This shouldn't happen often if logic is correct, but as a fallback:
-          effectiveRecurrenceId = expense.id;
-          // We might need to update the current record to have this recurrence_id if it's null in DB
-          await supabase.from('expenses').update({ recurrence_id: effectiveRecurrenceId }).eq('id', expense.id);
-      }
 
-      console.log('Iniciando atualização recorrente...', { effectiveRecurrenceId, scope, data });
+      // Para os outros escopos, precisamos do recurrence_id
+      if (!recurrenceId) {
+        toast.error("Esta despesa não faz parte de uma série recorrente.");
+        setIsSubmitting(false);
+        return;
+      }
 
       const dados = {
         description: data.description,
@@ -300,85 +317,68 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         payment_method: data.paymentMethod,
         account_id: data.accountId || null,
         card_id: data.cardId || null,
-        is_recurring: true, // Keep recurring
-        installments: data.installments,
       };
 
       let successMessage = '';
 
-      // 2. Update Scoping Logic
       switch (scope) {
-        case 'single':
-          const singleData = { ...dados, due_date: format(data.dueDate, 'yyyy-MM-dd'), expense_date: format(data.expenseDate, 'yyyy-MM-dd'), is_paid: data.isPaid };
-          const { error: singleError } = await supabase.from('expenses').update(singleData).eq('id', expense!.id);
-          if (singleError) throw singleError;
-          successMessage = 'Despesa atualizada com sucesso!';
-          break;
-
-        case 'all':
-          // For 'all', we update everything in the group. Dates are tricky here if we want to shift them all.
-          // Usually 'all' updates category/value/desc. If date is changed, it might imply shifting the whole series or setting same day.
-          // For simplicity and robustness, we apply the "Day Adjustment" logic to ALL records if date changed.
-          // But first, let's just update the common fields.
+        case 'all': {
           const { error: allError } = await supabase.from('expenses').update(dados)
-            .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`);
+            .eq('recurrence_id', recurrenceId);
           if (allError) throw allError;
           successMessage = 'Todas as despesas da série foram atualizadas!';
           break;
+        }
 
-        case 'past':
+        case 'past': {
           const { error: pastError } = await supabase.from('expenses').update(dados)
-            .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
+            .eq('recurrence_id', recurrenceId)
             .lte('due_date', format(data.dueDate, 'yyyy-MM-dd'));
           if (pastError) throw pastError;
           successMessage = 'Despesa atual e passadas atualizadas!';
           break;
+        }
 
-        case 'future':
-          // 2. Save Logic 'This and Next' (Date Reset)
-          // Fetch affected records
+        case 'future': {
           const { data: futureExpenses, error: fetchError } = await supabase
             .from('expenses')
             .select('*')
-            .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
+            .eq('recurrence_id', recurrenceId)
             .gte('due_date', format(new Date(data.dueDate), 'yyyy-MM-dd'));
 
           if (fetchError) throw fetchError;
 
           if (futureExpenses && futureExpenses.length > 0) {
-              // Calculate new day (e.g. day 10)
-              const newDay = getDate(data.dueDate);
-              
-              const updates = futureExpenses.map((exp: any) => {
-                  let originalDate = new Date(exp.due_date);
-                  // 3. Date Handling: Preserve Month/Year, change Day
-                  const newDate = setDate(originalDate, newDay);
+            const newDay = getDate(data.dueDate);
+            
+            const updates = futureExpenses.map((exp: any) => {
+              const originalDate = new Date(exp.due_date);
+              const newDate = setDate(originalDate, newDay);
 
-                  return {
-                      description: data.description,
-                      amount: data.amount,
-                      category_id: data.categoryId,
-                      subcategory_id: data.subcategoryId || null,
-                      payment_method: data.paymentMethod,
-                      account_id: data.accountId || null,
-                      card_id: data.cardId || null,
-                      is_recurring: true,
-                      installments: data.installments,
-                      
-                      id: exp.id,
-                      user_id: exp.user_id,
-                      recurrence_id: effectiveRecurrenceId,
-                      due_date: format(newDate, 'yyyy-MM-dd'),
-                      expense_date: format(newDate, 'yyyy-MM-dd')
-                  };
-              });
+              return {
+                description: data.description,
+                amount: data.amount,
+                category_id: data.categoryId,
+                subcategory_id: data.subcategoryId || null,
+                payment_method: data.paymentMethod,
+                account_id: data.accountId || null,
+                card_id: data.cardId || null,
+                is_recurring: true,
+                installments: data.installments,
+                id: exp.id,
+                user_id: exp.user_id,
+                recurrence_id: recurrenceId,
+                due_date: format(newDate, 'yyyy-MM-dd'),
+                expense_date: format(newDate, 'yyyy-MM-dd')
+              };
+            });
 
-              // 4. Transaction Execution
-              const { error: updateError } = await supabase.from('expenses').upsert(updates);
-              if (updateError) throw updateError;
+            const { error: updateError } = await supabase.from('expenses').upsert(updates);
+            if (updateError) throw updateError;
           }
           successMessage = 'Despesa atual e futuras foram atualizadas!';
           break;
+        }
       }
       
       toast.success(successMessage);
