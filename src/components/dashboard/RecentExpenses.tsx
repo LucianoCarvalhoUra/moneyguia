@@ -110,7 +110,7 @@ export default function RecentExpenses() {
             seenIds.add(item.id);
             
             uniqueActivities.push(item);
-            if (uniqueActivities.length >= 5) break;
+            if (uniqueActivities.length >= 5) break; // Ensure only 5 unique items
         }
 
         setActivities(uniqueActivities);

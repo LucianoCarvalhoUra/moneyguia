@@ -142,11 +142,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     return true;
   };
 
-
   const isRecurringSeries = expense && (expense.isRecurring || !!expense.recurrenceId || !!(expense as any).recurrence_id || !!(expense as any).parent_id);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    
     if (!validate()) {
       return;
     }
@@ -170,6 +171,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         isPaid,
       };
 
+      console.log('Iniciando salvamento...', expenseData);
+
       if (expense) { // Editing an existing expense
         if (isRecurringSeries) {
           setPendingData(expenseData);
@@ -177,51 +180,41 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           setScopeDialogOpen(true);
           return;
         }
-
-        console.log('Updating single expense:', expense.id, expenseData);
-        const { error: updateError } = await supabase.from('expenses').update({
-          description: expenseData.description,
-          amount: expenseData.amount,
-          due_date: format(expenseData.dueDate, 'yyyy-MM-dd'),
-          expense_date: format(expenseData.expenseDate, 'yyyy-MM-dd'),
-          category_id: expenseData.categoryId,
-          subcategory_id: expenseData.subcategoryId,
-          payment_method: expenseData.paymentMethod,
-          account_id: expenseData.accountId,
-          card_id: expenseData.cardId,
-          is_recurring: expenseData.isRecurring,
-          installments: expenseData.installments,
-          is_paid: expenseData.isPaid
-        }).eq('id', expense.id);
-
-        if (updateError) throw updateError;
-        toast.success('Despesa atualizada!');
-      } else { // Creating a new expense
-        console.log('Creating expense:', expenseData);
-        const { data: { user } } = await supabase.auth.getUser();
-        const { error: insertError } = await supabase.from('expenses').insert([{
-          description: expenseData.description,
-          amount: expenseData.amount,
-          due_date: format(expenseData.dueDate, 'yyyy-MM-dd'),
-          expense_date: format(expenseData.expenseDate, 'yyyy-MM-dd'),
-          category_id: expenseData.categoryId,
-          subcategory_id: expenseData.subcategoryId,
-          payment_method: expenseData.paymentMethod,
-          account_id: expenseData.accountId,
-          card_id: expenseData.cardId,
-          is_recurring: expenseData.isRecurring,
-          installments: expenseData.installments,
-          is_paid: expenseData.isPaid,
-          user_id: user?.id
-        }]);
-
-        if (insertError) throw insertError;
-        toast.success('Despesa criada!');
-      }
-
-      // Force refresh
-      window.location.reload();
+        
+        // From single to recurring
+        if (!isRecurringSeries && isRecurring) {
+          await removeExpense(expense.id);
           
+          const newRecurrenceId = crypto.randomUUID();
+          await addExpense({ ...expenseData, recurrenceId: newRecurrenceId });
+          
+          const limit = installments ? parseInt(installments) - 1 : 11;
+          for (let i = 1; i <= limit; i++) {
+            const nextDueDate = addMonths(new Date(dueDate), i);
+            await addExpense({ ...expenseData, dueDate: nextDueDate, expenseDate: nextDueDate, recurrenceId: newRecurrenceId });
+          }
+
+          toast.success('Despesa transformada em recorrente!');
+        } else {
+          await updateExpense(expense.id, expenseData);
+          toast.success('Despesa atualizada!');
+        }
+      } else { // Creating a new expense
+        if (isRecurring) {
+          const newRecurrenceId = crypto.randomUUID();
+          await addExpense({ ...expenseData, recurrenceId: newRecurrenceId });
+          
+          const limit = installments ? parseInt(installments) - 1 : 11;
+          for (let i = 1; i <= limit; i++) {
+            const nextDueDate = addMonths(new Date(dueDate), i);
+            await addExpense({ ...expenseData, dueDate: nextDueDate, expenseDate: nextDueDate, recurrenceId: newRecurrenceId });
+          }
+          toast.success('Despesa recorrente criada!');
+        } else {
+          await addExpense(expenseData);
+          toast.success('Despesa criada!');
+        }
+      }
       
       onOpenChange(false);
     } catch (error: any) {
@@ -236,11 +229,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     }
   };
 
-
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all', data: any) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      // 1. Identification of Link (Parent ID)
+      // 1. Definition of Group Key (Parent ID)
       const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id || (expense as any)?.parent_id;
       
       let effectiveRecurrenceId = recurrenceId || (expense?.isRecurring ? expense?.id : undefined);
@@ -260,7 +253,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           await supabase.from('expenses').update({ recurrence_id: effectiveRecurrenceId }).eq('id', expense.id);
       }
 
-      console.log('Filtro utilizado:', recurrenceId, 'Escopo:', scope);
+      console.log('Iniciando atualização recorrente...', { effectiveRecurrenceId, scope, data });
 
       const dados = {
         description: data.description,
@@ -270,7 +263,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         payment_method: data.paymentMethod,
         account_id: data.accountId || null,
         card_id: data.cardId || null,
-        is_recurring: true, // Keep recurring
+        is_recurring: data.isRecurring,
         installments: data.installments,
       };
 
@@ -305,7 +298,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           break;
 
         case 'future':
-          // 2. Save Logic 'This and Next' (Date Reset)
+          // 3. Date Handling (The Critical Point)
           // Fetch affected records
           const { data: futureExpenses, error: fetchError } = await supabase
             .from('expenses')
@@ -316,13 +309,18 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           if (fetchError) throw fetchError;
 
           if (futureExpenses && futureExpenses.length > 0) {
-              // Calculate new day (e.g. day 10)
-              const newDay = getDate(data.dueDate);
+              const newDueDateObj = new Date(data.dueDate);
+              const newDay = newDueDateObj.getUTCDate(); 
               
               const updates = futureExpenses.map((exp: any) => {
                   let originalDate = new Date(exp.due_date);
-                  // 3. Date Handling: Preserve Month/Year, change Day
-                  const newDate = setDate(originalDate, newDay);
+                  // Preserve Month/Year, change Day
+                  originalDate.setUTCDate(newDay);
+                  let newDate = originalDate;
+                  
+                  if (exp.id === expense!.id) {
+                      newDate = newDueDateObj;
+                  }
 
                   return {
                       description: data.description,
@@ -596,7 +594,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Salvar
               </Button>
             </div>

@@ -138,6 +138,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     if (!validate()) {
       return;
     }
@@ -158,6 +160,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         isRecurring,
         installments: isRecurring ? parseInt(installments) : undefined,
       };
+
+      console.log('Iniciando salvamento de receita...', incomeData);
 
       if (income) { // Editing an existing income
         if (isRecurringSeries) {
@@ -217,6 +221,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   };
 
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all', data: any) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const recurrenceId = income?.recurrenceId || (income as any)?.recurrence_id || (income as any)?.parent_id || (income as any)?.id;
@@ -233,7 +238,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         return;
       }
 
-      console.log('Filtro utilizado:', recurrenceId, 'Escopo:', scope);
+      console.log('Iniciando atualização recorrente...', { effectiveRecurrenceId, scope, data });
 
       const dados = {
         title: data.title,
@@ -533,7 +538,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Salvar
               </Button>
             </div>
