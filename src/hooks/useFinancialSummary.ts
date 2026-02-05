@@ -1,20 +1,27 @@
 import { useMemo } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
-import { startOfDay, addDays, isWithinInterval } from 'date-fns';
+import { startOfDay, addDays, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 
-export const useFinancialSummary = () => {
+export const useFinancialSummary = (selectedDate: Date = new Date()) => {
   const { expenses, categories } = useFinance();
   const { incomes } = useIncome();
 
   const summary = useMemo(() => {
+    const monthStart = startOfMonth(selectedDate);
+    const monthEnd = endOfMonth(selectedDate);
+
+    // Filtrar receitas e despesas pelo mês selecionado
+    const monthlyIncomes = incomes.filter(i => isWithinInterval(new Date(i.receiveDate), { start: monthStart, end: monthEnd }));
+    const monthlyExpenses = expenses.filter(e => isWithinInterval(new Date(e.dueDate), { start: monthStart, end: monthEnd }));
+
     // 1. Calcular totais (Receitas, Despesas e Saldo)
-    const totalIncome = incomes.reduce((acc, income) => acc + Number(income.amount), 0);
-    const totalExpenses = expenses.reduce((acc, expense) => acc + Number(expense.amount), 0);
+    const totalIncome = monthlyIncomes.reduce((acc, income) => acc + Number(income.amount), 0);
+    const totalExpenses = monthlyExpenses.reduce((acc, expense) => acc + Number(expense.amount), 0);
     const balance = totalIncome - totalExpenses;
 
     // 2. Lista de categorias com seus respectivos gastos
-    const categorySpendingMap = expenses.reduce((acc, expense) => {
+    const categorySpendingMap = monthlyExpenses.reduce((acc, expense) => {
       const category = categories.find(c => c.id === expense.categoryId);
       const categoryName = category?.name || 'Sem Categoria';
       
