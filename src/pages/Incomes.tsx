@@ -163,6 +163,7 @@ export default function Incomes() {
     setIsFormOpen(true);
   };
 
+
   const handleDuplicate = (income: Income) => {
     setDuplicatingIncome({
       ...income,
@@ -172,6 +173,7 @@ export default function Incomes() {
     });
     setIsFormOpen(true);
   };
+
 
   const handleToggleReceived = async (id: string, currentStatus: boolean) => {
     try {
