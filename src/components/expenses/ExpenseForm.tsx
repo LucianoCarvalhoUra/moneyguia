@@ -174,10 +174,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       };
 
       console.log('Iniciando salvamento...', expenseData);
+      console.log('DEBUG - expense:', expense?.id, 'recurrenceId:', expense?.recurrenceId, 'isRecurringSeries:', isRecurringSeries);
 
       if (expense) { // Editing an existing expense
-        // Se a despesa pertence a uma série recorrente, mostrar diálogo de escopo
+        // Se a despesa pertence a uma série recorrente (tem recurrence_id), mostrar diálogo de escopo
         if (isRecurringSeries) {
+          console.log('DEBUG - Abrindo diálogo de escopo para série recorrente');
           setPendingData(expenseData);
           setActionType('save');
           setScopeDialogOpen(true);
@@ -185,6 +187,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           return;
         }
 
+        console.log('DEBUG - Atualizando despesa avulsa diretamente');
         // Despesa avulsa (não faz parte de série) - atualizar diretamente
         const { error: updateError } = await supabase.from('expenses').update({
           description: expenseData.description,
