@@ -309,10 +309,20 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       // 2. Update Scoping Logic
       switch (scope) {
         case 'single':
-          const singleData = { ...dados, due_date: format(data.dueDate, 'yyyy-MM-dd'), expense_date: format(data.expenseDate, 'yyyy-MM-dd'), is_paid: data.isPaid };
-          const { error: singleError } = await supabase.from('expenses').update(singleData).eq('id', expense!.id);
+          console.log('ID enviado para update (single scope):', expense!.id);
+          const singleData = { 
+            ...dados, 
+            due_date: format(data.dueDate, 'yyyy-MM-dd'), 
+            expense_date: format(data.expenseDate, 'yyyy-MM-dd'), 
+            is_paid: data.isPaid 
+          };
+          console.log('Dados a serem salvos (single scope):', singleData);
+
+          const { error: singleError, data: singleRes } = await supabase.from('expenses').update(singleData).eq('id', expense!.id).select();
+          
+          console.log('Resposta do Supabase (Erro/Sucesso):', singleError, singleRes);
           if (singleError) throw singleError;
-          successMessage = 'Despesa atualizada com sucesso!';
+          successMessage = 'Despesa atualizada!';
           break;
 
         case 'all':
