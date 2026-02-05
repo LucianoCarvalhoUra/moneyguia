@@ -147,7 +147,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     setIsSubmitting(true);
     try {
       const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
-      
       const incomeData = {
         title,
         amount: numericAmount,
@@ -170,51 +169,49 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           setScopeDialogOpen(true);
           return;
         }
+        
+        // Direct update for single income
+        const { error } = await supabase.from('incomes').update({
+            title,
+            amount: numericAmount,
+            income_date: format(new Date(incomeDate), 'yyyy-MM-dd'),
+            receive_date: format(new Date(receiveDate), 'yyyy-MM-dd'),
+            category_id: categoryId,
+            subcategory_id: subcategoryId || null,
+            account_id: accountId || null,
+            is_received: isReceived,
+            is_recurring: isRecurring,
+            installments: isRecurring ? parseInt(installments) : null
+        }).eq('id', income.id);
 
-        // From single to recurring
-        if (!isRecurringSeries && isRecurring) {
-          await removeIncome(income.id);
-          
-          const newRecurrenceId = crypto.randomUUID();
-          await addIncome({ ...incomeData, recurrenceId: newRecurrenceId });
-          
-          // Create next 11 entries
-          const limit = installments ? parseInt(installments) - 1 : 11;
-          for (let i = 1; i <= limit; i++) {
-            const nextDate = addMonths(new Date(receiveDate), i);
-            await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId });
-          }
-          toast.success('Receita transformada em recorrente!');
-        } else {
-          await updateIncome(income.id, incomeData);
-          toast.success('Receita atualizada!');
-        }
+        if (error) throw error;
+        toast.success('Alteração salva com sucesso!');
+
       } else { // Creating a new income
-        if (isRecurring) {
-          const newRecurrenceId = crypto.randomUUID();
-          await addIncome({ ...incomeData, recurrenceId: newRecurrenceId });
-          
-          // Create next 11 entries
-          const limit = installments ? parseInt(installments) - 1 : 11;
-          for (let i = 1; i <= limit; i++) {
-            const nextDate = addMonths(new Date(receiveDate), i);
-            await addIncome({ ...incomeData, receiveDate: nextDate, recurrenceId: newRecurrenceId });
-          }
-          toast.success('Receita recorrente criada!');
-        } else {
-          await addIncome(incomeData);
-          toast.success('Receita criada!');
-        }
+        const { data: { user } } = await supabase.auth.getUser();
+        const { error } = await supabase.from('incomes').insert([{
+            title,
+            amount: numericAmount,
+            income_date: format(new Date(incomeDate), 'yyyy-MM-dd'),
+            receive_date: format(new Date(receiveDate), 'yyyy-MM-dd'),
+            category_id: categoryId,
+            subcategory_id: subcategoryId || null,
+            account_id: accountId || null,
+            is_received: isReceived,
+            is_recurring: isRecurring,
+            installments: isRecurring ? parseInt(installments) : null,
+            user_id: user?.id
+        }]);
+
+        if (error) throw error;
+        toast.success('Receita criada com sucesso!');
       }
       
+      await refreshData();
       onOpenChange(false);
     } catch (error: any) {
-      console.error('Erro detalhado do Supabase:', {
-        message: error.message,
-        details: error.details,
-        code: error.code,
-      });
-      toast.error(`Erro ao salvar: ${error.details || error.message}`);
+      console.error('Erro ao salvar:', error);
+      toast.error('Erro ao salvar receita');
     } finally {
       setIsSubmitting(false);
     }
@@ -224,112 +221,88 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const recurrenceId = income?.recurrenceId || (income as any)?.recurrence_id || (income as any)?.parent_id || (income as any)?.id;
-      let effectiveRecurrenceId = recurrenceId || (income?.isRecurring ? income?.id : null);
-
-      if (!effectiveRecurrenceId && income?.isRecurring) {
-          effectiveRecurrenceId = income.id;
-          await supabase.from('incomes').update({ recurrence_id: effectiveRecurrenceId }).eq('id', income.id);
-      }
-
-      if (!effectiveRecurrenceId && scope !== 'single') {
-        toast.info("Esta não é uma receita recorrente. Apenas este registro será atualizado.");
-        await handleRecurrenceUpdate('single', data);
-        return;
-      }
-
-      console.log('Iniciando atualização recorrente...', { effectiveRecurrenceId, scope, data });
-
-      const dados = {
+      // 1. Update Current Income First
+      const commonData = {
         title: data.title,
         amount: data.amount,
         category_id: data.categoryId,
         subcategory_id: data.subcategoryId || null,
         account_id: data.accountId || null,
         is_received: data.isReceived,
-        is_recurring: data.isRecurring,
+        is_recurring: data.isRecurring, // Keep recurring
         installments: data.installments,
       };
 
-      let successMessage = '';
+      const { error: currentError } = await supabase.from('incomes').update({
+        ...commonData,
+        receive_date: format(data.receiveDate, 'yyyy-MM-dd'),
+        income_date: format(data.incomeDate, 'yyyy-MM-dd')
+      }).eq('id', income!.id);
 
-      switch (scope) {
-        case 'single':
-          const singleData = { ...dados, receive_date: format(data.receiveDate, 'yyyy-MM-dd'), income_date: format(data.incomeDate, 'yyyy-MM-dd') };
-          const { error: singleError } = await supabase.from('incomes').update(singleData).eq('id', income!.id);
-          if (singleError) throw singleError;
-          successMessage = 'Receita atualizada com sucesso!';
-          break;
+      if (currentError) throw currentError;
 
-        case 'all':
-          const { error: allError } = await supabase.from('incomes').update(dados).or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`);
-          if (allError) throw allError;
-          successMessage = 'Todas as receitas da série foram atualizadas!';
-          break;
+      // 2. Logic for Scope
+      if (scope !== 'single') {
+        const recurrenceId = income?.recurrenceId || (income as any)?.recurrence_id || (income as any)?.parent_id;
+        let query = supabase.from('incomes').select('*');
+        
+        if (recurrenceId) {
+          query = query.eq('recurrence_id', recurrenceId);
+        } else {
+          query = query.eq('title', income!.title).eq('amount', income!.amount);
+        }
 
-        case 'past':
-          const { error: pastError } = await supabase.from('incomes').update(dados)
-            .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
-            .lte('receive_date', format(data.receiveDate, 'yyyy-MM-dd'));
-          if (pastError) throw pastError;
-          successMessage = 'Receita atual e passadas atualizadas!';
-          break;
+        if (scope === 'future') {
+          query = query.gte('receive_date', format(data.receiveDate, 'yyyy-MM-dd'));
+        }
 
-        case 'future':
-          // 1. Fetch all affected incomes (current + future)
-          const { data: futureIncomes, error: fetchError } = await supabase
-            .from('incomes')
-            .select('*')
-            .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
-            .gte('receive_date', format(new Date(data.receiveDate), 'yyyy-MM-dd'));
+        const { data: relatedIncomes } = await query;
 
-          if (fetchError) throw fetchError;
+        if (relatedIncomes && relatedIncomes.length > 0) {
+          // 3. Conversion from Recurring to Single
+          if (!data.isRecurring && scope === 'all') {
+             const futureToDelete = relatedIncomes.filter((i: any) => new Date(i.receive_date) > new Date(data.receiveDate));
+             const idsToDelete = futureToDelete.map((i: any) => i.id);
+             if (idsToDelete.length > 0) {
+               await supabase.from('incomes').delete().in('id', idsToDelete);
+             }
+             await supabase.from('incomes').update({ recurrence_id: null, is_recurring: false }).eq('id', income!.id);
+          } else {
+             // Batch Update
+             const newDay = getDate(data.receiveDate);
+             const updates = relatedIncomes.map((inc: any) => {
+               if (inc.id === income!.id) return null;
 
-          if (futureIncomes && futureIncomes.length > 0) {
-              // 2. Capture the new day from the edited date
-              const newReceiveDateObj = new Date(data.receiveDate);
-              const newDay = newReceiveDateObj.getUTCDate();
-              
-              // 3. Prepare updates
-              const updates = futureIncomes.map((inc: any) => {
-                  let originalDate = new Date(inc.receive_date);
-                  originalDate.setUTCDate(newDay);
-                  let newDate = originalDate;
-                  
-                  if (inc.id === income!.id) {
-                      newDate = newReceiveDateObj;
-                  }
+               let newDate = new Date(inc.receive_date);
+               if (getDate(new Date(income!.receiveDate)) !== newDay) {
+                 newDate = setDate(newDate, newDay);
+               }
 
-                  return {
-                      ...dados,
-                      id: inc.id,
-                      user_id: inc.user_id,
-                      recurrence_id: effectiveRecurrenceId,
-                      receive_date: format(newDate, 'yyyy-MM-dd'),
-                      income_date: format(newDate, 'yyyy-MM-dd')
-                  };
-              });
+               return {
+                 ...commonData,
+                 id: inc.id,
+                 user_id: inc.user_id,
+                 recurrence_id: recurrenceId,
+                 receive_date: format(newDate, 'yyyy-MM-dd'),
+                 income_date: format(newDate, 'yyyy-MM-dd')
+               };
+             }).filter(Boolean);
 
-              // 4. Execute Upsert
-              const { error: updateError } = await supabase.from('incomes').upsert(updates);
-              if (updateError) throw updateError;
+             if (updates.length > 0) {
+               const { error: batchError } = await supabase.from('incomes').upsert(updates);
+               if (batchError) throw batchError;
+             }
           }
-
-          successMessage = 'Receitas futuras atualizadas com sucesso!';
-          break;
+        }
       }
       
-      toast.success(successMessage);
+      toast.success('Alteração salva com sucesso!');
       await refreshData();
       onOpenChange(false);
 
     } catch (error: any) {
-      console.error('Erro detalhado do Supabase:', {
-        message: error.message,
-        details: error.details,
-        code: error.code,
-      });
-      toast.error(`Erro ao atualizar: ${error.details || error.message}`);
+      console.error('Erro ao atualizar:', error);
+      toast.error('Erro ao atualizar receita');
     } finally {
       setIsSubmitting(false);
     }
