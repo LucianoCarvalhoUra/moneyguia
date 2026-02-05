@@ -142,6 +142,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     return true;
   };
 
+
   const isRecurringSeries = expense && (expense.isRecurring || !!expense.recurrenceId || !!(expense as any).recurrence_id || !!(expense as any).parent_id);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -155,6 +156,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     setIsSubmitting(true);
     try {
       const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+      
       const expenseData = {
         description,
         amount: numericAmount,
@@ -170,15 +172,17 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         isPaid,
       };
 
+      console.log('Iniciando salvamento...', expenseData);
+
       if (expense) { // Editing an existing expense
-        if (isRecurringSeries) {
+        if (isRecurring) { // 1. Conditional Edit Logic: Only show scope dialog if switch is ON
           setPendingData(expenseData);
           setActionType('save');
           setScopeDialogOpen(true);
           return;
         }
 
-        console.log('Updating single expense:', expense.id, expenseData);
+        // If switch is OFF, just update the single record and ensure it's not recurring
         const { error: updateError } = await supabase.from('expenses').update({
           description: expenseData.description,
           amount: expenseData.amount,
@@ -189,40 +193,65 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           payment_method: expenseData.paymentMethod,
           account_id: expenseData.accountId,
           card_id: expenseData.cardId,
-          is_recurring: expenseData.isRecurring,
-          installments: expenseData.installments,
+          is_recurring: false, // Explicitly set to false
+          recurrence_id: null, // Unlink from any series
+          installments: null,
           is_paid: expenseData.isPaid
         }).eq('id', expense.id);
 
         if (updateError) throw updateError;
         toast.success('Despesa atualizada!');
-      } else { // Creating a new expense
-        console.log('Creating expense:', expenseData);
-        const { data: { user } } = await supabase.auth.getUser();
-        const { error: insertError } = await supabase.from('expenses').insert([{
-          description: expenseData.description,
-          amount: expenseData.amount,
-          due_date: format(expenseData.dueDate, 'yyyy-MM-dd'),
-          expense_date: format(expenseData.expenseDate, 'yyyy-MM-dd'),
-          category_id: expenseData.categoryId,
-          subcategory_id: expenseData.subcategoryId,
-          payment_method: expenseData.paymentMethod,
-          account_id: expenseData.accountId,
-          card_id: expenseData.cardId,
-          is_recurring: expenseData.isRecurring,
-          installments: expenseData.installments,
-          is_paid: expenseData.isPaid,
-          user_id: user?.id
-        }]);
 
-        if (insertError) throw insertError;
-        toast.success('Despesa criada!');
+      } else { // Creating a new expense
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // 2. Cloning/Creation logic
+        if (isRecurring && parseInt(installments) > 1) {
+          const newRecurrenceId = crypto.randomUUID(); // New parent_id for the new group
+          const newExpenses = [];
+          const limit = parseInt(installments);
+          const startDate = new Date(dueDate);
+
+          for (let i = 0; i < limit; i++) {
+            const nextDueDate = addMonths(startDate, i);
+            newExpenses.push({
+              description, amount: numericAmount,
+              due_date: format(nextDueDate, 'yyyy-MM-dd'),
+              expense_date: format(nextDueDate, 'yyyy-MM-dd'), // Sync expense date
+              category_id: categoryId, subcategory_id: subcategoryId || null,
+              payment_method: paymentMethod, account_id: accountId || null, card_id: cardId || null,
+              is_recurring: true, installments: limit, is_paid: false, // New installments are not paid
+              recurrence_id: newRecurrenceId,
+              user_id: user?.id,
+            });
+          }
+          const { error } = await supabase.from('expenses').insert(newExpenses);
+          if (error) throw error;
+          toast.success(`${limit} despesas recorrentes criadas!`);
+        } else {
+          // Insert single expense
+          const { error } = await supabase.from('expenses').insert([{
+            description: expenseData.description,
+            amount: expenseData.amount,
+            due_date: format(expenseData.dueDate, 'yyyy-MM-dd'),
+            expense_date: format(expenseData.expenseDate, 'yyyy-MM-dd'),
+            category_id: expenseData.categoryId,
+            subcategory_id: expenseData.subcategoryId,
+            payment_method: expenseData.paymentMethod,
+            account_id: expenseData.accountId,
+            card_id: expenseData.cardId,
+            is_recurring: expenseData.isRecurring,
+            installments: expenseData.installments,
+            is_paid: expenseData.isPaid,
+            user_id: user?.id
+          }]);
+          if (error) throw error;
+          toast.success('Despesa criada!');
+        }
       }
 
       // Force refresh
-      window.location.reload();
-          
-      
+      await refreshData();
       onOpenChange(false);
     } catch (error: any) {
        console.error('Erro detalhado do Supabase:', {
@@ -238,6 +267,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
 
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all', data: any) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       // 1. Identification of Link (Parent ID)
@@ -260,7 +290,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           await supabase.from('expenses').update({ recurrence_id: effectiveRecurrenceId }).eq('id', expense.id);
       }
 
-      console.log('Filtro utilizado:', recurrenceId, 'Escopo:', scope);
+      console.log('Iniciando atualização recorrente...', { effectiveRecurrenceId, scope, data });
 
       const dados = {
         description: data.description,
@@ -596,7 +626,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Salvar
               </Button>
             </div>

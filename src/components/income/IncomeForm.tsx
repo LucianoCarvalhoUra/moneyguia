@@ -169,7 +169,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           setScopeDialogOpen(true);
           return;
         }
-        
+
         // Direct update for single income
         const { error } = await supabase.from('incomes').update({
             title,
@@ -179,9 +179,10 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             category_id: categoryId,
             subcategory_id: subcategoryId || null,
             account_id: accountId || null,
-            is_received: isReceived,
-            is_recurring: isRecurring,
-            installments: isRecurring ? parseInt(installments) : null
+            is_received: false,
+            is_recurring: false,
+            recurrence_id: null,
+            installments: null
         }).eq('id', income.id);
 
         if (error) throw error;
@@ -189,22 +190,46 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
       } else { // Creating a new income
         const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase.from('incomes').insert([{
-            title,
-            amount: numericAmount,
-            income_date: format(new Date(incomeDate), 'yyyy-MM-dd'),
-            receive_date: format(new Date(receiveDate), 'yyyy-MM-dd'),
-            category_id: categoryId,
-            subcategory_id: subcategoryId || null,
-            account_id: accountId || null,
-            is_received: isReceived,
-            is_recurring: isRecurring,
-            installments: isRecurring ? parseInt(installments) : null,
-            user_id: user?.id
-        }]);
 
-        if (error) throw error;
-        toast.success('Receita criada com sucesso!');
+        if (isRecurring && parseInt(installments) > 1) {
+          const newRecurrenceId = crypto.randomUUID();
+          const newIncomes = [];
+          const limit = parseInt(installments);
+          const startDate = new Date(receiveDate);
+
+          for (let i = 0; i < limit; i++) {
+            const nextReceiveDate = addMonths(startDate, i);
+            newIncomes.push({
+              title, amount: numericAmount,
+              receive_date: format(nextReceiveDate, 'yyyy-MM-dd'),
+              income_date: format(nextReceiveDate, 'yyyy-MM-dd'),
+              category_id: categoryId, subcategory_id: subcategoryId || null,
+              account_id: accountId || null,
+              is_recurring: true, installments: limit, is_received: false,
+              recurrence_id: newRecurrenceId,
+              user_id: user?.id,
+            });
+          }
+          const { error } = await supabase.from('incomes').insert(newIncomes);
+          if (error) throw error;
+          toast.success(`${limit} receitas recorrentes criadas!`);
+        } else {
+          const { error } = await supabase.from('incomes').insert([{
+            title: incomeData.title,
+            amount: incomeData.amount,
+            income_date: format(incomeData.incomeDate, 'yyyy-MM-dd'),
+            receive_date: format(incomeData.receiveDate, 'yyyy-MM-dd'),
+            category_id: incomeData.categoryId,
+            subcategory_id: incomeData.subcategoryId,
+            account_id: incomeData.accountId,
+            is_received: incomeData.isReceived,
+            is_recurring: incomeData.isRecurring,
+            installments: incomeData.installments,
+            user_id: user?.id
+          }]);
+          if (error) throw error;
+          toast.success('Receita criada com sucesso!');
+        }
       }
       
       await refreshData();
