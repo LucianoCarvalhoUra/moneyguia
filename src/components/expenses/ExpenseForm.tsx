@@ -371,7 +371,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               if (updateError) throw updateError;
           }
           successMessage = 'Despesa atual e futuras foram atualizadas!';
-          break;
       }
       
       toast.success(successMessage);
