@@ -5,13 +5,14 @@ import { startOfDay, addDays, isWithinInterval, startOfMonth, endOfMonth, parseI
 
 // Função de Renderização 'Raw'
 const renderDateString = (value: any) => {
+  // LOG DE DEBUG
+  console.log('DEBUG renderDateString:', value);
+
   if (!value) return "-";
-  try {
-    const date = typeof value === 'string' ? parseISO(value) : value;
-    return format(date, 'dd/MM/yyyy');
-  } catch (e) {
-    return "-";
-  }
+  const rawString = value instanceof Date ? value.toISOString() : String(value);
+  const datePart = rawString.split('T')[0];
+  const [year, month, day] = datePart.split('-');
+  return `${day}/${month}/${year}`;
 };
 
 export const useFinancialSummary = (selectedDate: Date = new Date()) => {

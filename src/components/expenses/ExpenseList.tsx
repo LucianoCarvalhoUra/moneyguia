@@ -36,16 +36,21 @@ type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'payme
 type SortOrder = 'asc' | 'desc';
 
 const renderDateCell = (value: any) => {
+  // LOG DE DEBUG: Verificando o valor exato que chega para renderização
+  console.log('DEBUG renderDateCell:', { value, type: typeof value });
+
   if (!value) return "-";
   
-  try {
-    // parseISO converte a string ISO para um objeto Date
-    // format exibe esse Date no fuso horário local do usuário
-    const date = typeof value === 'string' ? parseISO(value) : value;
-    return <div className="tabular-nums">{format(date, 'dd/MM/yyyy')}</div>;
-  } catch (e) {
-    return <div className="tabular-nums">-</div>;
-  }
+  // Tratamento como string pura para evitar interpretação de fuso horário
+  // Se for objeto Date, usamos toISOString() para garantir formato padrão
+  // Se for string, usamos direto
+  const rawString = value instanceof Date ? value.toISOString() : String(value);
+  
+  // Extrai YYYY-MM-DD ignorando tudo após o T (Hora/Fuso)
+  const datePart = rawString.split('T')[0];
+  const [year, month, day] = datePart.split('-');
+  
+  return <div className="tabular-nums">{day}/{month}/{year}</div>;
 };
 
 export default function ExpenseList() {
@@ -65,6 +70,11 @@ export default function ExpenseList() {
   const total = getMonthlyTotal(selectedYear, selectedMonth);
   const incomeTotal = getMonthlyIncomeTotal(selectedYear, selectedMonth);
   const categoryTotals = getTotalByCategory(selectedYear, selectedMonth);
+
+  // DEBUG: Verificar dados brutos retornados do hook
+  if (expenses.length > 0) {
+    console.log('DEBUG EXPENSES LIST (Primeiro Item):', expenses[0]);
+  }
 
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
