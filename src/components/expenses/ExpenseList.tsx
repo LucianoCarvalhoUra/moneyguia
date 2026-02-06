@@ -36,10 +36,19 @@ type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'payme
 type SortOrder = 'asc' | 'desc';
 
 // Função de exibição baseada em string (Raw String Display)
-const formatDisplayDate = (dateValue: string | Date) => {
+const formatDisplayDate = (dateValue: string | Date | undefined | null) => {
   if (!dateValue) return "-";
-  // Se for string 'YYYY-MM-DD', quebramos o texto e remontamos manualmente
-  const dateStr = typeof dateValue === 'string' ? dateValue : dateValue.toISOString();
+  
+  // Se for Date, extraímos manualmente os componentes locais para evitar shift de UTC
+  if (dateValue instanceof Date) {
+    const year = dateValue.getFullYear();
+    const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+    const day = String(dateValue.getDate()).padStart(2, '0');
+    return `${day}/${month}/${year}`;
+  }
+
+  // Se for string 'YYYY-MM-DD', quebramos o texto
+  const dateStr = String(dateValue);
   const [year, month, day] = dateStr.split('T')[0].split('-');
   return `${day}/${month}/${year}`;
 };
@@ -55,6 +64,7 @@ export default function ExpenseList() {
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('dueDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [listKey, setListKey] = useState(0); // 2. Forçar Atualização
 
   const expenses = getMonthlyExpenses(selectedYear, selectedMonth);
   const total = getMonthlyTotal(selectedYear, selectedMonth);
@@ -116,6 +126,7 @@ export default function ExpenseList() {
     setFormOpen(open);
     if (!open) {
       setEditingExpense(undefined);
+      setListKey(prev => prev + 1); // Garante reconstrução da tabela com dados novos
     }
   };
 
@@ -276,7 +287,7 @@ export default function ExpenseList() {
               <p className="text-sm">Clique em "Nova Despesa" para começar</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3" key={listKey}>
               {sortedExpenses.map((expense) => {
                 const category = getCategoryById(expense.categoryId);
                 const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
