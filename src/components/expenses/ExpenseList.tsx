@@ -36,14 +36,16 @@ type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'payme
 type SortOrder = 'asc' | 'desc';
 
 const renderDateCell = (value: any) => {
-  // 5. Exibição na Tabela: ler texto do banco e reorganizar
-  const rawValue = value;
-  if (!rawValue) return "-";
-
-  const dateString = String(rawValue).split('T')[0];
-  const [y, m, d] = dateString.split('-');
-
-  return <div className="tabular-nums">{`${d}/${m}/${y}`}</div>;
+  if (!value) return "-";
+  
+  try {
+    // parseISO converte a string ISO para um objeto Date
+    // format exibe esse Date no fuso horário local do usuário
+    const date = typeof value === 'string' ? parseISO(value) : value;
+    return <div className="tabular-nums">{format(date, 'dd/MM/yyyy')}</div>;
+  } catch (e) {
+    return <div className="tabular-nums">-</div>;
+  }
 };
 
 export default function ExpenseList() {
