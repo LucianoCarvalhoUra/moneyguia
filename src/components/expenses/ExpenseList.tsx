@@ -38,7 +38,7 @@ type SortOrder = 'asc' | 'desc';
 const renderDateCell = (value: any) => {
   // Acessando o dado bruto direto do objeto original para evitar fuso horário
   const rawValue = value;
-  console.log('DEBUG DATA BRUTA NA LINHA:', rawValue); // Verificação no console
+  // console.log('DEBUG DATA BRUTA NA LINHA:', rawValue); // Verificação no console
   if (!rawValue) return "-";
 
   // Tratamento manual de string para ignorar UTC
