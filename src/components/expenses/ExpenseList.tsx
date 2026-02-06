@@ -36,16 +36,12 @@ type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'payme
 type SortOrder = 'asc' | 'desc';
 
 const renderDateCell = (value: any) => {
-  const rawDate = value;
-  console.info('Renderizando tabela com data bruta:', rawDate);
-
-  if (!rawDate) return "-";
-  // Tratamento como string pura para evitar UTC shift
-  const dateString = String(rawDate).split('T')[0];
-  const [year, month, day] = dateString.split('-');
-  
-  if (!day || !month || !year) return dateString;
-  return <span className="font-mono">{day}/{month}/{year}</span>;
+  const d = value;
+  if (!d) return "-";
+  // Tratamento como string pura para evitar UTC shift (Solicitado)
+  const str = String(d);
+  const [y, m, day] = str.split('T')[0].split('-');
+  return <span>{`${day}/${m}/${y}`}</span>;
 };
 
 export default function ExpenseList() {

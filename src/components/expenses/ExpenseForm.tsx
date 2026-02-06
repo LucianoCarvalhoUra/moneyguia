@@ -145,15 +145,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
   const isRecurringSeries = expense && (expense.isRecurring || !!expense.recurrenceId || !!(expense as any).recurrence_id || !!(expense as any).parent_id);
 
-  // 3. Fix de Data (Método Manual)
-  const formatDateManual = (dateStr: string) => {
-    const date = new Date(dateStr + 'T12:00:00'); // Força meio-dia para evitar regressão de fuso
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -164,124 +155,71 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
     setIsSubmitting(true);
     try {
-      // 1. Rastreio de Fluxo: Objeto original
-      console.log('1. Objeto original do formulário:', { description, amount, expenseDate, dueDate, isRecurring });
-
       const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
       
-      // 2. Data formatada (String) - Método Manual
-      const finalDueDate = formatDateManual(dueDate);
-      const finalExpenseDate = formatDateManual(expenseDate);
-      
-      console.log('2. Data formatada (String):', finalDueDate);
-      // 2. Alertas Visuais
-      toast.info('Iniciando: ' + finalDueDate);
-
-      const expenseData = {
+      // Payload simplificado
+      const payload = {
         description,
         amount: numericAmount,
-        expenseDate: finalExpenseDate,
-        dueDate: finalDueDate,
-        categoryId,
-        subcategoryId: subcategoryId || undefined,
-        paymentMethod,
-        accountId: paymentMethod === 'account' && accountId ? accountId : null,
-        cardId: paymentMethod === 'credit_card' && cardId ? cardId : null,
-        isRecurring,
+        expense_date: expenseDate, // Usa string direta do input (YYYY-MM-DD)
+        due_date: dueDate,         // Usa string direta do input (YYYY-MM-DD)
+        category_id: categoryId,
+        subcategory_id: subcategoryId || null,
+        payment_method: paymentMethod,
+        account_id: paymentMethod === 'account' && accountId ? accountId : null,
+        card_id: paymentMethod === 'credit_card' && cardId ? cardId : null,
+        is_recurring: isRecurring,
         installments: isRecurring ? parseInt(installments) : null,
-        isPaid,
+        is_paid: isPaid,
+        user_id: (await supabase.auth.getUser()).data.user?.id
       };
 
-      console.log('3. Payload final enviado ao Banco:', expenseData);
-
       if (expense) { // Editing an existing expense
-        // 3. Regra de Visibilidade: SÓ exibe o diálogo se o switch estiver ATIVADO
+        
         if (isRecurring) { 
-          setPendingData(expenseData);
+          // Se for recorrente, abre o diálogo para escolher o escopo
+          setPendingData(payload);
           setActionType('save');
           setScopeDialogOpen(true);
           return;
         }
 
-        // Se switch estiver OFF, salva direto sem perguntar (Item 3)
-        const { error: updateError } = await supabase.from('expenses').update({
-          description: expenseData.description,
-          amount: expenseData.amount,
-          due_date: expenseData.dueDate,
-          expense_date: expenseData.expenseDate,
-          category_id: expenseData.categoryId,
-          subcategory_id: expenseData.subcategoryId,
-          payment_method: expenseData.paymentMethod,
-          account_id: expenseData.accountId || null,
-          card_id: expenseData.cardId || null,
-          is_recurring: false, // Explicitly set to false
-          recurrence_id: null, // Unlink from any series
-          installments: null, // Force null
-          is_paid: expenseData.isPaid
-        }).eq('id', expense.id);
+        // Salvamento Direto (Sem recorrência)
+        const { error } = await supabase.from('expenses').update(payload).eq('id', expense.id);
 
-        if (updateError) {
-          console.log('4. Erro do Supabase:', updateError);
-          throw updateError;
-        }
-        console.log('5. Dados retornados (Update):', 'Sucesso');
+        if (error) throw error;
         toast.success('Despesa atualizada!');
 
       } else { // Creating a new expense
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        // 2. Cloning/Creation logic
         if (isRecurring && parseInt(installments) > 1) {
           const newRecurrenceId = crypto.randomUUID(); // New parent_id for the new group
           const newExpenses = [];
           const limit = parseInt(installments);
-          // Fix: Cria data ao meio-dia para garantir que addMonths não pule dias por fuso horário
-          const [y, m, d] = finalDueDate.split('-').map(Number);
+          
+          // Cria data base segura para cálculo
+          const [y, m, d] = dueDate.split('-').map(Number);
           const startDate = new Date(y, m - 1, d, 12);
 
           for (let i = 0; i < limit; i++) {
             const nextDueDate = addMonths(startDate, i);
-            const nextDueDateStr = formatDateManual(format(nextDueDate, 'yyyy-MM-dd'));
+            // Uso solicitado: toLocaleDateString('sv-SE') para garantir YYYY-MM-DD
+            const nextDueDateStr = nextDueDate.toLocaleDateString('sv-SE');
+            
             newExpenses.push({
-              description, amount: numericAmount,
+              ...payload,
               due_date: nextDueDateStr,
               expense_date: nextDueDateStr, // Sync expense date
-              category_id: categoryId, subcategory_id: subcategoryId || null,
-              payment_method: paymentMethod, account_id: accountId || null, card_id: cardId || null,
-              is_recurring: true, installments: limit, is_paid: false, // New installments are not paid
+              is_paid: false, // New installments are not paid
               recurrence_id: newRecurrenceId,
-              user_id: user?.id,
             });
           }
           const { error } = await supabase.from('expenses').insert(newExpenses);
-          if (error) {
-            console.log('4. Erro do Supabase:', error);
-            throw error;
-          }
-          console.log('5. Dados retornados (Insert Recorrente):', newExpenses.length);
+          if (error) throw error;
           toast.success(`${limit} despesas recorrentes criadas!`);
         } else {
           // Insert single expense
-          const { error } = await supabase.from('expenses').insert([{
-            description: expenseData.description,
-            amount: expenseData.amount,
-            due_date: expenseData.dueDate,
-            expense_date: expenseData.expenseDate,
-            category_id: expenseData.categoryId,
-            subcategory_id: expenseData.subcategoryId,
-            payment_method: expenseData.paymentMethod,
-            account_id: expenseData.accountId || null,
-            card_id: expenseData.cardId || null,
-            is_recurring: expenseData.isRecurring,
-            installments: expenseData.installments,
-            is_paid: expenseData.isPaid,
-            user_id: user?.id
-          }]);
-          if (error) {
-            console.log('4. Erro do Supabase:', error);
-            throw error;
-          }
-          console.log('5. Dados retornados (Insert):', 'Sucesso');
+          const { error } = await supabase.from('expenses').insert([payload]);
+          if (error) throw error;
           toast.success('Despesa criada!');
         }
       }
@@ -290,14 +228,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       await refreshData();
       onOpenChange(false);
     } catch (error: any) {
-       console.log('4. Erro do Supabase (Catch):', error);
-       console.error('Erro detalhado do Supabase:', {
-        message: error.message,
-        details: error.details,
-        code: error.code,
-      });
-      // 2. Alertas Visuais (Erro)
-      toast.error(`Erro ao salvar: ${error.message}`);
+      console.error(error);
+      toast.error(`Erro ao salvar: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -328,24 +260,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           await supabase.from('expenses').update({ recurrence_id: effectiveRecurrenceId }).eq('id', expense.id);
       }
 
-      // 1. Rastreio de Fluxo
-      console.log('1. Objeto original (Recorrência):', data);
-      
-      // 2. Data formatada (String) - Método Manual
-      const finalDueDate = formatDateManual(data.dueDate);
-      const finalExpenseDate = formatDateManual(data.expenseDate);
-
-      const dados = {
-        description: data.description,
-        amount: data.amount,
-        category_id: data.categoryId,
-        subcategory_id: data.subcategoryId || null,
-        payment_method: data.paymentMethod,
-        account_id: data.accountId || null,
-        card_id: data.cardId || null,
-        is_recurring: true, // Keep recurring
-        installments: data.installments || null,
-      };
+      // Dados base vindos do payload preparado no handleSubmit
+      const dados = { ...data };
+      const finalDueDate = data.due_date;
+      const finalExpenseDate = data.expense_date;
 
       let successMessage = '';
 
@@ -353,32 +271,22 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
       // 2. Update Scoping Logic
       if (scope === 'single') {
-          const singleData = { ...dados, due_date: finalDueDate, expense_date: finalExpenseDate, is_paid: data.isPaid };
+          const singleData = { ...dados, due_date: finalDueDate, expense_date: finalExpenseDate, is_paid: data.is_paid };
           const { error: singleError } = await supabase.from('expenses').update(singleData).eq('id', expense!.id);
-          if (singleError) { console.log('4. Erro Supabase (Single):', singleError); throw singleError; }
-          
-          console.log('5. Dados retornados:', 'Sucesso Single');
+          if (singleError) throw singleError;
           successMessage = 'Despesa atualizada com sucesso!';
 
       } else if (scope === 'all') {
-          // For 'all', we update everything in the group. Dates are tricky here if we want to shift them all.
-          // Usually 'all' updates category/value/desc. If date is changed, it might imply shifting the whole series or setting same day.
-          // For simplicity and robustness, we apply the "Day Adjustment" logic to ALL records if date changed.
-          // But first, let's just update the common fields.
           const { error: allError } = await supabase.from('expenses').update(dados)
             .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`);
-          if (allError) { console.log('4. Erro Supabase (All):', allError); throw allError; }
-          
-          console.log('5. Dados retornados:', 'Sucesso All');
+          if (allError) throw allError;
           successMessage = 'Todas as despesas da série foram atualizadas!';
 
       } else if (scope === 'past') {
           const { error: pastError } = await supabase.from('expenses').update(dados)
             .or(`recurrence_id.eq.${effectiveRecurrenceId},id.eq.${effectiveRecurrenceId}`)
             .lte('due_date', finalDueDate);
-          if (pastError) { console.log('4. Erro Supabase (Past):', pastError); throw pastError; }
-          
-          console.log('5. Dados retornados:', 'Sucesso Past');
+          if (pastError) throw pastError;
           successMessage = 'Despesa atual e passadas atualizadas!';
 
       } else if (scope === 'future') {
@@ -401,7 +309,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                   // 3. Edição em Lote: Montagem de String "Anti-Fuso"
                   const [year, month] = exp.due_date.split('-'); // Mantém ano e mês originais
                   
-                  // Garante que o dia é válido para o mês (ex: dia 31 em Fevereiro vira 28/29)
+                  // Garante que o dia é válido para o mês
                   const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
                   const safeDay = Math.min(newDay, daysInMonth);
                   const safeDayStr = safeDay.toString().padStart(2, '0');
@@ -409,16 +317,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                   const newDateStr = `${year}-${month}-${safeDayStr}`;
 
                   return {
-                      description: data.description,
-                      amount: data.amount,
-                      category_id: data.categoryId,
-                      subcategory_id: data.subcategoryId || null,
-                      payment_method: data.paymentMethod,
-                      account_id: data.accountId || null,
-                      card_id: data.cardId || null,
-                      is_recurring: true,
-                      installments: data.installments || null,
-                      
+                      ...dados,
                       id: exp.id,
                       user_id: exp.user_id,
                       recurrence_id: effectiveRecurrenceId,
@@ -429,24 +328,17 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
               // 4. Transaction Execution
               const { error: updateError } = await supabase.from('expenses').upsert(updates);
-              if (updateError) { console.log('4. Erro Supabase (Future):', updateError); throw updateError; }
-              console.log('5. Dados retornados:', updates.length + ' registros atualizados');
+              if (updateError) throw updateError;
           }
           successMessage = 'Despesa atual e futuras foram atualizadas!';
       }
       
       toast.success(successMessage);
-      toast.info('Operação concluída: ' + finalDueDate);
       await refreshData();
       onOpenChange(false);
 
     } catch (error: any) {
-      console.log('4. Erro do Supabase (Catch Recorrência):', error);
-      console.error('Erro detalhado do Supabase:', {
-        message: error.message,
-        details: error.details,
-        code: error.code,
-      });
+      console.error(error);
       toast.error(`Erro ao atualizar: ${error.details || error.message}`);
     } finally {
       setIsSubmitting(false);
