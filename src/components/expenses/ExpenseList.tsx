@@ -35,9 +35,11 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'paymentMethod' | 'amount';
 type SortOrder = 'asc' | 'desc';
 
-// Função manual de formatação para evitar erros de fuso horário (UTC vs Local)
-const formatDateSafe = (dateStr: string) => {
-  if (!dateStr) return "-";
+// Função de exibição baseada em string (Raw String Display)
+const formatDisplayDate = (dateValue: string | Date) => {
+  if (!dateValue) return "-";
+  // Se for string 'YYYY-MM-DD', quebramos o texto e remontamos manualmente
+  const dateStr = typeof dateValue === 'string' ? dateValue : dateValue.toISOString();
   const [year, month, day] = dateStr.split('T')[0].split('-');
   return `${day}/${month}/${year}`;
 };
@@ -332,7 +334,7 @@ export default function ExpenseList() {
                         {subcategory && ` → ${subcategory.name}`}
                         {' • '}
                         {PAYMENT_METHOD_LABELS[expense.paymentMethod]} •{' '}
-                        Vence em {formatDateSafe(expense.dueDate as unknown as string)}
+                        Vence em {formatDisplayDate(expense.dueDate)}
                       </p>
                       {expense.observation && (
                         <p className="text-xs text-muted-foreground mt-1 truncate">

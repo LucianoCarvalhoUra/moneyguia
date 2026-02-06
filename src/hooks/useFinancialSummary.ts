@@ -3,9 +3,10 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { startOfDay, addDays, isWithinInterval, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
-// Função manual de formatação para evitar erros de fuso horário
-const formatDateSafe = (dateStr: string) => {
-  if (!dateStr) return "-";
+// Função de exibição baseada em string (Raw String Display)
+const formatDisplayDate = (dateValue: string | Date) => {
+  if (!dateValue) return "-";
+  const dateStr = typeof dateValue === 'string' ? dateValue : dateValue.toISOString();
   const [year, month, day] = dateStr.split('T')[0].split('-');
   return `${day}/${month}/${year}`;
 };
@@ -19,8 +20,8 @@ export const useFinancialSummary = (selectedDate: Date = new Date()) => {
     const monthEnd = endOfMonth(selectedDate);
 
     // Filtrar receitas e despesas pelo mês selecionado
-    const monthlyIncomes = incomes.filter(i => isWithinInterval(new Date(i.receiveDate), { start: monthStart, end: monthEnd }));
-    const monthlyExpenses = expenses.filter(e => isWithinInterval(new Date(e.dueDate), { start: monthStart, end: monthEnd }));
+    const monthlyIncomes = incomes.filter(i => isWithinInterval(parseISO(i.receiveDate as unknown as string), { start: monthStart, end: monthEnd }));
+    const monthlyExpenses = expenses.filter(e => isWithinInterval(parseISO(e.dueDate as unknown as string), { start: monthStart, end: monthEnd }));
 
     // 1. Calcular totais (Receitas, Despesas e Saldo)
     const totalIncome = monthlyIncomes.reduce((acc, income) => acc + Number(income.amount), 0);
@@ -62,7 +63,7 @@ export const useFinancialSummary = (selectedDate: Date = new Date()) => {
         id: expense.id,
         description: expense.description,
         amount: Number(expense.amount),
-        dueDate: formatDateSafe(expense.dueDate as unknown as string), // Usa formatação segura para exibição
+        dueDate: formatDisplayDate(expense.dueDate), // Usa formatação segura para exibição
         category: categories.find(c => c.id === expense.categoryId)?.name || 'Sem Categoria'
       }));
 
