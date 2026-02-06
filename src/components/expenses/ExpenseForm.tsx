@@ -172,7 +172,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         isPaid,
       };
 
-      console.log('Data final enviada ao banco:', expenseData.dueDate); // Log solicitado (Item 4)
+      console.log('STRING FINAL PARA O BANCO:', expenseData.dueDate); // Log de Auditoria (Item 4)
 
       if (expense) { // Editing an existing expense
         // 3. Regra de Visibilidade: SÓ exibe o diálogo se o switch estiver ATIVADO
@@ -344,15 +344,19 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
           if (futureExpenses && futureExpenses.length > 0) {
               // Calculate new day (e.g. day 10)
-              const newDay = parseInt(data.dueDate.split('-')[2]);
+              const newDayPart = data.dueDate.split('-')[2];
+              const newDay = parseInt(newDayPart);
               
               const updates = futureExpenses.map((exp: any) => {
-                  // Fix: Parse local seguro para manter mês correto
-                  const [y, m, d] = exp.due_date.split('-').map(Number);
-                  const originalDate = new Date(y, m - 1, d, 12);
-                  // 3. Date Handling: Preserve Month/Year, change Day
-                  const newDate = setDate(originalDate, newDay);
-                  const newDateStr = format(newDate, 'yyyy-MM-dd');
+                  // 3. Edição em Lote: Montagem de String "Anti-Fuso"
+                  const [year, month] = exp.due_date.split('-'); // Mantém ano e mês originais
+                  
+                  // Garante que o dia é válido para o mês (ex: dia 31 em Fevereiro vira 28/29)
+                  const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+                  const safeDay = Math.min(newDay, daysInMonth);
+                  const safeDayStr = safeDay.toString().padStart(2, '0');
+                  
+                  const newDateStr = `${year}-${month}-${safeDayStr}`;
 
                   return {
                       description: data.description,
