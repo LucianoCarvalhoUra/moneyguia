@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { format, isBefore, startOfDay } from 'date-fns';
+import { format, isBefore, startOfDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, Check, Clock, AlertTriangle } from 'lucide-react';
 import { Expense, PAYMENT_METHOD_LABELS } from '@/types/finance';
@@ -121,10 +121,10 @@ export default function ExpenseList() {
       
       switch (sortField) {
         case 'dueDate':
-          comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          comparison = parseISO(a.dueDate as unknown as string).getTime() - parseISO(b.dueDate as unknown as string).getTime();
           break;
         case 'expenseDate':
-          comparison = new Date(a.expenseDate).getTime() - new Date(b.expenseDate).getTime();
+          comparison = parseISO(a.expenseDate as unknown as string).getTime() - parseISO(b.expenseDate as unknown as string).getTime();
           break;
         case 'category':
           const catA = getCategoryById(a.categoryId)?.name || '';
@@ -143,7 +143,7 @@ export default function ExpenseList() {
           comparison = a.amount - b.amount;
           break;
         default:
-          comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          comparison = parseISO(a.dueDate as unknown as string).getTime() - parseISO(b.dueDate as unknown as string).getTime();
       }
       
       return sortOrder === 'asc' ? comparison : -comparison;
@@ -272,7 +272,7 @@ export default function ExpenseList() {
                 const category = getCategoryById(expense.categoryId);
                 const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
                 
-                const dueDate = new Date(expense.dueDate);
+                const dueDate = parseISO(expense.dueDate as unknown as string);
                 const isOverdue = !expense.isPaid && isBefore(startOfDay(dueDate), startOfDay(new Date()));
 
                 return (
@@ -325,7 +325,7 @@ export default function ExpenseList() {
                         {subcategory && ` → ${subcategory.name}`}
                         {' • '}
                         {PAYMENT_METHOD_LABELS[expense.paymentMethod]} •{' '}
-                        Vence em {format(new Date(expense.dueDate), "dd 'de' MMMM", { locale: ptBR })}
+                        Vence em {format(dueDate, "dd 'de' MMMM", { locale: ptBR })}
                       </p>
                       {expense.observation && (
                         <p className="text-xs text-muted-foreground mt-1 truncate">

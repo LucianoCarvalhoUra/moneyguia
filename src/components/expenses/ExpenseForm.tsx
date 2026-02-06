@@ -185,10 +185,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         categoryId,
         subcategoryId: subcategoryId || undefined,
         paymentMethod,
-        accountId: paymentMethod === 'account' ? accountId : undefined,
-        cardId: paymentMethod === 'credit_card' ? cardId : undefined,
+        accountId: paymentMethod === 'account' && accountId ? accountId : null,
+        cardId: paymentMethod === 'credit_card' && cardId ? cardId : null,
         isRecurring,
-        installments: isRecurring ? parseInt(installments) : undefined,
+        installments: isRecurring ? parseInt(installments) : null,
         isPaid,
       };
 
@@ -212,11 +212,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           category_id: expenseData.categoryId,
           subcategory_id: expenseData.subcategoryId,
           payment_method: expenseData.paymentMethod,
-          account_id: expenseData.accountId,
-          card_id: expenseData.cardId,
+          account_id: expenseData.accountId || null,
+          card_id: expenseData.cardId || null,
           is_recurring: false, // Explicitly set to false
           recurrence_id: null, // Unlink from any series
-          installments: null,
+          installments: null, // Force null
           is_paid: expenseData.isPaid
         }).eq('id', expense.id);
 
@@ -270,8 +270,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             category_id: expenseData.categoryId,
             subcategory_id: expenseData.subcategoryId,
             payment_method: expenseData.paymentMethod,
-            account_id: expenseData.accountId,
-            card_id: expenseData.cardId,
+            account_id: expenseData.accountId || null,
+            card_id: expenseData.cardId || null,
             is_recurring: expenseData.isRecurring,
             installments: expenseData.installments,
             is_paid: expenseData.isPaid,
@@ -344,7 +344,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         account_id: data.accountId || null,
         card_id: data.cardId || null,
         is_recurring: true, // Keep recurring
-        installments: data.installments,
+        installments: data.installments || null,
       };
 
       let successMessage = '';
@@ -417,7 +417,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                       account_id: data.accountId || null,
                       card_id: data.cardId || null,
                       is_recurring: true,
-                      installments: data.installments,
+                      installments: data.installments || null,
                       
                       id: exp.id,
                       user_id: exp.user_id,

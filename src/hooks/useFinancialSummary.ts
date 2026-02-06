@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
-import { startOfDay, addDays, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { startOfDay, addDays, isWithinInterval, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
 export const useFinancialSummary = (selectedDate: Date = new Date()) => {
   const { expenses, categories } = useFinance();
@@ -43,7 +43,7 @@ export const useFinancialSummary = (selectedDate: Date = new Date()) => {
         if (expense.isPaid) return false;
         if (processedIds.has(expense.id)) return false; // Fix: Group by ID
         
-        const dueDate = new Date(expense.dueDate);
+        const dueDate = parseISO(expense.dueDate as unknown as string);
         // Verifica se a data de vencimento está entre hoje e 30 dias à frente
         const isUpcoming = isWithinInterval(dueDate, { start: today, end: next30Days });
         if (isUpcoming) processedIds.add(expense.id);
@@ -56,7 +56,8 @@ export const useFinancialSummary = (selectedDate: Date = new Date()) => {
         dueDate: expense.dueDate,
         category: categories.find(c => c.id === expense.categoryId)?.name || 'Sem Categoria'
       }))
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+      .sort((a, b) => parseISO(a.dueDate as unknown as string).getTime() - parseISO(b.dueDate as unknown as string).getTime())
+      .slice(0, 5);
 
     return {
       totalIncome,
