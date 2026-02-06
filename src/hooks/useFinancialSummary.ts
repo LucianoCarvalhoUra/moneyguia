@@ -6,12 +6,22 @@ import { startOfDay, addDays, isWithinInterval, startOfMonth, endOfMonth, parseI
 // Função de Renderização 'Raw'
 const renderDateString = (value: any) => {
   // LOG DE DEBUG
-  console.log('DEBUG renderDateString:', value);
+  console.log('DEBUG renderDateString IN:', value);
 
   if (!value) return "-";
-  const rawString = value instanceof Date ? value.toISOString() : String(value);
-  const datePart = rawString.split('T')[0];
-  const [year, month, day] = datePart.split('-');
+
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const [_, year, month, day] = match;
+      return `${day}/${month}/${year}`;
+    }
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const year = date.getUTCFullYear();
   return `${day}/${month}/${year}`;
 };
 

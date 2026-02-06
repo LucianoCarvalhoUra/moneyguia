@@ -37,20 +37,29 @@ type SortOrder = 'asc' | 'desc';
 
 const renderDateCell = (value: any) => {
   // LOG DE DEBUG: Verificando o valor exato que chega para renderização
-  console.log('DEBUG renderDateCell:', { value, type: typeof value });
+  console.log('DEBUG renderDateCell IN:', value, 'TYPE:', typeof value);
 
   if (!value) return "-";
   
-  // Tratamento como string pura para evitar interpretação de fuso horário
-  // Se for objeto Date, usamos toISOString() para garantir formato padrão
-  // Se for string, usamos direto
-  const rawString = value instanceof Date ? value.toISOString() : String(value);
+  // 1. Se for string (ex: "2026-02-10" ou "2026-02-10T00:00:00")
+  // Usamos Regex para pegar os primeiros dígitos YYYY-MM-DD com segurança
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const [_, year, month, day] = match;
+      return <div className="tabular-nums">{day}/{month}/{year}</div>;
+    }
+  }
+
+  // 2. Se for objeto Date, forçamos UTC para evitar que o navegador subtraia horas (GMT-3)
+  if (value instanceof Date) {
+    const day = String(value.getUTCDate()).padStart(2, '0');
+    const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+    const year = value.getUTCFullYear();
+    return <div className="tabular-nums">{day}/{month}/{year}</div>;
+  }
   
-  // Extrai YYYY-MM-DD ignorando tudo após o T (Hora/Fuso)
-  const datePart = rawString.split('T')[0];
-  const [year, month, day] = datePart.split('-');
-  
-  return <div className="tabular-nums">{day}/{month}/{year}</div>;
+  return <div className="tabular-nums">{String(value)}</div>;
 };
 
 export default function ExpenseList() {
@@ -74,6 +83,7 @@ export default function ExpenseList() {
   // DEBUG: Verificar dados brutos retornados do hook
   if (expenses.length > 0) {
     console.log('DEBUG EXPENSES LIST (Primeiro Item):', expenses[0]);
+    console.log('DEBUG EXPENSES LIST (dueDate type):', typeof expenses[0].dueDate);
   }
 
   const months = [
