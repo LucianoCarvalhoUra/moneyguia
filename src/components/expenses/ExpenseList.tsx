@@ -36,16 +36,14 @@ type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'payme
 type SortOrder = 'asc' | 'desc';
 
 const renderDateCell = (value: any) => {
-  // Acessando o dado bruto direto do objeto original para evitar fuso horário
+  // 5. Exibição na Tabela: ler texto do banco e reorganizar
   const rawValue = value;
-  // console.log('DEBUG DATA BRUTA NA LINHA:', rawValue); // Verificação no console
   if (!rawValue) return "-";
 
-  // Tratamento manual de string para ignorar UTC
-  const datePart = String(rawValue).split('T')[0];
-  const [year, month, day] = datePart.split('-');
+  const dateString = String(rawValue).split('T')[0];
+  const [y, m, d] = dateString.split('-');
 
-  return <div className="tabular-nums">{`${day}/${month}/${year}`}</div>;
+  return <div className="tabular-nums">{`${d}/${m}/${y}`}</div>;
 };
 
 export default function ExpenseList() {

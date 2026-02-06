@@ -146,7 +146,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
   const isRecurringSeries = expense && (expense.isRecurring || !!expense.recurrenceId || !!(expense as any).recurrence_id || !!(expense as any).parent_id);
 
-  const handleSave = async (e: React.FormEvent) => {
+  // 1. Captura de Dados (Nova Função handleSubmit)
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
 
@@ -159,11 +160,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
       const user = (await supabase.auth.getUser()).data.user;
       
-      // 1. Função Única de Persistência (Clean Slate)
-      const basePayload = {
+      // 2. Tratamento de Data 'Anti-Erro' (String Pura)
+      // Extraímos direto do estado (que vem do input type="date") para garantir yyyy-MM-dd
+      const payload = {
         description,
         amount: numericAmount,
-        expense_date: expenseDate, // format(date, 'yyyy-MM-dd') já garantido pelo input type="date"
+        expense_date: expenseDate, 
         due_date: dueDate,
         category_id: categoryId,
         subcategory_id: subcategoryId || null,
@@ -172,37 +174,36 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         card_id: paymentMethod === 'credit_card' && cardId ? cardId : null,
         is_recurring: isRecurring,
         installments: isRecurring ? parseInt(installments) : null,
-        is_paid: isPaid, // Garante que o status seja enviado exatamente como está
+        // 4. Integridade do Status 'Pago'
+        is_paid: isPaid, 
         user_id: user?.id
       };
 
       if (expense) { // Editing an existing expense
         
-        // 2. Regra de Edição Simples & 3. Regra de Recorrência
-        // Se for uma série recorrente (já existente), perguntamos o escopo.
-        // Se não for (edição simples ou convertendo para recorrente agora), salvamos direto.
+        // 3. Regra de Edição Simples vs Recorrente
         if (isRecurringSeries && isRecurring) { 
-          setPendingData(basePayload);
+          // Se Recorrência for TRUE (e já era uma série): Pergunta sobre parcelas futuras
+          setPendingData(payload);
           setActionType('save');
           setScopeDialogOpen(true);
           setIsSubmitting(false);
           return;
         }
 
-        // Edição Simples: Update direto e fecha
-        const { error } = await supabase.from('expenses').update(basePayload).eq('id', expense.id);
+        // Se Recorrência for FALSE (ou nova recorrência em item único): Upsert direto e fecha
+        const { error } = await supabase.from('expenses').update(payload).eq('id', expense.id);
 
         if (error) throw error;
         toast.success('Despesa atualizada com sucesso!');
 
       } else { // Creating a new expense
-        // 3. Regra de Recorrência (Clonagem/Criação)
         if (isRecurring && parseInt(installments) > 1) {
           const newRecurrenceId = crypto.randomUUID(); // New parent_id for the new group
           const newExpenses = [];
           const limit = parseInt(installments);
           
-          // Cria data base segura para cálculo
+          // Criação de parcelas com cálculo seguro de data
           const [y, m, d] = dueDate.split('-').map(Number);
           const startDate = new Date(y, m - 1, d, 12);
 
@@ -211,7 +212,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             const nextDueDateStr = format(nextDueDate, 'yyyy-MM-dd');
             
             newExpenses.push({
-              ...basePayload,
+              ...payload,
               due_date: nextDueDateStr,
               expense_date: nextDueDateStr, // Sync expense date
               is_paid: i === 0 ? isPaid : false, // Primeira parcela segue o status, as demais pendentes (ou false para todas se preferir)
@@ -223,13 +224,13 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           toast.success(`${limit} despesas recorrentes criadas com sucesso!`);
         } else {
           // Insert single expense
-          const { error } = await supabase.from('expenses').insert([basePayload]);
+          const { error } = await supabase.from('expenses').insert([payload]);
           if (error) throw error;
           toast.success('Despesa salva com sucesso!');
         }
       }
 
-      // 4. Verificação Pós-Gravação
+      // 6. Feedback: Limpeza de cache e fechamento forçado
       await refreshData();
       onOpenChange(false);
     } catch (error: any) {
@@ -410,7 +411,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         <DialogHeader>
           <DialogTitle>{expense ? 'Editar Despesa' : 'Nova Despesa'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSave} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="category">Categoria <span className="text-red-500">*</span></Label>
             <Select value={categoryId} onValueChange={(value) => { setCategoryId(value); setSubcategoryId(''); setErrors(prev => ({...prev, categoryId: false, subcategoryId: false})); }}>
