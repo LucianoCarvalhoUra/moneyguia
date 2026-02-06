@@ -35,21 +35,14 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'paymentMethod' | 'amount';
 type SortOrder = 'asc' | 'desc';
 
-// Função de exibição baseada em string (Raw String Display)
-const formatDisplayDate = (dateValue: string | Date | undefined | null) => {
-  if (!dateValue) return "-";
-  
-  // Se for Date, extraímos manualmente os componentes locais para evitar shift de UTC
-  if (dateValue instanceof Date) {
-    const year = dateValue.getFullYear();
-    const month = String(dateValue.getMonth() + 1).padStart(2, '0');
-    const day = String(dateValue.getDate()).padStart(2, '0');
-    return `${day}/${month}/${year}`;
-  }
-
-  // Se for string 'YYYY-MM-DD', quebramos o texto
-  const dateStr = String(dateValue);
-  const [year, month, day] = dateStr.split('T')[0].split('-');
+// Função de Renderização 'Raw'
+const renderDateString = (value: any) => {
+  if (!value) return "-";
+  // Se for objeto Date, converte para ISO; se for string, usa direto.
+  const str = typeof value === 'string' ? value : value.toISOString();
+  // Pega apenas a parte 'YYYY-MM-DD', ignora horas/Z/T
+  const dateOnly = str.split('T')[0];
+  const [year, month, day] = dateOnly.split('-');
   return `${day}/${month}/${year}`;
 };
 
@@ -345,7 +338,7 @@ export default function ExpenseList() {
                         {subcategory && ` → ${subcategory.name}`}
                         {' • '}
                         {PAYMENT_METHOD_LABELS[expense.paymentMethod]} •{' '}
-                        Vence em {formatDisplayDate(expense.dueDate)}
+                        Vence em {renderDateString(expense.dueDate)}
                       </p>
                       {expense.observation && (
                         <p className="text-xs text-muted-foreground mt-1 truncate">

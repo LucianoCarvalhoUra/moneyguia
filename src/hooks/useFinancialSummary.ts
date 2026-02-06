@@ -3,11 +3,14 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { startOfDay, addDays, isWithinInterval, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
-// Função de exibição baseada em string (Raw String Display)
-const formatDisplayDate = (dateValue: string | Date) => {
-  if (!dateValue) return "-";
-  const dateStr = typeof dateValue === 'string' ? dateValue : dateValue.toISOString();
-  const [year, month, day] = dateStr.split('T')[0].split('-');
+// Função de Renderização 'Raw'
+const renderDateString = (value: any) => {
+  if (!value) return "-";
+  // Se for objeto Date, converte para ISO; se for string, usa direto.
+  const str = typeof value === 'string' ? value : value.toISOString();
+  // Pega apenas a parte 'YYYY-MM-DD', ignora horas/Z/T
+  const dateOnly = str.split('T')[0];
+  const [year, month, day] = dateOnly.split('-');
   return `${day}/${month}/${year}`;
 };
 
@@ -63,7 +66,7 @@ export const useFinancialSummary = (selectedDate: Date = new Date()) => {
         id: expense.id,
         description: expense.description,
         amount: Number(expense.amount),
-        dueDate: formatDisplayDate(expense.dueDate), // Usa formatação segura para exibição
+        dueDate: renderDateString(expense.dueDate), // Usa formatação segura para exibição
         category: categories.find(c => c.id === expense.categoryId)?.name || 'Sem Categoria'
       }));
 
