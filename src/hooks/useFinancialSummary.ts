@@ -3,6 +3,13 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { startOfDay, addDays, isWithinInterval, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
+// Função manual de formatação para evitar erros de fuso horário
+const formatDateSafe = (dateStr: string) => {
+  if (!dateStr) return "-";
+  const [year, month, day] = dateStr.split('T')[0].split('-');
+  return `${day}/${month}/${year}`;
+};
+
 export const useFinancialSummary = (selectedDate: Date = new Date()) => {
   const { expenses, categories } = useFinance();
   const { incomes } = useIncome();
@@ -49,15 +56,15 @@ export const useFinancialSummary = (selectedDate: Date = new Date()) => {
         if (isUpcoming) processedIds.add(expense.id);
         return isUpcoming;
       })
+      .sort((a, b) => parseISO(a.dueDate as unknown as string).getTime() - parseISO(b.dueDate as unknown as string).getTime())
+      .slice(0, 5)
       .map(expense => ({
         id: expense.id,
         description: expense.description,
         amount: Number(expense.amount),
-        dueDate: expense.dueDate,
+        dueDate: formatDateSafe(expense.dueDate as unknown as string), // Usa formatação segura para exibição
         category: categories.find(c => c.id === expense.categoryId)?.name || 'Sem Categoria'
-      }))
-      .sort((a, b) => parseISO(a.dueDate as unknown as string).getTime() - parseISO(b.dueDate as unknown as string).getTime())
-      .slice(0, 5);
+      }));
 
     return {
       totalIncome,
