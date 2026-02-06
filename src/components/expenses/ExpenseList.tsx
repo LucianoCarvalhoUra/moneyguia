@@ -35,15 +35,17 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'paymentMethod' | 'amount';
 type SortOrder = 'asc' | 'desc';
 
-// Função de Renderização 'Raw'
-const renderDateString = (value: any) => {
-  if (!value) return "-";
-  // Se for objeto Date, converte para ISO; se for string, usa direto.
-  const str = typeof value === 'string' ? value : value.toISOString();
-  // Pega apenas a parte 'YYYY-MM-DD', ignora horas/Z/T
-  const dateOnly = str.split('T')[0];
-  const [year, month, day] = dateOnly.split('-');
-  return `${day}/${month}/${year}`;
+const renderDateCell = (value: any) => {
+  const rawDate = value;
+  console.info('Renderizando tabela com data bruta:', rawDate);
+
+  if (!rawDate) return "-";
+  // Tratamento como string pura para evitar UTC shift
+  const dateString = String(rawDate).split('T')[0];
+  const [year, month, day] = dateString.split('-');
+  
+  if (!day || !month || !year) return dateString;
+  return <span className="font-mono">{day}/{month}/{year}</span>;
 };
 
 export default function ExpenseList() {
@@ -338,7 +340,7 @@ export default function ExpenseList() {
                         {subcategory && ` → ${subcategory.name}`}
                         {' • '}
                         {PAYMENT_METHOD_LABELS[expense.paymentMethod]} •{' '}
-                        Vence em {renderDateString(expense.dueDate)}
+                        Vence em {renderDateCell(expense.dueDate)}
                       </p>
                       {expense.observation && (
                         <p className="text-xs text-muted-foreground mt-1 truncate">
