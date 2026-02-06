@@ -36,11 +36,15 @@ type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'payme
 type SortOrder = 'asc' | 'desc';
 
 const renderDateCell = (value: any) => {
-  if (!value) return "-";
-  // Converte para string e pega apenas os primeiros 10 caracteres (YYYY-MM-DD)
-  const dateStr = String(value).substring(0, 10);
-  const [year, month, day] = dateStr.split('-');
-  // Retorna o texto formatado diretamente, sem passar por 'new Date()'
+  // Acessando o dado bruto direto do objeto original para evitar fuso horário
+  const rawValue = value;
+  console.log('DEBUG DATA BRUTA NA LINHA:', rawValue); // Verificação no console
+  if (!rawValue) return "-";
+
+  // Tratamento manual de string para ignorar UTC
+  const datePart = String(rawValue).split('T')[0];
+  const [year, month, day] = datePart.split('-');
+
   return <div className="tabular-nums">{`${day}/${month}/${year}`}</div>;
 };
 

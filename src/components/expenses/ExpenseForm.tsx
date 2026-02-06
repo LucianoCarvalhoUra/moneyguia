@@ -75,8 +75,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     } else if (initialData) {
       setDescription(initialData.description || '');
       setAmount(initialData.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.amount) : '');
-      setExpenseDate(initialData.expenseDate ? format(new Date(initialData.expenseDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
-      setDueDate(initialData.dueDate ? format(new Date(initialData.dueDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+      // Fix: Usa split para pegar a data bruta (YYYY-MM-DD) e evitar conversão de fuso horário
+      setExpenseDate(initialData.expenseDate ? String(initialData.expenseDate).split('T')[0] : format(new Date(), 'yyyy-MM-dd'));
+      setDueDate(initialData.dueDate ? String(initialData.dueDate).split('T')[0] : format(new Date(), 'yyyy-MM-dd'));
       setCategoryId(initialData.categoryId || '');
       setSubcategoryId(initialData.subcategoryId || '');
       setPaymentMethod(initialData.paymentMethod || 'pix');
