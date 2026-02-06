@@ -36,12 +36,12 @@ type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'payme
 type SortOrder = 'asc' | 'desc';
 
 const renderDateCell = (value: any) => {
-  const d = value;
-  if (!d) return "-";
-  // Tratamento como string pura para evitar UTC shift (Solicitado)
-  const str = String(d);
-  const [y, m, day] = str.split('T')[0].split('-');
-  return <span>{`${day}/${m}/${y}`}</span>;
+  if (!value) return "-";
+  // Converte para string e pega apenas os primeiros 10 caracteres (YYYY-MM-DD)
+  const dateStr = String(value).substring(0, 10);
+  const [year, month, day] = dateStr.split('-');
+  // Retorna o texto formatado diretamente, sem passar por 'new Date()'
+  return <div className="tabular-nums">{`${day}/${month}/${year}`}</div>;
 };
 
 export default function ExpenseList() {

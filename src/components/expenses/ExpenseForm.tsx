@@ -202,8 +202,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
           for (let i = 0; i < limit; i++) {
             const nextDueDate = addMonths(startDate, i);
-            // Uso solicitado: toLocaleDateString('sv-SE') para garantir YYYY-MM-DD
-            const nextDueDateStr = nextDueDate.toLocaleDateString('sv-SE');
+            // Uso solicitado: toLocaleDateString('en-CA') para garantir YYYY-MM-DD
+            const nextDueDateStr = nextDueDate.toLocaleDateString('en-CA');
             
             newExpenses.push({
               ...payload,
