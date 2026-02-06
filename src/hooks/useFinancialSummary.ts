@@ -36,13 +36,18 @@ export const useFinancialSummary = (selectedDate: Date = new Date()) => {
     // 3. Lista de contas próximas ao vencimento (próximos 30 dias)
     const today = startOfDay(new Date());
     const next30Days = addDays(today, 30);
+    const processedIds = new Set<string>(); // Fix: Evitar duplicidades
 
     const upcomingBills = expenses
       .filter(expense => {
         if (expense.isPaid) return false;
+        if (processedIds.has(expense.id)) return false; // Fix: Group by ID
+        
         const dueDate = new Date(expense.dueDate);
         // Verifica se a data de vencimento está entre hoje e 30 dias à frente
-        return isWithinInterval(dueDate, { start: today, end: next30Days });
+        const isUpcoming = isWithinInterval(dueDate, { start: today, end: next30Days });
+        if (isUpcoming) processedIds.add(expense.id);
+        return isUpcoming;
       })
       .map(expense => ({
         id: expense.id,
