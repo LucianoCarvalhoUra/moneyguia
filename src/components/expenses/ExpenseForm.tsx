@@ -151,9 +151,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     e.preventDefault();
     if (isSubmitting) return;
 
-    if (!validate()) {
-      return;
-    }
+    if (!validate()) return;
 
     setIsSubmitting(true);
     try {

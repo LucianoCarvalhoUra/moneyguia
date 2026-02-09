@@ -35,22 +35,13 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'paymentMethod' | 'amount';
 type SortOrder = 'asc' | 'desc';
 
-const renderDateCell = (value: any) => {
-  // 2. Logs de Recebimento (Data Fetching)
-  console.log('📥 DADO BRUTO RECEBIDO DO BANCO:', value);
-
-  if (!value) return "-";
-  
-  // 3. Exibição de Data 'Anti-Fuso' (Visualização)
-  const displayDate = (str: any) => {
-    const [y, m, d] = String(str).split('T')[0].split('-');
-    return `${d}/${m}/${y}`;
-  };
-
-  const formatted = displayDate(value);
-  console.log('🖥️ DATA QUE SERÁ EXIBIDA NA TELA:', formatted);
-  
-  return <div className="tabular-nums">{formatted}</div>;
+const formatRawDate = (dateVal: any) => {
+  if (!dateVal) return "-";
+  const strVal = String(dateVal);
+  // Pega apenas a parte YYYY-MM-DD e ignora qualquer fuso/hora
+  const datePart = strVal.includes('T') ? strVal.split('T')[0] : strVal;
+  const [year, month, day] = datePart.split('-');
+  return `${day}/${month}/${year}`;
 };
 
 export default function ExpenseList() {
@@ -351,7 +342,7 @@ export default function ExpenseList() {
                         {subcategory && ` → ${subcategory.name}`}
                         {' • '}
                         {PAYMENT_METHOD_LABELS[expense.paymentMethod]} •{' '}
-                        Vence em {renderDateCell(expense.dueDate)}
+                        Vence em {formatRawDate(expense.dueDate)}
                       </p>
                       {expense.observation && (
                         <p className="text-xs text-muted-foreground mt-1 truncate">
