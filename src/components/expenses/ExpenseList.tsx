@@ -36,30 +36,21 @@ type SortField = 'dueDate' | 'expenseDate' | 'category' | 'subcategory' | 'payme
 type SortOrder = 'asc' | 'desc';
 
 const renderDateCell = (value: any) => {
-  // LOG DE DEBUG: Verificando o valor exato que chega para renderização
-  console.log('DEBUG renderDateCell IN:', value, 'TYPE:', typeof value);
+  // 2. Logs de Recebimento (Data Fetching)
+  console.log('📥 DADO BRUTO RECEBIDO DO BANCO:', value);
 
   if (!value) return "-";
   
-  // 1. Se for string (ex: "2026-02-10" ou "2026-02-10T00:00:00")
-  // Usamos Regex para pegar os primeiros dígitos YYYY-MM-DD com segurança
-  if (typeof value === 'string') {
-    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (match) {
-      const [_, year, month, day] = match;
-      return <div className="tabular-nums">{day}/{month}/{year}</div>;
-    }
-  }
+  // 3. Exibição de Data 'Anti-Fuso' (Visualização)
+  const displayDate = (str: any) => {
+    const [y, m, d] = String(str).split('T')[0].split('-');
+    return `${d}/${m}/${y}`;
+  };
 
-  // 2. Se for objeto Date, forçamos UTC para evitar que o navegador subtraia horas (GMT-3)
-  if (value instanceof Date) {
-    const day = String(value.getUTCDate()).padStart(2, '0');
-    const month = String(value.getUTCMonth() + 1).padStart(2, '0');
-    const year = value.getUTCFullYear();
-    return <div className="tabular-nums">{day}/{month}/{year}</div>;
-  }
+  const formatted = displayDate(value);
+  console.log('🖥️ DATA QUE SERÁ EXIBIDA NA TELA:', formatted);
   
-  return <div className="tabular-nums">{String(value)}</div>;
+  return <div className="tabular-nums">{formatted}</div>;
 };
 
 export default function ExpenseList() {

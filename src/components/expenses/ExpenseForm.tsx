@@ -179,6 +179,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         user_id: user?.id
       };
 
+      // 1. Log de Envio
+      console.log('📦 ENVIANDO PARA O BANCO:', payload);
+
       if (expense) { // Editing an existing expense
         
         // 3. Regra de Edição Simples vs Recorrente
@@ -230,7 +233,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         }
       }
 
-      // 6. Feedback: Limpeza de cache e fechamento forçado
+      // 5. Garantia de Refresh
       await refreshData();
       onOpenChange(false);
     } catch (error: any) {
