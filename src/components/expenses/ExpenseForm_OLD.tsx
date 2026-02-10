@@ -68,7 +68,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
     if (!dateVal) return "";
-    if (dateVal instanceof Date) return dateVal.toISOString().split('T')[0];
+    if (dateVal instanceof Date) {
+      const y = dateVal.getFullYear();
+      const m = String(dateVal.getMonth() + 1).padStart(2, '0');
+      const d = String(dateVal.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
     return String(dateVal).split('T')[0];
   };
 
@@ -247,18 +252,29 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     setIsSubmitting(true);
     try {
       const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id;
-      const effectiveId = recurrenceId || expense?.id;
       const data = { ...pendingData };
+      
+      // Format the original expense due date for comparison
+      const originalDueDate = formatToInput(expense!.dueDate);
 
       if (scope === 'single') {
+        // Update only this specific record
         await supabase.from('expenses').update(data).eq('id', expense!.id);
       } else if (scope === 'all') {
-        await supabase.from('expenses').update(data).or(`recurrence_id.eq.${effectiveId},id.eq.${effectiveId}`);
+        // For batch updates, remove date fields to avoid setting all to same date
+        const { due_date, expense_date, ...batchData } = data;
+        await supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId);
       } else if (scope === 'future') {
-        // Simplified future update logic
-        await supabase.from('expenses').update(data)
-          .or(`recurrence_id.eq.${effectiveId},id.eq.${effectiveId}`)
-          .gte('due_date', expense!.dueDate);
+        // For batch updates, remove date fields
+        const { due_date, expense_date, ...batchData } = data;
+        await supabase.from('expenses').update(batchData)
+          .eq('recurrence_id', recurrenceId)
+          .gte('due_date', originalDueDate);
+      } else if (scope === 'past') {
+        const { due_date, expense_date, ...batchData } = data;
+        await supabase.from('expenses').update(batchData)
+          .eq('recurrence_id', recurrenceId)
+          .lte('due_date', originalDueDate);
       }
       
       toast.success('Série atualizada!');
