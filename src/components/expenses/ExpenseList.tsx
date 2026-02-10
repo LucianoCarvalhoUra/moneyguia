@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { toast } from 'sonner';
 
+console.log('RELOAD ESTRUTURAL ATIVO');
+
 export default function ExpenseList() {
   const { getMonthlyExpenses, getMonthlyTotal, removeExpense, updateExpense, getCategoryById, getSubcategoryById } = useFinance();
   
@@ -129,13 +131,13 @@ export default function ExpenseList() {
           ) : (
             <div className="min-w-[1000px]">
               <div className="grid grid-cols-[1.5fr_1.5fr_120px_2fr_1fr_100px_120px] gap-4 px-6 py-3 border-b bg-muted/30 text-sm font-medium text-muted-foreground">
-                <div>Categoria</div>
-                <div>Subcategoria</div>
-                <div>Vencimento</div>
-                <div>Descrição</div>
-                <div>Valor</div>
-                <div className="text-center">Status</div>
-                <div className="text-right">Ações</div>
+                <div className="font-semibold">Categoria</div>
+                <div className="font-semibold">Subcategoria</div>
+                <div className="font-semibold">Vencimento</div>
+                <div className="font-semibold">Descrição</div>
+                <div className="font-semibold">Valor</div>
+                <div className="text-center font-semibold">Status</div>
+                <div className="text-right font-semibold">Ações</div>
               </div>
 
               <div className="divide-y">

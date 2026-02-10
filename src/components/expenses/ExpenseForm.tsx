@@ -24,6 +24,8 @@ import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays } from 'lucide-r
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 
+console.log('RELOAD ESTRUTURAL ATIVO');
+
 interface ExpenseFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -156,19 +158,21 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     
     setIsSubmitting(true);
     try {
-      const recurrenceId = (expense as any).recurrence_id || expense.recurrenceId;
+      // Validação robusta do ID de recorrência
+      const rId = (expense as any).recurrence_id || expense.recurrenceId || (initialData as any)?.recurrence_id;
 
-      // 1. Captura do ID no Formulário
-      if (scope !== 'single' && !recurrenceId) {
-        throw new Error('Esta despesa não possui um ID de recorrência válido.');
+      if (scope !== 'single' && !rId) {
+        toast.error('Erro: Identificador de recorrência não encontrado (undefined).');
+        setIsSubmitting(false);
+        return;
       }
 
       if (scope === 'single') {
         const { error } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
         if (error) throw error;
       } else {
-        // 2. Ajuste na Chamada do Supabase
-        let query = supabase.from('expenses').update(pendingData).eq('recurrence_id', String(recurrenceId));
+        // 2. Ajuste na Chamada do Supabase usando rId validado
+        let query = supabase.from('expenses').update(pendingData).eq('recurrence_id', rId);
 
         if (scope === 'future') {
           // 3. Sincronização de Datas no Lote
