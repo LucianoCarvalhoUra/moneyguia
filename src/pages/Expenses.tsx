@@ -33,8 +33,6 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { Expense } from '@/types/finance';
 import { Badge } from '@/components/ui/badge';
 
-ERRO_DE_TESTE
-
 export default function Expenses() {
   const location = useLocation();
   const { expenses, categories, subcategories, removeExpense, updateExpense, refreshData } = useFinance();
