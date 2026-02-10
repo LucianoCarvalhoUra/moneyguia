@@ -158,7 +158,7 @@ export default function ExpenseList() {
                          <Badge variant="outline" className="text-yellow-600 border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {category?.name} {subcategory && `→ ${subcategory.name}`} • {PAYMENT_METHOD_LABELS[expense.paymentMethod]} • Vence em {formatDisplayDate(rawDueDate)}
+                        {category?.name} {subcategory && `→ ${subcategory.name}`} • {PAYMENT_METHOD_LABELS[expense.paymentMethod]}
                       </p>
                     </div>
 
