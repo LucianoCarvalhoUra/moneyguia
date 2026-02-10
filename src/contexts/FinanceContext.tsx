@@ -78,7 +78,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         supabase.from('subcategories').select('*').eq('user_id', user.id),
         supabase
           .from('expenses')
-          .select('id, category_id, subcategory_id, description, amount, expense_date, due_date, payment_method, account_id, card_id, is_recurring, installments, current_installment, observation, is_paid, recurrence_id, user_id, created_at')
+          .select('*')
           .eq('user_id', user.id)
           .order('expense_date', { ascending: false }),
       ]);
