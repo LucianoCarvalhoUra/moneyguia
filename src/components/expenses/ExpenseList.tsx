@@ -22,13 +22,13 @@ export default function ExpenseList() {
   const expenses = getMonthlyExpenses(selectedYear, selectedMonth);
   const total = getMonthlyTotal(selectedYear, selectedMonth);
 
-  // Lógica de renderização ultra-segura para datas
-  const renderDate = (dateValue: any) => {
-    if (!dateValue) return <span className="text-muted-foreground">-</span>;
-    // Tratamento como string pura: '2026-02-10...' -> '2026-02-10'
-    const datePart = String(dateValue).split('T')[0];
-    const [year, month, day] = datePart.split('-');
-    // Retorno formatado sem cálculos matemáticos
+  // Função de Formatação Literal (Proibido Date Objects)
+  const formatDisplayDate = (dateFromDb: any) => {
+    if (!dateFromDb) return "-";
+    // Pega apenas YYYY-MM-DD, ignorando qualquer 'T00:00:00Z'
+    const cleanDate = String(dateFromDb).split('T')[0];
+    // Inversão manual de string (YYYY-MM-DD -> DD/MM/YYYY)
+    const [year, month, day] = cleanDate.split('-');
     return `${day}/${month}/${year}`;
   };
 
@@ -47,7 +47,7 @@ export default function ExpenseList() {
         id: e.id,
         desc: e.description,
         due_date_DB: (e as any).due_date || e.dueDate,
-        formatted: renderDate((e as any).due_date || e.dueDate)
+        formatted: formatDisplayDate((e as any).due_date || e.dueDate)
       })));
       console.groupEnd();
     }
@@ -158,7 +158,7 @@ export default function ExpenseList() {
                          <Badge variant="outline" className="text-yellow-600 border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {category?.name} {subcategory && `→ ${subcategory.name}`} • {PAYMENT_METHOD_LABELS[expense.paymentMethod]} • Vence em {renderDate(rawDueDate)}
+                        {category?.name} {subcategory && `→ ${subcategory.name}`} • {PAYMENT_METHOD_LABELS[expense.paymentMethod]} • Vence em {formatDisplayDate(rawDueDate)}
                       </p>
                     </div>
 
