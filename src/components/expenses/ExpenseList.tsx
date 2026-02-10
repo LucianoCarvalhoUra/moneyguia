@@ -37,24 +37,23 @@ export default function ExpenseList() {
     }).format(amount);
   };
 
-  const formatDate = (dateVal: string | Date) => {
-    if (!dateVal) return '-';
-    if (dateVal instanceof Date) {
-      return dateVal.toLocaleDateString('pt-BR');
-    }
-    return dateVal.split('-').reverse().join('/');
+  const formatDate = (val: string | Date) => {
+    if (!val) return '-';
+    if (val instanceof Date) return val.toLocaleDateString('pt-BR');
+    const [y, m, d] = val.split('-');
+    return `${d}/${m}/${y}`;
   };
 
   const handlePreviousMonth = () => {
-    const prev = new Date(selectedYear, selectedMonth - 1, 1);
-    setSelectedMonth(prev.getMonth());
-    setSelectedYear(prev.getFullYear());
+    const dt = new Date(selectedYear, selectedMonth - 1, 1);
+    setSelectedMonth(dt.getMonth());
+    setSelectedYear(dt.getFullYear());
   };
 
   const handleNextMonth = () => {
-    const next = new Date(selectedYear, selectedMonth + 1, 1);
-    setSelectedMonth(next.getMonth());
-    setSelectedYear(next.getFullYear());
+    const dt = new Date(selectedYear, selectedMonth + 1, 1);
+    setSelectedMonth(dt.getMonth());
+    setSelectedYear(dt.getFullYear());
   };
 
   const handleEdit = (expense: Expense) => {

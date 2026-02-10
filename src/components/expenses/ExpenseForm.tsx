@@ -33,6 +33,8 @@ interface ExpenseFormProps {
 
 export default function ExpenseForm({ open, onOpenChange, expense, initialData }: ExpenseFormProps) {
   const { refreshData, categories, subcategories, accounts, cards, removeExpense } = useFinance();
+  // 4. Verificação de Dados
+  console.log('Dados da Despesa sendo editada:', expense);
   
   // --- State ---
   const [description, setDescription] = useState('');
@@ -156,19 +158,17 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     try {
       const recurrenceId = (expense as any).recurrence_id || expense.recurrenceId;
 
-      // 1. Tratamento de Recurrence ID
+      // 1. Captura do ID no Formulário
       if (scope !== 'single' && !recurrenceId) {
-        toast.error('Erro: Identificador de recorrência não encontrado.');
-        setIsSubmitting(false);
-        return;
+        throw new Error('Esta despesa não possui um ID de recorrência válido.');
       }
 
       if (scope === 'single') {
         const { error } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
         if (error) throw error;
       } else {
-        // 2. Correção da Query de Lote
-        let query = supabase.from('expenses').update(pendingData).eq('recurrence_id', recurrenceId);
+        // 2. Ajuste na Chamada do Supabase
+        let query = supabase.from('expenses').update(pendingData).eq('recurrence_id', String(recurrenceId));
 
         if (scope === 'future') {
           // 3. Sincronização de Datas no Lote
