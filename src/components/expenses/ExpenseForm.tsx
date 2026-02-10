@@ -299,14 +299,15 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] p-0 gap-0 overflow-hidden rounded-sm border-2">
+      <DialogContent className="sm:max-w-[700px] p-0 gap-0 overflow-hidden rounded-sm border-2">
         {/* Header */}
-        <DialogHeader className="px-6 py-4 border-b bg-muted/10 flex flex-row items-center justify-between space-y-0">
+        <DialogHeader className="px-6 py-3 border-b bg-muted/10 flex flex-row items-center justify-between space-y-0">
           <DialogTitle className="text-lg font-semibold">
             {expense ? 'Editar Despesa' : 'Nova Despesa'}
           </DialogTitle>
           {expense && (
             <Button 
+              type="button"
               variant="ghost" 
               size="sm" 
               className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 px-2 rounded-sm"
@@ -318,82 +319,82 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-5 grid grid-cols-2 gap-x-4 gap-y-3">
           
-          {/* Description (Essential) */}
-          <div className="space-y-1.5">
+          {/* Description (Full Width) */}
+          <div className="col-span-2 space-y-1">
             <Label htmlFor="desc">Descrição</Label>
             <Input 
               id="desc" 
               value={description} 
               onChange={e => setDescription(e.target.value)} 
-              className={cn("rounded-sm", errors.description && "border-red-500")}
+              className={cn("h-9 rounded-sm", errors.description && "border-red-500")}
               placeholder="Ex: Compras do Mês"
             />
           </div>
 
-          {/* Block 1: Category | Subcategory */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Categoria</Label>
-              <Select value={categoryId} onValueChange={v => { setCategoryId(v); setSubcategoryId(''); }}>
-                <SelectTrigger className={cn("rounded-sm", errors.categoryId && "border-red-500")}>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <div className="flex items-center gap-2">
-                        <CategoryIcon iconName={c.icon} className={cn("w-4 h-4", `text-${c.color}`)} />
-                        {c.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Subcategoria</Label>
-              <Select value={subcategoryId} onValueChange={setSubcategoryId} disabled={!categoryId}>
-                <SelectTrigger className="rounded-sm">
-                  <SelectValue placeholder="Opcional" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredSubcategories.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Col 1: Category */}
+          <div className="space-y-1">
+            <Label>Categoria</Label>
+            <Select value={categoryId} onValueChange={v => { setCategoryId(v); setSubcategoryId(''); }}>
+              <SelectTrigger className={cn("h-9 rounded-sm", errors.categoryId && "border-red-500")}>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <div className="flex items-center gap-2">
+                      <CategoryIcon iconName={c.icon} className={cn("w-4 h-4", `text-${c.color}`)} />
+                      {c.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Block 2: Due Date | Amount */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Vencimento</Label>
-              <Input 
-                type="date" 
-                value={dueDate} 
-                onChange={e => setDueDate(e.target.value)} 
-                className={cn("rounded-sm", errors.dueDate && "border-red-500")}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Valor</Label>
-              <Input 
-                value={amount} 
-                onChange={e => setAmount(formatCurrencyInput(e.target.value))} 
-                placeholder="R$ 0,00"
-                className={cn("rounded-sm text-right font-medium", errors.amount && "border-red-500")}
-              />
-            </div>
+          {/* Col 2: Subcategory */}
+          <div className="space-y-1">
+            <Label>Subcategoria</Label>
+            <Select value={subcategoryId} onValueChange={setSubcategoryId} disabled={!categoryId}>
+              <SelectTrigger className="h-9 rounded-sm">
+                <SelectValue placeholder="Opcional" />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredSubcategories.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Block 3: Payment Method */}
-          <div className="space-y-1.5">
+          {/* Col 1: Due Date */}
+          <div className="space-y-1">
+            <Label>Vencimento</Label>
+            <Input 
+              type="date" 
+              value={dueDate} 
+              onChange={e => setDueDate(e.target.value)} 
+              className={cn("h-9 rounded-sm", errors.dueDate && "border-red-500")}
+            />
+          </div>
+
+          {/* Col 2: Amount */}
+          <div className="space-y-1">
+            <Label>Valor</Label>
+            <Input 
+              value={amount} 
+              onChange={e => setAmount(formatCurrencyInput(e.target.value))} 
+              placeholder="R$ 0,00"
+              className={cn("h-9 rounded-sm text-right font-medium", errors.amount && "border-red-500")}
+            />
+          </div>
+
+          {/* Col 1: Payment Method */}
+          <div className="space-y-1">
             <Label>Forma de Pagamento</Label>
             <Select value={paymentMethod} onValueChange={v => setPaymentMethod(v as PaymentMethod)}>
-              <SelectTrigger className="rounded-sm">
+              <SelectTrigger className="h-9 rounded-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -405,7 +406,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             
             {paymentMethod === 'credit_card' && (
               <Select value={cardId} onValueChange={setCardId}>
-                <SelectTrigger className="rounded-sm mt-2 bg-muted/20">
+                <SelectTrigger className="h-9 rounded-sm mt-2 bg-muted/20">
                   <SelectValue placeholder="Selecione o Cartão" />
                 </SelectTrigger>
                 <SelectContent>
@@ -416,7 +417,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             
             {paymentMethod === 'account' && (
               <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger className="rounded-sm mt-2 bg-muted/20">
+                <SelectTrigger className="h-9 rounded-sm mt-2 bg-muted/20">
                   <SelectValue placeholder="Selecione a Conta" />
                 </SelectTrigger>
                 <SelectContent>
@@ -426,68 +427,61 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             )}
           </div>
 
-          {/* Block 4: Status | Payment Date */}
-          <div className="grid grid-cols-2 gap-4 items-end bg-muted/20 p-3 rounded-sm border">
-            <div className="flex flex-col gap-2">
-              <Label className="text-xs uppercase text-muted-foreground font-bold">Status</Label>
-              <div className="flex items-center gap-3">
-                <Switch checked={isPaid} onCheckedChange={handlePaidChange} />
-                <span className={cn("text-sm font-medium", isPaid ? "text-green-600" : "text-muted-foreground")}>
-                  {isPaid ? 'PAGO' : 'PENDENTE'}
+          {/* Col 2: Status & Payment Date */}
+          <div className="space-y-1">
+            <Label>Status / Data Pagto</Label>
+            <div className="flex items-center gap-2">
+              <div className={cn("flex items-center gap-2 border rounded-sm px-2 h-9 transition-colors", isPaid ? "bg-green-50 border-green-200" : "bg-muted/20")}>
+                <Switch checked={isPaid} onCheckedChange={handlePaidChange} className="scale-75" />
+                <span className={cn("text-xs font-bold w-10", isPaid ? "text-green-700" : "text-muted-foreground")}>
+                  {isPaid ? 'PAGO' : 'PEND'}
                 </span>
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className={cn("text-xs", !isPaid && "opacity-50")}>Data do Pagamento</Label>
               <Input 
                 type="date" 
                 value={paymentDate} 
                 onChange={e => setPaymentDate(e.target.value)} 
                 disabled={!isPaid}
-                className={cn("rounded-sm h-9", !isPaid && "opacity-50")}
+                className={cn("h-9 rounded-sm flex-1", !isPaid && "opacity-50")}
               />
             </div>
           </div>
 
-          {/* Block 5: Recurrence */}
-          <div className="flex items-center justify-between p-3 rounded-sm border bg-muted/20">
-            <div className="flex items-center gap-3">
-              <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
-              <div className="flex flex-col">
-                <span className="text-sm font-medium">Recorrência</span>
-                <span className="text-xs text-muted-foreground">Repetir mensalmente?</span>
-              </div>
-            </div>
+          {/* Col 1: Recurrence */}
+          <div className="space-y-1">
+            <Label>Recorrência</Label>
+            <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/20">
+              <Switch checked={isRecurring} onCheckedChange={setIsRecurring} className="scale-75" />
+              <span className="text-xs text-muted-foreground flex-1">Repetir?</span>
             {isRecurring && (
-              <div className="w-24">
                 <Input 
                   type="number" 
                   min="1" 
                   value={installments} 
                   onChange={e => setInstallments(e.target.value)} 
-                  className="rounded-sm h-8 text-center"
+                  className="h-7 w-14 text-center p-0 rounded-sm"
                   placeholder="Qtd"
                 />
-              </div>
             )}
+            </div>
           </div>
 
-          {/* Block 6: Launch Date */}
-          <div className="space-y-1.5 pt-2">
-            <Label className="text-xs text-muted-foreground">Data do Lançamento (Competência)</Label>
+          {/* Col 2: Launch Date */}
+          <div className="space-y-1">
+            <Label>Data Lançamento</Label>
             <Input 
               type="date" 
               value={launchDate} 
               onChange={e => setLaunchDate(e.target.value)} 
-              className="rounded-sm"
+              className="h-9 rounded-sm"
             />
           </div>
 
-          <DialogFooter className="pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-sm">
+          <DialogFooter className="col-span-2 pt-4 border-t mt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-sm h-9">
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="rounded-sm min-w-[100px]">
+            <Button type="submit" disabled={isSubmitting} className="rounded-sm min-w-[100px] h-9">
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
             </Button>
           </DialogFooter>
