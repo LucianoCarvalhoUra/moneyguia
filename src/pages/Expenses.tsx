@@ -323,7 +323,9 @@ export default function Expenses() {
                     const category = categories.find(c => c.id === expense.categoryId);
                     const subcategory = subcategories.find(s => s.id === expense.subcategoryId);
                     
-                    const dueDate = new Date(expense.dueDate);
+                    const dueDateStr = String(expense.dueDate).split('T')[0];
+                    const [yy, mm, dd] = dueDateStr.split('-').map(Number);
+                    const dueDate = new Date(yy, mm - 1, dd);
                     const isOverdue = !expense.isPaid && isBefore(startOfDay(dueDate), startOfDay(new Date()));
                     const isPaid = expense.isPaid;
 
