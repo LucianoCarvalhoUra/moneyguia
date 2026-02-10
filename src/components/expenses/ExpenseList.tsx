@@ -22,36 +22,12 @@ export default function ExpenseList() {
   const expenses = getMonthlyExpenses(selectedYear, selectedMonth);
   const total = getMonthlyTotal(selectedYear, selectedMonth);
 
-  // Função de Formatação Literal (Proibido Date Objects)
-  const formatDisplayDate = (dateFromDb: any) => {
-    if (!dateFromDb) return "-";
-    // Pega apenas YYYY-MM-DD, ignorando qualquer 'T00:00:00Z'
-    const cleanDate = String(dateFromDb).split('T')[0];
-    // Inversão manual de string (YYYY-MM-DD -> DD/MM/YYYY)
-    const [year, month, day] = cleanDate.split('-');
-    return `${day}/${month}/${year}`;
-  };
-
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
-
-  // --- Auditoria de Dados ---
-  useEffect(() => {
-    if (expenses.length > 0) {
-      console.group('🔍 Auditoria de Datas (ExpenseList - Anti-Fuso)');
-      console.table(expenses.map(e => ({
-        id: e.id,
-        desc: e.description,
-        due_date_DB: (e as any).due_date || e.dueDate,
-        formatted: formatDisplayDate((e as any).due_date || e.dueDate)
-      })));
-      console.groupEnd();
-    }
-  }, [expenses]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
