@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, ChevronLeft, ChevronRight, Pencil, Trash2, Check, AlertTriangle, Clock } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Pencil, Trash2, Check, Clock } from 'lucide-react';
 import { Expense, PAYMENT_METHOD_LABELS } from '@/types/finance';
 import ExpenseForm from './ExpenseForm';
 import { cn } from '@/lib/utils';
@@ -115,10 +115,6 @@ export default function ExpenseList() {
               {expenses.map((expense) => {
                 const category = getCategoryById(expense.categoryId);
                 const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
-                const todayStr = new Date().toISOString().split('T')[0];
-                const rawDueDate = (expense as any).due_date || expense.dueDate;
-                const dueDateStr = String(rawDueDate).split('T')[0];
-                const isOverdue = !expense.isPaid && dueDateStr < todayStr;
 
                 return (
                   <div key={expense.id} className={cn("flex items-center gap-4 p-4 rounded-xl hover:bg-muted transition-colors group", expense.isPaid ? "opacity-75" : "")}>
@@ -127,12 +123,7 @@ export default function ExpenseList() {
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className={cn("font-medium truncate", expense.isPaid && "line-through text-muted-foreground")}>{expense.description}</p>
-                        {expense.isPaid ? <Badge variant="outline" className="text-green-600 border-green-200"><Check className="w-3 h-3 mr-1" />Pago</Badge> : 
-                         isOverdue ? <Badge variant="destructive"><AlertTriangle className="w-3 h-3 mr-1" />Vencido</Badge> : 
-                         <Badge variant="outline" className="text-yellow-600 border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>}
-                      </div>
+                      <p className={cn("font-medium truncate", expense.isPaid && "line-through text-muted-foreground")}>{expense.description}</p>
                       <p className="text-sm text-muted-foreground">
                         {category?.name} {subcategory && `→ ${subcategory.name}`} • {PAYMENT_METHOD_LABELS[expense.paymentMethod]}
                       </p>
@@ -140,6 +131,13 @@ export default function ExpenseList() {
 
                     <div className="text-right">
                       <p className="font-bold text-lg">{formatCurrency(expense.amount)}</p>
+                    </div>
+
+                    <div className="min-w-[100px] flex justify-center">
+                      {expense.isPaid ? 
+                        <Badge variant="outline" className="text-green-600 border-green-200"><Check className="w-3 h-3 mr-1" />Pago</Badge> : 
+                        <Badge variant="outline" className="text-yellow-600 border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>
+                      }
                     </div>
 
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
