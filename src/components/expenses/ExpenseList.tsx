@@ -37,9 +37,12 @@ export default function ExpenseList() {
     }).format(amount);
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    return dateStr.split('-').reverse().join('/');
+  const formatDate = (dateVal: string | Date) => {
+    if (!dateVal) return '-';
+    if (dateVal instanceof Date) {
+      return dateVal.toLocaleDateString('pt-BR');
+    }
+    return dateVal.split('-').reverse().join('/');
   };
 
   const handlePreviousMonth = () => {
@@ -121,47 +124,80 @@ export default function ExpenseList() {
       {/* Lista */}
       <Card>
         <CardHeader><CardTitle className="text-lg">Lista de Despesas</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {expenses.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">Nenhuma despesa neste mês.</div>
           ) : (
-            <div className="space-y-3">
+            <div className="min-w-[1000px]">
+              <div className="grid grid-cols-[1.5fr_1.5fr_120px_2fr_1fr_100px_120px] gap-4 px-6 py-3 border-b bg-muted/30 text-sm font-medium text-muted-foreground">
+                <div>Categoria</div>
+                <div>Subcategoria</div>
+                <div>Vencimento</div>
+                <div>Descrição</div>
+                <div>Valor</div>
+                <div className="text-center">Status</div>
+                <div className="text-right">Ações</div>
+              </div>
+
+              <div className="divide-y">
               {expenses.map((expense) => {
                 const category = getCategoryById(expense.categoryId);
                 const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
 
                 return (
-                  <div key={expense.id} className={cn("flex items-center gap-4 p-4 rounded-xl hover:bg-muted transition-colors group", expense.isPaid ? "opacity-75" : "")}>
-                    <div className={cn('w-12 h-12 rounded-full flex items-center justify-center', category?.color ? `bg-${category.color}/15` : 'bg-muted/50')}>
-                      <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-6 h-6", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
+                  <div key={expense.id} className={cn("grid grid-cols-[1.5fr_1.5fr_120px_2fr_1fr_100px_120px] gap-4 items-center px-6 py-4 hover:bg-muted/50 transition-colors group", expense.isPaid ? "opacity-75" : "")}>
+                    {/* Categoria */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={cn('w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0', category?.color ? `bg-${category.color}/15` : 'bg-muted/50')}>
+                        <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
+                      </div>
+                      <span className="font-medium truncate">{category?.name}</span>
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                      <p className={cn("font-medium truncate", expense.isPaid && "line-through text-muted-foreground")}>{expense.description}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {category?.name} {subcategory && `→ ${subcategory.name}`} • {PAYMENT_METHOD_LABELS[expense.paymentMethod]}
-                      </p>
+                    {/* Subcategoria */}
+                    <div className="text-sm text-muted-foreground truncate">
+                      {subcategory?.name || '-'}
                     </div>
 
-                    <div className="text-right">
-                      <p className="font-bold text-lg">{formatCurrency(expense.amount)}</p>
+                    {/* Vencimento */}
+                    <div className="text-sm">
+                      {formatDate(expense.dueDate)}
                     </div>
 
-                    <div className="min-w-[100px] flex justify-center">
+                    {/* Descrição */}
+                    <div className={cn("text-sm truncate font-medium", expense.isPaid && "line-through text-muted-foreground")}>
+                      {expense.description}
+                    </div>
+
+                    {/* Valor */}
+                    <div className="font-bold text-sm">
+                      {formatCurrency(expense.amount)}
+                    </div>
+
+                    {/* Status */}
+                    <div className="flex justify-center">
                       {expense.isPaid ? 
-                        <Badge variant="outline" className="text-green-600 border-green-200"><Check className="w-3 h-3 mr-1" />Pago</Badge> : 
-                        <Badge variant="outline" className="text-yellow-600 border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>
+                        <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Pago</Badge> : 
+                        <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">Pendente</Badge>
                       }
                     </div>
 
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" onClick={() => handleTogglePaid(expense)}><Check className={cn("w-4 h-4", expense.isPaid ? "text-green-600" : "text-muted-foreground")} /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(expense)}><Pencil className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(expense.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    {/* Ações */}
+                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity w-[120px]">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(expense)} title="Copiar">
+                        <Copy className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(expense)} title="Editar">
+                        <Pencil className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(expense.id)} title="Excluir">
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
                     </div>
                   </div>
                 );
               })}
+              </div>
             </div>
           )}
         </CardContent>
