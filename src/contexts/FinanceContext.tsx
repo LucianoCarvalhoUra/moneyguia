@@ -399,7 +399,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const { data, error } = await (supabase
       .from('expenses') as any)
       .insert(expensesToInsert)
-      .select();
+      .select('*');
     
     if (error) {
       toast.error('Erro ao adicionar despesa');
