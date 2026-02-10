@@ -5,12 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Expense, PaymentMethod } from '@/types/finance';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 
@@ -39,6 +49,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [installments, setInstallments] = useState('1');
   const [launchDate, setLaunchDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<any>(null);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -137,6 +149,50 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     }
   };
 
+  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
+    if (!expense || !pendingData) return;
+    
+    setIsSubmitting(true);
+    try {
+      const recurrenceId = (expense as any).recurrence_id || expense.recurrenceId;
+
+      // 1. Tratamento de Recurrence ID
+      if (scope !== 'single' && !recurrenceId) {
+        toast.error('Erro: Identificador de recorrência não encontrado.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (scope === 'single') {
+        const { error } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
+        if (error) throw error;
+      } else {
+        // 2. Correção da Query de Lote
+        let query = supabase.from('expenses').update(pendingData).eq('recurrence_id', recurrenceId);
+
+        if (scope === 'future') {
+          // 3. Sincronização de Datas no Lote
+          const rawDate = (expense as any).due_date || expense.dueDate;
+          const anchorDate = String(rawDate).split('T')[0];
+          query = query.gte('due_date', anchorDate);
+        }
+
+        const { error } = await query;
+        if (error) throw error;
+      }
+
+      toast.success('Despesas atualizadas com sucesso!');
+      await refreshData();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error(error);
+      toast.error('Erro ao atualizar: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+      setScopeDialogOpen(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -171,7 +227,14 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       };
 
       if (expense) {
-        // Edição simples (sem lógica complexa de recorrência aqui, conforme pedido para simplificar/ignorar lógica antiga)
+        const recurrenceId = (expense as any).recurrence_id || expense.recurrenceId;
+        if (expense.isRecurring && recurrenceId) {
+          setPendingData(payload);
+          setScopeDialogOpen(true);
+          setIsSubmitting(false);
+          return;
+        }
+
         const { error } = await supabase.from('expenses').update(payload).eq('id', expense.id);
         if (error) throw error;
         toast.success('Despesa atualizada!');
@@ -348,6 +411,43 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <AlertDialog open={scopeDialogOpen} onOpenChange={setScopeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Atualizar Recorrência</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta é uma despesa recorrente. Como deseja aplicar as alterações?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-4">
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('single')}>
+              <Calendar className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Apenas esta</div>
+                <div className="text-xs text-muted-foreground">Alterar somente a despesa atual</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('future')}>
+              <CalendarClock className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Esta e próximas</div>
+                <div className="text-xs text-muted-foreground">Alterar desta data em diante</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
+              <CalendarDays className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Todas</div>
+                <div className="text-xs text-muted-foreground">Alterar toda a série</div>
+              </div>
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
