@@ -309,8 +309,8 @@ export default function Expenses() {
             <TableHeader>
               <TableRow>
                 <TableHead>Categoria</TableHead>
-                <TableHead className="hidden md:table-cell">Subcategoria</TableHead>
                 <TableHead>Vencimento</TableHead>
+                <TableHead className="hidden md:table-cell">Subcategoria</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -323,7 +323,7 @@ export default function Expenses() {
                     const category = categories.find(c => c.id === expense.categoryId);
                     const subcategory = subcategories.find(s => s.id === expense.subcategoryId);
                     
-                    const dueDate = new Date(expense.dueDate);
+                    const dueDate = expense.dueDate;
                     const isOverdue = !expense.isPaid && isBefore(startOfDay(dueDate), startOfDay(new Date()));
                     const isPaid = expense.isPaid;
 
@@ -337,18 +337,17 @@ export default function Expenses() {
                           <span>{category?.name || 'Sem categoria'}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">{subcategory?.name || '-'}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          <div className={cn("flex items-center gap-2", isOverdue ? "text-destructive font-bold" : "text-muted-foreground")}>
-                            <Calendar className="w-4 h-4" />
+                          <span className={cn("text-sm", isOverdue ? "text-destructive font-bold" : "text-muted-foreground")}>
                             {format(dueDate, 'dd/MM/yyyy')}
-                          </div>
-                          {isOverdue && <Badge variant="destructive" className="w-fit text-[10px] h-5 px-1.5">Atrasado</Badge>}
+                          </span>
                           {isPaid && <Badge variant="outline" className="w-fit text-[10px] h-5 px-1.5 bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">Pago</Badge>}
+                          {!isPaid && isOverdue && <Badge variant="destructive" className="w-fit text-[10px] h-5 px-1.5">Atrasado</Badge>}
                           {!isPaid && !isOverdue && <Badge variant="outline" className="w-fit text-[10px] h-5 px-1.5 bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800">Pendente</Badge>}
                         </div>
                       </TableCell>
+                      <TableCell className="hidden md:table-cell">{subcategory?.name || '-'}</TableCell>
                       <TableCell className={cn("font-medium", isOverdue ? "text-destructive font-bold" : isPaid ? "text-green-600 dark:text-green-400" : "")}>
                         {formatCurrency(expense.amount)}
                       </TableCell>

@@ -163,26 +163,32 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       }
 
       if (expensesRes.data) {
-        setExpenses(expensesRes.data.map(e => ({
-          id: e.id,
-          categoryId: e.category_id || '',
-          subcategoryId: e.subcategory_id || undefined,
-          description: e.description,
-          amount: Number(e.amount),
-          expenseDate: new Date(e.expense_date),
-          dueDate: new Date(e.due_date),
-          paymentMethod: e.payment_method as PaymentMethod,
-          accountId: e.account_id || undefined,
-          cardId: e.card_id || undefined,
-          isRecurring: e.is_recurring,
-          installments: e.installments || undefined,
-          currentInstallment: e.current_installment || undefined,
-          observation: e.observation || undefined,
-          isPaid: e.is_paid ?? false,
-          recurrenceId: (e as any).recurrence_id || undefined,
-          userId: e.user_id,
-          createdAt: new Date(e.created_at),
-        })));
+        setExpenses(expensesRes.data.map(e => {
+          const parseLocalDate = (dateStr: string) => {
+            const parts = dateStr.split('T')[0].split('-').map(Number);
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+          };
+          return {
+            id: e.id,
+            categoryId: e.category_id || '',
+            subcategoryId: e.subcategory_id || undefined,
+            description: e.description,
+            amount: Number(e.amount),
+            expenseDate: parseLocalDate(e.expense_date),
+            dueDate: parseLocalDate(e.due_date),
+            paymentMethod: e.payment_method as PaymentMethod,
+            accountId: e.account_id || undefined,
+            cardId: e.card_id || undefined,
+            isRecurring: e.is_recurring,
+            installments: e.installments || undefined,
+            currentInstallment: e.current_installment || undefined,
+            observation: e.observation || undefined,
+            isPaid: e.is_paid ?? false,
+            recurrenceId: (e as any).recurrence_id || undefined,
+            userId: e.user_id,
+            createdAt: new Date(e.created_at),
+          };
+        }));
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -398,14 +404,18 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
     
     if (data) {
+      const parseLocalDate = (dateStr: string) => {
+        const parts = dateStr.split('T')[0].split('-').map(Number);
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+      };
       const newExpenses: Expense[] = data.map((e: any) => ({
         id: e.id,
         categoryId: e.category_id || '',
         subcategoryId: e.subcategory_id || undefined,
         description: e.description,
         amount: Number(e.amount),
-        expenseDate: new Date(e.expense_date),
-        dueDate: new Date(e.due_date),
+        expenseDate: parseLocalDate(e.expense_date),
+        dueDate: parseLocalDate(e.due_date),
         paymentMethod: e.payment_method as PaymentMethod,
         accountId: e.account_id || undefined,
         cardId: e.card_id || undefined,
@@ -429,8 +439,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     if (expenseUpdate.subcategoryId !== undefined) updateData.subcategory_id = expenseUpdate.subcategoryId || null;
     if (expenseUpdate.description !== undefined) updateData.description = expenseUpdate.description;
     if (expenseUpdate.amount !== undefined) updateData.amount = expenseUpdate.amount;
-    if (expenseUpdate.expenseDate !== undefined) updateData.expense_date = expenseUpdate.expenseDate.toISOString().split('T')[0];
-    if (expenseUpdate.dueDate !== undefined) updateData.due_date = expenseUpdate.dueDate.toISOString().split('T')[0];
+    if (expenseUpdate.expenseDate !== undefined) {
+      const d = expenseUpdate.expenseDate;
+      updateData.expense_date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    if (expenseUpdate.dueDate !== undefined) {
+      const d = expenseUpdate.dueDate;
+      updateData.due_date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
     if (expenseUpdate.paymentMethod !== undefined) updateData.payment_method = expenseUpdate.paymentMethod;
     if (expenseUpdate.accountId !== undefined) updateData.account_id = expenseUpdate.accountId || null;
     if (expenseUpdate.cardId !== undefined) updateData.card_id = expenseUpdate.cardId || null;
