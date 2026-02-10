@@ -3,7 +3,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, ChevronLeft, ChevronRight, Pencil, Trash2, Check, Clock } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Pencil, Trash2, Copy, Check, Clock } from 'lucide-react';
 import { Expense, PAYMENT_METHOD_LABELS } from '@/types/finance';
 import ExpenseForm from './ExpenseForm';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,7 @@ export default function ExpenseList() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [initialData, setInitialData] = useState<Partial<Expense> | null>(null);
 
   const expenses = getMonthlyExpenses(selectedYear, selectedMonth);
   const total = getMonthlyTotal(selectedYear, selectedMonth);
@@ -36,6 +37,11 @@ export default function ExpenseList() {
     }).format(amount);
   };
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    return dateStr.split('-').reverse().join('/');
+  };
+
   const handlePreviousMonth = () => {
     const prev = new Date(selectedYear, selectedMonth - 1, 1);
     setSelectedMonth(prev.getMonth());
@@ -50,7 +56,20 @@ export default function ExpenseList() {
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
+    setInitialData(null);
     setFormOpen(true);
+  };
+
+  const handleCopy = (expense: Expense) => {
+    const { id, ...rest } = expense;
+    setEditingExpense(null);
+    setInitialData(rest);
+    setFormOpen(true);
+  };
+
+  const handleTogglePaid = async (expense: Expense) => {
+    await updateExpense(expense.id, { isPaid: !expense.isPaid });
+    toast.success(expense.isPaid ? 'Marcado como pendente' : 'Marcado como pago');
   };
 
   const handleDelete = async (id: string) => {
@@ -58,11 +77,6 @@ export default function ExpenseList() {
       await removeExpense(id);
       toast.success('Despesa removida');
     }
-  };
-
-  const handleTogglePaid = async (expense: Expense) => {
-    await updateExpense(expense.id, { isPaid: !expense.isPaid });
-    toast.success(expense.isPaid ? 'Marcado como pendente' : 'Marcado como pago');
   };
 
   return (
@@ -73,7 +87,7 @@ export default function ExpenseList() {
           <h1 className="text-2xl font-bold text-foreground">Despesas</h1>
           <p className="text-muted-foreground">Gerencie suas despesas mensais</p>
         </div>
-        <Button onClick={() => { setEditingExpense(null); setFormOpen(true); }}>
+        <Button onClick={() => { setEditingExpense(null); setInitialData(null); setFormOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Nova Despesa
         </Button>
       </div>
