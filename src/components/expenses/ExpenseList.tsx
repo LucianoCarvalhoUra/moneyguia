@@ -24,7 +24,7 @@ export default function ExpenseList() {
 
   // Lógica de renderização ultra-segura para datas
   const renderDate = (dateValue: any) => {
-    if (!dateValue) return "-";
+    if (!dateValue) return <span className="text-muted-foreground">-</span>;
     // Tratamento como string pura: '2026-02-10...' -> '2026-02-10'
     const datePart = String(dateValue).split('T')[0];
     const [year, month, day] = datePart.split('-');
@@ -46,8 +46,8 @@ export default function ExpenseList() {
       console.table(expenses.map(e => ({
         id: e.id,
         desc: e.description,
-        due_date_DB: e.dueDate,
-        formatted: renderDate(e.dueDate)
+        due_date_DB: (e as any).due_date || e.dueDate,
+        formatted: renderDate((e as any).due_date || e.dueDate)
       })));
       console.groupEnd();
     }
@@ -140,7 +140,8 @@ export default function ExpenseList() {
                 const category = getCategoryById(expense.categoryId);
                 const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
                 const todayStr = new Date().toISOString().split('T')[0];
-                const dueDateStr = String(expense.dueDate).split('T')[0];
+                const rawDueDate = (expense as any).due_date || expense.dueDate;
+                const dueDateStr = String(rawDueDate).split('T')[0];
                 const isOverdue = !expense.isPaid && dueDateStr < todayStr;
 
                 return (
@@ -157,7 +158,7 @@ export default function ExpenseList() {
                          <Badge variant="outline" className="text-yellow-600 border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {category?.name} {subcategory && `→ ${subcategory.name}`} • {PAYMENT_METHOD_LABELS[expense.paymentMethod]} • Vence em {renderDate(expense.dueDate)}
+                        {category?.name} {subcategory && `→ ${subcategory.name}`} • {PAYMENT_METHOD_LABELS[expense.paymentMethod]} • Vence em {renderDate(rawDueDate)}
                       </p>
                     </div>
 
