@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,11 +62,20 @@ export default function ExpenseList() {
   const incomeTotal = getMonthlyIncomeTotal(selectedYear, selectedMonth);
   const categoryTotals = getTotalByCategory(selectedYear, selectedMonth);
 
-  // DEBUG: Verificar dados brutos retornados do hook
-  if (expenses.length > 0) {
-    console.log('DEBUG EXPENSES LIST (Primeiro Item):', expenses[0]);
-    console.log('DEBUG EXPENSES LIST (dueDate type):', typeof expenses[0].dueDate);
-  }
+  // 5. Auditoria de Dados (Query)
+  useEffect(() => {
+    if (expenses.length > 0) {
+      console.group('🔍 Auditoria de Datas (ExpenseList)');
+      console.table(expenses.map(e => ({
+        id: e.id,
+        desc: e.description,
+        due_date_raw: e.dueDate,
+        expense_date_raw: e.expenseDate,
+        is_paid: e.isPaid
+      })));
+      console.groupEnd();
+    }
+  }, [expenses]);
 
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -289,8 +298,10 @@ export default function ExpenseList() {
                 const category = getCategoryById(expense.categoryId);
                 const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
                 
-                const dueDate = parseISO(expense.dueDate as unknown as string);
-                const isOverdue = !expense.isPaid && isBefore(startOfDay(dueDate), startOfDay(new Date()));
+                // Lógica de Vencido (Comparação simples de string YYYY-MM-DD)
+                const todayStr = new Date().toISOString().split('T')[0];
+                const dueDateStr = String(expense.dueDate).split('T')[0];
+                const isOverdue = !expense.isPaid && dueDateStr < todayStr;
 
                 return (
                   <div

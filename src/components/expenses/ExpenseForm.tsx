@@ -20,7 +20,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Expense, PaymentMethod } from '@/types/finance';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Calendar as CalendarIcon, Calendar, CalendarClock, CalendarDays, History, Trash2 } from 'lucide-react';
+import { Loader2, Calendar, CalendarClock, CalendarDays, History, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addMonths, setDate, getDate } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -118,6 +118,15 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     }).format(floatValue);
   };
   
+  // Helper para garantir data string YYYY-MM-DD
+  const getTodayString = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   const validate = () => {
     const newErrors: Record<string, boolean> = {};
     const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
@@ -470,7 +479,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             <div className="space-y-2">
               <Label htmlFor="expense-date">Data de Lançamento <span className="text-red-500">*</span></Label>
               <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
                   id="expense-date"
                   type="date" 
@@ -483,7 +492,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             <div className="space-y-2">
               <Label htmlFor="due-date">Data de Vencimento <span className="text-red-500">*</span></Label>
               <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
                   id="due-date"
                   type="date" 
