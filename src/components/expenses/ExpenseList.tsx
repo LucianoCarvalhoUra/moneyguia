@@ -11,8 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { toast } from 'sonner';
 
-console.log('RELOAD ESTRUTURAL ATIVO');
-
 export default function ExpenseList() {
   const { getMonthlyExpenses, getMonthlyTotal, removeExpense, updateExpense, getCategoryById, getSubcategoryById } = useFinance();
   
