@@ -61,22 +61,6 @@ export default function ExpenseList() {
   const incomeTotal = getMonthlyIncomeTotal(selectedYear, selectedMonth);
   const categoryTotals = getTotalByCategory(selectedYear, selectedMonth);
 
-  // 5. Auditoria de Dados (Query)
-  useEffect(() => {
-    if (expenses.length > 0) {
-      console.group('🔍 Auditoria de Datas (ExpenseList - Anti-Fuso)');
-      console.table(expenses.map(e => ({
-        id: e.id,
-        desc: e.description,
-        due_date_DB: e.dueDate,
-        due_date_DISPLAY: formatRawDate(e.dueDate),
-        expense_date_raw: e.expenseDate,
-        is_paid: e.isPaid
-      })));
-      console.groupEnd();
-    }
-  }, [expenses]);
-
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'

@@ -66,7 +66,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const isRecurringSeries = expense && (expense.isRecurring || !!(expense as any).recurrence_id);
 
   // --- Helpers ---
-  const getTodayString = () => new Date().toISOString().split('T')[0];
+  const formatToInput = (dateVal: any) => {
+    if (!dateVal) return "";
+    if (dateVal instanceof Date) return dateVal.toISOString().split('T')[0];
+    return String(dateVal).split('T')[0];
+  };
 
   const formatCurrencyInput = (value: string) => {
     const numericValue = value.replace(/\D/g, '');
@@ -81,34 +85,34 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   // --- Initialization ---
   useEffect(() => {
     if (open) {
-      const today = getTodayString();
+      const today = formatToInput(new Date());
       
       if (expense) {
         setDescription(expense.description);
         setCategoryId(expense.categoryId);
         setSubcategoryId(expense.subcategoryId || '');
-        setDueDate(String(expense.dueDate).split('T')[0]);
+        setDueDate(formatToInput(expense.dueDate));
         setAmount(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(expense.amount));
         setPaymentMethod(expense.paymentMethod);
         setCardId(expense.cardId || '');
         setAccountId(expense.accountId || '');
         setIsPaid(expense.isPaid);
         // If paid, paymentDate is relevant. If not, we default to today or expenseDate
-        setPaymentDate(expense.isPaid ? String(expense.expenseDate).split('T')[0] : today);
+        setPaymentDate(expense.isPaid ? formatToInput(expense.expenseDate) : today);
         setIsRecurring(expense.isRecurring);
         setInstallments(expense.installments?.toString() || '1');
-        setLaunchDate(String(expense.expenseDate).split('T')[0]);
+        setLaunchDate(formatToInput(expense.expenseDate));
       } else if (initialData) {
         setDescription(initialData.description || '');
         setCategoryId(initialData.categoryId || '');
         setSubcategoryId(initialData.subcategoryId || '');
-        setDueDate(initialData.dueDate ? String(initialData.dueDate).split('T')[0] : today);
+        setDueDate(initialData.dueDate ? formatToInput(initialData.dueDate) : today);
         setAmount(initialData.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.amount) : '');
         setPaymentMethod(initialData.paymentMethod || 'pix');
         setIsPaid(initialData.isPaid || false);
         setPaymentDate(today);
         setIsRecurring(initialData.isRecurring || false);
-        setLaunchDate(initialData.expenseDate ? String(initialData.expenseDate).split('T')[0] : today);
+        setLaunchDate(initialData.expenseDate ? formatToInput(initialData.expenseDate) : today);
       } else {
         // Reset
         setDescription('');
@@ -133,7 +137,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const handlePaidChange = (checked: boolean) => {
     setIsPaid(checked);
     if (checked) {
-      setPaymentDate(getTodayString());
+      setPaymentDate(formatToInput(new Date()));
     }
   };
 
@@ -183,8 +187,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         installments: isRecurring ? parseInt(installments) : null,
         user_id: user?.id
       };
-
-      console.log('📦 Payload:', payload);
 
       if (expense) {
         // Edit Mode
@@ -299,7 +301,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] p-0 gap-0 overflow-hidden rounded-sm border-2">
+      <DialogContent className="sm:max-w-[700px] p-0 gap-0 overflow-hidden rounded-none border-2">
         {/* Header */}
         <DialogHeader className="px-6 py-3 border-b bg-muted/10 flex flex-row items-center justify-between space-y-0">
           <DialogTitle className="text-lg font-semibold">
@@ -310,7 +312,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               type="button"
               variant="ghost" 
               size="sm" 
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 px-2 rounded-sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 px-2 rounded-none"
               onClick={() => isRecurringSeries ? (setActionType('delete'), setScopeDialogOpen(true)) : setSimpleDeleteDialogOpen(true)}
             >
               <Trash2 className="w-4 h-4 mr-2" />
@@ -328,7 +330,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               id="desc" 
               value={description} 
               onChange={e => setDescription(e.target.value)} 
-              className={cn("h-9 rounded-sm", errors.description && "border-red-500")}
+              className={cn("h-9 rounded-none", errors.description && "border-red-500")}
               placeholder="Ex: Compras do Mês"
             />
           </div>
@@ -337,7 +339,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           <div className="space-y-1">
             <Label>Categoria</Label>
             <Select value={categoryId} onValueChange={v => { setCategoryId(v); setSubcategoryId(''); }}>
-              <SelectTrigger className={cn("h-9 rounded-sm", errors.categoryId && "border-red-500")}>
+              <SelectTrigger className={cn("h-9 rounded-none", errors.categoryId && "border-red-500")}>
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
@@ -357,7 +359,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           <div className="space-y-1">
             <Label>Subcategoria</Label>
             <Select value={subcategoryId} onValueChange={setSubcategoryId} disabled={!categoryId}>
-              <SelectTrigger className="h-9 rounded-sm">
+              <SelectTrigger className="h-9 rounded-none">
                 <SelectValue placeholder="Opcional" />
               </SelectTrigger>
               <SelectContent>
@@ -375,7 +377,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               type="date" 
               value={dueDate} 
               onChange={e => setDueDate(e.target.value)} 
-              className={cn("h-9 rounded-sm", errors.dueDate && "border-red-500")}
+              className={cn("h-9 rounded-none", errors.dueDate && "border-red-500")}
             />
           </div>
 
@@ -386,7 +388,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               value={amount} 
               onChange={e => setAmount(formatCurrencyInput(e.target.value))} 
               placeholder="R$ 0,00"
-              className={cn("h-9 rounded-sm text-right font-medium", errors.amount && "border-red-500")}
+              className={cn("h-9 rounded-none text-right font-medium", errors.amount && "border-red-500")}
             />
           </div>
 
@@ -394,7 +396,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           <div className="space-y-1">
             <Label>Forma de Pagamento</Label>
             <Select value={paymentMethod} onValueChange={v => setPaymentMethod(v as PaymentMethod)}>
-              <SelectTrigger className="h-9 rounded-sm">
+              <SelectTrigger className="h-9 rounded-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -406,7 +408,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             
             {paymentMethod === 'credit_card' && (
               <Select value={cardId} onValueChange={setCardId}>
-                <SelectTrigger className="h-9 rounded-sm mt-2 bg-muted/20">
+                <SelectTrigger className="h-9 rounded-none mt-2 bg-muted/20">
                   <SelectValue placeholder="Selecione o Cartão" />
                 </SelectTrigger>
                 <SelectContent>
@@ -417,7 +419,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             
             {paymentMethod === 'account' && (
               <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger className="h-9 rounded-sm mt-2 bg-muted/20">
+                <SelectTrigger className="h-9 rounded-none mt-2 bg-muted/20">
                   <SelectValue placeholder="Selecione a Conta" />
                 </SelectTrigger>
                 <SelectContent>
@@ -431,7 +433,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           <div className="space-y-1">
             <Label>Status / Data Pagto</Label>
             <div className="flex items-center gap-2">
-              <div className={cn("flex items-center gap-2 border rounded-sm px-2 h-9 transition-colors", isPaid ? "bg-green-50 border-green-200" : "bg-muted/20")}>
+              <div className={cn("flex items-center gap-2 border rounded-none px-2 h-9 transition-colors", isPaid ? "bg-green-50 border-green-200" : "bg-muted/20")}>
                 <Switch checked={isPaid} onCheckedChange={handlePaidChange} className="scale-75" />
                 <span className={cn("text-xs font-bold w-10", isPaid ? "text-green-700" : "text-muted-foreground")}>
                   {isPaid ? 'PAGO' : 'PEND'}
@@ -442,7 +444,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 value={paymentDate} 
                 onChange={e => setPaymentDate(e.target.value)} 
                 disabled={!isPaid}
-                className={cn("h-9 rounded-sm flex-1", !isPaid && "opacity-50")}
+                className={cn("h-9 rounded-none flex-1", !isPaid && "opacity-50")}
               />
             </div>
           </div>
@@ -450,7 +452,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           {/* Col 1: Recurrence */}
           <div className="space-y-1">
             <Label>Recorrência</Label>
-            <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/20">
+            <div className="flex items-center gap-2 border rounded-none px-2 h-9 bg-muted/20">
               <Switch checked={isRecurring} onCheckedChange={setIsRecurring} className="scale-75" />
               <span className="text-xs text-muted-foreground flex-1">Repetir?</span>
             {isRecurring && (
@@ -459,7 +461,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                   min="1" 
                   value={installments} 
                   onChange={e => setInstallments(e.target.value)} 
-                  className="h-7 w-14 text-center p-0 rounded-sm"
+                  className="h-7 w-14 text-center p-0 rounded-none"
                   placeholder="Qtd"
                 />
             )}
@@ -473,15 +475,15 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               type="date" 
               value={launchDate} 
               onChange={e => setLaunchDate(e.target.value)} 
-              className="h-9 rounded-sm"
+              className="h-9 rounded-none"
             />
           </div>
 
           <DialogFooter className="col-span-2 pt-4 border-t mt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-sm h-9">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-none h-9">
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="rounded-sm min-w-[100px] h-9">
+            <Button type="submit" disabled={isSubmitting} className="rounded-none min-w-[100px] h-9">
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
             </Button>
           </DialogFooter>
