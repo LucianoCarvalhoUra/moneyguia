@@ -22,6 +22,16 @@ export default function ExpenseList() {
   const expenses = getMonthlyExpenses(selectedYear, selectedMonth);
   const total = getMonthlyTotal(selectedYear, selectedMonth);
 
+  // Lógica de renderização ultra-segura para datas
+  const renderDate = (dateValue: any) => {
+    if (!dateValue) return "-";
+    // Tratamento como string pura: '2026-02-10...' -> '2026-02-10'
+    const datePart = String(dateValue).split('T')[0];
+    const [year, month, day] = datePart.split('-');
+    // Retorno formatado sem cálculos matemáticos
+    return `${day}/${month}/${year}`;
+  };
+
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
@@ -37,20 +47,11 @@ export default function ExpenseList() {
         id: e.id,
         desc: e.description,
         due_date_DB: e.dueDate,
-        formatted: formatRawDate(e.dueDate)
+        formatted: renderDate(e.dueDate)
       })));
       console.groupEnd();
     }
   }, [expenses]);
-
-  // --- Formatador Anti-Fuso ---
-  const formatRawDate = (dateVal: any) => {
-    if (!dateVal) return '-';
-    const strVal = String(dateVal);
-    const datePart = strVal.includes('T') ? strVal.split('T')[0] : strVal;
-    const [y, m, day] = datePart.split('-');
-    return `${day}/${m}/${y}`;
-  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -60,15 +61,15 @@ export default function ExpenseList() {
   };
 
   const handlePreviousMonth = () => {
-    const newDate = new Date(selectedYear, selectedMonth - 1, 1);
-    setSelectedMonth(newDate.getMonth());
-    setSelectedYear(newDate.getFullYear());
+    const prev = new Date(selectedYear, selectedMonth - 1, 1);
+    setSelectedMonth(prev.getMonth());
+    setSelectedYear(prev.getFullYear());
   };
 
   const handleNextMonth = () => {
-    const newDate = new Date(selectedYear, selectedMonth + 1, 1);
-    setSelectedMonth(newDate.getMonth());
-    setSelectedYear(newDate.getFullYear());
+    const next = new Date(selectedYear, selectedMonth + 1, 1);
+    setSelectedMonth(next.getMonth());
+    setSelectedYear(next.getFullYear());
   };
 
   const handleEdit = (expense: Expense) => {
@@ -156,7 +157,7 @@ export default function ExpenseList() {
                          <Badge variant="outline" className="text-yellow-600 border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {category?.name} {subcategory && `→ ${subcategory.name}`} • {PAYMENT_METHOD_LABELS[expense.paymentMethod]} • Vence em {formatRawDate(expense.dueDate)}
+                        {category?.name} {subcategory && `→ ${subcategory.name}`} • {PAYMENT_METHOD_LABELS[expense.paymentMethod]} • Vence em {renderDate(expense.dueDate)}
                       </p>
                     </div>
 
