@@ -39,13 +39,6 @@ export default function ExpenseList() {
     }).format(amount);
   };
 
-  const formatDate = (val: string | Date) => {
-    if (!val) return '-';
-    if (val instanceof Date) return val.toLocaleDateString('pt-BR');
-    const [y, m, d] = val.split('-');
-    return `${d}/${m}/${y}`;
-  };
-
   const handlePreviousMonth = () => {
     const dt = new Date(selectedYear, selectedMonth - 1, 1);
     setSelectedMonth(dt.getMonth());
@@ -162,7 +155,7 @@ export default function ExpenseList() {
 
                     {/* Vencimento */}
                     <div className="text-sm">
-                      {formatDate(expense.dueDate)}
+                      {expense.dueDate ? expense.dueDate.toLocaleDateString('pt-BR') : '-'}
                     </div>
 
                     {/* Descrição */}
