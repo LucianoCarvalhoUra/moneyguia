@@ -40,8 +40,7 @@ const formatRawDate = (dateVal: any) => {
   const strVal = String(dateVal);
   // Pega apenas a parte YYYY-MM-DD e ignora qualquer fuso/hora
   const datePart = strVal.includes('T') ? strVal.split('T')[0] : strVal;
-  const [year, month, day] = datePart.split('-');
-  return `${day}/${month}/${year}`;
+  return datePart.split('-').reverse().join('/');
 };
 
 export default function ExpenseList() {
