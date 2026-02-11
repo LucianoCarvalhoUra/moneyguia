@@ -24,6 +24,8 @@ import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays } from 'lucide-r
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 
+console.log('RELOAD ESTRUTURAL ATIVO');
+
 interface ExpenseFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +35,8 @@ interface ExpenseFormProps {
 
 export default function ExpenseForm({ open, onOpenChange, expense, initialData }: ExpenseFormProps) {
   const { refreshData, categories, subcategories, accounts, cards, removeExpense } = useFinance();
+  // 4. Verificação de Dados
+  console.log('Dados da Despesa sendo editada:', expense);
   
   // --- State ---
   const [description, setDescription] = useState('');
@@ -157,10 +161,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       // Validação robusta do ID de recorrência
       const recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
 
-      console.log("ID de Recorrência encontrado:", recurrenceId);
-
-      if (scope !== 'single' && !recurrenceId) {
-        toast.error("Erro: Esta despesa não possui um ID de série vinculado.");
+      if (scope !== 'single' && (!recurrenceId || recurrenceId === 'undefined')) {
+        toast.error('Erro crítico: Identificador de recorrência não encontrado. A operação foi cancelada.');
         setIsSubmitting(false);
         return;
       }
@@ -169,18 +171,13 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         const { error } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
         if (error) throw error;
       } else {
-        // 2. Ajuste na Chamada do Supabase usando recurrenceId validado
-        let query = supabase.from('expenses').update(pendingData).eq('recurrence_id', recurrenceId);
+        // 2. Ajuste na Chamada do Supabase usando rId validado
+        let query = supabase.from('expenses').update(pendingData).eq('recurrence_id', rId);
 
         if (scope === 'future') {
           // 3. Sincronização de Datas no Lote
           const rawDate = (expense as any).due_date || expense.dueDate;
-          let anchorDate;
-          if (rawDate instanceof Date) {
-             anchorDate = format(rawDate, 'yyyy-MM-dd');
-          } else {
-             anchorDate = String(rawDate).split('T')[0];
-          }
+          const anchorDate = String(rawDate).split('T')[0];
           query = query.gte('due_date', anchorDate);
         }
 
