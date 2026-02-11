@@ -12,8 +12,6 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { toast } from 'sonner';
 
 export default function ExpenseList() {
-  console.info('VERSÃO ATUALIZADA 2.0');
-
   const { getMonthlyExpenses, getMonthlyTotal, removeExpense, updateExpense, getCategoryById, getSubcategoryById } = useFinance();
   
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());

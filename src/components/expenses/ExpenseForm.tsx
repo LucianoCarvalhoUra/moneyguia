@@ -157,7 +157,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       // Validação robusta do ID de recorrência
       const recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
 
-      if (scope !== 'single' && !recurrenceId) {
+      if (scope !== 'single' && (!recurrenceId || recurrenceId === 'undefined')) {
         toast.error('Erro crítico: Identificador de recorrência não encontrado. A operação foi cancelada.');
         setIsSubmitting(false);
         return;
