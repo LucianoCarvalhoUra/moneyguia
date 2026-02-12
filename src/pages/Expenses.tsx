@@ -28,7 +28,7 @@ import { format, isBefore, startOfDay } from 'date-fns';
 import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import ExpenseForm from '@/components/expenses/ExpenseForm_OLD';
+import ExpenseForm from '@/components/expenses/ExpenseForm';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { Expense } from '@/types/finance';
 import { Badge } from '@/components/ui/badge';
