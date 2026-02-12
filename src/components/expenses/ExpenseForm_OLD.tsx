@@ -247,40 +247,85 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     }
   };
 
+  // --- Helpers for recurrence grouping ---
+  const getBaseDescription = (desc: string): string => {
+    return desc.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
+  };
+
+  const ensureRecurrenceId = async (): Promise<string | null> => {
+    if (!expense) return null;
+    let recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
+    if (recurrenceId) return recurrenceId;
+
+    // Legacy data: generate recurrence_id and assign to matching expenses
+    const baseDesc = getBaseDescription(expense.description);
+    const newRecurrenceId = crypto.randomUUID();
+    console.log('[RecurrenceId Fix] Base:', baseDesc, '| New ID:', newRecurrenceId);
+
+    const { data: related, error: fetchErr } = await supabase
+      .from('expenses')
+      .select('id, description')
+      .eq('user_id', expense.userId)
+      .eq('is_recurring', true)
+      .is('recurrence_id', null);
+
+    if (fetchErr) { console.error(fetchErr); return null; }
+
+    const matchingIds = (related || [])
+      .filter(e => getBaseDescription(e.description) === baseDesc)
+      .map(e => e.id);
+
+    console.log('[RecurrenceId Fix] Matched', matchingIds.length, 'expenses');
+
+    if (matchingIds.length > 0) {
+      const { error } = await supabase
+        .from('expenses')
+        .update({ recurrence_id: newRecurrenceId })
+        .in('id', matchingIds);
+      if (error) { console.error(error); return null; }
+    }
+    return newRecurrenceId;
+  };
+
   // --- Recurrence & Delete Logic ---
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'past' | 'all') => {
     setIsSubmitting(true);
     try {
-      const recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id;
       const data = { ...pendingData };
-      
-      // Format the original expense due date for comparison
       const originalDueDate = formatToInput(expense!.dueDate);
 
       if (scope === 'single') {
-        // Update only this specific record
         await supabase.from('expenses').update(data).eq('id', expense!.id);
-      } else if (scope === 'all') {
-        // For batch updates, remove date fields to avoid setting all to same date
+      } else {
+        const recurrenceId = await ensureRecurrenceId();
+        if (!recurrenceId) {
+          toast.error('Não foi possível identificar a série de recorrência.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Remove date fields from batch to preserve individual dates
         const { due_date, expense_date, ...batchData } = data;
-        await supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId);
-      } else if (scope === 'future') {
-        // For batch updates, remove date fields
-        const { due_date, expense_date, ...batchData } = data;
-        await supabase.from('expenses').update(batchData)
-          .eq('recurrence_id', recurrenceId)
-          .gte('due_date', originalDueDate);
-      } else if (scope === 'past') {
-        const { due_date, expense_date, ...batchData } = data;
-        await supabase.from('expenses').update(batchData)
-          .eq('recurrence_id', recurrenceId)
-          .lte('due_date', originalDueDate);
+        console.log('[BatchUpdate] Scope:', scope, '| recurrence_id:', recurrenceId);
+
+        if (scope === 'all') {
+          await supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId);
+        } else if (scope === 'future') {
+          await supabase.from('expenses').update(batchData)
+            .eq('recurrence_id', recurrenceId)
+            .gte('due_date', originalDueDate);
+        } else if (scope === 'past') {
+          await supabase.from('expenses').update(batchData)
+            .eq('recurrence_id', recurrenceId)
+            .lte('due_date', originalDueDate);
+        }
       }
       
       toast.success('Série atualizada!');
       await refreshData();
       onOpenChange(false);
     } catch (e: any) {
+      console.error('[BatchUpdate] Error:', e);
       toast.error(e.message);
     } finally {
       setIsSubmitting(false);
@@ -292,19 +337,27 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     if (!expense) return;
     setIsSubmitting(true);
     try {
-      if (scope) {
-        const recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
+      if (scope && scope !== 'single') {
+        const recurrenceId = await ensureRecurrenceId();
+        if (!recurrenceId) {
+          toast.error('Não foi possível identificar a série.');
+          setIsSubmitting(false);
+          return;
+        }
+        const dueDate = formatToInput(expense.dueDate);
         let query = supabase.from('expenses').delete();
         
         if (scope === 'all') query = query.eq('recurrence_id', recurrenceId);
-        else if (scope === 'future') query = query.eq('recurrence_id', recurrenceId).gte('due_date', expense.dueDate);
-        else if (scope === 'single') query = query.eq('id', expense.id);
+        else if (scope === 'future') query = query.eq('recurrence_id', recurrenceId).gte('due_date', dueDate);
         
         await query;
+      } else if (scope === 'single') {
+        await supabase.from('expenses').delete().eq('id', expense.id);
       } else {
         await removeExpense(expense.id);
       }
       toast.success('Excluído com sucesso!');
+      await refreshData();
       onOpenChange(false);
     } catch (e: any) {
       toast.error(e.message);
