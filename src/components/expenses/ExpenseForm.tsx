@@ -64,6 +64,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     return str.includes('T') ? str.split('T')[0] : str;
   };
 
+  const safeSubcategories = subcategories || [];
+
   const getTodayString = () => {
     const now = new Date();
     return format(now, 'yyyy-MM-dd');
@@ -88,8 +90,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       
       if (dataToLoad) {
         setDescription(dataToLoad.description || '');
-        setCategoryId(dataToLoad.categoryId || '');
-        setSubcategoryId(dataToLoad.subcategoryId || '');
+        
+        // Mapeamento robusto para IDs (camelCase ou snake_case)
+        const catId = dataToLoad.categoryId || (dataToLoad as any).category_id || '';
+        setCategoryId(catId);
+        setSubcategoryId(dataToLoad.subcategoryId || (dataToLoad as any).subcategory_id || '');
+        
         setDueDate(dataToLoad.dueDate ? formatToInput(dataToLoad.dueDate) : today);
         setAmount(dataToLoad.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) : '');
         setPaymentMethod(dataToLoad.paymentMethod || 'pix');
@@ -331,7 +337,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     }
   };
 
-  const filteredSubcategories = subcategories.filter(s => s.categoryId === categoryId);
+  const filteredSubcategories = safeSubcategories.filter(s => s.categoryId === categoryId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -122,10 +122,11 @@ export default function ExpenseList() {
             <div className="text-center py-12 text-muted-foreground">Nenhuma despesa neste mês.</div>
           ) : (
             <div className="min-w-[1000px]">
-              <div className="grid grid-cols-[1.5fr_1.5fr_120px_1fr_100px_120px] gap-4 px-6 py-3 border-b bg-muted/30 text-sm font-medium text-muted-foreground">
+              <div className="grid grid-cols-[1.5fr_1.5fr_120px_2fr_1fr_100px_120px] gap-4 px-6 py-3 border-b bg-muted/30 text-sm font-medium text-muted-foreground">
                 <div className="font-semibold">Categoria</div>
                 <div className="font-semibold">Subcategoria</div>
                 <div className="font-semibold">Vencimento</div>
+                <div className="font-semibold">Descrição</div>
                 <div className="font-semibold">Valor</div>
                 <div className="text-center font-semibold">Status</div>
                 <div className="text-right font-semibold">Ações</div>
@@ -137,7 +138,7 @@ export default function ExpenseList() {
                 const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
 
                 return (
-                  <div key={expense.id} className={cn("grid grid-cols-[1.5fr_1.5fr_120px_1fr_100px_120px] gap-4 items-center px-6 py-4 hover:bg-muted/50 transition-colors group", expense.isPaid ? "opacity-75" : "")}>
+                  <div key={expense.id} className={cn("grid grid-cols-[1.5fr_1.5fr_120px_2fr_1fr_100px_120px] gap-4 items-center px-6 py-4 hover:bg-muted/50 transition-colors group", expense.isPaid ? "opacity-75" : "")}>
                     {/* Categoria */}
                     <div className="flex items-center gap-2 min-w-0">
                       <div className={cn('w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0', category?.color ? `bg-${category.color}/15` : 'bg-muted/50')}>
@@ -154,6 +155,11 @@ export default function ExpenseList() {
                     {/* Vencimento */}
                     <div className="text-sm">
                       {expense.dueDate ? expense.dueDate.toLocaleDateString('pt-BR') : '-'}
+                    </div>
+
+                    {/* Descrição */}
+                    <div className={cn("text-sm truncate font-medium", expense.isPaid && "line-through text-muted-foreground")}>
+                      {expense.description}
                     </div>
 
                     {/* Valor */}
