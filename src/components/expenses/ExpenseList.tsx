@@ -50,6 +50,7 @@ export default function ExpenseList() {
   };
 
   const handleEdit = (expense: Expense) => {
+    console.log('Editando despesa:', expense);
     setEditingExpense(expense);
     setInitialData(null);
     setFormOpen(true);

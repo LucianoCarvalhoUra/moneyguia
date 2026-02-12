@@ -36,7 +36,7 @@ interface ExpenseFormProps {
 export default function ExpenseForm({ open, onOpenChange, expense, initialData }: ExpenseFormProps) {
   const { refreshData, categories, subcategories, accounts, cards, removeExpense } = useFinance();
   // 4. Verificação de Dados
-  console.log('Dados da Despesa sendo editada:', expense);
+  console.log('Dados recebidos para edição:', expense || initialData);
   
   // --- State ---
   const [description, setDescription] = useState('');
@@ -83,33 +83,22 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   useEffect(() => {
     if (open) {
       const today = getTodayString();
+      const dataToLoad = expense || initialData;
       
-      if (expense) {
-        setDescription(expense.description);
-        setCategoryId(expense.categoryId);
-        setSubcategoryId(expense.subcategoryId || '');
-        setDueDate(formatToInput(expense.dueDate));
-        setAmount(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(expense.amount));
-        setPaymentMethod(expense.paymentMethod);
-        setCardId(expense.cardId || '');
-        setAccountId(expense.accountId || '');
-        setIsPaid(expense.isPaid);
-        setPaymentDate(expense.isPaid ? formatToInput(expense.expenseDate) : today);
-        setIsRecurring(expense.isRecurring);
-        setInstallments(expense.installments?.toString() || '1');
-        setLaunchDate(formatToInput(expense.expenseDate));
-      } else if (initialData) {
-        // Lógica para duplicação ou dados iniciais
-        setDescription(initialData.description || '');
-        setCategoryId(initialData.categoryId || '');
-        setSubcategoryId(initialData.subcategoryId || '');
-        setDueDate(initialData.dueDate ? formatToInput(initialData.dueDate) : today);
-        setAmount(initialData.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(initialData.amount) : '');
-        setPaymentMethod(initialData.paymentMethod || 'pix');
-        setIsPaid(initialData.isPaid || false);
-        setPaymentDate(today);
-        setIsRecurring(initialData.isRecurring || false);
-        setLaunchDate(initialData.expenseDate ? formatToInput(initialData.expenseDate) : today);
+      if (dataToLoad) {
+        setDescription(dataToLoad.description || '');
+        setCategoryId(dataToLoad.categoryId || '');
+        setSubcategoryId(dataToLoad.subcategoryId || '');
+        setDueDate(dataToLoad.dueDate ? formatToInput(dataToLoad.dueDate) : today);
+        setAmount(dataToLoad.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) : '');
+        setPaymentMethod(dataToLoad.paymentMethod || 'pix');
+        setCardId(dataToLoad.cardId || '');
+        setAccountId(dataToLoad.accountId || '');
+        setIsPaid(dataToLoad.isPaid || false);
+        setPaymentDate((dataToLoad.isPaid && dataToLoad.expenseDate) ? formatToInput(dataToLoad.expenseDate) : today);
+        setIsRecurring(dataToLoad.isRecurring || false);
+        setInstallments(dataToLoad.installments?.toString() || '1');
+        setLaunchDate(dataToLoad.expenseDate ? formatToInput(dataToLoad.expenseDate) : today);
       } else {
         // Reset
         setDescription('');
