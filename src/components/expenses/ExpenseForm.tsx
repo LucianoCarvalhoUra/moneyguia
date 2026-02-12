@@ -24,7 +24,7 @@ import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays } from 'lucide-r
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 
-console.log('RELOAD ESTRUTURAL ATIVO');
+// ExpenseForm component
 
 interface ExpenseFormProps {
   open: boolean;
@@ -35,8 +35,7 @@ interface ExpenseFormProps {
 
 export default function ExpenseForm({ open, onOpenChange, expense, initialData }: ExpenseFormProps) {
   const { refreshData, categories, subcategories, accounts, cards, removeExpense } = useFinance();
-  // 4. Verificação de Dados
-  console.log('Dados recebidos para edição:', expense || initialData);
+  // --- State ---
   
   // --- State ---
   const [description, setDescription] = useState('');
@@ -142,32 +141,89 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     }
   };
 
+  const getBaseDescription = (desc: string): string => {
+    // Remove " (X/Y)" suffix to get the base description for grouping
+    return desc.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
+  };
+
+  const ensureRecurrenceId = async (): Promise<string | null> => {
+    let recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id;
+    
+    if (recurrenceId) return recurrenceId;
+    
+    // No recurrence_id exists - generate one and assign to all related expenses
+    if (!expense) return null;
+    
+    const baseDesc = getBaseDescription(expense.description);
+    const newRecurrenceId = crypto.randomUUID();
+    
+    console.log('[RecurrenceId Fix] Base description:', baseDesc, '| New ID:', newRecurrenceId);
+    
+    // Find all expenses with matching base description pattern, same user, and is_recurring
+    const { data: relatedExpenses, error: fetchError } = await supabase
+      .from('expenses')
+      .select('id, description')
+      .eq('user_id', expense.userId)
+      .eq('is_recurring', true)
+      .is('recurrence_id', null);
+    
+    if (fetchError) {
+      console.error('[RecurrenceId Fix] Error fetching related:', fetchError);
+      return null;
+    }
+    
+    // Filter by matching base description
+    const matchingIds = (relatedExpenses || [])
+      .filter(e => getBaseDescription(e.description) === baseDesc)
+      .map(e => e.id);
+    
+    console.log('[RecurrenceId Fix] Found', matchingIds.length, 'matching expenses');
+    
+    if (matchingIds.length > 0) {
+      const { error: updateError } = await supabase
+        .from('expenses')
+        .update({ recurrence_id: newRecurrenceId })
+        .in('id', matchingIds);
+      
+      if (updateError) {
+        console.error('[RecurrenceId Fix] Error assigning recurrence_id:', updateError);
+        return null;
+      }
+    }
+    
+    return newRecurrenceId;
+  };
+
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
     if (!expense || !pendingData) return;
     
     setIsSubmitting(true);
     try {
-      // Validação robusta do ID de recorrência
-      const recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
-
-      if (scope !== 'single' && !recurrenceId) {
-        toast.error("Não é possível atualizar em lote: ID de recorrência não encontrado.");
-        setIsSubmitting(false);
-        return;
-      }
-
       if (scope === 'single') {
         const { error } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
         if (error) throw error;
       } else {
-        // 2. Ajuste na Chamada do Supabase usando rId validado
-        let query = supabase.from('expenses').update(pendingData).eq('recurrence_id', recurrenceId);
+        // Ensure we have a recurrence_id (fix legacy data if needed)
+        const recurrenceId = await ensureRecurrenceId();
+        
+        if (!recurrenceId) {
+          toast.error("Não foi possível identificar a série de recorrência.");
+          setIsSubmitting(false);
+          return;
+        }
+        
+        console.log('[BatchUpdate] Scope:', scope, '| recurrence_id:', recurrenceId);
+        
+        // Remove date fields from batch to preserve individual dates
+        const { due_date, expense_date, ...batchData } = pendingData;
+        let query = supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId);
 
         if (scope === 'future') {
-          // 3. Sincronização de Datas no Lote
-          const rawDate = (expense as any).due_date || expense.dueDate;
-          const anchorDate = String(rawDate).split('T')[0];
-          query = query.gte('due_date', anchorDate);
+          const dueDate = expense.dueDate instanceof Date
+            ? `${expense.dueDate.getFullYear()}-${String(expense.dueDate.getMonth() + 1).padStart(2, '0')}-${String(expense.dueDate.getDate()).padStart(2, '0')}`
+            : String(expense.dueDate).split('T')[0];
+          console.log('[BatchUpdate] Anchor date for future:', dueDate);
+          query = query.gte('due_date', dueDate);
         }
 
         const { error } = await query;
@@ -178,7 +234,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       await refreshData();
       onOpenChange(false);
     } catch (error: any) {
-      console.error(error);
+      console.error('[BatchUpdate] Error:', error);
       toast.error('Erro ao atualizar: ' + error.message);
     } finally {
       setIsSubmitting(false);
@@ -220,8 +276,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       };
 
       if (expense) {
-        const recurrenceId = (expense as any).recurrence_id || expense.recurrenceId;
-        if (expense.isRecurring && recurrenceId) {
+        // If recurring, always show scope dialog (ensureRecurrenceId handles legacy data)
+        if (expense.isRecurring) {
           setPendingData(payload);
           setScopeDialogOpen(true);
           setIsSubmitting(false);
