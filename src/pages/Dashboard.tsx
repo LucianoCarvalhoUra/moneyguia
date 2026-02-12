@@ -8,7 +8,7 @@ import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp, AlertTriangle, X }
 import CategoryChart from '@/components/dashboard/CategoryChart';
 import RecentExpenses from '@/components/dashboard/RecentExpenses';
 import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
-import ExpenseForm from '@/components/expenses/ExpenseForm_OLD';
+import ExpenseForm from '@/components/expenses/ExpenseForm';
 import PendingExpensesList from '@/components/dashboard/PendingExpensesList';
 import { toast } from 'sonner';
 import { addDays, startOfDay, endOfDay, isBefore, format, subMonths, addMonths } from 'date-fns';

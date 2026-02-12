@@ -24,7 +24,7 @@ import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays } from 'lucide-r
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 
-console.log('RELOAD ESTRUTURAL ATIVO');
+// ExpenseForm component
 
 interface ExpenseFormProps {
   open: boolean;
@@ -35,8 +35,7 @@ interface ExpenseFormProps {
 
 export default function ExpenseForm({ open, onOpenChange, expense, initialData }: ExpenseFormProps) {
   const { refreshData, categories, subcategories, accounts, cards, removeExpense } = useFinance();
-  // 4. Verificação de Dados
-  console.log('Dados da Despesa sendo editada:', expense);
+  // --- State ---
   
   // --- State ---
   const [description, setDescription] = useState('');
@@ -226,7 +225,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         
         console.log('[BatchUpdate] Scope:', scope, '| recurrence_id:', recurrenceId);
         
-        let query = supabase.from('expenses').update(pendingData).eq('recurrence_id', recurrenceId);
+        // Remove date fields from batch to preserve individual dates
+        const { due_date, expense_date, ...batchData } = pendingData;
+        let query = supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId);
 
         if (scope === 'future') {
           const dueDate = expense.dueDate instanceof Date
@@ -286,8 +287,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       };
 
       if (expense) {
-        const recurrenceId = (expense as any).recurrence_id || expense.recurrenceId;
-        if (expense.isRecurring && recurrenceId) {
+        // If recurring, always show scope dialog (ensureRecurrenceId handles legacy data)
+        if (expense.isRecurring) {
           setPendingData(payload);
           setScopeDialogOpen(true);
           setIsSubmitting(false);
