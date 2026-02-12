@@ -78,7 +78,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         supabase.from('subcategories').select('*').eq('user_id', user.id),
         supabase
           .from('expenses')
-          .select('*')
+          .select('*, recurrence_id')
           .eq('user_id', user.id)
           .order('expense_date', { ascending: false }),
       ]);
@@ -399,7 +399,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const { data, error } = await (supabase
       .from('expenses') as any)
       .insert(expensesToInsert)
-      .select();
+      .select('*');
     
     if (error) {
       toast.error('Erro ao adicionar despesa');

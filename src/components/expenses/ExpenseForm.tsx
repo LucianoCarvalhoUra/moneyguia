@@ -161,8 +161,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       // Validação robusta do ID de recorrência
       const recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
 
-      if (scope !== 'single' && (!recurrenceId || recurrenceId === 'undefined')) {
-        toast.error('Erro crítico: Identificador de recorrência não encontrado. A operação foi cancelada.');
+      if (scope !== 'single' && !recurrenceId) {
+        toast.error("Não é possível atualizar em lote: ID de recorrência não encontrado.");
         setIsSubmitting(false);
         return;
       }
@@ -172,7 +172,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         if (error) throw error;
       } else {
         // 2. Ajuste na Chamada do Supabase usando rId validado
-        let query = supabase.from('expenses').update(pendingData).eq('recurrence_id', rId);
+        let query = supabase.from('expenses').update(pendingData).eq('recurrence_id', recurrenceId);
 
         if (scope === 'future') {
           // 3. Sincronização de Datas no Lote

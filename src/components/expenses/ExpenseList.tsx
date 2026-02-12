@@ -11,11 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { toast } from 'sonner';
 
-console.log('RELOAD ESTRUTURAL ATIVO');
-
 export default function ExpenseList() {
   const { getMonthlyExpenses, getMonthlyTotal, removeExpense, updateExpense, getCategoryById, getSubcategoryById } = useFinance();
-  
+
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [formOpen, setFormOpen] = useState(false);
@@ -197,7 +195,7 @@ export default function ExpenseList() {
         </CardContent>
       </Card>
 
-      <ExpenseForm open={formOpen} onOpenChange={setFormOpen} expense={editingExpense} />
+      <ExpenseForm open={formOpen} onOpenChange={setFormOpen} expense={editingExpense} initialData={initialData} />
     </div>
   );
 }
