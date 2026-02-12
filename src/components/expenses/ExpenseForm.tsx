@@ -58,6 +58,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
     if (!dateVal) return "";
+    if (dateVal instanceof Date) return format(dateVal, 'yyyy-MM-dd');
     // Garante YYYY-MM-DD ignorando timezones
     const str = String(dateVal);
     return str.includes('T') ? str.split('T')[0] : str;
@@ -83,6 +84,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     if (open) {
       const today = getTodayString();
       const dataToLoad = expense || initialData;
+      console.log('INITIAL_DATA_RECONHECIDO:', dataToLoad);
       
       if (dataToLoad) {
         setDescription(dataToLoad.description || '');
