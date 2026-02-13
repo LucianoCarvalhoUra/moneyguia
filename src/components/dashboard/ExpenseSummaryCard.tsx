@@ -20,6 +20,7 @@ export default function ExpenseSummaryCard({
   const percentChange = previousValue
     ? ((value - previousValue) / Math.abs(previousValue)) * 100
     : 0;
+  const isIncrease = percentChange > 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -56,7 +57,6 @@ export default function ExpenseSummaryCard({
   // For expense card, increase is bad (red), decrease is good (green)
   // For income/balance card, increase is good (green), decrease is bad (red)
   const getChangeColor = (): string => {
-    const isIncrease = percentChange > 0;
     if (icon === 'expense') {
       return isIncrease ? 'text-destructive' : 'text-success';
     }

@@ -182,6 +182,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       is_received: boolean;
       account_id: string | null;
       recurrence_id: string | null;
+      exclude_from_calculations: boolean;
     }> = [];
 
     // If recurring, create 12 months of income
