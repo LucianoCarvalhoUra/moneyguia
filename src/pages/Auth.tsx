@@ -73,7 +73,7 @@ export default function Auth() {
       if (isRecovery) {
         const result = await resetPassword(email);
         if (result.success) {
-          toast.success('Um link foi enviado para seu e-mail para validar a nova senha');
+          toast.success('Se o e-mail estiver cadastrado, você receberá instruções em breve. Verifique também sua caixa de Spam');
           setIsRecovery(false);
           setIsLogin(true);
         } else {
