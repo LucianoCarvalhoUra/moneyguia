@@ -414,30 +414,37 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           </div>
 
           {/* Linha 3: Forma de Pagamento */}
-          <div className="col-span-2 space-y-1">
+          <div className="space-y-1">
             <Label>Forma de Pagamento</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <Select value={paymentMethod} onValueChange={v => setPaymentMethod(v as PaymentMethod)}>
-                <SelectTrigger className="h-9 rounded-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pix">PIX / Dinheiro</SelectItem>
-                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                  <SelectItem value="account">Débito em Conta</SelectItem>
-                </SelectContent>
-              </Select>
-              {paymentMethod === 'credit_card' && (
+            <Select value={paymentMethod} onValueChange={v => setPaymentMethod(v as PaymentMethod)}>
+              <SelectTrigger className="h-9 rounded-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pix">PIX / Dinheiro</SelectItem>
+                <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                <SelectItem value="account">Débito em Conta</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-1">
+            {paymentMethod === 'credit_card' && (
+              <>
+                <Label>Cartão</Label>
                 <Select value={cardId} onValueChange={setCardId}>
                   <SelectTrigger className="h-9 rounded-sm bg-muted/20"><SelectValue placeholder="Selecione o Cartão" /></SelectTrigger>
                   <SelectContent>{cards.map(c => <SelectItem key={c.id} value={c.id}>{c.brand} •••• {c.lastFourDigits}</SelectItem>)}</SelectContent>
                 </Select>
-              )}
-              {paymentMethod === 'account' && (
+              </>
+            )}
+            {paymentMethod === 'account' && (
+              <>
+                <Label>Conta</Label>
                 <Select value={accountId} onValueChange={setAccountId}>
                   <SelectTrigger className="h-9 rounded-sm bg-muted/20"><SelectValue placeholder="Selecione a Conta" /></SelectTrigger>
                   <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
                 </Select>
-              )}
-            </div>
+              </>
+            )}
           </div>
 
           {/* Linha 4: Status Pago | Data Pagamento */}
@@ -463,15 +470,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
           </div>
           <div className="space-y-1">
-            <Label>Data Lançamento</Label>
-            <Input type="date" value={launchDate} onChange={e => setLaunchDate(e.target.value)} className="h-9 rounded-sm" />
-          </div>
-
-          {/* Linha 6: Controle Visual */}
-          <div className="col-span-2 space-y-1">
+            <Label>Controle Visual</Label>
             <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/10">
               <Switch checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} />
-              <span className="text-sm text-muted-foreground">Apenas controle visual (Não contabilizar nos totais)</span>
+              <span className="text-xs text-muted-foreground truncate" title="Não contabilizar nos totais">Não somar nos totais</span>
             </div>
           </div>
 

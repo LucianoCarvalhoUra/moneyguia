@@ -78,7 +78,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         supabase.from('subcategories').select('*').eq('user_id', user.id),
         supabase
           .from('expenses')
-          .select('*, recurrence_id, exclude_from_calculations')
+          .select('*')
           .eq('user_id', user.id)
           .order('expense_date', { ascending: false }),
       ]);
@@ -195,9 +195,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           } as unknown as Expense;
         }));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching data:', error);
-      toast.error('Erro ao carregar dados');
+      console.log('Supabase Error Details:', error.message, error.details, error.hint);
+      toast.error('Erro ao carregar dados: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setIsLoading(false);
     }
