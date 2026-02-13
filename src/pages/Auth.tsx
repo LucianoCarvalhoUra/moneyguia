@@ -55,11 +55,12 @@ function getPasswordStrength(password: string): PasswordStrength {
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isRecovery, setIsRecovery] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, register } = useAuth();
+  const { login, register, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
@@ -69,7 +70,16 @@ export default function Auth() {
     setIsSubmitting(true);
 
     try {
-      if (isLogin) {
+      if (isRecovery) {
+        const result = await resetPassword(email);
+        if (result.success) {
+          toast.success('Link de recuperação enviado! Verifique seu e-mail.');
+          setIsRecovery(false);
+          setIsLogin(true);
+        } else {
+          toast.error(result.error || 'Erro ao enviar link');
+        }
+      } else if (isLogin) {
         const result = await login(email, password);
         if (result.success) {
           toast.success('Login realizado com sucesso!');
@@ -169,17 +179,19 @@ export default function Auth() {
           <Card className="border-0 shadow-lg">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-2xl">
-                {isLogin ? 'Bem-vindo de volta!' : 'Criar sua conta'}
+                {isRecovery ? 'Recuperar Senha' : isLogin ? 'Bem-vindo de volta!' : 'Criar sua conta'}
               </CardTitle>
               <CardDescription>
-                {isLogin
+                {isRecovery
+                  ? 'Digite seu e-mail para receber o link de recuperação'
+                  : isLogin
                   ? 'Entre para acessar seu controle financeiro'
                   : 'Comece a controlar suas finanças hoje'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {!isLogin && (
+                {!isLogin && !isRecovery && (
                   <div className="space-y-2">
                     <Label htmlFor="name">Nome completo</Label>
                     <Input
@@ -203,19 +215,33 @@ export default function Auth() {
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  
-                  {/* Password strength indicator - only show on register */}
-                  {!isLogin && password.length > 0 && (
+                {!isRecovery && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Senha</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    
+                    {/* Forgot Password Link */}
+                    {isLogin && (
+                      <div className="text-right">
+                        <button
+                          type="button"
+                          onClick={() => setIsRecovery(true)}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          Esqueci minha senha
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Password strength indicator - only show on register */}
+                    {!isLogin && password.length > 0 && (
                     <div className="space-y-3 pt-2">
                       {/* Strength bar */}
                       <div className="space-y-1">
@@ -260,20 +286,30 @@ export default function Auth() {
                         })}
                       </div>
                     </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
                 <Button type="submit" size="lg" className="w-full bg-primary text-primary-foreground shadow hover:bg-primary/90" disabled={isSubmitting}>
-                  {isSubmitting ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
+                  {isSubmitting ? 'Aguarde...' : isRecovery ? 'Enviar Link' : isLogin ? 'Entrar' : 'Criar conta'}
                 </Button>
               </form>
 
               <div className="mt-6 text-center">
                 <button
                   type="button"
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={() => {
+                    if (isRecovery) {
+                      setIsRecovery(false);
+                      setIsLogin(true);
+                    } else {
+                      setIsLogin(!isLogin);
+                    }
+                  }}
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
-                  {isLogin ? (
+                  {isRecovery ? (
+                    <>Voltar para o login</>
+                  ) : isLogin ? (
                     <>
                       Não tem uma conta?{' '}
                       <span className="text-primary font-semibold">Cadastre-se</span>
