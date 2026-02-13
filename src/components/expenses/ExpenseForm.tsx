@@ -297,7 +297,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
         <form onSubmit={handleSubmit} className="p-5 grid grid-cols-2 gap-x-4 gap-y-4">
           
-          {/* Descrição (Full Width) */}
           <div className="col-span-2 space-y-1">
             <Label>Descrição</Label>
             <Input 
@@ -308,7 +307,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             />
           </div>
 
-          {/* Linha 1: Categoria | Subcategoria */}
           <div className="space-y-1">
             <Label>Categoria</Label>
             <Select value={categoryId} onValueChange={v => { setCategoryId(v); setSubcategoryId(''); }}>
@@ -332,7 +330,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </Select>
           </div>
 
-          {/* Linha 2: Vencimento | Valor */}
           <div className="space-y-1">
             <Label>Vencimento</Label>
             <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="h-9 rounded-sm" />
@@ -342,7 +339,23 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className="h-9 rounded-sm text-right font-medium" placeholder="R$ 0,00" />
           </div>
 
-          {/* Linha 3: Forma de Pagamento */}
+          <div className="space-y-1">
+            <Label>Status</Label>
+            <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/10">
+              <Switch checked={isPaid} onCheckedChange={handlePaidChange} />
+              <span className={cn("text-sm font-medium", isPaid ? "text-green-600" : "text-muted-foreground")}>{isPaid ? 'PAGO' : 'PENDENTE'}</span>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label>Recorrência</Label>
+            <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/10">
+              <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+              <span className="text-sm text-muted-foreground flex-1">Repetir?</span>
+              {isRecurring && <Input type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="h-7 w-14 text-center p-0 rounded-sm" />}
+            </div>
+          </div>
+
           <div className="space-y-1">
             <Label>Forma de Pagamento</Label>
             <Select value={paymentMethod} onValueChange={v => setPaymentMethod(v as PaymentMethod)}>
@@ -356,50 +369,31 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           </div>
           
           <div className="space-y-1">
-            {paymentMethod === 'credit_card' && (
+            {paymentMethod === 'credit_card' ? (
               <>
                 <Label>Cartão</Label>
                 <Select value={cardId} onValueChange={setCardId}>
-                  <SelectTrigger className="h-9 rounded-sm bg-muted/20"><SelectValue placeholder="Selecione o Cartão" /></SelectTrigger>
+                  <SelectTrigger className="h-9 rounded-sm"><SelectValue placeholder="Selecione o Cartão" /></SelectTrigger>
                   <SelectContent>{cards.map(c => <SelectItem key={c.id} value={c.id}>{c.brand} •••• {c.lastFourDigits}</SelectItem>)}</SelectContent>
                 </Select>
               </>
-            )}
-            {paymentMethod === 'account' && (
+            ) : paymentMethod === 'account' ? (
               <>
                 <Label>Conta</Label>
                 <Select value={accountId} onValueChange={setAccountId}>
-                  <SelectTrigger className="h-9 rounded-sm bg-muted/20"><SelectValue placeholder="Selecione a Conta" /></SelectTrigger>
+                  <SelectTrigger className="h-9 rounded-sm"><SelectValue placeholder="Selecione a Conta" /></SelectTrigger>
                   <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
                 </Select>
+              </>
+            ) : (
+              <>
+                <Label className={cn(!isPaid && "opacity-50")}>Data Pagamento</Label>
+                <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} disabled={!isPaid} className="h-9 rounded-sm" />
               </>
             )}
           </div>
 
-          {/* Linha 4: Status Pago | Data Pagamento */}
-          <div className="space-y-1">
-            <Label>Status</Label>
-            <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/10">
-              <Switch checked={isPaid} onCheckedChange={handlePaidChange} />
-              <span className={cn("text-sm font-medium", isPaid ? "text-green-600" : "text-muted-foreground")}>{isPaid ? 'PAGO' : 'PENDENTE'}</span>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className={cn(!isPaid && "opacity-50")}>Data Pagamento</Label>
-            <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} disabled={!isPaid} className="h-9 rounded-sm" />
-          </div>
-
-          {/* Linha 5: Recorrência | Data Lançamento */}
-          <div className="space-y-1">
-            <Label>Recorrência</Label>
-            <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/10">
-              <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
-              <span className="text-sm text-muted-foreground flex-1">Repetir?</span>
-              {isRecurring && <Input type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="h-7 w-14 text-center p-0 rounded-sm" />}
-            </div>
-          </div>
-
-          {/* Linha 6: Controle Visual (Full Width, Minimalist) */}
+          {/* Controle Visual */}
           <div className="col-span-2 flex items-center space-x-2 pt-2">
             <Switch id="visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} />
             <Label htmlFor="visual-control" className="text-sm font-normal text-muted-foreground cursor-pointer">Apenas controle visual (Não contabilizar nos totais)</Label>
