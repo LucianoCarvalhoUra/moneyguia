@@ -52,11 +52,11 @@ export default function Dashboard() {
   
   // Real balance (only paid expenses and received incomes)
   const paidExpensesTotal = monthlyExpenses
-    .filter(e => e.isPaid && !(e as any).excludeFromCalculations)
+    .filter(e => e.isPaid && !e.excludeFromCalculations)
     .reduce((acc, e) => acc + e.amount, 0);
   const receivedIncomesTotal = monthlyIncomes
     .filter(i => i.isReceived)
-    .reduce((acc, i) => acc + i.amount, 0);
+    .reduce((acc, i) => acc + i.amount, 0); // Incomes do not yet exclude
   const realBalance = receivedIncomesTotal - paidExpensesTotal;
   
   const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;

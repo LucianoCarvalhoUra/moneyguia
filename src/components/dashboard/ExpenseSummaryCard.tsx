@@ -20,7 +20,6 @@ export default function ExpenseSummaryCard({
   const percentChange = previousValue
     ? ((value - previousValue) / Math.abs(previousValue)) * 100
     : 0;
-  const isIncrease = percentChange > 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -32,35 +31,36 @@ export default function ExpenseSummaryCard({
   const icons = {
     expense: TrendingDown,
     income: TrendingUp,
-    balance: Wallet,
+    balance: Wallet
   };
 
   const Icon = icons[icon];
 
   const iconColors = {
     expense: 'bg-destructive/10 text-destructive',
-    income: 'bg-success/10 text-success',
+    income: 'bg-success/10 text-success', 
     balance: 'bg-primary/10 text-primary',
   };
 
   // For balance, show green if positive, red if negative
-  const getValueColor = () => {
+  const getValueColor = (): string => {
     if (icon === 'balance') {
       return value >= 0 ? 'text-success' : 'text-destructive';
     }
     if (icon === 'income') {
-      return 'text-success';
+      return 'text-green-600';
     }
     return 'text-foreground';
   };
 
   // For expense card, increase is bad (red), decrease is good (green)
   // For income/balance card, increase is good (green), decrease is bad (red)
-  const getChangeColor = () => {
+  const getChangeColor = (): string => {
+    const isIncrease = percentChange > 0;
     if (icon === 'expense') {
       return isIncrease ? 'text-destructive' : 'text-success';
     }
-    return isIncrease ? 'text-success' : 'text-destructive';
+    return isIncrease ? 'text-green-600' : 'text-destructive';
   };
 
   const getChangeIcon = () => {
@@ -79,7 +79,7 @@ export default function ExpenseSummaryCard({
   };
 
   return (
-    <Card className={cn('overflow-hidden', className)}>
+    <Card className={cn('overflow-hidden', className, icon === 'expense' ? 'border-l-red-500' : 'border-l-green-500')}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}

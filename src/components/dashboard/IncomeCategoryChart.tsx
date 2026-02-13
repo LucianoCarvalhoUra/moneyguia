@@ -54,7 +54,7 @@ export default function IncomeCategoryChart({ data, total }: IncomeCategoryChart
       </CardHeader>
       <CardContent>
         {chartData.length === 0 ? (
-          <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+          <div className="flex items-center justify-center h-[200px] text-muted-foreground"> 
             Sem dados para exibir
           </div>
         ) : (

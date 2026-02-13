@@ -53,7 +53,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       const [categoriesRes, subcategoriesRes, incomesRes] = await Promise.all([
         supabase.from('income_categories').select('*').eq('user_id', user.id),
         supabase.from('income_subcategories').select('*').eq('user_id', user.id),
-        supabase.from('incomes').select('*').eq('user_id', user.id).order('receive_date', { ascending: false }),
+        supabase.from('incomes').select('*, exclude_from_calculations').eq('user_id', user.id).order('receive_date', { ascending: false }),
       ]);
 
       if (categoriesRes.data && categoriesRes.data.length > 0) {
@@ -137,7 +137,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             isReceived: i.is_received ?? false,
             accountId: i.account_id || undefined,
             recurrenceId: (i as any).recurrence_id || undefined,
-            excludeFromCalculations: (i as any).exclude_from_calculations || false,
+            excludeFromCalculations: i.exclude_from_calculations ?? false,
             userId: i.user_id,
             createdAt: new Date(i.created_at),
           };
@@ -202,6 +202,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           is_received: income.isReceived ?? false,
           account_id: income.accountId || null,
           recurrence_id: recurrenceId,
+          exclude_from_calculations: income.excludeFromCalculations ?? false,
         });
       }
     } else {
@@ -249,6 +250,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           isReceived: i.is_received ?? false,
           accountId: i.account_id || undefined,
           recurrenceId: i.recurrence_id || undefined,
+          excludeFromCalculations: i.exclude_from_calculations ?? false,
           userId: i.user_id,
           createdAt: new Date(i.created_at),
         };
@@ -268,8 +270,8 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     if (incomeUpdate.description !== undefined) updateData.description = incomeUpdate.description || null;
     if (incomeUpdate.isRecurring !== undefined) updateData.is_recurring = incomeUpdate.isRecurring;
     if (incomeUpdate.isReceived !== undefined) updateData.is_received = incomeUpdate.isReceived;
-    if (incomeUpdate.accountId !== undefined) updateData.account_id = incomeUpdate.accountId || null;
     if (incomeUpdate.excludeFromCalculations !== undefined) updateData.exclude_from_calculations = incomeUpdate.excludeFromCalculations;
+    if (incomeUpdate.accountId !== undefined) updateData.account_id = incomeUpdate.accountId || null;
 
     const { error } = await supabase
       .from('incomes')
