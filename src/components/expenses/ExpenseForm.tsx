@@ -469,12 +469,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               {isRecurring && <Input type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="h-7 w-14 text-center p-0 rounded-sm" />}
             </div>
           </div>
-          <div className="space-y-1">
-            <Label>Controle Visual</Label>
-            <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/10">
-              <Switch checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} />
-              <span className="text-xs text-muted-foreground truncate" title="Não contabilizar nos totais">Não somar nos totais</span>
-            </div>
+
+          {/* Linha 6: Controle Visual (Full Width, Minimalist) */}
+          <div className="col-span-2 flex items-center space-x-2 pt-2">
+            <Switch id="visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} />
+            <Label htmlFor="visual-control" className="text-sm font-normal text-muted-foreground cursor-pointer">Apenas controle visual (Não contabilizar nos totais)</Label>
           </div>
 
           <DialogFooter className="col-span-2 pt-4 border-t mt-2">
