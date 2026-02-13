@@ -163,6 +163,9 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
   const addIncome = async (income: Omit<Income, 'id' | 'userId' | 'createdAt'>) => {
     if (!user) return;
     
+    // ID de usuário fixo para migração
+    const MIGRATION_USER_ID = '03c72f33-dd33-4210-9882-1caca6a6899d';
+
     // Gera recurrence_id se for recorrente
     const recurrenceId = income.isRecurring ? (income.recurrenceId || crypto.randomUUID()) : null;
     
@@ -187,7 +190,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         receiveDate.setMonth(receiveDate.getMonth() + i);
         
         incomesToInsert.push({
-          user_id: user.id,
+          user_id: MIGRATION_USER_ID,
           category_id: income.categoryId || null,
           subcategory_id: income.subcategoryId || null,
           title: income.title,
@@ -202,7 +205,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       }
     } else {
       incomesToInsert.push({
-        user_id: user.id,
+        user_id: MIGRATION_USER_ID,
         category_id: income.categoryId || null,
         subcategory_id: income.subcategoryId || null,
         title: income.title,
@@ -300,10 +303,13 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
   const addIncomeCategory = async (category: Omit<IncomeCategory, 'id' | 'userId'>) => {
     if (!user) return;
     
+    // ID de usuário fixo para migração
+    const MIGRATION_USER_ID = '03c72f33-dd33-4210-9882-1caca6a6899d';
+    
     const { data, error } = await supabase
       .from('income_categories')
       .insert({
-        user_id: user.id,
+        user_id: MIGRATION_USER_ID,
         name: category.name,
         icon: category.icon,
         color: category.color,
@@ -374,10 +380,13 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
   const addIncomeSubcategory = async (subcategory: Omit<IncomeSubcategory, 'id' | 'userId'>) => {
     if (!user) return;
     
+    // ID de usuário fixo para migração
+    const MIGRATION_USER_ID = '03c72f33-dd33-4210-9882-1caca6a6899d';
+    
     const { data, error } = await supabase
       .from('income_subcategories')
       .insert({
-        user_id: user.id,
+        user_id: MIGRATION_USER_ID,
         name: subcategory.name,
         category_id: subcategory.categoryId,
       })
