@@ -289,9 +289,10 @@ export default function Incomes() {
             <TableHeader>
               <TableRow>
                 <TableHead>Categoria</TableHead>
-                <TableHead className="hidden md:table-cell">Subcategoria</TableHead>
-                <TableHead>Recebimento</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Descrição</TableHead>
                 <TableHead>Valor</TableHead>
+                <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -315,19 +316,23 @@ export default function Incomes() {
                           <span>{category?.name || 'Sem categoria'}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">{subcategory?.name || '-'}</TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <div className={cn("flex items-center gap-2", isOverdue ? "text-destructive font-bold" : "text-muted-foreground")}>
-                            <Calendar className="w-4 h-4" />
-                            {format(receiveDate, 'dd/MM/yyyy')}
-                          </div>
-                          {isOverdue && <Badge variant="destructive" className="w-fit text-[10px] h-5 px-1.5">Atrasado</Badge>}
-                          {isReceived && <Badge variant="outline" className="w-fit text-[10px] h-5 px-1.5 bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">Recebido</Badge>}
-                          {!isReceived && !isOverdue && <Badge variant="outline" className="w-fit text-[10px] h-5 px-1.5 bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800">Pendente</Badge>}
+                        <div className={cn("flex items-center gap-2", isOverdue ? "text-destructive font-bold" : "text-muted-foreground")}>
+                          {format(receiveDate, 'dd/MM/yyyy')}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{income.title}</span>
+                          {subcategory && <span className="text-xs text-muted-foreground">{subcategory.name}</span>}
                         </div>
                       </TableCell>
                       <TableCell className={cn("font-medium", isReceived ? "text-green-600 dark:text-green-400" : "")}>{formatCurrency(income.amount)}</TableCell>
+                      <TableCell className="text-center">
+                        {isReceived && <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">Recebido</Badge>}
+                        {!isReceived && isOverdue && <Badge variant="destructive">Atrasado</Badge>}
+                        {!isReceived && !isOverdue && <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800">Pendente</Badge>}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button 
