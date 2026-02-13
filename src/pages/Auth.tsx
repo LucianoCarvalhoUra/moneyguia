@@ -73,7 +73,7 @@ export default function Auth() {
       if (isRecovery) {
         const result = await resetPassword(email);
         if (result.success) {
-          toast.success('Link de recuperação enviado! Verifique seu e-mail.');
+          toast.success('Um link foi enviado para seu e-mail para validar a nova senha');
           setIsRecovery(false);
           setIsLogin(true);
         } else {
@@ -290,7 +290,7 @@ export default function Auth() {
                   </div>
                 )}
                 <Button type="submit" size="lg" className="w-full bg-primary text-primary-foreground shadow hover:bg-primary/90" disabled={isSubmitting}>
-                  {isSubmitting ? 'Aguarde...' : isRecovery ? 'Enviar Link' : isLogin ? 'Entrar' : 'Criar conta'}
+                  {isSubmitting ? 'Aguarde...' : isRecovery ? 'Enviar Instruções' : isLogin ? 'Entrar' : 'Criar conta'}
                 </Button>
               </form>
 
