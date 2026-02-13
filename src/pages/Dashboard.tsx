@@ -52,7 +52,7 @@ export default function Dashboard() {
   
   // Real balance (only paid expenses and received incomes)
   const paidExpensesTotal = monthlyExpenses
-    .filter(e => e.isPaid)
+    .filter(e => e.isPaid && !(e as any).excludeFromCalculations)
     .reduce((acc, e) => acc + e.amount, 0);
   const receivedIncomesTotal = monthlyIncomes
     .filter(i => i.isReceived)
@@ -135,7 +135,7 @@ export default function Dashboard() {
     let wants = 0;
     let savings = 0; // Using 'long_term' as savings/debt for now
 
-    monthlyExpenses.forEach(e => {
+    monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).forEach(e => {
       // Try to find classification by category name (fallback) or ID if we had it
       // Since we stored by name in UnifiedCategoryManager for this demo:
       const catName = categoryTotals[e.categoryId] ? 'Unknown' : 'Unknown'; // We need category name
@@ -163,7 +163,7 @@ export default function Dashboard() {
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(selectedYear, selectedMonth, i);
       const dayIncomes = monthlyIncomes.filter(inc => new Date(inc.receiveDate).getDate() === i).reduce((s, c) => s + c.amount, 0);
-      const dayExpenses = monthlyExpenses.filter(exp => new Date(exp.dueDate).getDate() === i).reduce((s, c) => s + c.amount, 0);
+      const dayExpenses = monthlyExpenses.filter(exp => !(exp as any).excludeFromCalculations && new Date(exp.dueDate).getDate() === i).reduce((s, c) => s + c.amount, 0);
       data.push({ date: date.toISOString(), income: dayIncomes, expense: dayExpenses });
     }
     return data;

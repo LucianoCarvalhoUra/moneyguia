@@ -54,6 +54,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
+  const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -106,6 +107,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setIsRecurring(dataToLoad.isRecurring || false);
         setInstallments(dataToLoad.installments?.toString() || '1');
         setLaunchDate(dataToLoad.expenseDate ? formatToInput(dataToLoad.expenseDate) : today);
+        setExcludeFromCalculations((dataToLoad as any).excludeFromCalculations || false);
       } else {
         // Reset
         setDescription('');
@@ -121,6 +123,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setIsRecurring(false);
         setInstallments('1');
         setLaunchDate(today);
+        setExcludeFromCalculations(false);
       }
     }
   }, [open, expense, initialData]);
@@ -283,7 +286,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         is_paid: isPaid,
         is_recurring: isRecurring,
         installments: isRecurring ? parseInt(installments) : null,
-        user_id: user?.id
+        user_id: user?.id,
+        exclude_from_calculations: excludeFromCalculations
       };
 
       if (expense) {
@@ -461,6 +465,14 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           <div className="space-y-1">
             <Label>Data Lançamento</Label>
             <Input type="date" value={launchDate} onChange={e => setLaunchDate(e.target.value)} className="h-9 rounded-sm" />
+          </div>
+
+          {/* Linha 6: Controle Visual */}
+          <div className="col-span-2 space-y-1">
+            <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/10">
+              <Switch checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} />
+              <span className="text-sm text-muted-foreground">Apenas controle visual (Não contabilizar nos totais)</span>
+            </div>
           </div>
 
           <DialogFooter className="col-span-2 pt-4 border-t mt-2">

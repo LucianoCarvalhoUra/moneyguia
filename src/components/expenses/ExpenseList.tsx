@@ -3,13 +3,15 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, ChevronLeft, ChevronRight, Pencil, Trash2, Copy, Check, Clock } from 'lucide-react';
-import { Expense, PAYMENT_METHOD_LABELS } from '@/types/finance';
+import { Plus, ChevronLeft, ChevronRight, Pencil, Trash2, Copy, EyeOff } from 'lucide-react';
+import { Expense } from '@/types/finance';
 import ExpenseForm from './ExpenseForm';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { toast } from 'sonner';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function ExpenseList() {
   const { getMonthlyExpenses, getMonthlyTotal, removeExpense, updateExpense, getCategoryById, getSubcategoryById } = useFinance();
@@ -121,77 +123,75 @@ export default function ExpenseList() {
           {expenses.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">Nenhuma despesa neste mês.</div>
           ) : (
-            <div className="min-w-[1000px]">
-              <div className="grid grid-cols-[1.5fr_1.5fr_120px_2fr_1fr_100px_120px] gap-4 px-6 py-3 border-b bg-muted/30 text-sm font-medium text-muted-foreground">
-                <div className="font-semibold">Categoria</div>
-                <div className="font-semibold">Subcategoria</div>
-                <div className="font-semibold">Vencimento</div>
-                <div className="font-semibold">Descrição</div>
-                <div className="font-semibold">Valor</div>
-                <div className="text-center font-semibold">Status</div>
-                <div className="text-right font-semibold">Ações</div>
-              </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Subcategoria</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {expenses.map((expense) => {
+                  const category = getCategoryById(expense.categoryId);
+                  const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
 
-              <div className="divide-y">
-              {expenses.map((expense) => {
-                const category = getCategoryById(expense.categoryId);
-                const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
-
-                return (
-                  <div key={expense.id} className={cn("grid grid-cols-[1.5fr_1.5fr_120px_2fr_1fr_100px_120px] gap-4 items-center px-6 py-4 hover:bg-muted/50 transition-colors group", expense.isPaid ? "opacity-75" : "")}>
-                    {/* Categoria */}
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className={cn('w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0', category?.color ? `bg-${category.color}/15` : 'bg-muted/50')}>
-                        <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
-                      </div>
-                      <span className="font-medium truncate">{category?.name}</span>
-                    </div>
-                    
-                    {/* Subcategoria */}
-                    <div className="text-sm text-muted-foreground truncate">
-                      {subcategory?.name || '-'}
-                    </div>
-
-                    {/* Vencimento */}
-                    <div className="text-sm">
-                      {expense.dueDate ? expense.dueDate.toLocaleDateString('pt-BR') : '-'}
-                    </div>
-
-                    {/* Descrição */}
-                    <div className={cn("text-sm truncate font-medium", expense.isPaid && "line-through text-muted-foreground")}>
-                      {expense.description}
-                    </div>
-
-                    {/* Valor */}
-                    <div className="font-bold text-sm">
-                      {formatCurrency(expense.amount)}
-                    </div>
-
-                    {/* Status */}
-                    <div className="flex justify-center">
-                      {expense.isPaid ? 
-                        <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Pago</Badge> : 
-                        <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">Pendente</Badge>
-                      }
-                    </div>
-
-                    {/* Ações */}
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity w-[120px]">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(expense)} title="Copiar">
-                        <Copy className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(expense)} title="Editar">
-                        <Pencil className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(expense.id)} title="Excluir">
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-              </div>
-            </div>
+                  return (
+                    <TableRow key={expense.id} className={cn(expense.isPaid ? "opacity-75" : "")}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={cn('w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0', category?.color ? `bg-${category.color}/15` : 'bg-muted/50')}>
+                            <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
+                          </div>
+                          <span className="truncate">{category?.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{subcategory?.name || '-'}</TableCell>
+                      <TableCell>{expense.dueDate ? expense.dueDate.toLocaleDateString('pt-BR') : '-'}</TableCell>
+                      <TableCell className={cn("font-medium", expense.isPaid && "line-through text-muted-foreground")}>
+                        <div className="flex items-center gap-2">
+                          {expense.description}
+                          {(expense as any).excludeFromCalculations && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger><EyeOff className="w-3 h-3 text-muted-foreground" /></TooltipTrigger>
+                                <TooltipContent>Não contabilizado no saldo</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-bold">
+                        {formatCurrency(expense.amount)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {expense.isPaid ? 
+                          <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Pago</Badge> : 
+                          <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">Pendente</Badge>
+                        }
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(expense)} title="Copiar">
+                            <Copy className="w-4 h-4 text-muted-foreground" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(expense)} title="Editar">
+                            <Pencil className="w-4 h-4 text-muted-foreground" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(expense.id)} title="Excluir">
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

@@ -50,6 +50,7 @@ export interface Expense {
   recurrenceId?: string;
   userId: string;
   createdAt: Date;
+  excludeFromCalculations?: boolean;
 }
 
 export interface User {

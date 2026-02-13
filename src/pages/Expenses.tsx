@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, isBefore, startOfDay } from 'date-fns';
+import { format, isBefore, startOfDay, parseISO } from 'date-fns';
 import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -32,6 +32,8 @@ import ExpenseForm from '@/components/expenses/ExpenseForm';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { Expense } from '@/types/finance';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { EyeOff } from 'lucide-react';
 
 export default function Expenses() {
   const location = useLocation();
@@ -296,7 +298,7 @@ export default function Expenses() {
         <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Total de Despesas ({months[selectedMonth].label}/{selectedYear})</p>
-            <p className="text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrency(filteredExpenses.reduce((acc, curr) => acc + curr.amount, 0))}</p>
+            <p className="text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrency(filteredExpenses.filter(e => !(e as any).excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
           <div className="text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-full border">{filteredExpenses.length} registro(s) encontrado(s)</div>
         </CardContent>
@@ -331,7 +333,17 @@ export default function Expenses() {
                     <TableRow key={expense.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", category?.color ? `bg-${category.color}/10` : "bg-muted")}>
+                          {(expense as any).excludeFromCalculations && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <EyeOff className="w-4 h-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>Não contabilizado no saldo</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0", category?.color ? `bg-${category.color}/10` : "bg-muted")}>
                             <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
                           </div>
                           <span>{category?.name || 'Sem categoria'}</span>
