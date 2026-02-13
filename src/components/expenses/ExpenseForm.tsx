@@ -207,10 +207,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     
     setIsSubmitting(true);
     try {
-      if (scope === 'single') {
-        const { error } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
-        if (error) throw error;
-      } else {
+      // 1. Atualiza a despesa atual (sempre) para garantir que datas e dados estejam corretos
+      const { error: singleError } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
+      if (singleError) throw singleError;
+
+      if (scope !== 'single') {
         // Ensure we have a recurrence_id (fix legacy data if needed)
         const recurrenceId = await ensureRecurrenceId();
         
@@ -224,12 +225,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         
         // Remove date fields from batch to preserve individual dates
         const { due_date, expense_date, ...batchData } = pendingData;
-        let query = supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId);
+        let query = supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId).neq('id', expense.id);
 
         if (scope === 'future') {
-          const dueDate = expense.dueDate instanceof Date
-            ? `${expense.dueDate.getFullYear()}-${String(expense.dueDate.getMonth() + 1).padStart(2, '0')}-${String(expense.dueDate.getDate()).padStart(2, '0')}`
-            : String(expense.dueDate).split('T')[0];
+          // Data de Âncora Correta: Usa a nova data selecionada no formulário
+          const dueDate = pendingData.due_date;
           console.log('[BatchUpdate] Anchor date for future:', dueDate);
           query = query.gte('due_date', dueDate);
         }
@@ -239,6 +239,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       }
 
       toast.success('Despesas atualizadas com sucesso!');
+      
+      // Pequeno delay para evitar erro de conexão interrompida
+      await new Promise(resolve => setTimeout(resolve, 300));
       await refreshData();
       onOpenChange(false);
     } catch (error: any) {
