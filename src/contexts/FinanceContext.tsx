@@ -647,7 +647,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const getTotalByCategory = (year: number, month: number) => {
     const monthlyExpenses = getMonthlyExpenses(year, month);
-    return monthlyExpenses.reduce((acc, expense) => {
+    return monthlyExpenses.filter(e => !e.excludeFromCalculations).reduce((acc, expense) => {
       acc[expense.categoryId] = (acc[expense.categoryId] || 0) + expense.amount;
       return acc;
     }, {} as Record<string, number>);
@@ -655,7 +655,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const getMonthlyTotal = (year: number, month: number) => {
     const monthlyExpenses = getMonthlyExpenses(year, month);
-    return monthlyExpenses.reduce((acc, expense) => acc + expense.amount, 0);
+    return monthlyExpenses.filter(e => !e.excludeFromCalculations).reduce((acc, expense) => acc + expense.amount, 0);
   };
 
   const getCategoryById = (id: string) => {

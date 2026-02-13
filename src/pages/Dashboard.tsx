@@ -55,8 +55,8 @@ export default function Dashboard() {
     .filter(e => e.isPaid && !e.excludeFromCalculations)
     .reduce((acc, e) => acc + e.amount, 0);
   const receivedIncomesTotal = monthlyIncomes
-    .filter(i => i.isReceived)
-    .reduce((acc, i) => acc + i.amount, 0); // Incomes do not yet exclude
+    .filter(i => i.isReceived && !i.excludeFromCalculations)
+    .reduce((acc, i) => acc + i.amount, 0);
   const realBalance = receivedIncomesTotal - paidExpensesTotal;
   
   const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
@@ -286,6 +286,7 @@ export default function Dashboard() {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Todas receitas ({formatCurrency(currentIncomeTotal)}) - Todas despesas ({formatCurrency(currentExpenseTotal)})
+                  Todas receitas ({formatCurrency(currentIncomeTotal)}) - Todas despesas ({formatCurrency(currentExpenseTotal)}) *
                 </p>
               </div>
             </div>
@@ -305,6 +306,7 @@ export default function Dashboard() {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Receitas recebidas ({formatCurrency(receivedIncomesTotal)}) - Despesas pagas ({formatCurrency(paidExpensesTotal)})
+                  Receitas recebidas ({formatCurrency(receivedIncomesTotal)}) - Despesas pagas ({formatCurrency(paidExpensesTotal)}) *
                 </p>
               </div>
             </div>

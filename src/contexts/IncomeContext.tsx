@@ -219,6 +219,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         is_received: income.isReceived ?? false,
         account_id: income.accountId || null,
         recurrence_id: recurrenceId,
+        exclude_from_calculations: income.excludeFromCalculations ?? false,
       });
     }
 
@@ -464,12 +465,12 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
 
   const getMonthlyIncomeTotal = (year: number, month: number) => {
     const monthlyIncomes = getMonthlyIncomes(year, month);
-    return monthlyIncomes.reduce((acc, income) => acc + income.amount, 0);
+    return monthlyIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, income) => acc + income.amount, 0);
   };
 
   const getIncomeTotalByCategory = (year: number, month: number) => {
     const monthlyIncomes = getMonthlyIncomes(year, month);
-    return monthlyIncomes.reduce((acc, income) => {
+    return monthlyIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, income) => {
       acc[income.categoryId] = (acc[income.categoryId] || 0) + income.amount;
       return acc;
     }, {} as Record<string, number>);
