@@ -69,7 +69,7 @@ const AppRoutes = () => (
     <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
     <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-    <Route path="/reset-password" element={<ProtectedRoute><ResetPassword /></ProtectedRoute>} />
+    <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
