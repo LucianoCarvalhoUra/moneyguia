@@ -25,13 +25,14 @@ import {
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, isBefore, startOfDay } from 'date-fns';
-import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Check, Copy } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Check, Copy, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import IncomeForm from '@/components/income/IncomeForm';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { Income } from '@/types/income';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function Incomes() {
   const location = useLocation();
@@ -277,7 +278,7 @@ export default function Incomes() {
         <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Total de Receitas ({months[selectedMonth].label}/{selectedYear})</p>
-            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.reduce((acc, curr) => acc + curr.amount, 0))}</p>
+            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
           <div className="text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-full border">{filteredIncomes.length} registro(s) encontrado(s)</div>
         </CardContent>
@@ -312,6 +313,16 @@ export default function Incomes() {
                     <TableRow key={income.id}>
                       <TableCell className="font-medium">
                          <div className="flex items-center gap-2">
+                          {income.excludeFromCalculations && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <EyeOff className="w-4 h-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>Não contabilizado no saldo</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                           <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", category?.color ? `bg-${category.color}/10` : "bg-muted")}><CategoryIcon iconName={category?.icon || 'Wallet'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} /></div>
                           <span>{category?.name || 'Sem categoria'}</span>
                         </div>

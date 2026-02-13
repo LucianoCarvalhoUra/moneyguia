@@ -312,14 +312,15 @@ export default function Expenses() {
               <TableRow>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Vencimento</TableHead>
-                <TableHead className="hidden md:table-cell">Subcategoria</TableHead>
+                <TableHead>Descrição</TableHead>
                 <TableHead>Valor</TableHead>
+                <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredExpenses.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>
               ) : (
                 filteredExpenses.map((expense) => {
                     const category = categories.find(c => c.id === expense.categoryId);
@@ -350,18 +351,23 @@ export default function Expenses() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span className={cn("text-sm", isOverdue ? "text-destructive font-bold" : "text-muted-foreground")}>
-                            {format(dueDate, 'dd/MM/yyyy')}
-                          </span>
-                          {isPaid && <Badge variant="outline" className="w-fit text-[10px] h-5 px-1.5 bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">Pago</Badge>}
-                          {!isPaid && isOverdue && <Badge variant="destructive" className="w-fit text-[10px] h-5 px-1.5">Atrasado</Badge>}
-                          {!isPaid && !isOverdue && <Badge variant="outline" className="w-fit text-[10px] h-5 px-1.5 bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800">Pendente</Badge>}
+                        <span className={cn("text-sm", isOverdue ? "text-destructive font-bold" : "text-muted-foreground")}>
+                          {format(dueDate, 'dd/MM/yyyy')}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{expense.description}</span>
+                          {subcategory && <span className="text-xs text-muted-foreground">{subcategory.name}</span>}
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">{subcategory?.name || '-'}</TableCell>
                       <TableCell className={cn("font-medium", isOverdue ? "text-destructive font-bold" : isPaid ? "text-green-600 dark:text-green-400" : "")}>
                         {formatCurrency(expense.amount)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {isPaid && <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">Pago</Badge>}
+                        {!isPaid && isOverdue && <Badge variant="destructive">Atrasado</Badge>}
+                        {!isPaid && !isOverdue && <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800">Pendente</Badge>}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

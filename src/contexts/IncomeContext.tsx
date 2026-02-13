@@ -137,6 +137,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             isReceived: i.is_received ?? false,
             accountId: i.account_id || undefined,
             recurrenceId: (i as any).recurrence_id || undefined,
+            excludeFromCalculations: (i as any).exclude_from_calculations || false,
             userId: i.user_id,
             createdAt: new Date(i.created_at),
           };
@@ -268,6 +269,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     if (incomeUpdate.isRecurring !== undefined) updateData.is_recurring = incomeUpdate.isRecurring;
     if (incomeUpdate.isReceived !== undefined) updateData.is_received = incomeUpdate.isReceived;
     if (incomeUpdate.accountId !== undefined) updateData.account_id = incomeUpdate.accountId || null;
+    if (incomeUpdate.excludeFromCalculations !== undefined) updateData.exclude_from_calculations = incomeUpdate.excludeFromCalculations;
 
     const { error } = await supabase
       .from('incomes')
