@@ -4,7 +4,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp, AlertTriangle, X } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp, AlertTriangle, X, Eye } from 'lucide-react';
 import CategoryChart from '@/components/dashboard/CategoryChart';
 import RecentExpenses from '@/components/dashboard/RecentExpenses';
 import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
@@ -58,6 +58,10 @@ export default function Dashboard() {
     .filter(i => i.isReceived && !i.excludeFromCalculations)
     .reduce((acc, i) => acc + i.amount, 0);
   const realBalance = receivedIncomesTotal - paidExpensesTotal;
+
+  const visualExpensesTotal = monthlyExpenses
+    .filter(e => e.excludeFromCalculations)
+    .reduce((acc, e) => acc + e.amount, 0);
   
   const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
   const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
@@ -272,7 +276,7 @@ export default function Dashboard() {
       </div>
 
       {/* Balance Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className={projectedBalance >= 0 ? 'border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background' : 'border-warning/50 bg-warning/5'}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -285,8 +289,7 @@ export default function Dashboard() {
                   {formatCurrency(projectedBalance)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Todas receitas ({formatCurrency(currentIncomeTotal)}) - Todas despesas ({formatCurrency(currentExpenseTotal)})
-                  Todas receitas ({formatCurrency(currentIncomeTotal)}) - Todas despesas ({formatCurrency(currentExpenseTotal)}) *
+                  Receitas - Despesas (Contabilizadas)
                 </p>
               </div>
             </div>
@@ -305,8 +308,47 @@ export default function Dashboard() {
                   {formatCurrency(realBalance)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Receitas recebidas ({formatCurrency(receivedIncomesTotal)}) - Despesas pagas ({formatCurrency(paidExpensesTotal)})
-                  Receitas recebidas ({formatCurrency(receivedIncomesTotal)}) - Despesas pagas ({formatCurrency(paidExpensesTotal)}) *
+                  Receitas - Despesas (Contabilizadas)
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Receitas Totais */}
+        <Card className="border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-background">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400">
+                <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Receitas Totais</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {formatCurrency(currentIncomeTotal)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total contabilizado
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Despesas Visuais */}
+        <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50 to-white dark:from-slate-950/20 dark:to-background">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-900/50 dark:text-slate-400">
+                <Eye className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Controle Extra</p>
+                <p className="text-2xl font-bold text-slate-600 dark:text-slate-400">
+                  {formatCurrency(visualExpensesTotal)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Despesas apenas visuais
                 </p>
               </div>
             </div>
