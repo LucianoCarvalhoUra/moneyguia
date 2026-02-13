@@ -114,6 +114,7 @@ export type Database = {
           current_installment: number | null
           description: string
           due_date: string
+          exclude_from_calculations: boolean | null
           expense_date: string
           id: string
           installments: number | null
@@ -135,6 +136,7 @@ export type Database = {
           current_installment?: number | null
           description: string
           due_date: string
+          exclude_from_calculations?: boolean | null
           expense_date: string
           id?: string
           installments?: number | null
@@ -156,6 +158,7 @@ export type Database = {
           current_installment?: number | null
           description?: string
           due_date?: string
+          exclude_from_calculations?: boolean | null
           expense_date?: string
           id?: string
           installments?: number | null
