@@ -24,8 +24,6 @@ import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays } from 'lucide-r
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 
-// ExpenseForm component
-
 interface ExpenseFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,7 +33,6 @@ interface ExpenseFormProps {
 
 export default function ExpenseForm({ open, onOpenChange, expense, initialData }: ExpenseFormProps) {
   const { refreshData, categories, subcategories, accounts, cards, removeExpense } = useFinance();
-  // --- State ---
   
   // --- State ---
   const [description, setDescription] = useState('');
@@ -54,13 +51,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
-  const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
     if (!dateVal) return "";
     if (dateVal instanceof Date) return format(dateVal, 'yyyy-MM-dd');
-    // Garante YYYY-MM-DD ignorando timezones
     const str = String(dateVal);
     return str.includes('T') ? str.split('T')[0] : str;
   };
@@ -87,12 +82,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     if (open) {
       const today = getTodayString();
       const dataToLoad = expense || initialData;
-      console.log('INITIAL_DATA_RECONHECIDO:', dataToLoad);
       
       if (dataToLoad) {
         setDescription(dataToLoad.description || '');
         
-        // Mapeamento robusto para IDs (camelCase ou snake_case)
         const catId = dataToLoad.categoryId || (dataToLoad as any).category_id || '';
         setCategoryId(catId);
         setSubcategoryId(dataToLoad.subcategoryId || (dataToLoad as any).subcategory_id || '');
@@ -107,7 +100,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setIsRecurring(dataToLoad.isRecurring || false);
         setInstallments(dataToLoad.installments?.toString() || '1');
         setLaunchDate(dataToLoad.expenseDate ? formatToInput(dataToLoad.expenseDate) : today);
-        setExcludeFromCalculations((dataToLoad as any).excludeFromCalculations || false);
       } else {
         // Reset
         setDescription('');
@@ -123,7 +115,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setIsRecurring(false);
         setInstallments('1');
         setLaunchDate(today);
-        setExcludeFromCalculations(false);
       }
     }
   }, [open, expense, initialData]);
@@ -152,59 +143,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     }
   };
 
-  const getBaseDescription = (desc: string): string => {
-    // Remove " (X/Y)" suffix to get the base description for grouping
-    return desc.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
-  };
-
-  const ensureRecurrenceId = async (): Promise<string | null> => {
-    let recurrenceId = expense?.recurrenceId || (expense as any)?.recurrence_id;
-    
-    if (recurrenceId) return recurrenceId;
-    
-    // No recurrence_id exists - generate one and assign to all related expenses
-    if (!expense) return null;
-    
-    const baseDesc = getBaseDescription(expense.description);
-    const newRecurrenceId = crypto.randomUUID();
-    
-    console.log('[RecurrenceId Fix] Base description:', baseDesc, '| New ID:', newRecurrenceId);
-    
-    // Find all expenses with matching base description pattern, same user, and is_recurring
-    const { data: relatedExpenses, error: fetchError } = await supabase
-      .from('expenses')
-      .select('id, description')
-      .eq('user_id', expense.userId)
-      .eq('is_recurring', true)
-      .is('recurrence_id', null);
-    
-    if (fetchError) {
-      console.error('[RecurrenceId Fix] Error fetching related:', fetchError);
-      return null;
-    }
-    
-    // Filter by matching base description
-    const matchingIds = (relatedExpenses || [])
-      .filter(e => getBaseDescription(e.description) === baseDesc)
-      .map(e => e.id);
-    
-    console.log('[RecurrenceId Fix] Found', matchingIds.length, 'matching expenses');
-    
-    if (matchingIds.length > 0) {
-      const { error: updateError } = await supabase
-        .from('expenses')
-        .update({ recurrence_id: newRecurrenceId })
-        .in('id', matchingIds);
-      
-      if (updateError) {
-        console.error('[RecurrenceId Fix] Error assigning recurrence_id:', updateError);
-        return null;
-      }
-    }
-    
-    return newRecurrenceId;
-  };
-
   const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
     if (!expense || !pendingData) return;
     
@@ -215,8 +153,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       if (singleError) throw singleError;
 
       if (scope !== 'single') {
-        // Ensure we have a recurrence_id (fix legacy data if needed)
-        const recurrenceId = await ensureRecurrenceId();
+        const recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
         
         if (!recurrenceId) {
           toast.error("Não foi possível identificar a série de recorrência.");
@@ -224,16 +161,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           return;
         }
         
-        console.log('[BatchUpdate] Scope:', scope, '| recurrence_id:', recurrenceId);
-        
         // Remove date fields from batch to preserve individual dates
         const { due_date, expense_date, ...batchData } = pendingData;
         let query = supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId).neq('id', expense.id);
 
         if (scope === 'future') {
-          // Data de Âncora Correta: Usa a nova data selecionada no formulário
           const dueDate = pendingData.due_date;
-          console.log('[BatchUpdate] Anchor date for future:', dueDate);
           query = query.gte('due_date', dueDate);
         }
 
@@ -242,8 +175,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       }
 
       toast.success('Despesas atualizadas com sucesso!');
-      
-      // Pequeno delay para evitar erro de conexão interrompida
       await new Promise(resolve => setTimeout(resolve, 300));
       await refreshData();
       onOpenChange(false);
@@ -269,8 +200,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     setIsSubmitting(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
-      
-      // Regra de Ouro: Datas como strings puras
       const finalExpenseDate = isPaid ? paymentDate : launchDate;
 
       const payload = {
@@ -287,11 +216,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         is_recurring: isRecurring,
         installments: isRecurring ? parseInt(installments) : null,
         user_id: user?.id,
-        exclude_from_calculations: excludeFromCalculations
+        // exclude_from_calculations: excludeFromCalculations // REMOVIDO TEMPORARIAMENTE
       };
 
       if (expense) {
-        // If recurring, always show scope dialog (ensureRecurrenceId handles legacy data)
         if (expense.isRecurring) {
           setPendingData(payload);
           setScopeDialogOpen(true);
@@ -303,13 +231,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         if (error) throw error;
         toast.success('Despesa atualizada!');
       } else {
-        // Criação
         if (isRecurring && parseInt(installments) > 1) {
            const newRecurrenceId = crypto.randomUUID();
            const newExpenses = [];
            const limit = parseInt(installments);
            const [y, m, d] = dueDate.split('-').map(Number);
-           // Cria data base para cálculo seguro de meses
            const startDate = new Date(y, m - 1, d, 12);
 
            for (let i = 0; i < limit; i++) {
@@ -348,7 +274,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] p-0 gap-0 overflow-hidden rounded-sm border-2">
+      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-sm border-2">
         <DialogHeader className="px-6 py-3 border-b bg-muted/10 flex flex-row items-center justify-between space-y-0">
           <DialogTitle className="text-lg font-semibold">
             {expense ? 'Editar Despesa' : 'Nova Despesa'}
@@ -468,12 +394,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               <span className="text-sm text-muted-foreground flex-1">Repetir?</span>
               {isRecurring && <Input type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="h-7 w-14 text-center p-0 rounded-sm" />}
             </div>
-          </div>
-
-          {/* Linha 6: Controle Visual (Full Width, Minimalist) */}
-          <div className="col-span-2 flex items-center space-x-2 pt-2">
-            <Switch id="visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} />
-            <Label htmlFor="visual-control" className="text-sm font-normal text-muted-foreground cursor-pointer">Apenas controle visual (Não contabilizar nos totais)</Label>
           </div>
 
           <DialogFooter className="col-span-2 pt-4 border-t mt-2">

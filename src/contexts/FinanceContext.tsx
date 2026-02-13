@@ -190,7 +190,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             isPaid: e.is_paid ?? false,
             recurrenceId: (e as any).recurrence_id || undefined,
             userId: e.user_id,
-            excludeFromCalculations: e.exclude_from_calculations ?? false,
+            // excludeFromCalculations: e.exclude_from_calculations ?? false, // REMOVIDO TEMPORARIAMENTE
             createdAt: new Date(e.created_at),
           } as unknown as Expense;
         }));
@@ -350,7 +350,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       current_installment: number | null;
       observation: string | null;
       recurrence_id: string | null;
-      exclude_from_calculations: boolean;
+      // exclude_from_calculations: boolean; // REMOVIDO TEMPORARIAMENTE
     }> = [];
     
     if (expense.isRecurring && expense.installments && expense.installments > 1) {
@@ -377,7 +377,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           current_installment: i + 1,
           observation: expense.observation || null,
           recurrence_id: recurrenceId,
-          exclude_from_calculations: expense.excludeFromCalculations || false,
+          // exclude_from_calculations: expense.excludeFromCalculations || false, // REMOVIDO TEMPORARIAMENTE
         });
       }
     } else {
@@ -397,7 +397,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         current_installment: expense.currentInstallment || null,
         observation: expense.observation || null,
         recurrence_id: recurrenceId,
-        exclude_from_calculations: expense.excludeFromCalculations || false,
+        // exclude_from_calculations: expense.excludeFromCalculations || false, // REMOVIDO TEMPORARIAMENTE
       });
     }
 
@@ -435,7 +435,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         isPaid: e.is_paid ?? false,
         recurrenceId: e.recurrence_id || undefined,
         userId: e.user_id,
-        excludeFromCalculations: e.exclude_from_calculations ?? false,
+        // excludeFromCalculations: e.exclude_from_calculations ?? false, // REMOVIDO TEMPORARIAMENTE
         createdAt: new Date(e.created_at),
       } as unknown as Expense));
       setExpenses(prev => [...newExpenses, ...prev]);
@@ -465,7 +465,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     if (expenseUpdate.currentInstallment !== undefined) updateData.current_installment = expenseUpdate.currentInstallment || null;
     if (expenseUpdate.observation !== undefined) updateData.observation = expenseUpdate.observation || null;
     if (expenseUpdate.isPaid !== undefined) updateData.is_paid = expenseUpdate.isPaid;
-    if (expenseUpdate.excludeFromCalculations !== undefined) updateData.exclude_from_calculations = expenseUpdate.excludeFromCalculations;
+    // if (expenseUpdate.excludeFromCalculations !== undefined) updateData.exclude_from_calculations = expenseUpdate.excludeFromCalculations; // REMOVIDO TEMPORARIAMENTE
 
     const { error } = await supabase
       .from('expenses')
@@ -647,7 +647,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const getTotalByCategory = (year: number, month: number) => {
     const monthlyExpenses = getMonthlyExpenses(year, month);
-    return monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).reduce((acc, expense) => {
+    return monthlyExpenses.reduce((acc, expense) => {
       acc[expense.categoryId] = (acc[expense.categoryId] || 0) + expense.amount;
       return acc;
     }, {} as Record<string, number>);
@@ -655,7 +655,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const getMonthlyTotal = (year: number, month: number) => {
     const monthlyExpenses = getMonthlyExpenses(year, month);
-    return monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).reduce((acc, expense) => acc + expense.amount, 0);
+    return monthlyExpenses.reduce((acc, expense) => acc + expense.amount, 0);
   };
 
   const getCategoryById = (id: string) => {
