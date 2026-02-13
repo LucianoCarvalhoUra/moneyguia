@@ -1,0 +1,1 @@
+ALTER TABLE public.incomes ADD COLUMN IF NOT EXISTS exclude_from_calculations boolean DEFAULT false;

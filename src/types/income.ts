@@ -26,6 +26,7 @@ export interface Income {
   isReceived: boolean;
   accountId?: string;
   recurrenceId?: string;
+  excludeFromCalculations?: boolean;
   userId: string;
   createdAt: Date;
 }

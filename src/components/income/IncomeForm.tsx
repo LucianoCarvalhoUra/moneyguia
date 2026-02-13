@@ -42,6 +42,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [amount, setAmount] = useState('');
   const [isReceived, setIsReceived] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
+  const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
@@ -88,6 +89,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setAmount(dataToLoad.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) : '');
         setIsReceived(dataToLoad.isReceived || false);
         setIsRecurring(dataToLoad.isRecurring || false);
+        setExcludeFromCalculations((dataToLoad as any).excludeFromCalculations || (dataToLoad as any).exclude_from_calculations || false);
       } else {
         // Reset
         setDescription('');
@@ -97,6 +99,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setAmount('');
         setIsReceived(false);
         setIsRecurring(false);
+        setExcludeFromCalculations(false);
       }
     }
   }, [open, income, initialData]);
@@ -181,6 +184,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         subcategory_id: subcategoryId || null,
         is_received: isReceived,
         is_recurring: isRecurring,
+        exclude_from_calculations: excludeFromCalculations,
       };
 
       if (income) {
@@ -304,6 +308,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
               <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
               <span className="text-sm text-muted-foreground flex-1">Repetir?</span>
             </div>
+          </div>
+
+          {/* Controle Visual */}
+          <div className="col-span-2 flex items-center space-x-2 pt-2">
+            <Switch id="income-visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} />
+            <Label htmlFor="income-visual-control" className="text-sm font-normal text-muted-foreground cursor-pointer">Apenas controle visual (Não contabilizar nos totais)</Label>
           </div>
 
           <DialogFooter className="col-span-2 pt-4 border-t mt-2">
