@@ -142,10 +142,15 @@ export default function Dashboard() {
     monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).forEach(e => {
       // Try to find classification by category name (fallback) or ID if we had it
       // Since we stored by name in UnifiedCategoryManager for this demo:
-      const catName = categoryTotals[e.categoryId] ? 'Unknown' : 'Unknown'; // We need category name
-      // Simplified logic: use heuristics if metadata missing
-      const meta = Object.values(metadata).find((m: any) => m.id === e.categoryId) as any;
-      const classification = meta?.classification || 'variable'; // Default
+      
+      // Priority 1: Direct classification on the expense (AI or manual)
+      let classification = (e as any).classificationType;
+
+      // Priority 2: Category metadata fallback
+      if (!classification || classification === 'variable') {
+        const meta = Object.values(metadata).find((m: any) => m.id === e.categoryId) as any;
+        classification = meta?.classification || 'variable';
+      }
 
       // Heuristic fallback if no metadata
       if (classification === 'essential') needs += e.amount;

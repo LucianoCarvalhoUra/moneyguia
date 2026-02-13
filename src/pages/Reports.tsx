@@ -81,6 +81,7 @@ export default function Reports() {
     // Add expenses
     if (recordType === 'all' || recordType === 'expense') {
       expenses.forEach(expense => {
+        if ((expense as any).excludeFromCalculations) return; // Blindagem de Gráficos
         const expenseDate = new Date(expense.expenseDate);
         if (expenseDate >= start && expenseDate <= end) {
           const category = getCategoryById(expense.categoryId || '');
@@ -106,6 +107,7 @@ export default function Reports() {
     // Add incomes
     if (recordType === 'all' || recordType === 'income') {
       incomes.forEach(income => {
+        if (income.excludeFromCalculations) return; // Blindagem de Gráficos
         const incomeDate = new Date(income.receiveDate);
         if (incomeDate >= start && incomeDate <= end) {
           const category = getIncomeCategoryById(income.categoryId || '');
@@ -148,6 +150,7 @@ export default function Reports() {
 
       // Single pass over incomes
       incomes.forEach(inc => {
+        if (inc.excludeFromCalculations) return;
         const d = new Date(inc.receiveDate);
         if (d.getFullYear() === currentYear) {
           monthlyData[d.getMonth()].Ganhos += inc.amount;
@@ -156,6 +159,7 @@ export default function Reports() {
 
       // Single pass over expenses
       expenses.forEach(exp => {
+        if ((exp as any).excludeFromCalculations) return;
         const d = new Date(exp.dueDate);
         if (d.getFullYear() === currentYear) {
           monthlyData[d.getMonth()].Gastos += exp.amount;
@@ -181,6 +185,7 @@ export default function Reports() {
 
       // Single pass over incomes
       incomes.forEach(inc => {
+        if (inc.excludeFromCalculations) return;
         const year = new Date(inc.receiveDate).getFullYear();
         if (annualData[year]) {
           annualData[year].Ganhos += inc.amount;
@@ -189,6 +194,7 @@ export default function Reports() {
 
       // Single pass over expenses
       expenses.forEach(exp => {
+        if ((exp as any).excludeFromCalculations) return;
         const year = new Date(exp.dueDate).getFullYear();
         if (annualData[year]) {
           annualData[year].Gastos += exp.amount;
@@ -215,6 +221,7 @@ export default function Reports() {
     let totalExpense = 0;
     const allDates: number[] = [];
     incomes.forEach(i => {
+      if (i.excludeFromCalculations) return;
       if (i.isReceived) totalReceived += i.amount;
       totalIncome += i.amount;
       const time = new Date(i.receiveDate).getTime();
@@ -222,6 +229,7 @@ export default function Reports() {
     });
 
     expenses.forEach(e => {
+      if ((e as any).excludeFromCalculations) return;
       if (e.isPaid) totalPaid += e.amount;
       totalExpense += e.amount;
       const time = new Date(e.expenseDate).getTime();
@@ -254,8 +262,8 @@ export default function Reports() {
   // Total Available Balance
   const totalAvailableBalance = useMemo(() => {
     if (!incomes || !expenses) return 0;
-    const totalReceived = incomes.filter(i => i.isReceived).reduce((sum, i) => sum + i.amount, 0);
-    const totalPaid = expenses.filter(e => e.isPaid).reduce((sum, e) => sum + e.amount, 0);
+    const totalReceived = incomes.filter(i => i.isReceived && !i.excludeFromCalculations).reduce((sum, i) => sum + i.amount, 0);
+    const totalPaid = expenses.filter(e => e.isPaid && !(e as any).excludeFromCalculations).reduce((sum, e) => sum + e.amount, 0);
     return totalReceived - totalPaid;
   }, [incomes, expenses]);
 
@@ -271,6 +279,7 @@ export default function Reports() {
     const getMonthExpenses = (offset: number) => {
       const d = new Date(currentYear, currentMonth + offset, 1);
       return expenses.filter(e => {
+        if ((e as any).excludeFromCalculations) return false;
         const ed = new Date(e.dueDate);
         return ed.getMonth() === d.getMonth() && ed.getFullYear() === d.getFullYear();
       });
@@ -306,6 +315,7 @@ export default function Reports() {
 
     // 2. Projection & Goals
     const currentMonthIncomes = incomes.filter(i => {
+      if (i.excludeFromCalculations) return false;
       const d = new Date(i.receiveDate);
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     }).reduce((sum, i) => sum + i.amount, 0);

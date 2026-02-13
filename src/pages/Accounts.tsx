@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -268,6 +269,7 @@ export default function Accounts() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Nova Conta Corrente</DialogTitle>
+            <DialogDescription>Preencha os dados da sua conta bancária.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddAccount} className="space-y-4">
             <div className="space-y-2">
@@ -319,6 +321,7 @@ export default function Accounts() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingCard ? 'Editar Cartão de Crédito' : 'Novo Cartão de Crédito'}</DialogTitle>
+            <DialogDescription>Informe os detalhes do seu cartão de crédito.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddCard} className="space-y-4">
             <div className="space-y-2">

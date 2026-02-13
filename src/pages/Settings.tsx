@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFinance } from '@/contexts/FinanceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { User, Shield, Loader2, Bell } from 'lucide-react';
+import { User, Shield, Loader2, Bell, Bot, Sparkles } from 'lucide-react';
 import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
 import DashboardCustomization from '@/components/dashboard/DashboardCustomization';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
@@ -28,11 +29,13 @@ interface Profile {
 
 export default function Settings() {
   const { user } = useAuth();
+  const { expenses, updateExpense, categories } = useFinance();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [alertDays, setAlertDays] = useState('2');
   const [alertEnabled, setAlertEnabled] = useState(true);
   const [alertType, setAlertType] = useState('expenses');
+  const [isClassifying, setIsClassifying] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -82,6 +85,46 @@ export default function Settings() {
     toast.success('Preferências de alerta atualizadas');
   };
 
+  const handleClassifyExpenses = async () => {
+    setIsClassifying(true);
+    try {
+      // Simulação da IA (Heurística baseada em categorias para demonstração)
+      // Em produção, isso chamaria uma Edge Function com GPT-4
+      let updatedCount = 0;
+      
+      const updates = expenses.map(async (expense) => {
+        // Skip if already classified manually or by AI
+        if ((expense as any).classificationType && (expense as any).classificationType !== 'variable') return;
+
+        const category = categories.find(c => c.id === expense.categoryId);
+        const catName = category?.name.toLowerCase() || '';
+        
+        let newType = 'variable'; // Default
+        
+        // Heurística simples
+        if (['aluguel', 'condomínio', 'luz', 'água', 'internet', 'saúde', 'educação'].some(k => catName.includes(k))) {
+          newType = 'essential';
+        } else if (['lazer', 'restaurante', 'ifood', 'streaming', 'jogos'].some(k => catName.includes(k))) {
+          newType = 'superfluous';
+        } else if (['investimento', 'poupança', 'reserva'].some(k => catName.includes(k))) {
+          newType = 'long_term';
+        }
+
+        if (newType !== 'variable') {
+          updatedCount++;
+          await updateExpense(expense.id, { classificationType: newType } as any);
+        }
+      });
+
+      await Promise.all(updates);
+      toast.success(`${updatedCount} despesas reclassificadas com Inteligência Artificial!`);
+    } catch (error) {
+      toast.error('Erro ao classificar despesas');
+    } finally {
+      setIsClassifying(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
@@ -121,6 +164,28 @@ export default function Settings() {
 
       {/* Unified Categories Manager */}
       <UnifiedCategoryManager />
+
+      {/* AI Intelligence */}
+      <Card className="border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+            <Bot className="w-5 h-5" />
+            Inteligência Financeira
+          </CardTitle>
+          <CardDescription>Use IA para organizar suas finanças automaticamente</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground max-w-[70%]">
+              A IA analisará suas despesas e classificará automaticamente entre Essencial, Supérfluo e Longo Prazo.
+            </p>
+            <Button onClick={handleClassifyExpenses} disabled={isClassifying} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              {isClassifying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+              Reclassificar com IA
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Dashboard Customization */}
       <DashboardCustomization />

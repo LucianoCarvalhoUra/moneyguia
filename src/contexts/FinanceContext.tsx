@@ -191,6 +191,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             recurrenceId: (e as any).recurrence_id || undefined,
             userId: e.user_id,
             excludeFromCalculations: e.exclude_from_calculations ?? false,
+            classificationType: (e as any).classification_type || 'variable',
+            recurrenceType: (e as any).recurrence_type || 'variable',
             createdAt: new Date(e.created_at),
           } as unknown as Expense;
         }));
@@ -466,6 +468,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     if (expenseUpdate.observation !== undefined) updateData.observation = expenseUpdate.observation || null;
     if (expenseUpdate.isPaid !== undefined) updateData.is_paid = expenseUpdate.isPaid;
     if (expenseUpdate.excludeFromCalculations !== undefined) updateData.exclude_from_calculations = expenseUpdate.excludeFromCalculations;
+    if ((expenseUpdate as any).classificationType !== undefined) updateData.classification_type = (expenseUpdate as any).classificationType;
+    if ((expenseUpdate as any).recurrenceType !== undefined) updateData.recurrence_type = (expenseUpdate as any).recurrenceType;
 
     const { error } = await supabase
       .from('expenses')
