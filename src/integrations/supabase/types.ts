@@ -114,6 +114,7 @@ export type Database = {
           current_installment: number | null
           description: string
           due_date: string
+          exclude_from_calculations: boolean | null
           expense_date: string
           id: string
           installments: number | null
@@ -135,6 +136,7 @@ export type Database = {
           current_installment?: number | null
           description: string
           due_date: string
+          exclude_from_calculations?: boolean | null
           expense_date: string
           id?: string
           installments?: number | null
@@ -156,6 +158,7 @@ export type Database = {
           current_installment?: number | null
           description?: string
           due_date?: string
+          exclude_from_calculations?: boolean | null
           expense_date?: string
           id?: string
           installments?: number | null
@@ -310,6 +313,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           description: string | null
+          exclude_from_calculations: boolean | null
           id: string
           is_received: boolean
           is_recurring: boolean
@@ -326,6 +330,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          exclude_from_calculations?: boolean | null
           id?: string
           is_received?: boolean
           is_recurring?: boolean
@@ -342,6 +347,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          exclude_from_calculations?: boolean | null
           id?: string
           is_received?: boolean
           is_recurring?: boolean
