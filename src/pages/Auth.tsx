@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -56,6 +56,7 @@ function getPasswordStrength(password: string): PasswordStrength {
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [isRecovery, setIsRecovery] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -65,15 +66,27 @@ export default function Auth() {
 
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
 
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(c => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
       if (isRecovery) {
+        if (cooldown > 0) {
+          setIsSubmitting(false);
+          return;
+        }
         const result = await resetPassword(email);
         if (result.success) {
           toast.success('Se o e-mail estiver cadastrado, você receberá instruções em breve. Verifique também sua caixa de Spam');
+          setCooldown(60);
           setIsRecovery(false);
           setIsLogin(true);
         } else {
@@ -289,8 +302,8 @@ export default function Auth() {
                     )}
                   </div>
                 )}
-                <Button type="submit" size="lg" className="w-full bg-primary text-primary-foreground shadow hover:bg-primary/90" disabled={isSubmitting}>
-                  {isSubmitting ? 'Aguarde...' : isRecovery ? 'Enviar Instruções' : isLogin ? 'Entrar' : 'Criar conta'}
+                <Button type="submit" size="lg" className="w-full bg-primary text-primary-foreground shadow hover:bg-primary/90" disabled={isSubmitting || (isRecovery && cooldown > 0)}>
+                  {isSubmitting ? 'Aguarde...' : isRecovery ? (cooldown > 0 ? `Aguarde ${cooldown}s` : 'Enviar Instruções') : isLogin ? 'Entrar' : 'Criar conta'}
                 </Button>
               </form>
 
