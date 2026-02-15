@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -282,6 +282,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           <DialogTitle className="text-lg font-semibold">
             {expense ? 'Editar Despesa' : 'Nova Despesa'}
           </DialogTitle>
+          <DialogDescription className="sr-only">Preencha os detalhes da transação abaixo.</DialogDescription>
           {expense && (
             <Button 
               type="button" 

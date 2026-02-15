@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -237,6 +237,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           <DialogTitle className="text-lg font-semibold">
             {income ? 'Editar Receita' : 'Nova Receita'}
           </DialogTitle>
+          <DialogDescription className="sr-only">Preencha os detalhes da transação abaixo.</DialogDescription>
           {income && (
             <Button 
               type="button" 
@@ -286,7 +287,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           <div className="space-y-1">
-            <Label>Data</Label>
+            <Label>Data de Recebimento</Label>
             <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} className="h-9 rounded-sm" />
           </div>
           <div className="space-y-1">
@@ -295,7 +296,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           <div className="space-y-1">
-            <Label>Status</Label>
+            <Label>Recebido</Label>
             <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/10">
               <Switch checked={isReceived} onCheckedChange={setIsReceived} />
               <span className={cn("text-sm font-medium", isReceived ? "text-green-600" : "text-muted-foreground")}>{isReceived ? 'RECEBIDO' : 'PENDENTE'}</span>
