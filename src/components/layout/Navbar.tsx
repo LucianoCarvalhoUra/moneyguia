@@ -19,7 +19,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/goals', label: 'Objetivos', icon: Target },
   { path: '/expenses', label: 'Despesas', icon: Receipt },
   { path: '/incomes', label: 'Receitas', icon: TrendingUp },
@@ -41,7 +41,7 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/dashboard" className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center">
               <Wallet className="w-5 h-5 text-primary-foreground" />
             </div>

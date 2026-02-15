@@ -17,7 +17,7 @@ import InvoiceReconciliation from "./pages/InvoiceReconciliation";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Goals from "./pages/Goals";
-import Welcome from "./pages/Welcome";
+import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -53,7 +53,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -62,9 +62,10 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-    <Route path="/welcome" element={<Welcome />} />
-    <Route path="/home" element={<Welcome />} />
-    <Route path="/" element={<Index />} />
+    <Route path="/" element={<LandingPage />} />
+    <Route path="/welcome" element={<LandingPage />} />
+    <Route path="/home" element={<LandingPage />} />
+    <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
     <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
     <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />
     <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />

@@ -96,7 +96,7 @@ export default function Auth() {
         const result = await login(email, password);
         if (result.success) {
           toast.success('Login realizado com sucesso!');
-          navigate('/');
+          navigate('/dashboard');
         } else {
           toast.error(result.error || 'Erro ao fazer login');
         }
@@ -114,7 +114,7 @@ export default function Auth() {
         const result = await register(name, email, password);
         if (result.success) {
           toast.success('Conta criada com sucesso!');
-          navigate('/');
+          navigate('/dashboard');
         } else {
           toast.error(result.error || 'Erro ao criar conta');
         }
