@@ -477,7 +477,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       .eq('id', id);
 
     if ((error as any)?.code === 'PGRST204') {
-      await supabase.rpc('reload_schema_cache');
       const retryResult = await supabase
         .from('expenses')
         .update(updateData)
