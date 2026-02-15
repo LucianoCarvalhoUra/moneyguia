@@ -17,6 +17,7 @@ import InvoiceReconciliation from "./pages/InvoiceReconciliation";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Goals from "./pages/Goals";
+import Welcome from "./pages/Welcome";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -61,6 +62,8 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+    <Route path="/welcome" element={<Welcome />} />
+    <Route path="/home" element={<Welcome />} />
     <Route path="/" element={<Index />} />
     <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
     <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />
