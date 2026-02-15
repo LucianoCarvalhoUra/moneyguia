@@ -4,7 +4,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp, AlertTriangle, X, Eye } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp, TrendingDown, AlertTriangle, X, Eye } from 'lucide-react';
 import CategoryChart from '@/components/dashboard/CategoryChart';
 import RecentExpenses from '@/components/dashboard/RecentExpenses';
 import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
@@ -45,9 +45,16 @@ export default function Dashboard() {
     return date.getFullYear() === selectedYear && date.getMonth() === selectedMonth;
   });
 
-  // Total expenses/incomes (projected - all items)
-  const currentExpenseTotal = getMonthlyTotal(selectedYear, selectedMonth);
-  const currentIncomeTotal = getMonthlyIncomeTotal(selectedYear, selectedMonth);
+  const accountedExpensesTotal = monthlyExpenses
+    .filter(e => !e.excludeFromCalculations)
+    .reduce((acc, e) => acc + e.amount, 0);
+  const accountedIncomesTotal = monthlyIncomes
+    .filter(i => !i.excludeFromCalculations)
+    .reduce((acc, i) => acc + i.amount, 0);
+
+  // Total expenses/incomes (projected - only contabilized items)
+  const currentExpenseTotal = accountedExpensesTotal;
+  const currentIncomeTotal = accountedIncomesTotal;
   const projectedBalance = currentIncomeTotal - currentExpenseTotal;
   
   // Real balance (only paid expenses and received incomes)
@@ -62,6 +69,10 @@ export default function Dashboard() {
   const visualExpensesTotal = monthlyExpenses
     .filter(e => e.excludeFromCalculations)
     .reduce((acc, e) => acc + e.amount, 0);
+  const visualIncomesTotal = monthlyIncomes
+    .filter(i => i.excludeFromCalculations)
+    .reduce((acc, i) => acc + i.amount, 0);
+  const controlExtraTotal = visualExpensesTotal + visualIncomesTotal;
   
   const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
   const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
@@ -290,8 +301,8 @@ export default function Dashboard() {
       </div>
 
       {/* Balance Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className={projectedBalance >= 0 ? 'border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background' : 'border-warning/50 bg-warning/5'}>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <Card className={projectedBalance >= 0 ? 'order-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background' : 'order-2 border-warning/50 bg-warning/5'}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className={`p-3 rounded-xl ${projectedBalance >= 0 ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-warning/10 text-warning'}`}>
@@ -310,7 +321,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className={realBalance >= 0 ? 'border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-background' : 'border-destructive/50 bg-destructive/5'}>
+        <Card className={realBalance >= 0 ? 'order-1 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-background' : 'order-1 border-destructive/50 bg-destructive/5'}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className={`p-3 rounded-xl ${realBalance >= 0 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400' : 'bg-destructive/10 text-destructive'}`}>
@@ -330,7 +341,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Receitas Totais */}
-        <Card className="border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-background">
+        <Card className="order-3 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-background">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-xl bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400">
@@ -349,8 +360,26 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Despesas Visuais */}
-        <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50 to-white dark:from-slate-950/20 dark:to-background">
+        <Card className="order-4 border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-background">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">
+                <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Despesas Totais</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                  {formatCurrency(currentExpenseTotal)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Apenas não excluÃ­das
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="order-5 border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50 to-white dark:from-slate-950/20 dark:to-background">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-900/50 dark:text-slate-400">
@@ -359,10 +388,10 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm text-muted-foreground">Controle Extra</p>
                 <p className="text-2xl font-bold text-slate-600 dark:text-slate-400">
-                  {formatCurrency(visualExpensesTotal)}
+                  {formatCurrency(controlExtraTotal)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Despesas apenas visuais
+                  Receitas + despesas visuais
                 </p>
               </div>
             </div>
@@ -408,3 +437,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
