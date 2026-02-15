@@ -110,7 +110,6 @@ export type Database = {
           amount: number
           card_id: string | null
           category_id: string | null
-          classification_type: string | null
           created_at: string
           current_installment: number | null
           description: string
@@ -123,7 +122,6 @@ export type Database = {
           is_recurring: boolean
           observation: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
-          recurrence_type: string | null
           recurrence_id: string | null
           subcategory_id: string | null
           updated_at: string
@@ -134,7 +132,6 @@ export type Database = {
           amount: number
           card_id?: string | null
           category_id?: string | null
-          classification_type?: string | null
           created_at?: string
           current_installment?: number | null
           description: string
@@ -147,7 +144,6 @@ export type Database = {
           is_recurring?: boolean
           observation?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
-          recurrence_type?: string | null
           recurrence_id?: string | null
           subcategory_id?: string | null
           updated_at?: string
@@ -158,7 +154,6 @@ export type Database = {
           amount?: number
           card_id?: string | null
           category_id?: string | null
-          classification_type?: string | null
           created_at?: string
           current_installment?: number | null
           description?: string
@@ -171,7 +166,6 @@ export type Database = {
           is_recurring?: boolean
           observation?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
-          recurrence_type?: string | null
           recurrence_id?: string | null
           subcategory_id?: string | null
           updated_at?: string
@@ -556,7 +550,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      reload_schema_cache: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
