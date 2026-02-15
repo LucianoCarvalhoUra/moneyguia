@@ -51,6 +51,8 @@ export interface Expense {
   userId: string;
   createdAt: Date;
   excludeFromCalculations?: boolean;
+  classificationType?: 'essencial' | 'superfluo' | 'longo_prazo' | 'variavel';
+  recurrenceType?: 'fixa' | 'variavel';
 }
 
 export interface User {

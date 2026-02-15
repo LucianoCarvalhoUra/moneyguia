@@ -191,8 +191,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             recurrenceId: (e as any).recurrence_id || undefined,
             userId: e.user_id,
             excludeFromCalculations: e.exclude_from_calculations ?? false,
-            classificationType: (e as any).classification_type || 'variable',
-            recurrenceType: (e as any).recurrence_type || 'variable',
+            classificationType: (e as any).classification_type || 'variavel',
+            recurrenceType: (e as any).recurrence_type || 'variavel',
             createdAt: new Date(e.created_at),
           } as unknown as Expense;
         }));
@@ -471,10 +471,19 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     if ((expenseUpdate as any).classificationType !== undefined) updateData.classification_type = (expenseUpdate as any).classificationType;
     if ((expenseUpdate as any).recurrenceType !== undefined) updateData.recurrence_type = (expenseUpdate as any).recurrenceType;
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from('expenses')
       .update(updateData)
       .eq('id', id);
+
+    if ((error as any)?.code === 'PGRST204') {
+      await supabase.rpc('reload_schema_cache');
+      const retryResult = await supabase
+        .from('expenses')
+        .update(updateData)
+        .eq('id', id);
+      error = retryResult.error;
+    }
     
     if (error) {
       toast.error('Erro ao atualizar despesa');

@@ -134,28 +134,37 @@ export default function Dashboard() {
 
   // 1. 50/30/20 Data
   const ruleData = useMemo(() => {
+    const normalizeClassification = (value?: string) => {
+      if (!value) return 'variavel';
+      if (value === 'essential') return 'essencial';
+      if (value === 'superfluous') return 'superfluo';
+      if (value === 'long_term') return 'longo_prazo';
+      if (value === 'variable') return 'variavel';
+      return value;
+    };
+
     const metadata = JSON.parse(localStorage.getItem('category_metadata') || '{}');
     let needs = 0;
     let wants = 0;
-    let savings = 0; // Using 'long_term' as savings/debt for now
+    let savings = 0; // Using 'longo_prazo' as savings/debt for now
 
     monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).forEach(e => {
       // Try to find classification by category name (fallback) or ID if we had it
       // Since we stored by name in UnifiedCategoryManager for this demo:
       
       // Priority 1: Direct classification on the expense (AI or manual)
-      let classification = (e as any).classificationType;
+      let classification = normalizeClassification((e as any).classificationType);
 
       // Priority 2: Category metadata fallback
-      if (!classification || classification === 'variable') {
+      if (!classification || classification === 'variavel') {
         const meta = Object.values(metadata).find((m: any) => m.id === e.categoryId) as any;
-        classification = meta?.classification || 'variable';
+        classification = normalizeClassification(meta?.classification);
       }
 
       // Heuristic fallback if no metadata
-      if (classification === 'essential') needs += e.amount;
-      else if (classification === 'superfluous') wants += e.amount;
-      else if (classification === 'long_term') savings += e.amount;
+      if (classification === 'essencial') needs += e.amount;
+      else if (classification === 'superfluo') wants += e.amount;
+      else if (classification === 'longo_prazo') savings += e.amount;
       else wants += e.amount; // Default to wants
     });
     

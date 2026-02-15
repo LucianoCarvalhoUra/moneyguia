@@ -94,23 +94,23 @@ export default function Settings() {
       
       const updates = expenses.map(async (expense) => {
         // Skip if already classified manually or by AI
-        if ((expense as any).classificationType && (expense as any).classificationType !== 'variable') return;
+        if ((expense as any).classificationType && (expense as any).classificationType !== 'variavel') return;
 
         const category = categories.find(c => c.id === expense.categoryId);
         const catName = category?.name.toLowerCase() || '';
         
-        let newType = 'variable'; // Default
+        let newType = 'variavel'; // Default
         
         // Heurística simples
         if (['aluguel', 'condomínio', 'luz', 'água', 'internet', 'saúde', 'educação'].some(k => catName.includes(k))) {
-          newType = 'essential';
+          newType = 'essencial';
         } else if (['lazer', 'restaurante', 'ifood', 'streaming', 'jogos'].some(k => catName.includes(k))) {
-          newType = 'superfluous';
+          newType = 'superfluo';
         } else if (['investimento', 'poupança', 'reserva'].some(k => catName.includes(k))) {
-          newType = 'long_term';
+          newType = 'longo_prazo';
         }
 
-        if (newType !== 'variable') {
+        if (newType !== 'variavel') {
           updatedCount++;
           await updateExpense(expense.id, { classificationType: newType } as any);
         }

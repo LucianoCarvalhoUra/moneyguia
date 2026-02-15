@@ -122,8 +122,8 @@ export default function UnifiedCategoryManager() {
   const [isIconOpen, setIsIconOpen] = useState(false);
   
   // AI Classification State
-  const [classification, setClassification] = useState<'essential' | 'superfluous' | 'long_term'>('essential');
-  const [recurrence, setRecurrence] = useState<'fixed' | 'variable'>('fixed');
+  const [classification, setClassification] = useState<'essencial' | 'superfluo' | 'longo_prazo'>('essencial');
+  const [recurrence, setRecurrence] = useState<'fixa' | 'variavel'>('fixa');
 
   // AI Suggestion Logic
   const suggestClassification = (inputName: string) => {
@@ -131,17 +131,17 @@ export default function UnifiedCategoryManager() {
     
     // Heuristics for AI suggestion
     if (lower.match(/aluguel|condom|luz|agua|água|internet|escola|faculdade|plano|seguro/)) {
-      setClassification('essential');
-      setRecurrence('fixed');
+      setClassification('essencial');
+      setRecurrence('fixa');
     } else if (lower.match(/mercado|farmacia|farmácia|combustivel|combustível|transporte/)) {
-      setClassification('essential');
-      setRecurrence('variable');
+      setClassification('essencial');
+      setRecurrence('variavel');
     } else if (lower.match(/lazer|stream|netflix|spotify|ifood|restaurante|bar|viagem|jogos/)) {
-      setClassification('superfluous');
-      setRecurrence(lower.match(/netflix|spotify|amazon/) ? 'fixed' : 'variable');
+      setClassification('superfluo');
+      setRecurrence(lower.match(/netflix|spotify|amazon/) ? 'fixa' : 'variavel');
     } else if (lower.match(/investimento|poupanca|poupança|reserva/)) {
-      setClassification('long_term');
-      setRecurrence('variable');
+      setClassification('longo_prazo');
+      setRecurrence('variavel');
     }
   };
 
@@ -364,9 +364,9 @@ export default function UnifiedCategoryManager() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="essential">Essencial</SelectItem>
-                    <SelectItem value="superfluous">Supérfluo</SelectItem>
-                    <SelectItem value="long_term">Longo Prazo</SelectItem>
+                    <SelectItem value="essencial">Essencial</SelectItem>
+                    <SelectItem value="superfluo">Supérfluo</SelectItem>
+                    <SelectItem value="longo_prazo">Longo Prazo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -377,8 +377,8 @@ export default function UnifiedCategoryManager() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fixed">Fixa</SelectItem>
-                    <SelectItem value="variable">Variável</SelectItem>
+                    <SelectItem value="fixa">Fixa</SelectItem>
+                    <SelectItem value="variavel">Variável</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -570,3 +570,4 @@ export default function UnifiedCategoryManager() {
     </Card>
   );
 }
+
