@@ -1,40 +1,52 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+export type SubscriptionPlan = 'free' | 'premium' | 'total';
+export type SubscriptionStatus = 'active' | 'trial' | 'past_due' | 'canceled';
+export type FeatureKey = 'ai_classification' | 'advanced_reports' | 'extra_control';
+
 // Map auth errors to user-friendly messages
 function getAuthErrorMessage(error: { message: string }): string {
   console.error('Auth error:', error);
-  
+
   const message = error.message.toLowerCase();
-  
+
   if (message.includes('invalid login credentials')) {
     return 'E-mail ou senha incorretos';
   }
   if (message.includes('email not confirmed')) {
-    return 'E-mail ainda não foi confirmado. Verifique sua caixa de entrada.';
+    return 'E-mail ainda nao foi confirmado. Verifique sua caixa de entrada.';
   }
   if (message.includes('user already registered')) {
-    return 'Este e-mail já está cadastrado';
+    return 'Este e-mail ja esta cadastrado';
   }
   if (message.includes('password')) {
     return 'A senha deve ter pelo menos 6 caracteres';
   }
   if (message.includes('email')) {
-    return 'E-mail inválido';
+    return 'E-mail invalido';
   }
   if (message.includes('rate limit') || message.includes('too many requests')) {
     return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
   }
-  
-  return 'Erro ao processar sua solicitação. Tente novamente.';
+
+  return 'Erro ao processar sua solicitacao. Tente novamente.';
 }
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isProfileLoading: boolean;
+  subscriptionPlan: SubscriptionPlan;
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionEndDate: string | null;
+  isSubscriptionValid: boolean;
+  hasFeatureAccess: (feature: FeatureKey) => boolean;
+  refreshProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -47,45 +59,117 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<SubscriptionPlan>('free');
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('trial');
+  const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setIsLoading(false);
-
-        // Create profile on signup
-        if (event === 'SIGNED_IN' && session?.user) {
-          setTimeout(() => {
-            createProfileIfNotExists(session.user);
-          }, 0);
-        }
+  const hasFeatureAccess = useCallback(
+    (feature: FeatureKey) => {
+      if (feature === 'ai_classification') {
+        return subscriptionPlan === 'premium' || subscriptionPlan === 'total';
       }
-    );
+      if (feature === 'advanced_reports' || feature === 'extra_control') {
+        return subscriptionPlan === 'total';
+      }
+      return false;
+    },
+    [subscriptionPlan]
+  );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+  const loadProfile = useCallback(async (userId: string) => {
+    setIsProfileLoading(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('subscription_plan, subscription_status, subscription_end_date')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Erro ao carregar perfil:', error);
+      setSubscriptionPlan('free');
+      setSubscriptionStatus('trial');
+      setSubscriptionEndDate(null);
+      setIsProfileLoading(false);
+      return;
+    }
+
+    const plan = ((data as any)?.subscription_plan || 'free') as SubscriptionPlan;
+    const status = ((data as any)?.subscription_status || 'trial') as SubscriptionStatus;
+
+    setSubscriptionPlan(plan);
+    setSubscriptionStatus(status);
+    setSubscriptionEndDate((data as any)?.subscription_end_date || null);
+    setIsProfileLoading(false);
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (!user?.id) return;
+    await loadProfile(user.id);
+  }, [user?.id, loadProfile]);
+
+  const createProfileIfNotExists = useCallback(async (authUser: User) => {
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', authUser.id)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      await supabase.from('profiles').insert({
+        user_id: authUser.id,
+        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
+        email: authUser.email,
+        subscription_plan: 'free',
+        subscription_status: 'trial',
+      } as any);
+    }
+  }, []);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, authSession) => {
+      setSession(authSession);
+      setUser(authSession?.user ?? null);
+      setIsLoading(false);
+
+      if (event === 'SIGNED_IN' && authSession?.user) {
+        setTimeout(() => {
+          createProfileIfNotExists(authSession.user).then(() => loadProfile(authSession.user.id));
+        }, 0);
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setSubscriptionPlan('free');
+        setSubscriptionStatus('trial');
+        setSubscriptionEndDate(null);
+        setIsProfileLoading(false);
+      }
+    });
+
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
+      if (existingSession?.user) {
+        loadProfile(existingSession.user.id);
+      } else {
+        setIsProfileLoading(false);
+      }
       setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [createProfileIfNotExists, loadProfile]);
 
-  // Timeout por Inatividade
+  // Timeout por inatividade
   useEffect(() => {
     let inactivityTimer: ReturnType<typeof setTimeout>;
 
     const handleLogoutOnInactivity = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log('Usuário inativo por 15 minutos. Deslogando.');
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (currentSession) {
+        console.log('Usuario inativo por 15 minutos. Deslogando.');
         await supabase.auth.signOut();
-        // Limpeza explícita do estado para evitar renderização de componentes protegidos
         setUser(null);
         setSession(null);
         navigate('/auth', { replace: true });
@@ -94,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const resetTimer = () => {
       clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(handleLogoutOnInactivity, 15 * 60 * 1000); // 15 minutos
+      inactivityTimer = setTimeout(handleLogoutOnInactivity, 15 * 60 * 1000);
     };
 
     const activityEvents: (keyof WindowEventMap)[] = ['mousemove', 'keydown', 'scroll', 'click'];
@@ -107,27 +191,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [navigate]);
 
-  const createProfileIfNotExists = async (user: User) => {
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (!existingProfile) {
-      await supabase.from('profiles').insert({
-        user_id: user.id,
-        name: user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário',
-        email: user.email,
-      });
-    }
-  };
-
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       return { success: false, error: getAuthErrorMessage(error) };
@@ -144,9 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: {
-          name,
-        },
+        data: { name },
       },
     });
 
@@ -159,21 +222,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await supabase.auth.signOut();
-    // Limpeza explícita do estado para garantir que a UI reaja imediatamente
     setUser(null);
     setSession(null);
+    setSubscriptionPlan('free');
+    setSubscriptionStatus('trial');
+    setSubscriptionEndDate(null);
     navigate('/auth', { replace: true });
   };
 
   const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
-    console.log('Tentando enviar e-mail para:', email);
-    const redirectUrl = `${window.location.origin}/reset-password`; // Garante URL correta
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
+    const redirectUrl = `${window.location.origin}/reset-password`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
 
     if (error) {
-      console.error('Erro detalhado do Supabase:', error);
       return { success: false, error: getAuthErrorMessage(error) };
     }
 
@@ -181,16 +242,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session,
-      isAuthenticated: !!session, 
-      isLoading, 
-      login, 
-      register, 
-      logout,
-      resetPassword
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        isAuthenticated: !!session,
+        isLoading,
+        isProfileLoading,
+        subscriptionPlan,
+        subscriptionStatus,
+        subscriptionEndDate,
+        isSubscriptionValid: subscriptionStatus === 'active' || subscriptionStatus === 'trial',
+        hasFeatureAccess,
+        refreshProfile,
+        login,
+        register,
+        logout,
+        resetPassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

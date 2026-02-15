@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useIncome } from '@/contexts/IncomeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,7 @@ import { Switch } from '@/components/ui/switch';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Income } from '@/types/income';
-import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays } from 'lucide-react';
+import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -32,7 +33,9 @@ interface IncomeFormProps {
 }
 
 export default function IncomeForm({ open, onOpenChange, income, initialData }: IncomeFormProps) {
+  const { hasFeatureAccess } = useAuth();
   const { refreshData, incomeCategories, incomeSubcategories, removeIncome, addIncome, updateIncome } = useIncome();
+  const canUseExtraControl = hasFeatureAccess('extra_control');
   
   // --- State ---
   const [description, setDescription] = useState('');
@@ -184,7 +187,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         subcategory_id: subcategoryId || null,
         is_received: isReceived,
         is_recurring: isRecurring,
-        exclude_from_calculations: excludeFromCalculations,
+        exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
       };
 
       if (income) {
@@ -312,9 +315,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           {/* Controle Visual */}
-          <div className="col-span-2 flex items-center space-x-2 pt-2">
-            <Switch id="income-visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} />
-            <Label htmlFor="income-visual-control" className="text-sm font-normal text-muted-foreground cursor-pointer">Apenas controle visual (Não contabilizar nos totais)</Label>
+          <div className={cn("col-span-2 flex items-center space-x-2 pt-2", !canUseExtraControl && "opacity-50")}>
+            <Switch id="income-visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl} />
+            <Label htmlFor="income-visual-control" className="text-sm font-normal text-muted-foreground cursor-pointer flex items-center gap-1">
+              {!canUseExtraControl && <Lock className="w-3 h-3" />}
+              Apenas controle visual (Não contabilizar nos totais)
+            </Label>
           </div>
 
           <DialogFooter className="col-span-2 pt-4 border-t mt-2">

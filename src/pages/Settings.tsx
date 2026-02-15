@@ -21,6 +21,7 @@ import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
 import ChangePasswordForm from '@/components/settings/ChangePasswordForm';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Lock } from 'lucide-react';
 
 interface Profile {
   name: string;
@@ -28,7 +29,7 @@ interface Profile {
 }
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, hasFeatureAccess, subscriptionStatus, refreshProfile } = useAuth();
   const { expenses, updateExpense, categories } = useFinance();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,6 +37,8 @@ export default function Settings() {
   const [alertEnabled, setAlertEnabled] = useState(true);
   const [alertType, setAlertType] = useState('expenses');
   const [isClassifying, setIsClassifying] = useState(false);
+  const [isSimulatingSubscription, setIsSimulatingSubscription] = useState(false);
+  const canUseAiClassification = hasFeatureAccess('ai_classification');
 
   useEffect(() => {
     if (user?.id) {
@@ -86,6 +89,11 @@ export default function Settings() {
   };
 
   const handleClassifyExpenses = async () => {
+    if (!canUseAiClassification) {
+      toast.error('Recurso disponivel apenas para planos Premium ou Controle Total');
+      return;
+    }
+
     setIsClassifying(true);
     try {
       // Simulação da IA (Heurística baseada em categorias para demonstração)
@@ -122,6 +130,35 @@ export default function Settings() {
       toast.error('Erro ao classificar despesas');
     } finally {
       setIsClassifying(false);
+    }
+  };
+
+  const handleSimulateSubscription = async () => {
+    if (!user?.id) return;
+    setIsSimulatingSubscription(true);
+
+    try {
+      const nextStatus = subscriptionStatus === 'active' || subscriptionStatus === 'trial' ? 'canceled' : 'active';
+      const nextPlan = nextStatus === 'active' ? 'total' : 'free';
+      const nextEndDate = nextStatus === 'active' ? null : new Date().toISOString();
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          subscription_status: nextStatus,
+          subscription_plan: nextPlan,
+          subscription_end_date: nextEndDate,
+        } as any)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      await refreshProfile();
+      toast.success(`Assinatura simulada: ${nextStatus}`);
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao simular assinatura');
+    } finally {
+      setIsSimulatingSubscription(false);
     }
   };
 
@@ -166,7 +203,10 @@ export default function Settings() {
       <UnifiedCategoryManager />
 
       {/* AI Intelligence */}
-      <Card className="border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background">
+      <Card className={cn(
+        "border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background",
+        !canUseAiClassification && "opacity-50"
+      )}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
             <Bot className="w-5 h-5" />
@@ -179,11 +219,14 @@ export default function Settings() {
             <p className="text-sm text-muted-foreground max-w-[70%]">
               A IA analisará suas despesas e classificará automaticamente entre Essencial, Supérfluo e Longo Prazo.
             </p>
-            <Button onClick={handleClassifyExpenses} disabled={isClassifying} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-              {isClassifying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            <Button onClick={handleClassifyExpenses} disabled={isClassifying || !canUseAiClassification} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              {!canUseAiClassification ? <Lock className="w-4 h-4 mr-2" /> : isClassifying ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
               Reclassificar com IA
             </Button>
           </div>
+          {!canUseAiClassification && (
+            <p className="mt-3 text-xs text-muted-foreground">Disponivel apenas para planos Premium e Controle Total.</p>
+          )}
         </CardContent>
       </Card>
 
@@ -258,6 +301,18 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <ChangePasswordForm />
+
+          <div className="border-t pt-4 space-y-2">
+            <h4 className="font-medium">Teste de Assinatura (temporario)</h4>
+            <Button
+              variant="outline"
+              onClick={handleSimulateSubscription}
+              disabled={isSimulatingSubscription}
+            >
+              {isSimulatingSubscription ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Simular Assinatura Ativa/Inativa
+            </Button>
+          </div>
           
           <div className="border-t pt-4">
             <h4 className="font-medium text-destructive mb-2">Zona de Perigo</h4>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,7 @@ import { Switch } from '@/components/ui/switch';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Expense, PaymentMethod } from '@/types/finance';
-import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays } from 'lucide-react';
+import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 
@@ -32,7 +33,9 @@ interface ExpenseFormProps {
 }
 
 export default function ExpenseForm({ open, onOpenChange, expense, initialData }: ExpenseFormProps) {
+  const { hasFeatureAccess } = useAuth();
   const { refreshData, categories, subcategories, accounts, cards, removeExpense } = useFinance();
+  const canUseExtraControl = hasFeatureAccess('extra_control');
   
   // --- State ---
   const [description, setDescription] = useState('');
@@ -219,7 +222,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         is_recurring: isRecurring,
         installments: isRecurring ? parseInt(installments) : null,
         user_id: user?.id,
-        exclude_from_calculations: excludeFromCalculations
+        exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false
       };
 
       if (expense) {
@@ -395,9 +398,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           </div>
 
           {/* Controle Visual */}
-          <div className="col-span-2 flex items-center space-x-2 pt-2">
-            <Switch id="visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} />
-            <Label htmlFor="visual-control" className="text-sm font-normal text-muted-foreground cursor-pointer">Apenas controle visual (Não contabilizar nos totais)</Label>
+          <div className={cn("col-span-2 flex items-center space-x-2 pt-2", !canUseExtraControl && "opacity-50")}>
+            <Switch id="visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl} />
+            <Label htmlFor="visual-control" className="text-sm font-normal text-muted-foreground cursor-pointer flex items-center gap-1">
+              {!canUseExtraControl && <Lock className="w-3 h-3" />}
+              Apenas controle visual (Não contabilizar nos totais)
+            </Label>
           </div>
 
           <DialogFooter className="col-span-2 pt-4 border-t mt-2">

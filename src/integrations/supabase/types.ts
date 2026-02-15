@@ -436,6 +436,9 @@ export type Database = {
           email: string | null
           id: string
           name: string | null
+          subscription_end_date: string | null
+          subscription_plan: string
+          subscription_status: string
           updated_at: string
           user_id: string
         }
@@ -444,6 +447,9 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string | null
+          subscription_end_date?: string | null
+          subscription_plan?: string
+          subscription_status?: string
           updated_at?: string
           user_id: string
         }
@@ -452,6 +458,9 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string | null
+          subscription_end_date?: string | null
+          subscription_plan?: string
+          subscription_status?: string
           updated_at?: string
           user_id?: string
         }

@@ -18,15 +18,22 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Goals from "./pages/Goals";
 import LandingPage from "./pages/LandingPage";
+import Planos from "./pages/Planos";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+function ProtectedRoute({
+  children,
+  requiredFeature,
+}: {
+  children: React.ReactNode;
+  requiredFeature?: "ai_classification" | "advanced_reports" | "extra_control";
+}) {
+  const { isAuthenticated, isLoading, isProfileLoading, isSubscriptionValid, hasFeatureAccess } = useAuth();
 
-  if (isLoading) {
+  if (isLoading || isProfileLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="animate-pulse text-primary">Carregando...</div>
@@ -36,6 +43,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (!isSubscriptionValid) {
+    return <Navigate to="/planos?reason=expired" replace />;
+  }
+
+  if (requiredFeature && !hasFeatureAccess(requiredFeature)) {
+    return <Navigate to={`/planos?reason=upgrade_required&feature=${requiredFeature}`} replace />;
   }
 
   return <Layout>{children}</Layout>;
@@ -63,6 +78,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
     <Route path="/" element={<LandingPage />} />
+    <Route path="/planos" element={<Planos />} />
     <Route path="/welcome" element={<LandingPage />} />
     <Route path="/home" element={<LandingPage />} />
     <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
@@ -70,7 +86,7 @@ const AppRoutes = () => (
     <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />
     <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
     <Route path="/reconciliation" element={<ProtectedRoute><InvoiceReconciliation /></ProtectedRoute>} />
-    <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+    <Route path="/reports" element={<ProtectedRoute requiredFeature="advanced_reports"><Reports /></ProtectedRoute>} />
     <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="/reset-password" element={<ResetPassword />} />
