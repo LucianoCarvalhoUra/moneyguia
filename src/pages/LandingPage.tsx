@@ -149,6 +149,7 @@ export default function LandingPage() {
           <nav className="hidden items-center gap-8 text-sm font-medium text-gray-600 md:flex">
             <a href="#recursos" className="transition-colors hover:text-gray-900">Recursos</a>
             <a href="#como-funciona" className="transition-colors hover:text-gray-900">Como funciona</a>
+            <Link to="/plans" className="transition-colors hover:text-gray-900">Planos</Link>
             <a href="#depoimentos" className="transition-colors hover:text-gray-900">Depoimentos</a>
             <a href="#faq" className="transition-colors hover:text-gray-900">FAQ</a>
           </nav>
@@ -176,6 +177,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-3">
               <a href="#recursos" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-gray-600">Recursos</a>
               <a href="#como-funciona" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-gray-600">Como funciona</a>
+              <Link to="/plans" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-gray-600">Planos</Link>
               <a href="#depoimentos" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-gray-600">Depoimentos</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-gray-600">FAQ</a>
               <div className="mt-2 flex flex-col gap-2 border-t border-gray-100 pt-4">

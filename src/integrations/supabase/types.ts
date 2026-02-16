@@ -492,6 +492,75 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          features: Json
+          has_advanced_reports: boolean
+          has_ai_classification: boolean
+          has_export: boolean
+          has_goals: boolean
+          has_notifications: boolean
+          id: string
+          is_active: boolean
+          max_bank_accounts: number | null
+          max_categories: number | null
+          max_credit_cards: number | null
+          max_expenses_per_month: number | null
+          max_incomes_per_month: number | null
+          name: string
+          plan_type: Database["public"]["Enums"]["plan_type"]
+          price_monthly: number
+          price_yearly: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          features?: Json
+          has_advanced_reports?: boolean
+          has_ai_classification?: boolean
+          has_export?: boolean
+          has_goals?: boolean
+          has_notifications?: boolean
+          id?: string
+          is_active?: boolean
+          max_bank_accounts?: number | null
+          max_categories?: number | null
+          max_credit_cards?: number | null
+          max_expenses_per_month?: number | null
+          max_incomes_per_month?: number | null
+          name: string
+          plan_type: Database["public"]["Enums"]["plan_type"]
+          price_monthly?: number
+          price_yearly?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          features?: Json
+          has_advanced_reports?: boolean
+          has_ai_classification?: boolean
+          has_export?: boolean
+          has_goals?: boolean
+          has_notifications?: boolean
+          id?: string
+          is_active?: boolean
+          max_bank_accounts?: number | null
+          max_categories?: number | null
+          max_credit_cards?: number | null
+          max_expenses_per_month?: number | null
+          max_incomes_per_month?: number | null
+          name?: string
+          plan_type?: Database["public"]["Enums"]["plan_type"]
+          price_monthly?: number
+          price_yearly?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           created_at: string
@@ -537,12 +606,60 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          billing_cycle: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan_id: string
+          starts_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_cycle?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_cycle?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id?: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       delete_user_account: { Args: never; Returns: undefined }
+      get_user_plan: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Enums"]["plan_type"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -554,6 +671,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user"
       payment_method: "account" | "pix" | "credit_card"
+      plan_type: "free" | "pro" | "premium"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -683,6 +801,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user"],
       payment_method: ["account", "pix", "credit_card"],
+      plan_type: ["free", "pro", "premium"],
     },
   },
 } as const
