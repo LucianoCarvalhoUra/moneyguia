@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import Goals from "./pages/Goals";
 import LandingPage from "./pages/LandingPage";
 import Plans from "./pages/Plans";
+import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -67,6 +68,7 @@ const AppRoutes = () => (
     <Route path="/welcome" element={<LandingPage />} />
     <Route path="/home" element={<LandingPage />} />
     <Route path="/plans" element={<Plans />} />
+    <Route path="/checkout" element={<Checkout />} />
     <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
     <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
     <Route path="/incomes" element={<ProtectedRoute><Incomes /></ProtectedRoute>} />

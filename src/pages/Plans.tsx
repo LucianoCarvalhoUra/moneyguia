@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Check, X, ArrowRight, Wallet, Zap, Menu, X as XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ export default function Plans() {
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [currentPlanType, setCurrentPlanType] = useState<string>("free");
 
   useEffect(() => {
@@ -67,37 +68,44 @@ export default function Plans() {
     fetchUserPlan();
   }, [user]);
 
-  const handleSelectPlan = async (plan: Plan) => {
-    if (!user) {
-      toast.info("Faça login para assinar um plano.");
+  const handleSelectPlan = (plan: Plan) => {
+    if (plan.plan_type === currentPlanType) return;
+
+    if (plan.price_monthly === 0) {
+      // Free plan: activate directly if logged in
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+      const activateFree = async () => {
+        try {
+          const { error } = await supabase
+            .from("user_subscriptions")
+            .upsert(
+              {
+                user_id: user.id,
+                plan_id: plan.id,
+                billing_cycle: "monthly",
+                status: "active",
+                starts_at: new Date().toISOString(),
+                expires_at: null,
+              },
+              { onConflict: "user_id" }
+            );
+          if (error) throw error;
+          setCurrentPlanType(plan.plan_type);
+          toast.success("Plano gratuito ativado!");
+        } catch (err: any) {
+          toast.error("Erro: " + err.message);
+        }
+      };
+      activateFree();
       return;
     }
 
-    if (plan.plan_type === currentPlanType) return;
-
-    try {
-      // Upsert user subscription
-      const { error } = await supabase
-        .from("user_subscriptions")
-        .upsert(
-          {
-            user_id: user.id,
-            plan_id: plan.id,
-            billing_cycle: isYearly ? "yearly" : "monthly",
-            status: "active",
-            starts_at: new Date().toISOString(),
-            expires_at: null,
-          },
-          { onConflict: "user_id" }
-        );
-
-      if (error) throw error;
-
-      setCurrentPlanType(plan.plan_type);
-      toast.success(`Plano ${plan.name} ativado com sucesso!`);
-    } catch (err: any) {
-      toast.error("Erro ao ativar plano: " + err.message);
-    }
+    // Paid plan: go to checkout
+    const cycle = isYearly ? "yearly" : "monthly";
+    navigate(`/checkout?plan=${plan.id}&cycle=${cycle}`);
   };
 
   const getDiscount = (plan: Plan) => {
