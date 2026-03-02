@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
-  BarChart3,
   Bell,
   CreditCard,
   LayoutDashboard,
@@ -20,7 +19,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import heroImage from "@/assets/hero-devices.png";
 
 const features = [
   {
@@ -88,25 +86,6 @@ const steps = [
   },
 ];
 
-const testimonials = [
-  {
-    name: "Rafael S.",
-    text: "Em duas semanas eu finalmente visualizei para onde meu dinheiro estava indo. A interface é muito intuitiva!",
-  },
-  {
-    name: "Carla M.",
-    text: "Substituiu minha planilha de Excel! Controlo tudo do celular e as categorias me ajudam muito.",
-  },
-  {
-    name: "Patrícia L.",
-    text: "Os relatórios são incríveis. Consegui economizar 30% no primeiro mês de uso.",
-  },
-  {
-    name: "Eduardo F.",
-    text: "A funcionalidade de metas me motivou a poupar. Em 6 meses já tinha minha reserva de emergência.",
-  },
-];
-
 const faqs = [
   {
     question: "Posso usar no celular e no computador?",
@@ -140,7 +119,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500 text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white">
               <Wallet className="h-5 w-5" />
             </div>
             <span className="text-xl font-bold tracking-tight text-gray-900">KeepMoney</span>
@@ -150,7 +129,6 @@ export default function LandingPage() {
             <a href="#recursos" className="transition-colors hover:text-gray-900">Recursos</a>
             <a href="#como-funciona" className="transition-colors hover:text-gray-900">Como funciona</a>
             <Link to="/plans" className="transition-colors hover:text-gray-900">Planos</Link>
-            <a href="#depoimentos" className="transition-colors hover:text-gray-900">Depoimentos</a>
             <a href="#faq" className="transition-colors hover:text-gray-900">FAQ</a>
           </nav>
 
@@ -161,7 +139,7 @@ export default function LandingPage() {
               </Button>
             </Link>
             <Link to="/auth">
-              <Button className="rounded-full bg-emerald-500 px-6 text-sm font-semibold text-white hover:bg-emerald-600">
+              <Button className="rounded-full bg-indigo-600 px-6 text-sm font-semibold text-white hover:bg-indigo-700">
                 Comece já
               </Button>
             </Link>
@@ -178,12 +156,11 @@ export default function LandingPage() {
               <a href="#recursos" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-gray-600">Recursos</a>
               <a href="#como-funciona" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-gray-600">Como funciona</a>
               <Link to="/plans" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-gray-600">Planos</Link>
-              <a href="#depoimentos" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-gray-600">Depoimentos</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-gray-600">FAQ</a>
               <div className="mt-2 flex flex-col gap-2 border-t border-gray-100 pt-4">
                 <Link to="/auth" className="text-center text-sm font-medium text-gray-700">Login</Link>
                 <Link to="/auth">
-                  <Button className="w-full rounded-full bg-emerald-500 text-white hover:bg-emerald-600">Comece já</Button>
+                    <Button className="w-full rounded-full bg-indigo-600 text-white hover:bg-indigo-700">Comece já</Button>
                 </Link>
               </div>
             </div>
@@ -193,20 +170,20 @@ export default function LandingPage() {
 
       <main>
         {/* Hero */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-green-50">
+        <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid items-center gap-12 py-16 lg:grid-cols-2 lg:py-24">
               <div className="space-y-8">
                 <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-gray-900 md:text-5xl lg:text-6xl">
                   Seu dinheiro sob controle,{" "}
-                  <span className="text-emerald-500">sem esforço</span>
+                  <span className="text-indigo-600">sem esforço</span>
                 </h1>
                 <p className="max-w-lg text-lg leading-relaxed text-gray-600">
                   Tudo o que você precisa para organizar suas finanças pessoais sem perder tempo. Controle despesas, receitas e metas em um só lugar.
                 </p>
                 <div className="flex flex-col gap-4 sm:flex-row">
                   <Link to="/auth">
-                    <Button className="flex items-center gap-2 rounded-full bg-emerald-500 px-8 py-6 text-base font-semibold text-white shadow-lg shadow-emerald-200 hover:bg-emerald-600 hover:shadow-xl">
+                    <Button className="flex items-center gap-2 rounded-full bg-indigo-600 px-8 py-6 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl">
                       Começar agora
                       <ArrowRight className="h-5 w-5" />
                     </Button>
@@ -214,23 +191,34 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-center gap-8 pt-2">
                   <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Lock className="h-4 w-4 text-emerald-500" />
+                    <Lock className="h-4 w-4 text-indigo-600" />
                     <span>Segurança dos seus dados em primeiro lugar</span>
                   </div>
                   <div className="hidden items-center gap-2 text-sm text-gray-500 sm:flex">
-                    <Smartphone className="h-4 w-4 text-emerald-500" />
+                    <Smartphone className="h-4 w-4 text-indigo-600" />
                     <span>Acesse de qualquer dispositivo</span>
                   </div>
                 </div>
               </div>
 
               <div className="relative">
-                <img
-                  src={heroImage}
-                  alt="KeepMoney - Plataforma de controle financeiro pessoal exibida em múltiplos dispositivos"
-                  className="w-full rounded-2xl"
-                  loading="eager"
-                />
+                <div className="rounded-3xl border border-indigo-100 bg-white p-6 shadow-2xl shadow-indigo-100/70">
+                  <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-cyan-500 p-6 text-white">
+                    <p className="text-sm font-medium text-indigo-100">Visão financeira do mês</p>
+                    <p className="mt-2 text-3xl font-extrabold">R$ 8.420,00</p>
+                    <p className="mt-1 text-sm text-indigo-100">Saldo projetado: +12,4%</p>
+                  </div>
+                  <div className="mt-6 grid grid-cols-3 gap-3">
+                    {[72, 46, 84].map((value, i) => (
+                      <div key={i} className="rounded-xl bg-slate-50 p-4">
+                        <div className="mb-2 h-2 w-full rounded-full bg-slate-200">
+                          <div className="h-2 rounded-full bg-indigo-500" style={{ width: `${value}%` }} />
+                        </div>
+                        <p className="text-xs text-slate-500">Meta {i + 1}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -241,7 +229,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wider text-emerald-500">Organize suas finanças</p>
+                <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Organize suas finanças</p>
                 <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
                   O guia para o seu sucesso financeiro
                 </h2>
@@ -251,8 +239,8 @@ export default function LandingPage() {
 
             <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               {steps.map((step) => (
-                <div key={step.number} className="group rounded-2xl border border-gray-100 bg-white p-6 transition-all hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-100/50">
-                  <span className="text-3xl font-extrabold text-emerald-500/30">{step.number}</span>
+                <div key={step.number} className="group rounded-2xl border border-gray-100 bg-white p-6 transition-all hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100/50">
+                  <span className="text-3xl font-extrabold text-indigo-500/30">{step.number}</span>
                   <h3 className="mt-3 text-lg font-bold text-gray-900">{step.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-gray-500">{step.description}</p>
                 </div>
@@ -265,7 +253,7 @@ export default function LandingPage() {
         <section id="recursos" className="bg-gray-50 py-16 lg:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-wider text-emerald-500">Funcionalidades</p>
+              <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Funcionalidades</p>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">Nossos principais recursos</h2>
               <p className="mx-auto mt-4 max-w-2xl text-gray-600">
                 Conheça os recursos que vão revolucionar seu controle financeiro.
@@ -276,9 +264,9 @@ export default function LandingPage() {
               {features.map((feature) => (
                 <div
                   key={feature.title}
-                  className="group rounded-2xl border border-gray-100 bg-white p-6 transition-all hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-100/50"
+                  className="group rounded-2xl border border-gray-100 bg-white p-6 transition-all hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100/50"
                 >
-                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-500 transition-colors group-hover:bg-emerald-500 group-hover:text-white">
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-600 group-hover:text-white">
                     <feature.icon className="h-6 w-6" />
                   </div>
                   <h3 className="text-base font-bold text-gray-900">{feature.title}</h3>
@@ -294,7 +282,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <div className="space-y-6">
-                <p className="text-sm font-semibold uppercase tracking-wider text-emerald-500">Segurança em primeiro lugar</p>
+                <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Segurança em primeiro lugar</p>
                 <h2 className="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
                   Tenha a gestão financeira que sempre sonhou
                 </h2>
@@ -307,7 +295,7 @@ export default function LandingPage() {
                     "Defina metas e acompanhe seu progresso financeiro",
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-3">
-                      <div className="mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                      <div className="mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
                         <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
@@ -317,59 +305,31 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link to="/auth">
-                  <Button className="mt-4 rounded-full bg-emerald-500 px-8 py-6 text-base font-semibold text-white shadow-lg shadow-emerald-200 hover:bg-emerald-600">
+                  <Button className="mt-4 rounded-full bg-indigo-600 px-8 py-6 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700">
                     Começar agora
                   </Button>
                 </Link>
               </div>
 
               <div className="flex items-center justify-center">
-                <div className="relative rounded-3xl bg-gradient-to-br from-emerald-500 to-green-600 p-8 text-white shadow-2xl shadow-emerald-200">
+                <div className="relative rounded-3xl bg-gradient-to-br from-indigo-600 to-cyan-600 p-8 text-white shadow-2xl shadow-indigo-200">
                   <Shield className="mx-auto mb-6 h-16 w-16 opacity-90" />
                   <h3 className="text-center text-2xl font-bold">Seus dados protegidos</h3>
-                  <p className="mt-3 text-center text-emerald-100">
+                  <p className="mt-3 text-center text-indigo-100">
                     Criptografia e políticas de segurança avançadas para garantir a privacidade dos seus dados financeiros.
                   </p>
                   <div className="mt-8 grid grid-cols-2 gap-4">
                     <div className="rounded-xl bg-white/10 p-4 text-center backdrop-blur-sm">
                       <p className="text-2xl font-bold">100%</p>
-                      <p className="text-xs text-emerald-100">Dados criptografados</p>
+                      <p className="text-xs text-indigo-100">Dados criptografados</p>
                     </div>
                     <div className="rounded-xl bg-white/10 p-4 text-center backdrop-blur-sm">
                       <p className="text-2xl font-bold">24/7</p>
-                      <p className="text-xs text-emerald-100">Acesso disponível</p>
+                      <p className="text-xs text-indigo-100">Acesso disponível</p>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Testimonials */}
-        <section id="depoimentos" className="bg-gray-50 py-16 lg:py-24">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-wider text-emerald-500">Depoimentos</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
-                Veja por que nossos clientes amam o KeepMoney
-              </h2>
-            </div>
-
-            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {testimonials.map((t) => (
-                <div key={t.name} className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                  <div className="mb-3 flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <svg key={i} className="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <p className="text-sm leading-relaxed text-gray-600">"{t.text}"</p>
-                  <p className="mt-4 text-sm font-bold text-gray-900">{t.name}</p>
-                </div>
-              ))}
             </div>
           </div>
         </section>
@@ -405,17 +365,17 @@ export default function LandingPage() {
         </section>
 
         {/* Final CTA */}
-        <section className="bg-gradient-to-br from-emerald-500 to-green-600 py-16 lg:py-20">
+        <section className="bg-gradient-to-br from-indigo-600 to-cyan-600 py-16 lg:py-20">
           <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
             <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
               Pronto para assumir o controle do seu dinheiro?
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-emerald-100">
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-indigo-100">
               Comece agora e transforme suas finanças com mais organização e confiança.
             </p>
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Link to="/auth">
-                <Button className="rounded-full bg-white px-8 py-6 text-base font-semibold text-emerald-600 shadow-lg hover:bg-gray-50">
+                <Button className="rounded-full bg-white px-8 py-6 text-base font-semibold text-indigo-700 shadow-lg hover:bg-gray-50">
                   Acessar o sistema
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
@@ -430,7 +390,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-white">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
                 <Wallet className="h-4 w-4" />
               </div>
               <span className="font-bold text-gray-900">KeepMoney</span>
