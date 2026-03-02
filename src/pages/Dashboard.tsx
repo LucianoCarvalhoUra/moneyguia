@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
@@ -90,7 +90,7 @@ export default function Dashboard() {
   };
 
   const months = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Janeiro', 'Fevereiro', 'MarÃ§o', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
@@ -248,11 +248,11 @@ export default function Dashboard() {
           onClick={handleAlertClick}
         >
           <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2 rounded-full">
+            <div className="bg-white/20 p-2 rounded-md">
               <AlertTriangle className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-bold">Atenção: Você possui {totalOverdueCount} itens vencidos!</p>
+              <p className="font-bold">AtenÃ§Ã£o: VocÃª possui {totalOverdueCount} itens vencidos!</p>
               <p className="text-xs text-white/90">
                 {overdueItems.expenses.length > 0 && `${overdueItems.expenses.length} despesa(s)`}
                 {overdueItems.expenses.length > 0 && overdueItems.incomes.length > 0 && ' e '}
@@ -279,7 +279,7 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Visão geral do seu orçamento</p>
+          <p className="text-muted-foreground">VisÃ£o geral do seu orÃ§amento</p>
         </div>
         <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => setFormOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
@@ -289,13 +289,13 @@ export default function Dashboard() {
 
       {/* Month Navigation */}
       <div className="flex items-center justify-center gap-4 py-2">
-        <Button variant="ghost" size="icon" onClick={handlePreviousMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-full w-8 h-8">
+        <Button variant="ghost" size="icon" onClick={handlePreviousMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-md w-8 h-8">
           <ChevronLeft className="w-5 h-5" />
         </Button>
         <div className="text-lg font-bold text-foreground min-w-[180px] text-center capitalize">
           {months[selectedMonth]} {selectedYear}
         </div>
-        <Button variant="ghost" size="icon" onClick={handleNextMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-full w-8 h-8">
+        <Button variant="ghost" size="icon" onClick={handleNextMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-md w-8 h-8">
           <ChevronRight className="w-5 h-5" />
         </Button>
       </div>
@@ -309,7 +309,7 @@ export default function Dashboard() {
                 <TrendingUp className={`w-6 h-6 ${projectedBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-warning'}`} />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Saldo Previsto (Final do Mês)</p>
+                <p className="text-sm text-muted-foreground">Saldo Previsto (Final do MÃªs)</p>
                 <p className={`text-2xl font-bold ${projectedBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-warning'}`}>
                   {formatCurrency(projectedBalance)}
                 </p>
@@ -372,7 +372,7 @@ export default function Dashboard() {
                   {formatCurrency(currentExpenseTotal)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Apenas não excluÃ­das
+                  Apenas nÃ£o excluÃƒÂ­das
                 </p>
               </div>
             </div>
@@ -437,4 +437,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
 

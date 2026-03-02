@@ -1,4 +1,4 @@
-import { Toaster } from "@/components/ui/toaster";
+﻿import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -37,8 +37,8 @@ function ProtectedRoute({
 
   if (isLoading || isProfileLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="animate-pulse text-primary">Carregando...</div>
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">
+        <div className="animate-pulse text-emerald-400">Carregando painel...</div>
       </div>
     );
   }
@@ -63,8 +63,8 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="animate-pulse text-primary">Carregando...</div>
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">
+        <div className="animate-pulse text-emerald-400">Carregando...</div>
       </div>
     );
   }
@@ -102,19 +102,21 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <FinanceProvider>
-              <IncomeProvider>
-                <GoalsProvider>
-                  <AppRoutes />
-                </GoalsProvider>
-              </IncomeProvider>
-            </FinanceProvider>
-          </AuthProvider>
-        </BrowserRouter>
+        <div className="min-h-screen bg-background text-foreground">
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <FinanceProvider>
+                <IncomeProvider>
+                  <GoalsProvider>
+                    <AppRoutes />
+                  </GoalsProvider>
+                </IncomeProvider>
+              </FinanceProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </div>
       </TooltipProvider>
     </QueryClientProvider>
   );

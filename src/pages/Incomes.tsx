@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+﻿import { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useIncome } from '@/contexts/IncomeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,7 +56,7 @@ export default function Incomes() {
   const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
 
   const months = [
-    { value: 0, label: 'Janeiro' }, { value: 1, label: 'Fevereiro' }, { value: 2, label: 'Março' },
+    { value: 0, label: 'Janeiro' }, { value: 1, label: 'Fevereiro' }, { value: 2, label: 'MarÃ§o' },
     { value: 3, label: 'Abril' }, { value: 4, label: 'Maio' }, { value: 5, label: 'Junho' },
     { value: 6, label: 'Julho' }, { value: 7, label: 'Agosto' }, { value: 8, label: 'Setembro' },
     { value: 9, label: 'Outubro' }, { value: 10, label: 'Novembro' }, { value: 11, label: 'Dezembro' },
@@ -168,8 +168,8 @@ export default function Incomes() {
   const handleDuplicate = (income: Income) => {
     setDuplicatingIncome({
       ...income,
-      title: `${income.title} (Cópia)`,
-      receiveDate: new Date().toISOString() as unknown as Date, // Define para hoje por conveniência
+      title: `${income.title} (CÃ³pia)`,
+      receiveDate: new Date().toISOString() as unknown as Date, // Define para hoje por conveniÃªncia
       isReceived: false,
     });
     setIsFormOpen(true);
@@ -202,13 +202,13 @@ export default function Incomes() {
       <Card>
         <CardContent className="py-4">
           <div className="flex items-center justify-center gap-4">
-            <Button variant="ghost" size="icon" onClick={handlePreviousMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-full w-8 h-8">
+            <Button variant="ghost" size="icon" onClick={handlePreviousMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-md w-8 h-8">
               <ChevronLeft className="w-5 h-5" />
             </Button>
             <span className="text-lg font-bold min-w-[160px] text-center capitalize text-foreground">
               {months[selectedMonth].label} {selectedYear}
             </span>
-            <Button variant="ghost" size="icon" onClick={handleNextMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-full w-8 h-8">
+            <Button variant="ghost" size="icon" onClick={handleNextMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-md w-8 h-8">
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
@@ -217,14 +217,14 @@ export default function Incomes() {
       
       <div className="flex justify-end">
         <Button variant="outline" className="gap-2" onClick={() => setIsFiltersOpen(!isFiltersOpen)}>
-          <Filter className="w-4 h-4" /> {isFiltersOpen ? 'Ocultar Filtros' : 'Filtros e Opções'}
+          <Filter className="w-4 h-4" /> {isFiltersOpen ? 'Ocultar Filtros' : 'Filtros e OpÃ§Ãµes'}
         </Button>
       </div>
 
       {isFiltersOpen && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium">Filtros Avançados</CardTitle>
+            <CardTitle className="text-base font-medium">Filtros AvanÃ§ados</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -232,7 +232,7 @@ export default function Incomes() {
                 <Label>Buscar</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Descrição..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+                  <Input placeholder="DescriÃ§Ã£o..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -280,7 +280,7 @@ export default function Incomes() {
             <p className="text-sm font-medium text-muted-foreground">Total de Receitas ({months[selectedMonth].label}/{selectedYear})</p>
             <p className="text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
-          <div className="text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-full border">{filteredIncomes.length} registro(s) encontrado(s)</div>
+          <div className="text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border">{filteredIncomes.length} registro(s) encontrado(s)</div>
         </CardContent>
       </Card>
 
@@ -291,10 +291,10 @@ export default function Incomes() {
               <TableRow>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Data</TableHead>
-                <TableHead>Descrição</TableHead>
+                <TableHead>DescriÃ§Ã£o</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="text-right">AÃ§Ãµes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -319,11 +319,11 @@ export default function Incomes() {
                                 <TooltipTrigger>
                                   <EyeOff className="w-4 h-4 text-muted-foreground" />
                                 </TooltipTrigger>
-                                <TooltipContent>Não contabilizado no saldo</TooltipContent>
+                                <TooltipContent>NÃ£o contabilizado no saldo</TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           )}
-                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", category?.color ? `bg-${category.color}/10` : "bg-muted")}><CategoryIcon iconName={category?.icon || 'Wallet'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} /></div>
+                          <div className={cn("w-8 h-8 rounded-md flex items-center justify-center", category?.color ? `bg-${category.color}/10` : "bg-muted")}><CategoryIcon iconName={category?.icon || 'Wallet'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} /></div>
                           <span>{category?.name || 'Sem categoria'}</span>
                         </div>
                       </TableCell>
@@ -375,7 +375,7 @@ export default function Incomes() {
             <AlertDialogTitle>Excluir Receita</AlertDialogTitle>
             <AlertDialogDescription>
               {incomeToDelete?.recurrenceId 
-                ? "Esta receita é recorrente. Como você gostaria de excluí-la?"
+                ? "Esta receita Ã© recorrente. Como vocÃª gostaria de excluÃ­-la?"
                 : "Tem certeza que deseja excluir esta receita?"
               }
             </AlertDialogDescription>
@@ -386,29 +386,29 @@ export default function Incomes() {
                 className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'single' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
                 onClick={() => setSelectedDeleteScope('single')}
               >
-                  <div className="p-2 bg-muted rounded-full"><Calendar className="w-4 h-4" /></div>
+                  <div className="p-2 bg-muted rounded-md"><Calendar className="w-4 h-4" /></div>
                   <div className="text-left"><p className="font-medium">Apenas esta</p><p className="text-xs text-muted-foreground">Exclui somente este registro</p></div>
               </div>
               <div 
                 className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'future' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
                 onClick={() => setSelectedDeleteScope('future')}
               >
-                  <div className="p-2 bg-muted rounded-full"><CalendarClock className="w-4 h-4" /></div>
-                  <div className="text-left"><p className="font-medium">Esta e futuras</p><p className="text-xs text-muted-foreground">Exclui este e todos os próximos</p></div>
+                  <div className="p-2 bg-muted rounded-md"><CalendarClock className="w-4 h-4" /></div>
+                  <div className="text-left"><p className="font-medium">Esta e futuras</p><p className="text-xs text-muted-foreground">Exclui este e todos os prÃ³ximos</p></div>
               </div>
               <div 
                 className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'past' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
                 onClick={() => setSelectedDeleteScope('past')}
               >
-                  <div className="p-2 bg-muted rounded-full"><History className="w-4 h-4" /></div>
+                  <div className="p-2 bg-muted rounded-md"><History className="w-4 h-4" /></div>
                   <div className="text-left"><p className="font-medium">Esta e Passadas</p><p className="text-xs text-muted-foreground">Exclui este e todos os anteriores</p></div>
               </div>
               <div 
                 className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'all' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
                 onClick={() => setSelectedDeleteScope('all')}
               >
-                  <div className="p-2 bg-muted rounded-full"><CalendarDays className="w-4 h-4" /></div>
-                  <div className="text-left"><p className="font-medium">Todas</p><p className="text-xs text-muted-foreground">Exclui toda a série histórica</p></div>
+                  <div className="p-2 bg-muted rounded-md"><CalendarDays className="w-4 h-4" /></div>
+                  <div className="text-left"><p className="font-medium">Todas</p><p className="text-xs text-muted-foreground">Exclui toda a sÃ©rie histÃ³rica</p></div>
               </div>
             </div>
           )}
@@ -423,3 +423,4 @@ export default function Incomes() {
     </div>
   );
 }
+

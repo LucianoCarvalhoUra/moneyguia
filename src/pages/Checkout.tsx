@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft, Wallet, Copy, Check, QrCode, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,17 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const checkoutSchema = z.object({
-  fullName: z.string().trim().min(3, "Nome completo é obrigatório").max(100),
-  cpf: z.string().trim().min(11, "CPF inválido").max(14),
-  email: z.string().trim().email("E-mail inválido").max(255),
-  phone: z.string().trim().min(10, "Telefone inválido").max(20),
-  street: z.string().trim().min(3, "Endereço é obrigatório").max(200),
-  number: z.string().trim().min(1, "Número é obrigatório").max(10),
+  fullName: z.string().trim().min(3, "Nome completo Ã© obrigatÃ³rio").max(100),
+  cpf: z.string().trim().min(11, "CPF invÃ¡lido").max(14),
+  email: z.string().trim().email("E-mail invÃ¡lido").max(255),
+  phone: z.string().trim().min(10, "Telefone invÃ¡lido").max(20),
+  street: z.string().trim().min(3, "EndereÃ§o Ã© obrigatÃ³rio").max(200),
+  number: z.string().trim().min(1, "NÃºmero Ã© obrigatÃ³rio").max(10),
   complement: z.string().max(100).optional(),
-  neighborhood: z.string().trim().min(2, "Bairro é obrigatório").max(100),
-  city: z.string().trim().min(2, "Cidade é obrigatória").max(100),
-  state: z.string().trim().min(2, "Estado é obrigatório").max(2),
-  zipCode: z.string().trim().min(8, "CEP inválido").max(10),
+  neighborhood: z.string().trim().min(2, "Bairro Ã© obrigatÃ³rio").max(100),
+  city: z.string().trim().min(2, "Cidade Ã© obrigatÃ³ria").max(100),
+  state: z.string().trim().min(2, "Estado Ã© obrigatÃ³rio").max(2),
+  zipCode: z.string().trim().min(8, "CEP invÃ¡lido").max(10),
 });
 
 interface Plan {
@@ -79,7 +79,7 @@ export default function Checkout() {
       if (data) {
         setPlan(data);
       } else {
-        toast.error("Plano não encontrado");
+        toast.error("Plano nÃ£o encontrado");
         navigate("/plans");
       }
       setLoading(false);
@@ -133,7 +133,7 @@ export default function Checkout() {
 
   const handleConfirmPayment = async () => {
     if (!user || !plan) {
-      toast.info("Faça login para confirmar o pagamento.");
+      toast.info("FaÃ§a login para confirmar o pagamento.");
       navigate("/auth");
       return;
     }
@@ -197,7 +197,7 @@ export default function Checkout() {
           {(["info", "payment", "confirmation"] as Step[]).map((s, i) => (
             <div key={s} className="flex items-center gap-2">
               <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+                className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold ${
                   step === s
                     ? "bg-emerald-500 text-white"
                     : i < ["info", "payment", "confirmation"].indexOf(step)
@@ -217,7 +217,7 @@ export default function Checkout() {
           <div className="lg:col-span-2">
             {step === "info" && (
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-6 text-xl font-bold text-gray-900">Informações pessoais</h2>
+                <h2 className="mb-6 text-xl font-bold text-gray-900">InformaÃ§Ãµes pessoais</h2>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
@@ -266,7 +266,7 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                <h2 className="mb-4 mt-8 text-xl font-bold text-gray-900">Endereço de cobrança</h2>
+                <h2 className="mb-4 mt-8 text-xl font-bold text-gray-900">EndereÃ§o de cobranÃ§a</h2>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
@@ -292,7 +292,7 @@ export default function Checkout() {
                   </div>
 
                   <div>
-                    <Label htmlFor="number">Número</Label>
+                    <Label htmlFor="number">NÃºmero</Label>
                     <Input
                       id="number"
                       value={form.number}
@@ -349,7 +349,7 @@ export default function Checkout() {
 
                 <Button
                   onClick={handleNext}
-                  className="mt-8 w-full rounded-full bg-emerald-500 text-white hover:bg-emerald-600"
+                  className="mt-8 w-full rounded-md bg-emerald-500 text-white hover:bg-emerald-600"
                 >
                   Continuar para pagamento
                 </Button>
@@ -392,9 +392,9 @@ export default function Checkout() {
                     <Button
                       onClick={handleConfirmPayment}
                       disabled={submitting}
-                      className="w-full rounded-full bg-emerald-500 text-white hover:bg-emerald-600"
+                      className="w-full rounded-md bg-emerald-500 text-white hover:bg-emerald-600"
                     >
-                      {submitting ? "Processando..." : "Já realizei o pagamento"}
+                      {submitting ? "Processando..." : "JÃ¡ realizei o pagamento"}
                     </Button>
                     <Button
                       variant="ghost"
@@ -410,7 +410,7 @@ export default function Checkout() {
 
             {step === "confirmation" && (
               <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-md bg-emerald-100">
                   <Check className="h-8 w-8 text-emerald-600" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900">Pagamento confirmado!</h2>
@@ -418,7 +418,7 @@ export default function Checkout() {
                   Seu plano <strong>{plan?.name}</strong> foi ativado com sucesso.
                 </p>
                 <Link to="/dashboard">
-                  <Button className="mt-6 rounded-full bg-emerald-500 px-8 text-white hover:bg-emerald-600">
+                  <Button className="mt-6 rounded-md bg-emerald-500 px-8 text-white hover:bg-emerald-600">
                     Ir para o Dashboard
                   </Button>
                 </Link>
@@ -455,3 +455,4 @@ export default function Checkout() {
     </div>
   );
 }
+

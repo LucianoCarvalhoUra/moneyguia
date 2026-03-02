@@ -1,32 +1,33 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { 
-  Wallet, 
-  LayoutDashboard, 
-  Receipt, 
-  CreditCard, 
-  FileCheck, 
-  Settings, 
+﻿import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import {
+  Wallet,
+  LayoutDashboard,
+  Receipt,
+  CreditCard,
+  FileCheck,
+  Settings,
   LogOut,
   Menu,
   X,
   TrendingUp,
   FileText,
-  Target
-} from 'lucide-react';
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
+  Target,
+  CandlestickChart,
+} from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/goals', label: 'Objetivos', icon: Target },
-  { path: '/expenses', label: 'Despesas', icon: Receipt },
-  { path: '/incomes', label: 'Receitas', icon: TrendingUp },
-  { path: '/accounts', label: 'Contas', icon: CreditCard },
-  { path: '/reconciliation', label: 'Conciliação', icon: FileCheck },
-  { path: '/reports', label: 'Relatórios', icon: FileText },
-  { path: '/settings', label: 'Configurações', icon: Settings },
+  { path: "/dashboard", label: "Painel", icon: LayoutDashboard },
+  { path: "/goals", label: "Metas", icon: Target },
+  { path: "/expenses", label: "Despesas", icon: Receipt },
+  { path: "/incomes", label: "Receitas", icon: TrendingUp },
+  { path: "/accounts", label: "Contas", icon: CreditCard },
+  { path: "/reconciliation", label: "Conciliação", icon: FileCheck },
+  { path: "/reports", label: "Relatórios", icon: FileText },
+  { path: "/settings", label: "Configurações", icon: Settings },
 ];
 
 export default function Navbar() {
@@ -34,89 +35,82 @@ export default function Navbar() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const allNavItems = navItems;
-
   return (
-    <nav className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
-      <div className="container mx-auto px-4">
+    <nav className="sticky top-0 z-50 border-b border-slate-700/40 glass-sidebar">
+      <div className="container mx-auto px-4 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-primary-foreground" />
+          <Link to="/dashboard" className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground">
+              <Wallet className="h-5 w-5" strokeWidth={1.5} />
             </div>
-            <span className="font-bold text-lg text-foreground hidden sm:block">MeuBudget</span>
+            <div className="hidden sm:block">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">Control Panel</p>
+              <p className="text-base font-semibold text-slate-100">KeepMoney Invest</p>
+            </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
-            {allNavItems.map((item) => (
+          <div className="hidden items-center gap-1 md:flex">
+            {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   location.pathname === item.path
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'                )}
+                    ? "bg-accent text-accent-foreground"
+                    : "text-slate-300 hover:bg-slate-700/60 hover:text-white",
+                )}
               >
-                <item.icon className="w-4 h-4" />
+                <item.icon className="h-4 w-4" strokeWidth={1.5} />
                 {item.label}
               </Link>
             ))}
           </div>
 
-          {/* User section */}
-          <div className="hidden md:flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              Olá, <span className="font-medium text-foreground">{user?.user_metadata?.name?.split(' ')[0] || user?.email?.split('@')[0]}</span>
+          <div className="hidden items-center gap-3 md:flex">
+            <div className="flex items-center gap-2 rounded-md border border-slate-600/60 bg-slate-800/50 px-3 py-1.5 text-xs text-slate-200">
+              <CandlestickChart className="h-4 w-4 text-amber-400" strokeWidth={1.5} />
+              Investimento em foco
+            </div>
+            <span className="text-sm text-slate-300">
+              Olá, <span className="font-semibold text-slate-100">{user?.user_metadata?.name?.split(" ")[0] || user?.email?.split("@")[0]}</span>
             </span>
-            <Button variant="ghost" size="sm" onClick={() => logout()}>
-              <LogOut className="w-4 h-4 mr-2" />
+            <Button variant="ghost" size="sm" className="text-slate-100 hover:bg-slate-700/70" onClick={() => logout()}>
+              <LogOut className="mr-2 h-4 w-4" strokeWidth={1.5} />
               Sair
             </Button>
           </div>
 
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden p-2"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="w-6 h-6 text-foreground" />
-            ) : (
-              <Menu className="w-6 h-6 text-foreground" />
-            )}
+          <button className="rounded-md p-2 text-slate-100 md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <X className="h-6 w-6" strokeWidth={1.5} /> : <Menu className="h-6 w-6" strokeWidth={1.5} />}
           </button>
         </div>
 
-        {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t animate-slide-up">
+          <div className="animate-slide-up border-t border-slate-700/40 py-4 md:hidden">
             <div className="flex flex-col gap-2">
-              {allNavItems.map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                    "flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-colors",
                     location.pathname === item.path
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted',
-                    item.path === '/admin' && 'text-primary hover:text-primary'
+                      ? "bg-accent text-accent-foreground"
+                      : "text-slate-300 hover:bg-slate-700/60 hover:text-white",
                   )}
                 >
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className="h-5 w-5" strokeWidth={1.5} />
                   {item.label}
                 </Link>
               ))}
-              <div className="border-t pt-4 mt-2">
-                <div className="px-4 mb-2 text-sm text-muted-foreground">
-                  Conectado como <span className="font-medium text-foreground">{user?.user_metadata?.name || user?.email}</span>
+              <div className="mt-2 border-t border-slate-700/40 pt-3">
+                <div className="px-4 text-sm text-slate-300">
+                  Conectado como <span className="font-semibold text-slate-100">{user?.user_metadata?.name || user?.email}</span>
                 </div>
-                <Button variant="ghost" className="w-full justify-start" onClick={() => logout()}>
-                  <LogOut className="w-4 h-4 mr-2" />
+                <Button variant="ghost" className="mt-2 w-full justify-start text-slate-100 hover:bg-slate-700/70" onClick={() => logout()}>
+                  <LogOut className="mr-2 h-4 w-4" strokeWidth={1.5} />
                   Sair
                 </Button>
               </div>
