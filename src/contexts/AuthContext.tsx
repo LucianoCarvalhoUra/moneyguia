@@ -49,7 +49,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  sendPasswordRecoveryCode: (email: string) => Promise<{ success: boolean; error?: string }>;
+  verifyPasswordRecoveryCode: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -342,11 +343,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigate('/auth', { replace: true });
   };
 
-  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
-    const redirectUrl = `${window.location.origin}/reset-password`;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
+  const sendPasswordRecoveryCode = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/`,
+      },
+    });
 
     if (error) {
+      return { success: false, error: getAuthErrorMessage(error) };
+    }
+
+    return { success: true };
+  };
+
+  const verifyPasswordRecoveryCode = async (
+    email: string,
+    token: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    const normalizedToken = token.replace(/\D/g, '');
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: normalizedToken,
+      type: 'email',
+    });
+
+    if (error) {
+      const message = error.message.toLowerCase();
+      if (message.includes('expired') || message.includes('invalid')) {
+        return { success: false, error: 'Codigo invalido ou expirado.' };
+      }
       return { success: false, error: getAuthErrorMessage(error) };
     }
 
@@ -369,7 +397,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
-      resetPassword,
+      sendPasswordRecoveryCode,
+      verifyPasswordRecoveryCode,
     }),
     [
       user,
@@ -381,6 +410,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscriptionEndDate,
       hasFeatureAccess,
       refreshProfile,
+      sendPasswordRecoveryCode,
+      verifyPasswordRecoveryCode,
     ],
   );
 
