@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,25 +88,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('subscription_plan, subscription_status, subscription_end_date')
+        .from('user_subscriptions')
+        .select('status, expires_at, billing_cycle, plan_id, subscription_plans(plan_type)')
         .eq('user_id', userId)
+        .in('status', ['active', 'trial'])
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) {
         throw error;
       }
 
-      const defaults = getDefaultProfileState();
-      const plan = ((data as any)?.subscription_plan || defaults.subscription_plan) as SubscriptionPlan;
-      const status = ((data as any)?.subscription_status || defaults.subscription_status) as SubscriptionStatus;
-      const expiry =
-        (data as any)?.subscription_end_date ||
-        defaults.subscription_end_date;
-
-      setSubscriptionPlan(plan);
-      setSubscriptionStatus(status);
-      setSubscriptionEndDate(expiry);
+      if (data) {
+        const planType = (data as any).subscription_plans?.plan_type || 'free';
+        const planMap: Record<string, SubscriptionPlan> = { free: 'free', pro: 'premium', premium: 'total' };
+        setSubscriptionPlan(planMap[planType] || 'free');
+        setSubscriptionStatus(data.status as SubscriptionStatus);
+        setSubscriptionEndDate(data.expires_at);
+      } else {
+        const defaults = getDefaultProfileState();
+        setSubscriptionPlan(defaults.subscription_plan);
+        setSubscriptionStatus(defaults.subscription_status);
+        setSubscriptionEndDate(defaults.subscription_end_date);
+      }
     } catch (error) {
       console.error('Erro ao carregar perfil, aplicando perfil padrao:', error);
       const defaults = getDefaultProfileState();
@@ -135,21 +140,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user_id: authUser.id,
         name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
         email: authUser.email,
-        subscription_plan: 'free',
-        subscription_status: 'active',
-      } as any);
+      });
     }
   }, []);
 
+  // Use refs to avoid re-subscribing to auth on every callback change
+  const loadProfileRef = useRef(loadProfile);
+  loadProfileRef.current = loadProfile;
+  const createProfileRef = useRef(createProfileIfNotExists);
+  createProfileRef.current = createProfileIfNotExists;
+
   useEffect(() => {
+    let mounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, authSession) => {
+      if (!mounted) return;
       setSession(authSession);
       setUser(authSession?.user ?? null);
       setIsLoading(false);
 
       if (event === 'SIGNED_IN' && authSession?.user) {
         setTimeout(() => {
-          createProfileIfNotExists(authSession.user).then(() => loadProfile(authSession.user.id));
+          createProfileRef.current(authSession.user).then(() => loadProfileRef.current(authSession.user.id));
         }, 0);
       }
 
@@ -162,18 +174,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      if (!mounted) return;
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       if (existingSession?.user) {
-        loadProfile(existingSession.user.id);
+        loadProfileRef.current(existingSession.user.id);
       } else {
         setIsProfileLoading(false);
       }
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, [createProfileIfNotExists, loadProfile]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []); // stable - no deps needed
 
   useEffect(() => {
     let inactivityTimer: ReturnType<typeof setTimeout>;

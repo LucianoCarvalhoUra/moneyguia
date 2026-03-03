@@ -126,6 +126,7 @@ export default function ExpenseList() {
                 <TableRow>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Subcategoria</TableHead>
+                  <TableHead>Lançamento</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Valor</TableHead>
@@ -149,7 +150,8 @@ export default function ExpenseList() {
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{subcategory?.name || '-'}</TableCell>
-                      <TableCell>{expense.dueDate ? expense.dueDate.toLocaleDateString('pt-BR') : '-'}</TableCell>
+                      <TableCell className="text-muted-foreground">{expense.expenseDate ? new Date(expense.expenseDate).toLocaleDateString('pt-BR') : '-'}</TableCell>
+                      <TableCell>{expense.dueDate ? new Date(expense.dueDate).toLocaleDateString('pt-BR') : '-'}</TableCell>
                       <TableCell className={cn("font-medium", expense.isPaid && "line-through text-muted-foreground")}>
                         <div className="flex items-center gap-2">
                           {expense.description}
