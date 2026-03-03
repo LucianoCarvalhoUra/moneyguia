@@ -22,6 +22,7 @@ import ChangePasswordForm from '@/components/settings/ChangePasswordForm';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Lock } from 'lucide-react';
+import { APP_VERSION, LAST_UPDATE } from '@/config/version';
 
 interface Profile {
   name: string;
@@ -361,6 +362,10 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="pt-1 text-center text-[10px] text-slate-400">
+        v{APP_VERSION} • {LAST_UPDATE}
+      </div>
     </div>
   );
 }

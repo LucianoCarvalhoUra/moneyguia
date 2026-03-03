@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { FinanceProvider } from "@/contexts/FinanceContext";
 import { IncomeProvider } from "@/contexts/IncomeContext";
@@ -23,6 +24,7 @@ import Plans from "./pages/Plans";
 import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import { APP_VERSION } from "@/config/version";
 
 const queryClient = new QueryClient();
 
@@ -103,6 +105,14 @@ const AppRoutes = () => (
 );
 
 const App = () => {
+  const hasLoggedVersion = useRef(false);
+
+  useEffect(() => {
+    if (hasLoggedVersion.current) return;
+    hasLoggedVersion.current = true;
+    console.log(`%c 🚀 SmartBudget v${APP_VERSION} ativo`, "color:#059669;font-weight:700;");
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
