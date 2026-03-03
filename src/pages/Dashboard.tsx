@@ -12,6 +12,7 @@ import ExpenseForm from '@/components/expenses/ExpenseForm';
 import PendingExpensesList from '@/components/dashboard/PendingExpensesList';
 import { toast } from 'sonner';
 import { addDays, startOfDay, endOfDay, isBefore, format, subMonths, addMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { DashboardAI } from '@/components/DashboardAI';
 import FiftyThirtyTwentyChart from '@/components/dashboard/FiftyThirtyTwentyChart';
 import DailyCashFlowChart from '@/components/dashboard/DailyCashFlowChart';
@@ -134,10 +135,8 @@ export default function Dashboard() {
     }).format(amount);
   };
 
-  const months = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-  ];
+  const selectedMonthLabelRaw = format(new Date(selectedYear, selectedMonth, 1), 'MMMM', { locale: ptBR });
+  const selectedMonthLabel = selectedMonthLabelRaw.charAt(0).toUpperCase() + selectedMonthLabelRaw.slice(1);
 
   const handlePreviousMonth = () => {
     if (selectedMonth === 0) {
@@ -338,7 +337,7 @@ export default function Dashboard() {
           <ChevronLeft className="w-5 h-5" />
         </Button>
         <div className="text-lg font-bold text-foreground min-w-[180px] text-center capitalize">
-          {months[selectedMonth]} {selectedYear}
+          {selectedMonthLabel} {selectedYear}
         </div>
         <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-9 w-9 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900">
           <ChevronRight className="w-5 h-5" />

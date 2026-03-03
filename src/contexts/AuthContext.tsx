@@ -82,25 +82,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsProfileLoading(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('subscription_plan, subscription_status, subscription_end_date')
+      .select('subscription_plan, subscription_status, subscription_expiry, subscription_end_date')
       .eq('user_id', userId)
       .maybeSingle();
 
     if (error) {
       console.error('Erro ao carregar perfil:', error);
+      // 42703 = coluna inexistente. Evita travar fluxo enquanto migration não roda.
       setSubscriptionPlan('free');
-      setSubscriptionStatus('trial');
+      setSubscriptionStatus('active');
       setSubscriptionEndDate(null);
       setIsProfileLoading(false);
       return;
     }
 
     const plan = ((data as any)?.subscription_plan || 'free') as SubscriptionPlan;
-    const status = ((data as any)?.subscription_status || 'trial') as SubscriptionStatus;
+    const status = ((data as any)?.subscription_status || 'active') as SubscriptionStatus;
+    const expiry = (data as any)?.subscription_expiry || (data as any)?.subscription_end_date || null;
 
     setSubscriptionPlan(plan);
     setSubscriptionStatus(status);
-    setSubscriptionEndDate((data as any)?.subscription_end_date || null);
+    setSubscriptionEndDate(expiry);
     setIsProfileLoading(false);
   }, []);
 
@@ -122,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
         email: authUser.email,
         subscription_plan: 'free',
-        subscription_status: 'trial',
+        subscription_status: 'active',
       } as any);
     }
   }, []);

@@ -35,16 +35,28 @@ function ProtectedRoute({
 }) {
   const { isAuthenticated, isLoading, isProfileLoading, isSubscriptionValid, hasFeatureAccess } = useAuth();
 
-  if (isLoading || isProfileLoading) {
+  if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">
-        <div className="animate-pulse text-emerald-400">Carregando painel...</div>
+      <div className="mx-auto max-w-5xl px-4 py-10">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+          Carregando sessão...
+        </div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (isProfileLoading) {
+    return (
+      <Layout>
+        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+          Sincronizando perfil...
+        </div>
+      </Layout>
+    );
   }
 
   if (!isSubscriptionValid) {
@@ -63,8 +75,10 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">
-        <div className="animate-pulse text-emerald-400">Carregando...</div>
+      <div className="mx-auto max-w-xl px-4 py-10">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+          Carregando autenticação...
+        </div>
       </div>
     );
   }

@@ -26,6 +26,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, isBefore, startOfDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Check, Copy, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -58,12 +59,10 @@ export default function Incomes() {
   const [incomeToDelete, setIncomeToDelete] = useState<Income | null>(null);
   const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
 
-  const months = [
-    { value: 0, label: 'Janeiro' }, { value: 1, label: 'Fevereiro' }, { value: 2, label: 'MarÃ§o' },
-    { value: 3, label: 'Abril' }, { value: 4, label: 'Maio' }, { value: 5, label: 'Junho' },
-    { value: 6, label: 'Julho' }, { value: 7, label: 'Agosto' }, { value: 8, label: 'Setembro' },
-    { value: 9, label: 'Outubro' }, { value: 10, label: 'Novembro' }, { value: 11, label: 'Dezembro' },
-  ];
+  const getMonthLabel = (monthIndex: number) => {
+    const label = format(new Date(selectedYear, monthIndex, 1), 'MMMM', { locale: ptBR });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
   
   const currentYear = new Date().getFullYear();
   const years = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
@@ -237,7 +236,7 @@ export default function Incomes() {
               <ChevronLeft className="w-5 h-5" />
             </Button>
             <span className="text-lg font-bold min-w-[160px] text-center capitalize text-foreground">
-              {months[selectedMonth].label} {selectedYear}
+              {getMonthLabel(selectedMonth)} {selectedYear}
             </span>
             <Button variant="ghost" size="icon" onClick={handleNextMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-md w-8 h-8">
               <ChevronRight className="w-5 h-5" />
@@ -319,7 +318,7 @@ export default function Incomes() {
       <Card className="bg-green-50/50 dark:bg-green-900/10 border-green-100 dark:border-green-900/20">
         <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Total de Receitas ({months[selectedMonth].label}/{selectedYear})</p>
+            <p className="text-sm font-medium text-muted-foreground">Total de Receitas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
             <p className="text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
           <div className="text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border">{filteredIncomes.length} registro(s) encontrado(s)</div>
