@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -144,15 +144,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Use refs to avoid re-subscribing to auth on every callback change
+  const loadProfileRef = useRef(loadProfile);
+  loadProfileRef.current = loadProfile;
+  const createProfileRef = useRef(createProfileIfNotExists);
+  createProfileRef.current = createProfileIfNotExists;
+
   useEffect(() => {
+    let mounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, authSession) => {
+      if (!mounted) return;
       setSession(authSession);
       setUser(authSession?.user ?? null);
       setIsLoading(false);
 
       if (event === 'SIGNED_IN' && authSession?.user) {
         setTimeout(() => {
-          createProfileIfNotExists(authSession.user).then(() => loadProfile(authSession.user.id));
+          createProfileRef.current(authSession.user).then(() => loadProfileRef.current(authSession.user.id));
         }, 0);
       }
 
@@ -165,18 +174,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      if (!mounted) return;
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       if (existingSession?.user) {
-        loadProfile(existingSession.user.id);
+        loadProfileRef.current(existingSession.user.id);
       } else {
         setIsProfileLoading(false);
       }
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, [createProfileIfNotExists, loadProfile]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []); // stable - no deps needed
 
   useEffect(() => {
     let inactivityTimer: ReturnType<typeof setTimeout>;
