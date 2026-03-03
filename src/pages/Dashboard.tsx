@@ -135,7 +135,7 @@ export default function Dashboard() {
   };
 
   const months = [
-    'Janeiro', 'Fevereiro', 'MarÃ§o', 'Abril', 'Maio', 'Junho',
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
@@ -285,20 +285,20 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Overdue Alert Banner */}
       {showOverdueAlert && totalOverdueCount > 0 && (
         <div 
-          className="bg-red-600 text-white px-4 py-3 rounded-lg shadow-md flex items-center justify-between cursor-pointer hover:bg-red-700 transition-colors animate-in slide-in-from-top-2"
+          className="flex cursor-pointer items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 shadow-sm transition-colors hover:bg-red-100 animate-in slide-in-from-top-2"
           onClick={handleAlertClick}
         >
           <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2 rounded-md">
-              <AlertTriangle className="w-5 h-5 text-white" />
+            <div className="rounded-lg bg-red-100 p-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
             </div>
             <div>
-              <p className="font-bold">AtenÃ§Ã£o: VocÃª possui {totalOverdueCount} itens vencidos!</p>
-              <p className="text-xs text-white/90">
+              <p className="font-bold">Atenção: você possui {totalOverdueCount} itens vencidos.</p>
+              <p className="text-xs text-red-600">
                 {overdueItems.expenses.length > 0 && `${overdueItems.expenses.length} despesa(s)`}
                 {overdueItems.expenses.length > 0 && overdueItems.incomes.length > 0 && ' e '}
                 {overdueItems.incomes.length > 0 && `${overdueItems.incomes.length} receita(s)`}
@@ -309,7 +309,7 @@ export default function Dashboard() {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-white hover:bg-white/20 hover:text-white"
+            className="text-red-600 hover:bg-red-200 hover:text-red-700"
             onClick={(e) => {
               e.stopPropagation();
               setShowOverdueAlert(false);
@@ -324,38 +324,38 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">VisÃ£o geral do seu orÃ§amento</p>
+          <p className="text-muted-foreground">Visão geral do seu orçamento</p>
         </div>
-        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => setFormOpen(true)}>
+        <Button className="bg-[#059669] text-white shadow-sm hover:bg-[#047857]" onClick={() => setFormOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Nova Despesa
         </Button>
       </div>
 
       {/* Month Navigation */}
-      <div className="flex items-center justify-center gap-4 py-2">
-        <Button variant="ghost" size="icon" onClick={handlePreviousMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-md w-8 h-8">
+      <div className="flex items-center justify-center gap-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <Button variant="ghost" size="icon" onClick={handlePreviousMonth} className="h-9 w-9 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900">
           <ChevronLeft className="w-5 h-5" />
         </Button>
         <div className="text-lg font-bold text-foreground min-w-[180px] text-center capitalize">
           {months[selectedMonth]} {selectedYear}
         </div>
-        <Button variant="ghost" size="icon" onClick={handleNextMonth} className="bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-md w-8 h-8">
+        <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-9 w-9 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900">
           <ChevronRight className="w-5 h-5" />
         </Button>
       </div>
 
       {/* Balance Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <Card className={projectedBalance >= 0 ? 'order-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background' : 'order-2 border-warning/50 bg-warning/5'}>
-          <CardContent className="pt-6">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-5">
+        <Card className={projectedBalance >= 0 ? 'order-2 border-slate-200 bg-white' : 'order-2 border-red-200 bg-white'}>
+          <CardContent className="p-7">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${projectedBalance >= 0 ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-warning/10 text-warning'}`}>
-                <TrendingUp className={`w-6 h-6 ${projectedBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-warning'}`} />
+              <div className={`rounded-xl p-3 ${projectedBalance >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
+                <TrendingUp className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Saldo Previsto (Final do MÃªs)</p>
-                <p className={`text-2xl font-bold ${projectedBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-warning'}`}>
+                <p className="text-sm text-muted-foreground">Saldo previsto (final do mês)</p>
+                <p className={`text-2xl font-bold ${projectedBalance >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
                   {formatCurrency(projectedBalance)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -366,15 +366,15 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className={realBalance >= 0 ? 'order-1 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-background' : 'order-1 border-destructive/50 bg-destructive/5'}>
-          <CardContent className="pt-6">
+        <Card className={realBalance >= 0 ? 'order-1 border-slate-200 bg-white' : 'order-1 border-red-200 bg-white'}>
+          <CardContent className="p-7">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${realBalance >= 0 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400' : 'bg-destructive/10 text-destructive'}`}>
-                <Wallet className={`w-6 h-6 ${realBalance >= 0 ? 'text-success' : 'text-destructive'}`} />
+              <div className={`rounded-xl p-3 ${realBalance >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
+                <Wallet className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Saldo Real</p>
-                <p className={`text-2xl font-bold ${realBalance >= 0 ? 'text-success' : 'text-destructive'}`}>
+                <p className={`text-2xl font-bold ${realBalance >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
                   {formatCurrency(realBalance)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -386,15 +386,15 @@ export default function Dashboard() {
         </Card>
 
         {/* Receitas Totais */}
-        <Card className="order-3 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-background">
-          <CardContent className="pt-6">
+        <Card className="order-3 border-slate-200 bg-white">
+          <CardContent className="p-7">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400">
-                <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700">
+                <TrendingUp className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Receitas Totais</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <p className="text-2xl font-bold text-emerald-700">
                   {formatCurrency(currentIncomeTotal)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -405,34 +405,34 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="order-4 border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-background">
-          <CardContent className="pt-6">
+        <Card className="order-4 border-slate-200 bg-white">
+          <CardContent className="p-7">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">
-                <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <div className="rounded-xl bg-red-50 p-3 text-red-600">
+                <TrendingDown className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Despesas Totais</p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                <p className="text-2xl font-bold text-red-600">
                   {formatCurrency(currentExpenseTotal)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Apenas nÃ£o excluÃƒÂ­das
+                  Apenas despesas contabilizadas
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="order-5 border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50 to-white dark:from-slate-950/20 dark:to-background">
-          <CardContent className="pt-6">
+        <Card className="order-5 border-slate-200 bg-white">
+          <CardContent className="p-7">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-900/50 dark:text-slate-400">
-                <Eye className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+              <div className="rounded-xl bg-slate-100 p-3 text-slate-600">
+                <Eye className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Controle Extra</p>
-                <p className="text-2xl font-bold text-slate-600 dark:text-slate-400">
+                <p className="text-2xl font-bold text-slate-600">
                   {formatCurrency(controlExtraTotal)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">

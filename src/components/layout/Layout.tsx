@@ -7,10 +7,10 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <main className="container mx-auto px-4 py-6 lg:px-8">
-        <div className="rounded-md border border-slate-300/70 bg-slate-100/70 p-4 shadow-sm backdrop-blur-sm lg:p-6">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:p-7">
           {children}
         </div>
       </main>

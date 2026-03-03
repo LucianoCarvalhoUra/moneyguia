@@ -1,4 +1,4 @@
-﻿import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,13 +14,13 @@ import {
   TrendingUp,
   FileText,
   Target,
-  CandlestickChart,
+  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { path: "/dashboard", label: "Painel", icon: LayoutDashboard },
+  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { path: "/goals", label: "Metas", icon: Target },
   { path: "/expenses", label: "Despesas", icon: Receipt },
   { path: "/incomes", label: "Receitas", icon: TrendingUp },
@@ -36,16 +36,16 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-slate-700/40 glass-sidebar">
+    <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
       <div className="container mx-auto px-4 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-16 items-center justify-between gap-3">
           <Link to="/dashboard" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground">
-              <Wallet className="h-5 w-5" strokeWidth={1.5} />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Wallet className="h-5 w-5" />
             </div>
             <div className="hidden sm:block">
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">Control Panel</p>
-              <p className="text-base font-semibold text-slate-100">KeepMoney Invest</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">KeepMoney</p>
+              <p className="text-sm font-semibold text-slate-800">Painel Financeiro</p>
             </div>
           </Link>
 
@@ -55,39 +55,39 @@ export default function Navbar() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   location.pathname === item.path
-                    ? "bg-accent text-accent-foreground"
-                    : "text-slate-300 hover:bg-slate-700/60 hover:text-white",
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-800",
                 )}
               >
-                <item.icon className="h-4 w-4" strokeWidth={1.5} />
+                <item.icon className="h-4 w-4" />
                 {item.label}
               </Link>
             ))}
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <div className="flex items-center gap-2 rounded-md border border-slate-600/60 bg-slate-800/50 px-3 py-1.5 text-xs text-slate-200">
-              <CandlestickChart className="h-4 w-4 text-amber-400" strokeWidth={1.5} />
-              Investimento em foco
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+              <Sparkles className="h-4 w-4" />
+              IA ativa
             </div>
-            <span className="text-sm text-slate-300">
-              Olá, <span className="font-semibold text-slate-100">{user?.user_metadata?.name?.split(" ")[0] || user?.email?.split("@")[0]}</span>
+            <span className="text-sm text-slate-600">
+              Olá, <span className="font-semibold text-slate-800">{user?.user_metadata?.name?.split(" ")[0] || user?.email?.split("@")[0]}</span>
             </span>
-            <Button variant="ghost" size="sm" className="text-slate-100 hover:bg-slate-700/70" onClick={() => logout()}>
-              <LogOut className="mr-2 h-4 w-4" strokeWidth={1.5} />
+            <Button variant="ghost" size="sm" className="text-slate-700 hover:bg-slate-100" onClick={() => logout()}>
+              <LogOut className="mr-2 h-4 w-4" />
               Sair
             </Button>
           </div>
 
-          <button className="rounded-md p-2 text-slate-100 md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="h-6 w-6" strokeWidth={1.5} /> : <Menu className="h-6 w-6" strokeWidth={1.5} />}
+          <button className="rounded-lg p-2 text-slate-700 md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
         {mobileMenuOpen && (
-          <div className="animate-slide-up border-t border-slate-700/40 py-4 md:hidden">
+          <div className="border-t border-slate-200 py-4 md:hidden">
             <div className="flex flex-col gap-2">
               {navItems.map((item) => (
                 <Link
@@ -95,22 +95,22 @@ export default function Navbar() {
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
                     location.pathname === item.path
-                      ? "bg-accent text-accent-foreground"
-                      : "text-slate-300 hover:bg-slate-700/60 hover:text-white",
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-800",
                   )}
                 >
-                  <item.icon className="h-5 w-5" strokeWidth={1.5} />
+                  <item.icon className="h-5 w-5" />
                   {item.label}
                 </Link>
               ))}
-              <div className="mt-2 border-t border-slate-700/40 pt-3">
-                <div className="px-4 text-sm text-slate-300">
-                  Conectado como <span className="font-semibold text-slate-100">{user?.user_metadata?.name || user?.email}</span>
+              <div className="mt-2 border-t border-slate-200 pt-3">
+                <div className="px-4 text-sm text-slate-600">
+                  Conectado como <span className="font-semibold text-slate-800">{user?.user_metadata?.name || user?.email}</span>
                 </div>
-                <Button variant="ghost" className="mt-2 w-full justify-start text-slate-100 hover:bg-slate-700/70" onClick={() => logout()}>
-                  <LogOut className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                <Button variant="ghost" className="mt-2 w-full justify-start text-slate-700 hover:bg-slate-100" onClick={() => logout()}>
+                  <LogOut className="mr-2 h-4 w-4" />
                   Sair
                 </Button>
               </div>

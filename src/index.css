@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,99 +6,46 @@
 
 @layer base {
   :root {
-    --background: 215 35% 96%;
-    --foreground: 222 47% 11%;
-    --card: 215 28% 22%;
-    --card-foreground: 210 20% 98%;
-    --popover: 215 28% 22%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 222 47% 11%;
+    --background: 210 40% 98%;
+    --foreground: 215 28% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 17%;
+    --primary: 160 90% 30%;
     --primary-foreground: 210 20% 98%;
-    --secondary: 215 30% 90%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 215 22% 88%;
-    --muted-foreground: 215 16% 38%;
-    --accent: 160 84% 39%;
-    --accent-foreground: 210 20% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 215 28% 17%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 215 28% 17%;
     --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 160 84% 39%;
-    --success-foreground: 210 20% 98%;
-    --border: 215 25% 70%;
-    --input: 215 25% 70%;
-    --ring: 160 84% 39%;
-    --radius: 0.5rem;
-
-    --category-food: 25 95% 53%;
-    --category-transport: 217 91% 60%;
-    --category-entertainment: 280 87% 65%;
-    --category-health: 142 71% 45%;
-    --category-shopping: 340 82% 52%;
-    --category-bills: 47 96% 53%;
-    --category-education: 199 89% 48%;
-    --category-other: 215 15% 50%;
-
-    --category-income-salary: 142 71% 45%;
-    --category-income-investments: 199 89% 48%;
-    --category-income-freelance: 280 87% 65%;
-    --category-income-gifts: 340 82% 52%;
-    --category-income-other: 38 92% 50%;
-
-    --gradient-primary: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-    --gradient-accent: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    --gradient-card: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
-    --gradient-hero: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-
-    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.08);
-    --shadow-md: 0 8px 20px -8px hsl(222 47% 11% / 0.2);
-    --shadow-lg: 0 24px 48px -18px hsl(222 47% 11% / 0.25);
-    --shadow-glow: 0 0 40px hsl(160 84% 39% / 0.25);
-
-    --sidebar-background: 215 28% 22%;
-    --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 160 84% 39%;
-    --sidebar-primary-foreground: 210 20% 98%;
-    --sidebar-accent: 215 19% 30%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 215 19% 35%;
-    --sidebar-ring: 160 84% 39%;
-  }
-
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 20% 98%;
-    --card: 215 28% 22%;
-    --card-foreground: 210 20% 98%;
-    --popover: 215 28% 22%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 210 20% 98%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 215 19% 24%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 16% 28%;
-    --muted-foreground: 215 14% 70%;
-    --accent: 160 84% 39%;
-    --accent-foreground: 210 20% 98%;
-    --destructive: 0 62% 35%;
     --destructive-foreground: 210 20% 98%;
-    --success: 160 84% 39%;
+    --success: 160 90% 30%;
     --success-foreground: 210 20% 98%;
-    --border: 215 19% 30%;
-    --input: 215 19% 30%;
-    --ring: 160 84% 39%;
-  }
-}
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 160 90% 30%;
+    --radius: 0.75rem;
 
-@layer base {
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 215 28% 17%;
+    --sidebar-primary: 160 90% 30%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 215 28% 17%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 160 90% 30%;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
-    background-image: radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.08), transparent 45%),
-      radial-gradient(circle at 90% 20%, rgba(245, 158, 11, 0.08), transparent 40%);
+    font-family: 'Inter', system-ui, sans-serif;
   }
 
   .lucide {
@@ -107,92 +54,15 @@
 }
 
 @layer utilities {
-  .gradient-primary {
-    background: var(--gradient-primary);
-  }
-
-  .gradient-accent {
-    background: var(--gradient-accent);
-  }
-
-  .gradient-hero {
-    background: var(--gradient-hero);
-  }
-
-  .gradient-card {
-    background: var(--gradient-card);
-  }
-
   .glass-sidebar {
-    background: linear-gradient(180deg, rgba(30, 41, 59, 0.72) 0%, rgba(15, 23, 42, 0.78) 100%);
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid #e2e8f0;
+    backdrop-filter: blur(10px);
   }
 
   .glass-modal {
-    background: rgba(30, 41, 59, 0.78);
-    border: 1px solid rgba(148, 163, 184, 0.28);
-    backdrop-filter: blur(18px);
-  }
-
-  .shadow-glow {
-    box-shadow: var(--shadow-glow);
-  }
-
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-out forwards;
-  }
-
-  .animate-slide-up {
-    animation: slideUp 0.5s ease-out forwards;
-  }
-
-  .animate-scale-in {
-    animation: scaleIn 0.3s ease-out forwards;
-  }
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    backdrop-filter: blur(0);
   }
 }

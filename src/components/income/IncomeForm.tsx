@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useIncome } from '@/contexts/IncomeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -240,8 +240,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden rounded-sm border-2">
-        <DialogHeader className="px-6 py-3 border-b bg-muted/10 flex flex-row items-center justify-between space-y-0">
+      <DialogContent className="sm:max-w-md gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white p-0 shadow-sm">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b border-slate-200 bg-slate-50 px-6 py-4">
           <DialogTitle className="text-lg font-semibold">
             {income ? 'Editar Receita' : 'Nova Receita'}
           </DialogTitle>
@@ -251,7 +251,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
               type="button" 
               variant="ghost" 
               size="sm"
-              className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-sm" 
+              className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-lg" 
               onClick={handleDelete}
             >
               <Trash2 className="w-4 h-4 mr-2" /> Excluir
@@ -259,14 +259,14 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-5 grid grid-cols-2 gap-x-4 gap-y-4">
+        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-x-4 gap-y-4 p-6">
           
           <div className="col-span-2 space-y-1">
             <Label>Descrição</Label>
             <Input 
               value={description} 
               onChange={e => setDescription(e.target.value)} 
-              className="h-9 rounded-sm" 
+              className="h-9 rounded-lg" 
               placeholder="Ex: Salário Mensal"
             />
           </div>
@@ -274,7 +274,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           <div className="space-y-1">
             <Label>Categoria</Label>
             <Select value={categoryId} onValueChange={v => { setCategoryId(v); setSubcategoryId(''); }}>
-              <SelectTrigger className="h-9 rounded-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 {incomeCategories.map(c => (
                   <SelectItem key={c.id} value={c.id}>
@@ -287,7 +287,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           <div className="space-y-1">
             <Label>Subcategoria</Label>
             <Select value={subcategoryId} onValueChange={setSubcategoryId} disabled={!categoryId}>
-              <SelectTrigger className="h-9 rounded-sm"><SelectValue placeholder="Opcional" /></SelectTrigger>
+              <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="Opcional" /></SelectTrigger>
               <SelectContent>
                 {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
               </SelectContent>
@@ -296,16 +296,16 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
           <div className="space-y-1">
             <Label>Data de Recebimento</Label>
-            <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} className="h-9 rounded-sm" />
+            <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} className="h-9 rounded-lg" />
           </div>
           <div className="space-y-1">
             <Label>Valor</Label>
-            <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className="h-9 rounded-sm text-right font-medium" placeholder="R$ 0,00" />
+            <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className="h-9 rounded-lg text-right font-medium" placeholder="R$ 0,00" />
           </div>
 
           <div className="space-y-1">
             <Label>Recebido</Label>
-            <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/10">
+            <div className="flex items-center gap-2 border rounded-lg px-2 h-9 bg-muted/10">
               <Switch checked={isReceived} onCheckedChange={setIsReceived} />
               <span className={cn("text-sm font-medium", isReceived ? "text-green-600" : "text-muted-foreground")}>{isReceived ? 'RECEBIDO' : 'PENDENTE'}</span>
             </div>
@@ -313,7 +313,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
           <div className="space-y-1">
             <Label>Recorrência</Label>
-            <div className="flex items-center gap-2 border rounded-sm px-2 h-9 bg-muted/10">
+            <div className="flex items-center gap-2 border rounded-lg px-2 h-9 bg-muted/10">
               <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
               <span className="text-sm text-muted-foreground flex-1">Repetir?</span>
             </div>
@@ -329,8 +329,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           <DialogFooter className="col-span-2 pt-4 border-t mt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-sm h-9">Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting} className="rounded-sm min-w-[100px] h-9">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-lg h-9">Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting} className="rounded-lg min-w-[100px] h-9">
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
             </Button>
           </DialogFooter>
@@ -376,3 +376,4 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     </Dialog>
   );
 }
+
