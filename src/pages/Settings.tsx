@@ -29,7 +29,7 @@ interface Profile {
 }
 
 export default function Settings() {
-  const { user, hasFeatureAccess, subscriptionStatus, refreshProfile } = useAuth();
+  const { user, hasFeatureAccess, subscriptionStatus, subscriptionPlan, refreshProfile } = useAuth();
   const { expenses, updateExpense, categories } = useFinance();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,48 +133,56 @@ export default function Settings() {
     }
   };
 
-  const handleSimulateSubscription = async () => {
+  const handleSimulateSubscription = async (targetPlanType: 'free' | 'pro' | 'premium') => {
     if (!user?.id) return;
     setIsSimulatingSubscription(true);
 
     try {
-      // Get a plan to simulate with
-      const isActive = subscriptionStatus === 'active' || subscriptionStatus === 'trial';
-      
-      if (isActive) {
-        // Cancel: update existing subscription
-        const { error } = await supabase
+      if (targetPlanType === 'free') {
+        // Cancel any active subscription
+        await supabase
           .from('user_subscriptions')
           .update({ status: 'canceled', expires_at: new Date().toISOString() })
           .eq('user_id', user.id)
           .in('status', ['active', 'trial']);
-        if (error) throw error;
       } else {
-        // Activate: get premium plan and upsert subscription
+        // Get the target plan
         const { data: plan } = await supabase
           .from('subscription_plans')
-          .select('id')
-          .eq('plan_type', 'premium')
+          .select('id, name')
+          .eq('plan_type', targetPlanType)
           .eq('is_active', true)
           .maybeSingle();
-        
-        if (plan) {
-          const { error } = await supabase
-            .from('user_subscriptions')
-            .upsert({
-              user_id: user.id,
-              plan_id: plan.id,
-              status: 'active',
-              billing_cycle: 'monthly',
-              starts_at: new Date().toISOString(),
-              expires_at: null,
-            }, { onConflict: 'user_id' });
-          if (error) throw error;
+
+        if (!plan) {
+          toast.error('Plano não encontrado');
+          return;
         }
+
+        // Cancel existing active subs first
+        await supabase
+          .from('user_subscriptions')
+          .update({ status: 'canceled', expires_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .in('status', ['active', 'trial']);
+
+        // Create new subscription
+        const { error } = await supabase
+          .from('user_subscriptions')
+          .insert({
+            user_id: user.id,
+            plan_id: plan.id,
+            status: 'active',
+            billing_cycle: 'monthly',
+            starts_at: new Date().toISOString(),
+            expires_at: null,
+          });
+        if (error) throw error;
       }
 
       await refreshProfile();
-      toast.success(`Assinatura simulada: ${isActive ? 'canceled' : 'active'}`);
+      const labels: Record<string, string> = { free: 'Gratuito', pro: 'Pro', premium: 'Premium' };
+      toast.success(`Plano simulado: ${labels[targetPlanType] || targetPlanType}`);
     } catch (error: any) {
       toast.error(error.message || 'Erro ao simular assinatura');
     } finally {
@@ -322,16 +330,36 @@ export default function Settings() {
         <CardContent className="space-y-4">
           <ChangePasswordForm />
 
-          <div className="border-t pt-4 space-y-2">
+          <div className="border-t pt-4 space-y-3">
             <h4 className="font-medium">Teste de Assinatura (temporário)</h4>
-            <Button
-              variant="outline"
-              onClick={handleSimulateSubscription}
-              disabled={isSimulatingSubscription}
-            >
-              {isSimulatingSubscription ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Simular Assinatura Ativa/Inativa
-            </Button>
+            <p className="text-sm text-muted-foreground">
+              Plano atual: <span className="font-semibold text-foreground">{subscriptionPlan === 'free' ? 'Gratuito' : subscriptionPlan === 'premium' ? 'Pro' : subscriptionPlan === 'total' ? 'Premium' : subscriptionPlan}</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { type: 'free' as const, label: 'Gratuito' },
+                { type: 'pro' as const, label: 'Pro' },
+                { type: 'premium' as const, label: 'Premium' },
+              ].map(({ type, label }) => (
+                <Button
+                  key={type}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSimulateSubscription(type)}
+                  disabled={isSimulatingSubscription}
+                  className={cn(
+                    (subscriptionPlan === 'free' && type === 'free') ||
+                    (subscriptionPlan === 'premium' && type === 'pro') ||
+                    (subscriptionPlan === 'total' && type === 'premium')
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : ''
+                  )}
+                >
+                  {isSimulatingSubscription ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                  {label}
+                </Button>
+              ))}
+            </div>
           </div>
 
           <div className="border-t pt-4">
