@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getDefaultProfileState = useCallback(() => ({
     subscription_plan: 'free' as SubscriptionPlan,
     subscription_status: 'active' as SubscriptionStatus,
-    subscription_expiry: null as string | null,
+    subscription_end_date: null as string | null,
   }), []);
 
   const hasFeatureAccess = useCallback(
@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('subscription_plan, subscription_status, subscription_expiry, subscription_end_date')
+        .select('subscription_plan, subscription_status, subscription_end_date')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -101,9 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const plan = ((data as any)?.subscription_plan || defaults.subscription_plan) as SubscriptionPlan;
       const status = ((data as any)?.subscription_status || defaults.subscription_status) as SubscriptionStatus;
       const expiry =
-        (data as any)?.subscription_expiry ||
         (data as any)?.subscription_end_date ||
-        defaults.subscription_expiry;
+        defaults.subscription_end_date;
 
       setSubscriptionPlan(plan);
       setSubscriptionStatus(status);
@@ -113,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const defaults = getDefaultProfileState();
       setSubscriptionPlan(defaults.subscription_plan);
       setSubscriptionStatus(defaults.subscription_status);
-      setSubscriptionEndDate(defaults.subscription_expiry);
+      setSubscriptionEndDate(defaults.subscription_end_date);
     } finally {
       setIsProfileLoading(false);
     }

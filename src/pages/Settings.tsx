@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFinance } from '@/contexts/FinanceContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, recreateSupabaseClient } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,7 +49,7 @@ export default function Settings() {
   useEffect(() => {
     const storedDays = localStorage.getItem('alert_days_before');
     if (storedDays) setAlertDays(storedDays);
-    
+
     const storedEnabled = localStorage.getItem('alert_enabled');
     if (storedEnabled !== null) setAlertEnabled(storedEnabled === 'true');
 
@@ -90,7 +90,7 @@ export default function Settings() {
 
   const handleClassifyExpenses = async () => {
     if (!canUseAiClassification) {
-      toast.error('Recurso disponivel apenas para planos Premium ou Controle Total');
+      toast.error('Recurso disponível apenas para planos Premium ou Controle Total');
       return;
     }
 
@@ -99,16 +99,16 @@ export default function Settings() {
       // Simulação da IA (Heurística baseada em categorias para demonstração)
       // Em produção, isso chamaria uma Edge Function com GPT-4
       let updatedCount = 0;
-      
+
       const updates = expenses.map(async (expense) => {
         // Skip if already classified manually or by AI
         if ((expense as any).classificationType && (expense as any).classificationType !== 'variavel') return;
 
         const category = categories.find(c => c.id === expense.categoryId);
         const catName = category?.name.toLowerCase() || '';
-        
+
         let newType = 'variavel'; // Default
-        
+
         // Heurística simples
         if (['aluguel', 'condomínio', 'luz', 'água', 'internet', 'saúde', 'educação'].some(k => catName.includes(k))) {
           newType = 'essencial';
@@ -126,7 +126,7 @@ export default function Settings() {
 
       await Promise.all(updates);
       toast.success(`${updatedCount} despesas reclassificadas com Inteligência Artificial!`);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Erro ao classificar despesas');
     } finally {
       setIsClassifying(false);
@@ -142,7 +142,7 @@ export default function Settings() {
       const nextPlan = nextStatus === 'active' ? 'total' : 'free';
       const nextEndDate = nextStatus === 'active' ? null : new Date().toISOString();
 
-      const { error } = await supabase
+      let { error } = await supabase
         .from('profiles')
         .update({
           subscription_status: nextStatus,
@@ -150,6 +150,20 @@ export default function Settings() {
           subscription_end_date: nextEndDate,
         } as any)
         .eq('user_id', user.id);
+
+      if (error && (error.code === '42703' || error.code === 'PGRST204')) {
+        recreateSupabaseClient();
+        const retry = await supabase
+          .from('profiles')
+          .update({
+            subscription_status: nextStatus,
+            subscription_plan: nextPlan,
+            subscription_end_date: nextEndDate,
+          } as any)
+          .eq('user_id', user.id);
+
+        error = retry.error;
+      }
 
       if (error) throw error;
 
@@ -204,8 +218,8 @@ export default function Settings() {
 
       {/* AI Intelligence */}
       <Card className={cn(
-        "border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background",
-        !canUseAiClassification && "opacity-50"
+        'border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background',
+        !canUseAiClassification && 'opacity-50',
       )}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
@@ -225,7 +239,7 @@ export default function Settings() {
             </Button>
           </div>
           {!canUseAiClassification && (
-            <p className="mt-3 text-xs text-muted-foreground">Disponivel apenas para planos Premium e Controle Total.</p>
+            <p className="mt-3 text-xs text-muted-foreground">Disponível apenas para planos Premium e Controle Total.</p>
           )}
         </CardContent>
       </Card>
@@ -250,8 +264,8 @@ export default function Settings() {
                 Mostrar aviso de contas próximas do vencimento
               </p>
             </div>
-            <Button 
-              className={cn(alertEnabled ? "bg-primary hover:bg-primary/90" : "bg-muted text-muted-foreground hover:bg-muted/80")}
+            <Button
+              className={cn(alertEnabled ? 'bg-primary hover:bg-primary/90' : 'bg-muted text-muted-foreground hover:bg-muted/80')}
               onClick={() => saveAlertSettings(!alertEnabled, alertDays, alertType)}
             >
               {alertEnabled ? 'Ativado' : 'Desativado'}
@@ -275,11 +289,11 @@ export default function Settings() {
               </div>
               <div className="space-y-2">
                 <Label>Antecedência (dias)</Label>
-                <Input 
-                  type="number" 
-                  min="0" 
+                <Input
+                  type="number"
+                  min="0"
                   max="30"
-                  value={alertDays} 
+                  value={alertDays}
                   onChange={(e) => saveAlertSettings(alertEnabled, e.target.value, alertType)}
                 />
               </div>
@@ -303,7 +317,7 @@ export default function Settings() {
           <ChangePasswordForm />
 
           <div className="border-t pt-4 space-y-2">
-            <h4 className="font-medium">Teste de Assinatura (temporario)</h4>
+            <h4 className="font-medium">Teste de Assinatura (temporário)</h4>
             <Button
               variant="outline"
               onClick={handleSimulateSubscription}
@@ -313,7 +327,7 @@ export default function Settings() {
               Simular Assinatura Ativa/Inativa
             </Button>
           </div>
-          
+
           <div className="border-t pt-4">
             <h4 className="font-medium text-destructive mb-2">Zona de Perigo</h4>
             <DeleteProfileDialog />
