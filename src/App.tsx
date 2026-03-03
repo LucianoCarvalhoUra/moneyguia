@@ -33,7 +33,7 @@ function ProtectedRoute({
   children: React.ReactNode;
   requiredFeature?: "ai_classification" | "advanced_reports" | "extra_control";
 }) {
-  const { isAuthenticated, isLoading, isProfileLoading, isSubscriptionValid, hasFeatureAccess } = useAuth();
+  const { isAuthenticated, isLoading, isSubscriptionValid, hasFeatureAccess } = useAuth();
 
   if (isLoading) {
     return (
@@ -47,16 +47,6 @@ function ProtectedRoute({
 
   if (!isAuthenticated) {
     return <Navigate to="/auth" replace />;
-  }
-
-  if (isProfileLoading) {
-    return (
-      <Layout>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
-          Sincronizando perfil...
-        </div>
-      </Layout>
-    );
   }
 
   if (!isSubscriptionValid) {

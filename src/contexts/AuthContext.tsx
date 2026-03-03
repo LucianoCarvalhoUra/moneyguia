@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [subscriptionPlan, setSubscriptionPlan] = useState<SubscriptionPlan>('free');
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('active');
   const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
@@ -74,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     subscription_status: 'active' as SubscriptionStatus,
     subscription_end_date: null as string | null,
   }), []);
+  const getProfileCacheKey = useCallback((userId: string) => `auth_profile_cache:${userId}`, []);
 
   const hasFeatureAccess = useCallback(
     (feature: FeatureKey) => {
@@ -98,6 +99,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     hasLoadedProfile.current = false;
     isFetchingProfileRef.current = false;
   }, []);
+
+  const applyDefaultProfile = useCallback(() => {
+    const defaults = getDefaultProfileState();
+    setSubscriptionPlan(defaults.subscription_plan);
+    setSubscriptionStatus(defaults.subscription_status);
+    setSubscriptionEndDate(defaults.subscription_end_date);
+  }, [getDefaultProfileState]);
+
+  const hydrateProfileFromCache = useCallback((userId: string) => {
+    try {
+      const raw = localStorage.getItem(getProfileCacheKey(userId));
+      if (!raw) return;
+      const cached = JSON.parse(raw);
+      if (!cached) return;
+      setSubscriptionPlan((cached.subscription_plan || 'free') as SubscriptionPlan);
+      setSubscriptionStatus((cached.subscription_status || 'active') as SubscriptionStatus);
+      setSubscriptionEndDate(cached.subscription_end_date || null);
+    } catch {
+      // ignore cache issues
+    }
+  }, [getProfileCacheKey]);
 
   const loadProfile = useCallback(async (userId: string, force = false) => {
     if (!userId) return;
@@ -124,24 +146,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data) {
         const planType = (data as any).subscription_plans?.plan_type || 'free';
         const planMap: Record<string, SubscriptionPlan> = { free: 'free', pro: 'premium', premium: 'total' };
-        setSubscriptionPlan(planMap[planType] || 'free');
+        const normalizedPlan = planMap[planType] || 'free';
+        setSubscriptionPlan(normalizedPlan);
         setSubscriptionStatus(data.status as SubscriptionStatus);
         setSubscriptionEndDate(data.expires_at);
+        localStorage.setItem(
+          getProfileCacheKey(userId),
+          JSON.stringify({
+            subscription_plan: normalizedPlan,
+            subscription_status: data.status,
+            subscription_end_date: data.expires_at || null,
+          }),
+        );
       } else {
-        const defaults = getDefaultProfileState();
-        setSubscriptionPlan(defaults.subscription_plan);
-        setSubscriptionStatus(defaults.subscription_status);
-        setSubscriptionEndDate(defaults.subscription_end_date);
+        // Fallback: profile row (for environments still syncing schema/logic)
+        const profileFallback = await supabase
+          .from('profiles')
+          .select('subscription_plan, subscription_status, subscription_end_date')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (!profileFallback.error && profileFallback.data) {
+          const p = profileFallback.data as any;
+          setSubscriptionPlan((p.subscription_plan || 'free') as SubscriptionPlan);
+          setSubscriptionStatus((p.subscription_status || 'active') as SubscriptionStatus);
+          setSubscriptionEndDate(p.subscription_end_date || null);
+          localStorage.setItem(
+            getProfileCacheKey(userId),
+            JSON.stringify({
+              subscription_plan: p.subscription_plan || 'free',
+              subscription_status: p.subscription_status || 'active',
+              subscription_end_date: p.subscription_end_date || null,
+            }),
+          );
+        } else {
+          applyDefaultProfile();
+        }
       }
       loadedProfileUserIdRef.current = userId;
       profileLoadedRef.current = true;
       hasLoadedProfile.current = true;
     } catch (error) {
       console.error('Erro ao carregar perfil, aplicando perfil padrao:', error);
-      const defaults = getDefaultProfileState();
-      setSubscriptionPlan(defaults.subscription_plan);
-      setSubscriptionStatus(defaults.subscription_status);
-      setSubscriptionEndDate(defaults.subscription_end_date);
+      applyDefaultProfile();
       loadedProfileUserIdRef.current = userId;
       profileLoadedRef.current = true;
       hasLoadedProfile.current = true;
@@ -149,7 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isFetchingProfileRef.current = false;
       setIsProfileLoading(false);
     }
-  }, [getDefaultProfileState]);
+  }, [applyDefaultProfile, getProfileCacheKey]);
 
   const refreshProfile = useCallback(async () => {
     if (!user?.id) return;
@@ -157,23 +204,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.id, loadProfile]);
 
   const createProfileIfNotExists = useCallback(async (authUser: User) => {
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', authUser.id)
-      .maybeSingle();
-
-    if (!existingProfile) {
-      await supabase.from('profiles').insert(
-        {
-          id: authUser.id,
-          user_id: authUser.id,
-          name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
-          email: authUser.email,
-        } as any,
-        { onConflict: 'id', ignoreDuplicates: true },
-      );
-    }
+    await supabase.from('profiles').upsert(
+      {
+        id: authUser.id,
+        user_id: authUser.id,
+        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
+        email: authUser.email,
+      } as any,
+      { onConflict: 'user_id', ignoreDuplicates: true },
+    );
   }, []);
 
   // Use refs to avoid re-subscribing to auth on every callback change
@@ -193,6 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
 
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && authSession?.user) {
+        hydrateProfileFromCache(authSession.user.id);
         if (profileCreatedForUserRef.current !== authSession.user.id) {
           profileCreatedForUserRef.current = authSession.user.id;
           setTimeout(() => {
@@ -217,6 +257,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       if (existingSession?.user) {
+        hydrateProfileFromCache(existingSession.user.id);
         if (!hasLoadedProfile.current || loadedProfileUserIdRef.current !== existingSession.user.id) {
           loadProfileRef.current(existingSession.user.id);
         } else {
@@ -232,7 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [resetProfileState]); // stable with guarded refs
+  }, [hydrateProfileFromCache, resetProfileState]); // stable with guarded refs
 
   useEffect(() => {
     let inactivityTimer: ReturnType<typeof setTimeout>;
