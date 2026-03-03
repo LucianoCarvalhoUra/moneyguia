@@ -159,24 +159,17 @@ export default function Settings() {
           return;
         }
 
-        // Cancel existing active subs first
-        await supabase
-          .from('user_subscriptions')
-          .update({ status: 'canceled', expires_at: new Date().toISOString() })
-          .eq('user_id', user.id)
-          .in('status', ['active', 'trial']);
-
-        // Create new subscription
+        // Upsert subscription (unique on user_id)
         const { error } = await supabase
           .from('user_subscriptions')
-          .insert({
+          .upsert({
             user_id: user.id,
             plan_id: plan.id,
             status: 'active',
             billing_cycle: 'monthly',
             starts_at: new Date().toISOString(),
             expires_at: null,
-          });
+          }, { onConflict: 'user_id' });
         if (error) throw error;
       }
 
