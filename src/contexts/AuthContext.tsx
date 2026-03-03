@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('active');
   const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
   const navigate = useNavigate();
+  const hasLoadedProfile = useRef(false);
   const isFetchingProfileRef = useRef(false);
   const loadedProfileUserIdRef = useRef<string | null>(null);
   const profileLoadedRef = useRef(false);
@@ -94,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsProfileLoading(false);
     loadedProfileUserIdRef.current = null;
     profileLoadedRef.current = false;
+    hasLoadedProfile.current = false;
     isFetchingProfileRef.current = false;
   }, []);
 
@@ -133,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       loadedProfileUserIdRef.current = userId;
       profileLoadedRef.current = true;
+      hasLoadedProfile.current = true;
     } catch (error) {
       console.error('Erro ao carregar perfil, aplicando perfil padrao:', error);
       const defaults = getDefaultProfileState();
@@ -141,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSubscriptionEndDate(defaults.subscription_end_date);
       loadedProfileUserIdRef.current = userId;
       profileLoadedRef.current = true;
+      hasLoadedProfile.current = true;
     } finally {
       isFetchingProfileRef.current = false;
       setIsProfileLoading(false);
@@ -160,11 +164,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
 
     if (!existingProfile) {
-      await supabase.from('profiles').insert({
-        user_id: authUser.id,
-        name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
-        email: authUser.email,
-      });
+      await supabase.from('profiles').insert(
+        {
+          id: authUser.id,
+          user_id: authUser.id,
+          name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
+          email: authUser.email,
+        } as any,
+        { onConflict: 'id', ignoreDuplicates: true },
+      );
     }
   }, []);
 
@@ -191,9 +199,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             createProfileRef.current(authSession.user).catch(() => undefined);
           }, 0);
         }
-        setTimeout(() => {
-          loadProfileRef.current(authSession.user.id);
-        }, 0);
+        if (!hasLoadedProfile.current || loadedProfileUserIdRef.current !== authSession.user.id) {
+          setTimeout(() => {
+            loadProfileRef.current(authSession.user.id);
+          }, 0);
+        }
       }
 
       if (event === 'SIGNED_OUT') {
@@ -207,7 +217,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       if (existingSession?.user) {
-        loadProfileRef.current(existingSession.user.id);
+        if (!hasLoadedProfile.current || loadedProfileUserIdRef.current !== existingSession.user.id) {
+          loadProfileRef.current(existingSession.user.id);
+        } else {
+          setIsProfileLoading(false);
+        }
       } else {
         resetProfileState();
       }
