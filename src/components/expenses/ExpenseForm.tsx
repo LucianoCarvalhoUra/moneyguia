@@ -37,9 +37,11 @@ interface ExpenseFormProps {
 export default function ExpenseForm({ open, onOpenChange, expense, initialData }: ExpenseFormProps) {
   const navigate = useNavigate();
   const { hasFeatureAccess, subscriptionPlan, user } = useAuth();
-  const { refreshData, categories, subcategories, accounts, cards, removeExpense } = useFinance();
+  const { refreshData, categories, subcategories, accounts, cards, removeExpense, addCategory, addSubcategory } = useFinance();
   const canUseExtraControl = hasFeatureAccess('extra_control');
   const recurrencePlanLimit = getPlanLimit(subscriptionPlan as string);
+  const ADD_CATEGORY_OPTION = '__add_new_category__';
+  const ADD_SUBCATEGORY_OPTION = '__add_new_subcategory__';
   
   // --- State ---
   const [description, setDescription] = useState('');
@@ -60,6 +62,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [pendingData, setPendingData] = useState<any>(null);
   const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
   const [recurrenceUsage, setRecurrenceUsage] = useState(0);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState('');
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -167,6 +173,74 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       toast.error('Erro ao excluir: ' + error.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCategorySelectChange = (value: string) => {
+    if (value === ADD_CATEGORY_OPTION) {
+      setCategoryDialogOpen(true);
+      return;
+    }
+    setCategoryId(value);
+    setSubcategoryId('');
+  };
+
+  const handleSubcategorySelectChange = (value: string) => {
+    if (value === ADD_SUBCATEGORY_OPTION) {
+      if (!categoryId) {
+        toast.error('Selecione uma categoria antes de criar subcategoria.');
+        return;
+      }
+      setSubcategoryDialogOpen(true);
+      return;
+    }
+    setSubcategoryId(value);
+  };
+
+  const handleCreateCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) {
+      toast.error('Informe o nome da categoria.');
+      return;
+    }
+
+    const created = await addCategory({
+      name,
+      icon: 'Tag',
+      color: 'emerald-500',
+      isDefault: false,
+    });
+
+    if (created) {
+      setCategoryId(created.id);
+      setSubcategoryId('');
+      setNewCategoryName('');
+      setCategoryDialogOpen(false);
+      toast.success('Categoria cadastrada com sucesso!');
+    }
+  };
+
+  const handleCreateSubcategory = async () => {
+    const name = newSubcategoryName.trim();
+    if (!name) {
+      toast.error('Informe o nome da subcategoria.');
+      return;
+    }
+    if (!categoryId) {
+      toast.error('Selecione uma categoria antes de criar subcategoria.');
+      return;
+    }
+
+    const created = await addSubcategory({
+      name,
+      categoryId,
+    });
+
+    if (created) {
+      setSubcategoryId(created.id);
+      setNewSubcategoryName('');
+      setSubcategoryDialogOpen(false);
+      toast.success('Subcategoria cadastrada com sucesso!');
     }
   };
 
@@ -351,7 +425,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
           <div className="space-y-1">
             <Label>Categoria</Label>
-            <Select value={categoryId} onValueChange={v => { setCategoryId(v); setSubcategoryId(''); }}>
+            <Select value={categoryId} onValueChange={handleCategorySelectChange}>
               <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 {categories.map(c => (
@@ -359,15 +433,21 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                     <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-${c.color}`} /> {c.name}</div>
                   </SelectItem>
                 ))}
+                <SelectItem value={ADD_CATEGORY_OPTION} className="border-t border-slate-200 mt-1 pt-2 font-medium text-emerald-700">
+                  + Adicionar nova categoria
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
             <Label>Subcategoria</Label>
-            <Select value={subcategoryId} onValueChange={setSubcategoryId} disabled={!categoryId}>
+            <Select value={subcategoryId} onValueChange={handleSubcategorySelectChange} disabled={!categoryId}>
               <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="Opcional" /></SelectTrigger>
               <SelectContent>
                 {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                <SelectItem value={ADD_SUBCATEGORY_OPTION} className="border-t border-slate-200 mt-1 pt-2 font-medium text-emerald-700">
+                  + Adicionar nova subcategoria
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -457,6 +537,60 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+        <DialogContent className="sm:max-w-sm rounded-lg border border-slate-200 bg-white">
+          <DialogHeader>
+            <DialogTitle>Nova categoria</DialogTitle>
+            <DialogDescription>Digite o nome da categoria para despesas.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="new-expense-category">Nome</Label>
+            <Input
+              id="new-expense-category"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Ex: Assinaturas"
+              className="rounded-lg"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="rounded-lg" onClick={() => setCategoryDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" className="rounded-lg" onClick={handleCreateCategory}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={subcategoryDialogOpen} onOpenChange={setSubcategoryDialogOpen}>
+        <DialogContent className="sm:max-w-sm rounded-lg border border-slate-200 bg-white">
+          <DialogHeader>
+            <DialogTitle>Nova subcategoria</DialogTitle>
+            <DialogDescription>Digite o nome da subcategoria para a categoria selecionada.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="new-expense-subcategory">Nome</Label>
+            <Input
+              id="new-expense-subcategory"
+              value={newSubcategoryName}
+              onChange={(e) => setNewSubcategoryName(e.target.value)}
+              placeholder="Ex: Streaming"
+              className="rounded-lg"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="rounded-lg" onClick={() => setSubcategoryDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" className="rounded-lg" onClick={handleCreateSubcategory}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={scopeDialogOpen} onOpenChange={setScopeDialogOpen}>
         <AlertDialogContent>

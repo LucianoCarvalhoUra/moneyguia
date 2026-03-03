@@ -13,10 +13,10 @@ interface IncomeContextType {
   addIncome: (income: Omit<Income, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
   updateIncome: (id: string, income: Partial<Income>) => Promise<void>;
   removeIncome: (id: string) => Promise<void>;
-  addIncomeCategory: (category: Omit<IncomeCategory, 'id' | 'userId'>) => Promise<void>;
+  addIncomeCategory: (category: Omit<IncomeCategory, 'id' | 'userId'>) => Promise<IncomeCategory | null>;
   updateIncomeCategory: (id: string, category: Partial<IncomeCategory>) => Promise<void>;
   removeIncomeCategory: (id: string) => Promise<void>;
-  addIncomeSubcategory: (subcategory: Omit<IncomeSubcategory, 'id' | 'userId'>) => Promise<void>;
+  addIncomeSubcategory: (subcategory: Omit<IncomeSubcategory, 'id' | 'userId'>) => Promise<IncomeSubcategory | null>;
   updateIncomeSubcategory: (id: string, subcategory: Partial<IncomeSubcategory>) => Promise<void>;
   removeIncomeSubcategory: (id: string) => Promise<void>;
   getIncomeSubcategoriesByCategory: (categoryId: string) => IncomeSubcategory[];
@@ -316,8 +316,8 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     setIncomes(prev => prev.filter(i => i.id !== id));
   };
 
-  const addIncomeCategory = async (category: Omit<IncomeCategory, 'id' | 'userId'>) => {
-    if (!user) return;
+  const addIncomeCategory = async (category: Omit<IncomeCategory, 'id' | 'userId'>): Promise<IncomeCategory | null> => {
+    if (!user) return null;
     
     const { data, error } = await supabase
       .from('income_categories')
@@ -334,19 +334,22 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     if (error) {
       toast.error('Erro ao adicionar categoria de receita');
       console.error(error);
-      return;
+      return null;
     }
     
     if (data) {
-      setIncomeCategories(prev => [...prev, {
+      const createdCategory: IncomeCategory = {
         id: data.id,
         name: data.name,
         icon: data.icon,
         color: data.color,
         userId: data.user_id,
         isDefault: data.is_default,
-      }].sort((a, b) => a.name.localeCompare(b.name)));
+      };
+      setIncomeCategories(prev => [...prev, createdCategory].sort((a, b) => a.name.localeCompare(b.name)));
+      return createdCategory;
     }
+    return null;
   };
 
   const updateIncomeCategory = async (id: string, categoryUpdate: Partial<IncomeCategory>) => {
@@ -390,8 +393,8 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     setIncomeSubcategories(prev => prev.filter(s => s.categoryId !== id));
   };
 
-  const addIncomeSubcategory = async (subcategory: Omit<IncomeSubcategory, 'id' | 'userId'>) => {
-    if (!user) return;
+  const addIncomeSubcategory = async (subcategory: Omit<IncomeSubcategory, 'id' | 'userId'>): Promise<IncomeSubcategory | null> => {
+    if (!user) return null;
     
     const { data, error } = await supabase
       .from('income_subcategories')
@@ -406,17 +409,20 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     if (error) {
       toast.error('Erro ao adicionar subcategoria de receita');
       console.error(error);
-      return;
+      return null;
     }
     
     if (data) {
-      setIncomeSubcategories(prev => [...prev, {
+      const createdSubcategory: IncomeSubcategory = {
         id: data.id,
         name: data.name,
         categoryId: data.category_id,
         userId: data.user_id,
-      }]);
+      };
+      setIncomeSubcategories(prev => [...prev, createdSubcategory]);
+      return createdSubcategory;
     }
+    return null;
   };
 
   const updateIncomeSubcategory = async (id: string, subcategoryUpdate: Partial<IncomeSubcategory>) => {

@@ -20,10 +20,10 @@ interface FinanceContextType {
   addExpense: (expense: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
   removeExpense: (id: string) => Promise<void>;
-  addCategory: (category: Omit<Category, 'id' | 'userId'>) => Promise<void>;
+  addCategory: (category: Omit<Category, 'id' | 'userId'>) => Promise<Category | null>;
   updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
   removeCategory: (id: string) => Promise<void>;
-  addSubcategory: (subcategory: Omit<Subcategory, 'id' | 'userId'>) => Promise<void>;
+  addSubcategory: (subcategory: Omit<Subcategory, 'id' | 'userId'>) => Promise<Subcategory | null>;
   updateSubcategory: (id: string, subcategory: Partial<Subcategory>) => Promise<void>;
   removeSubcategory: (id: string) => Promise<void>;
   getMonthlyExpenses: (year: number, month: number) => Expense[];
@@ -520,8 +520,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setExpenses(prev => prev.filter(e => e.id !== id));
   };
 
-  const addCategory = async (category: Omit<Category, 'id' | 'userId'>) => {
-    if (!user) return;
+  const addCategory = async (category: Omit<Category, 'id' | 'userId'>): Promise<Category | null> => {
+    if (!user) return null;
     
     const { data, error } = await supabase
       .from('categories')
@@ -538,19 +538,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     if (error) {
       toast.error('Erro ao adicionar categoria');
       console.error(error);
-      return;
+      return null;
     }
     
     if (data) {
-      setCategories(prev => [...prev, {
+      const createdCategory: Category = {
         id: data.id,
         name: data.name,
         icon: data.icon,
         color: data.color,
         userId: data.user_id,
         isDefault: data.is_default,
-      }].sort((a, b) => a.name.localeCompare(b.name)));
+      };
+      setCategories(prev => [...prev, createdCategory].sort((a, b) => a.name.localeCompare(b.name)));
+      return createdCategory;
     }
+    return null;
   };
 
   const updateCategory = async (id: string, categoryUpdate: Partial<Category>) => {
@@ -594,8 +597,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setSubcategories(prev => prev.filter(s => s.categoryId !== id));
   };
 
-  const addSubcategory = async (subcategory: Omit<Subcategory, 'id' | 'userId'>) => {
-    if (!user) return;
+  const addSubcategory = async (subcategory: Omit<Subcategory, 'id' | 'userId'>): Promise<Subcategory | null> => {
+    if (!user) return null;
     
     const { data, error } = await supabase
       .from('subcategories')
@@ -610,17 +613,20 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     if (error) {
       toast.error('Erro ao adicionar subcategoria');
       console.error(error);
-      return;
+      return null;
     }
     
     if (data) {
-      setSubcategories(prev => [...prev, {
+      const createdSubcategory: Subcategory = {
         id: data.id,
         name: data.name,
         categoryId: data.category_id,
         userId: data.user_id,
-      }]);
+      };
+      setSubcategories(prev => [...prev, createdSubcategory]);
+      return createdSubcategory;
     }
+    return null;
   };
 
   const updateSubcategory = async (id: string, subcategoryUpdate: Partial<Subcategory>) => {
