@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Button } from '@/components/ui/button';
@@ -20,13 +20,42 @@ import { DEFAULT_DASHBOARD_SETTINGS, DashboardSettings } from '@/components/dash
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses } = useFinance();
   const { getMonthlyIncomeTotal, incomes } = useIncome();
   const [formOpen, setFormOpen] = useState(false);
   
   const now = new Date();
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const getInitialPeriod = () => {
+    const monthParam = searchParams.get('month');
+    const yearParam = searchParams.get('year');
+
+    if (monthParam && yearParam) {
+      const parsedMonth = Number.parseInt(monthParam, 10);
+      const parsedYear = Number.parseInt(yearParam, 10);
+      if (!Number.isNaN(parsedMonth) && !Number.isNaN(parsedYear) && parsedMonth >= 1 && parsedMonth <= 12) {
+        return { month: parsedMonth - 1, year: parsedYear };
+      }
+    }
+
+    const stored = localStorage.getItem('dashboard_period');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as { month?: number; year?: number };
+        if (typeof parsed.month === 'number' && typeof parsed.year === 'number' && parsed.month >= 0 && parsed.month <= 11) {
+          return { month: parsed.month, year: parsed.year };
+        }
+      } catch {
+        // ignore invalid localStorage payload
+      }
+    }
+
+    return { month: now.getMonth(), year: now.getFullYear() };
+  };
+
+  const initialPeriod = getInitialPeriod();
+  const [selectedYear, setSelectedYear] = useState(initialPeriod.year);
+  const [selectedMonth, setSelectedMonth] = useState(initialPeriod.month);
   const [showOverdueAlert, setShowOverdueAlert] = useState(true);
   const [alertConfig, setAlertConfig] = useState({ enabled: true, days: 2, type: 'expenses' });
   const [settings, setSettings] = useState<DashboardSettings>(DEFAULT_DASHBOARD_SETTINGS);
@@ -37,6 +66,22 @@ export default function Dashboard() {
       setSettings(JSON.parse(stored));
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard_period', JSON.stringify({ month: selectedMonth, year: selectedYear }));
+
+    const monthValue = String(selectedMonth + 1).padStart(2, '0');
+    const yearValue = String(selectedYear);
+    const currentMonth = searchParams.get('month');
+    const currentYear = searchParams.get('year');
+
+    if (currentMonth !== monthValue || currentYear !== yearValue) {
+      const params = new URLSearchParams(searchParams);
+      params.set('month', monthValue);
+      params.set('year', yearValue);
+      setSearchParams(params, { replace: true });
+    }
+  }, [selectedMonth, selectedYear, searchParams, setSearchParams]);
 
   // Get monthly data
   const monthlyExpenses = getMonthlyExpenses(selectedYear, selectedMonth);

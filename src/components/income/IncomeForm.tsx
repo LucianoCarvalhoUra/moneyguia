@@ -114,7 +114,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     setIsSubmitting(true);
     try {
       await removeIncome(income.id);
-      toast.success('Receita excluída!');
+      await refreshData();
+      toast.success('Receita excluida e sincronizada com o banco.');
       onOpenChange(false);
     } catch (error: any) {
       toast.error('Erro ao excluir: ' + error.message);
@@ -154,9 +155,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         if (error) throw error;
       }
 
-      toast.success('Receitas atualizadas com sucesso!');
-      await new Promise(resolve => setTimeout(resolve, 300));
       await refreshData();
+      toast.success('Receitas atualizadas e sincronizadas com o banco.');
       onOpenChange(false);
     } catch (error: any) {
       console.error('[BatchUpdate] Error:', error);
@@ -205,9 +205,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           categoryId,
           subcategoryId: subcategoryId || undefined,
           isReceived,
-          isRecurring
+          isRecurring,
+          excludeFromCalculations: canUseExtraControl ? excludeFromCalculations : false,
         });
-        toast.success('Receita atualizada!');
       } else {
         await addIncome({
           title: description,
@@ -216,12 +216,17 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           categoryId,
           subcategoryId: subcategoryId || undefined,
           isReceived,
-          isRecurring
+          isRecurring,
+          excludeFromCalculations: canUseExtraControl ? excludeFromCalculations : false,
         });
-        toast.success('Receita salva!');
       }
 
       await refreshData();
+      toast.success(
+        income
+          ? 'Receita atualizada e sincronizada com o banco.'
+          : 'Receita salva e sincronizada com o banco.',
+      );
       onOpenChange(false);
     } catch (error: any) {
       console.error(error);

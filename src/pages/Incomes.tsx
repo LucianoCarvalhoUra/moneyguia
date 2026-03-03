@@ -1,6 +1,7 @@
 ﻿import { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useIncome } from '@/contexts/IncomeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 export default function Incomes() {
   const location = useLocation();
+  const { user } = useAuth();
   const { incomes, incomeCategories, incomeSubcategories, removeIncome, updateIncome, refreshData } = useIncome();
   
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -45,6 +47,7 @@ export default function Incomes() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [subcategoryFilter, setSubcategoryFilter] = useState<string>('all');
+  const [visualFilter, setVisualFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<string>('receiveDate');
   const [sortOrder, setSortOrder] = useState<string>('asc');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -72,6 +75,30 @@ export default function Incomes() {
     }
   }, [location.state]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`incomes-list-realtime-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'incomes',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async () => {
+          await refreshData();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, refreshData]);
+
   const filteredSubcategories = useMemo(() => {
     if (categoryFilter === 'all') return [];
     return incomeSubcategories.filter(sub => sub.categoryId === categoryFilter);
@@ -84,6 +111,8 @@ export default function Incomes() {
         if (incomeDate.getMonth() !== selectedMonth || incomeDate.getFullYear() !== selectedYear) return false;
         if (statusFilter === 'received' && !income.isReceived) return false;
         if (statusFilter === 'pending' && income.isReceived) return false;
+        if (visualFilter === 'visual' && !income.excludeFromCalculations) return false;
+        if (visualFilter === 'counted' && income.excludeFromCalculations) return false;
         if (categoryFilter !== 'all' && income.categoryId !== categoryFilter) return false;
         if (subcategoryFilter !== 'all' && income.subcategoryId !== subcategoryFilter) return false;
         if (searchTerm && !income.title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -94,10 +123,11 @@ export default function Incomes() {
         const valB = sortField === 'receiveDate' ? new Date(b.receiveDate).getTime() : b.amount;
         return sortOrder === 'asc' ? valA - valB : valB - valA;
       });
-  }, [incomes, selectedMonth, selectedYear, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder]);
+  }, [incomes, selectedMonth, selectedYear, statusFilter, visualFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder]);
 
   const handleClearFilters = () => {
     setStatusFilter('all');
+    setVisualFilter('all');
     setCategoryFilter('all');
     setSubcategoryFilter('all');
     setSearchTerm('');
@@ -149,8 +179,8 @@ export default function Incomes() {
       const { error } = await query;
       if (error) throw error;
 
-      toast.success('Receita(s) removida(s) com sucesso!');
       await refreshData();
+      toast.success('Receita(s) removida(s) e sincronizada(s) com o banco.');
       setDeleteDialogOpen(false); // Ensure dialog closes immediately
       setIncomeToDelete(null);
       setSelectedDeleteScope('single');
@@ -179,7 +209,8 @@ export default function Incomes() {
   const handleToggleReceived = async (id: string, currentStatus: boolean) => {
     try {
       await updateIncome(id, { isReceived: !currentStatus });
-      toast.success(currentStatus ? 'Receita marcada como pendente' : 'Recebimento confirmado!');
+      await refreshData();
+      toast.success(currentStatus ? 'Receita marcada como pendente e sincronizada.' : 'Recebimento confirmado e sincronizado.');
     } catch (error) {
       toast.error('Erro ao atualizar status');
     }
@@ -227,7 +258,7 @@ export default function Incomes() {
             <CardTitle className="text-base font-medium">Filtros AvanÃ§ados</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="space-y-2">
                 <Label>Buscar</Label>
                 <div className="relative">
@@ -243,6 +274,17 @@ export default function Incomes() {
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="received">Recebidos</SelectItem>
                     <SelectItem value="pending">Pendentes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Controle visual</Label>
+                <Select value={visualFilter} onValueChange={setVisualFilter}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="counted">Somente contabilizados</SelectItem>
+                    <SelectItem value="visual">Apenas controle visual</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
