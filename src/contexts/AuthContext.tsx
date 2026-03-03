@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,6 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('active');
   const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
   const navigate = useNavigate();
+  const isFetchingProfileRef = useRef(false);
+  const loadedProfileUserIdRef = useRef<string | null>(null);
+  const profileLoadedRef = useRef(false);
+  const profileCreatedForUserRef = useRef<string | null>(null);
 
   const getDefaultProfileState = useCallback(() => ({
     subscription_plan: 'free' as SubscriptionPlan,
@@ -83,7 +87,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [subscriptionPlan],
   );
 
-  const loadProfile = useCallback(async (userId: string) => {
+  const resetProfileState = useCallback(() => {
+    setSubscriptionPlan('free');
+    setSubscriptionStatus('active');
+    setSubscriptionEndDate(null);
+    setIsProfileLoading(false);
+    loadedProfileUserIdRef.current = null;
+    profileLoadedRef.current = false;
+    isFetchingProfileRef.current = false;
+  }, []);
+
+  const loadProfile = useCallback(async (userId: string, force = false) => {
+    if (!userId) return;
+    if (isFetchingProfileRef.current) return;
+    if (!force && profileLoadedRef.current && loadedProfileUserIdRef.current === userId) return;
+
+    isFetchingProfileRef.current = true;
     setIsProfileLoading(true);
 
     try {
@@ -112,20 +131,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSubscriptionStatus(defaults.subscription_status);
         setSubscriptionEndDate(defaults.subscription_end_date);
       }
+      loadedProfileUserIdRef.current = userId;
+      profileLoadedRef.current = true;
     } catch (error) {
       console.error('Erro ao carregar perfil, aplicando perfil padrao:', error);
       const defaults = getDefaultProfileState();
       setSubscriptionPlan(defaults.subscription_plan);
       setSubscriptionStatus(defaults.subscription_status);
       setSubscriptionEndDate(defaults.subscription_end_date);
+      loadedProfileUserIdRef.current = userId;
+      profileLoadedRef.current = true;
     } finally {
+      isFetchingProfileRef.current = false;
       setIsProfileLoading(false);
     }
   }, [getDefaultProfileState]);
 
   const refreshProfile = useCallback(async () => {
     if (!user?.id) return;
-    await loadProfile(user.id);
+    await loadProfile(user.id, true);
   }, [user?.id, loadProfile]);
 
   const createProfileIfNotExists = useCallback(async (authUser: User) => {
@@ -155,21 +179,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, authSession) => {
       if (!mounted) return;
-      setSession(authSession);
-      setUser(authSession?.user ?? null);
+      const nextUser = authSession?.user ?? null;
+      setSession((prev) => (prev?.access_token === authSession?.access_token ? prev : authSession));
+      setUser((prev) => (prev?.id === nextUser?.id ? prev : nextUser));
       setIsLoading(false);
 
-      if (event === 'SIGNED_IN' && authSession?.user) {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && authSession?.user) {
+        if (profileCreatedForUserRef.current !== authSession.user.id) {
+          profileCreatedForUserRef.current = authSession.user.id;
+          setTimeout(() => {
+            createProfileRef.current(authSession.user).catch(() => undefined);
+          }, 0);
+        }
         setTimeout(() => {
-          createProfileRef.current(authSession.user).then(() => loadProfileRef.current(authSession.user.id));
+          loadProfileRef.current(authSession.user.id);
         }, 0);
       }
 
       if (event === 'SIGNED_OUT') {
-        setSubscriptionPlan('free');
-        setSubscriptionStatus('active');
-        setSubscriptionEndDate(null);
-        setIsProfileLoading(false);
+        profileCreatedForUserRef.current = null;
+        resetProfileState();
       }
     });
 
@@ -180,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (existingSession?.user) {
         loadProfileRef.current(existingSession.user.id);
       } else {
-        setIsProfileLoading(false);
+        resetProfileState();
       }
       setIsLoading(false);
     });
@@ -189,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []); // stable - no deps needed
+  }, [resetProfileState]); // stable with guarded refs
 
   useEffect(() => {
     let inactivityTimer: ReturnType<typeof setTimeout>;
@@ -269,29 +298,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        isAuthenticated: !!session,
-        isLoading,
-        isProfileLoading,
-        subscriptionPlan,
-        subscriptionStatus,
-        subscriptionEndDate,
-        isSubscriptionValid: subscriptionStatus === 'active' || subscriptionStatus === 'trial',
-        hasFeatureAccess,
-        refreshProfile,
-        login,
-        register,
-        logout,
-        resetPassword,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const contextValue = useMemo(
+    () => ({
+      user,
+      session,
+      isAuthenticated: !!session,
+      isLoading,
+      isProfileLoading,
+      subscriptionPlan,
+      subscriptionStatus,
+      subscriptionEndDate,
+      isSubscriptionValid: subscriptionStatus === 'active' || subscriptionStatus === 'trial',
+      hasFeatureAccess,
+      refreshProfile,
+      login,
+      register,
+      logout,
+      resetPassword,
+    }),
+    [
+      user,
+      session,
+      isLoading,
+      isProfileLoading,
+      subscriptionPlan,
+      subscriptionStatus,
+      subscriptionEndDate,
+      hasFeatureAccess,
+      refreshProfile,
+    ],
   );
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
