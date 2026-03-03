@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Income, IncomeCategory, IncomeSubcategory, DEFAULT_INCOME_CATEGORIES } from '@/types/income';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
 
 interface IncomeContextType {
   incomes: Income[];
@@ -31,7 +32,7 @@ const IncomeContext = createContext<IncomeContextType | undefined>(undefined);
 
 // Mapping for migrating old/default income categories
 const INCOME_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> = {
-  'Salário': { icon: 'Banknote', color: 'green-500' },
+  'SalÃ¡rio': { icon: 'Banknote', color: 'green-500' },
   'Trabalho': { icon: 'Briefcase', color: 'slate-500' },
   'Investimentos': { icon: 'TrendingUp', color: 'green-500' },
   'Freelance': { icon: 'Coins', color: 'blue-500' },
@@ -39,7 +40,7 @@ const INCOME_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> =
 };
 
 export function IncomeProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, subscriptionPlan } = useAuth();
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [incomeCategories, setIncomeCategories] = useState<IncomeCategory[]>([]);
   const [incomeSubcategories, setIncomeSubcategories] = useState<IncomeSubcategory[]>([]);
@@ -187,6 +188,16 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
 
   const addIncome = async (income: Omit<Income, 'id' | 'userId' | 'createdAt'>) => {
     if (!user) return;
+
+    if (income.isRecurring) {
+      const quota = await getRecurrenceQuotaStatus(user.id, subscriptionPlan as string);
+      if (quota.exceededByNewRecurring) {
+        toast.error('Limite de Recorrências Atingido', {
+          description: `Seu plano atual permite apenas ${quota.limit} lançamentos recorrentes. Faça o upgrade para liberar mais!`,
+        });
+        throw new Error('RECURRENCE_QUOTA_REACHED');
+      }
+    }
     
     // Gera recurrence_id se for recorrente
     const recurrenceId = income.isRecurring ? (income.recurrenceId || crypto.randomUUID()) : null;
@@ -518,3 +529,6 @@ export function useIncome() {
   }
   return context;
 }
+
+
+

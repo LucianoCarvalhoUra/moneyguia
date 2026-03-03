@@ -3,6 +3,7 @@ import { BankAccount, CreditCard, Expense, Category, Subcategory, DEFAULT_CATEGO
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
 
 interface FinanceContextType {
   accounts: BankAccount[];
@@ -57,7 +58,7 @@ const EXPENSE_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> 
 };
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, subscriptionPlan } = useAuth();
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -331,7 +332,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'userId' | 'createdAt'>) => {
     if (!user) return;
-    
+
+    if (expense.isRecurring) {
+      const quota = await getRecurrenceQuotaStatus(user.id, subscriptionPlan as string);
+      if (quota.exceededByNewRecurring) {
+        toast.error('Limite de Recorrências Atingido', {
+          description: `Seu plano atual permite apenas ${quota.limit} lançamentos recorrentes. Faça o upgrade para liberar mais!`,
+        });
+        throw new Error('RECURRENCE_QUOTA_REACHED');
+      }
+    }
+
     // Gera recurrence_id se for recorrente
     const recurrenceId = expense.isRecurring ? (expense.recurrenceId || crypto.randomUUID()) : null;
     
@@ -729,4 +740,7 @@ export function useFinance() {
   }
   return context;
 }
+
+
+
 

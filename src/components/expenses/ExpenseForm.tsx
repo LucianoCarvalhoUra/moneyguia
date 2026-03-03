@@ -2,6 +2,7 @@
 import { useFinance } from '@/contexts/FinanceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,7 @@ import { Expense, PaymentMethod } from '@/types/finance';
 import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
+import { getPlanLimit, getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
 
 interface ExpenseFormProps {
   open: boolean;
@@ -33,9 +35,11 @@ interface ExpenseFormProps {
 }
 
 export default function ExpenseForm({ open, onOpenChange, expense, initialData }: ExpenseFormProps) {
-  const { hasFeatureAccess } = useAuth();
+  const navigate = useNavigate();
+  const { hasFeatureAccess, subscriptionPlan, user } = useAuth();
   const { refreshData, categories, subcategories, accounts, cards, removeExpense } = useFinance();
   const canUseExtraControl = hasFeatureAccess('extra_control');
+  const recurrencePlanLimit = getPlanLimit(subscriptionPlan as string);
   
   // --- State ---
   const [description, setDescription] = useState('');
@@ -55,6 +59,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
   const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
+  const [recurrenceUsage, setRecurrenceUsage] = useState(0);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -124,6 +129,22 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       }
     }
   }, [open, expense, initialData]);
+
+  useEffect(() => {
+    if (!open || !user?.id) return;
+    if (expense) return;
+
+    const loadQuota = async () => {
+      try {
+        const quota = await getRecurrenceQuotaStatus(user.id, subscriptionPlan as string);
+        setRecurrenceUsage(quota.used);
+      } catch {
+        setRecurrenceUsage(0);
+      }
+    };
+
+    loadQuota();
+  }, [open, expense, user?.id, subscriptionPlan]);
 
   // --- Handlers ---
   const handlePaidChange = (checked: boolean) => {
@@ -205,6 +226,23 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
     setIsSubmitting(true);
     try {
+      if (!expense && isRecurring && user?.id) {
+        const quota = await getRecurrenceQuotaStatus(user.id, subscriptionPlan as string);
+        setRecurrenceUsage(quota.used);
+
+        if (quota.exceededByNewRecurring) {
+          toast.error('Limite de Recorrências Atingido', {
+            description: `Seu plano atual permite apenas ${quota.limit} lançamentos recorrentes. Faça o upgrade para liberar mais!`,
+            action: {
+              label: 'Ver planos',
+              onClick: () => navigate('/plans'),
+            },
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const user = (await supabase.auth.getUser()).data.user;
       const finalExpenseDate = isPaid ? paymentDate : launchDate;
 
@@ -358,6 +396,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               <span className="text-sm text-muted-foreground flex-1">Repetir?</span>
               {isRecurring && <Input type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="h-7 w-14 text-center p-0 rounded-lg" />}
             </div>
+            {!expense && recurrencePlanLimit.limit === 2 && (
+              <p className="pt-1 text-xs text-muted-foreground">
+                Você possui {recurrenceUsage} de 2 recorrências utilizadas.
+              </p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -454,4 +497,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     </Dialog>
   );
 }
+
+
+
+
+
+
+
+
 

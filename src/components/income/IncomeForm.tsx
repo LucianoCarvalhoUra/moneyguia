@@ -2,6 +2,7 @@
 import { useIncome } from '@/contexts/IncomeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,7 @@ import { Income } from '@/types/income';
 import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { getPlanLimit, getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
 
 interface IncomeFormProps {
   open: boolean;
@@ -33,9 +35,11 @@ interface IncomeFormProps {
 }
 
 export default function IncomeForm({ open, onOpenChange, income, initialData }: IncomeFormProps) {
-  const { hasFeatureAccess } = useAuth();
+  const navigate = useNavigate();
+  const { hasFeatureAccess, subscriptionPlan, user } = useAuth();
   const { refreshData, incomeCategories, incomeSubcategories, removeIncome, addIncome, updateIncome } = useIncome();
   const canUseExtraControl = hasFeatureAccess('extra_control');
+  const recurrencePlanLimit = getPlanLimit(subscriptionPlan as string);
   
   // --- State ---
   const [description, setDescription] = useState('');
@@ -49,6 +53,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
+  const [recurrenceUsage, setRecurrenceUsage] = useState(0);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -106,6 +111,22 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       }
     }
   }, [open, income, initialData]);
+
+  useEffect(() => {
+    if (!open || !user?.id) return;
+    if (income) return;
+
+    const loadQuota = async () => {
+      try {
+        const quota = await getRecurrenceQuotaStatus(user.id, subscriptionPlan as string);
+        setRecurrenceUsage(quota.used);
+      } catch {
+        setRecurrenceUsage(0);
+      }
+    };
+
+    loadQuota();
+  }, [open, income, user?.id, subscriptionPlan]);
 
   const handleDelete = async () => {
     if (!income) return;
@@ -179,6 +200,23 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
     setIsSubmitting(true);
     try {
+      if (!income && isRecurring && user?.id) {
+        const quota = await getRecurrenceQuotaStatus(user.id, subscriptionPlan as string);
+        setRecurrenceUsage(quota.used);
+
+        if (quota.exceededByNewRecurring) {
+          toast.error('Limite de Recorrências Atingido', {
+            description: `Seu plano atual permite apenas ${quota.limit} lançamentos recorrentes. Faça o upgrade para liberar mais!`,
+            action: {
+              label: 'Ver planos',
+              onClick: () => navigate('/plans'),
+            },
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const payload = {
         title: description,
         amount: numericAmount,
@@ -317,6 +355,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
               <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
               <span className="text-sm text-muted-foreground flex-1">Repetir?</span>
             </div>
+            {!income && recurrencePlanLimit.limit === 2 && (
+              <p className="pt-1 text-xs text-muted-foreground">
+                Você possui {recurrenceUsage} de 2 recorrências utilizadas.
+              </p>
+            )}
           </div>
 
           {/* Controle Visual */}
@@ -376,4 +419,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     </Dialog>
   );
 }
+
+
+
+
+
+
+
 
