@@ -27,7 +27,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Check, Copy, EyeOff } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Check, Copy, EyeOff, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import IncomeForm from '@/components/income/IncomeForm';
@@ -49,8 +49,8 @@ export default function Incomes() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [subcategoryFilter, setSubcategoryFilter] = useState<string>('all');
   const [visualFilter, setVisualFilter] = useState<string>('all');
-  const [sortField, setSortField] = useState<string>('receiveDate');
-  const [sortOrder, setSortOrder] = useState<string>('asc');
+  const [sortField, setSortField] = useState<'receiveDate' | 'category' | 'description' | 'amount' | 'status'>('receiveDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [duplicatingIncome, setDuplicatingIncome] = useState<Income | null>(null);
@@ -103,6 +103,28 @@ export default function Incomes() {
     return incomeSubcategories.filter(sub => sub.categoryId === categoryFilter);
   }, [categoryFilter, incomeSubcategories]);
 
+  const getIncomeStatusRank = (income: Income) => {
+    const receiveDate = new Date(income.receiveDate);
+    const isOverdue = !income.isReceived && isBefore(startOfDay(receiveDate), startOfDay(new Date()));
+    if (income.isReceived) return 2;
+    if (isOverdue) return 0;
+    return 1;
+  };
+
+  const handleSort = (field: 'receiveDate' | 'category' | 'description' | 'amount' | 'status') => {
+    if (sortField === field) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortField(field);
+    setSortOrder('desc');
+  };
+
+  const renderSortIcon = (field: 'receiveDate' | 'category' | 'description' | 'amount' | 'status') => {
+    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />;
+    return sortOrder === 'asc' ? <ArrowUp className="h-3.5 w-3.5 text-foreground" /> : <ArrowDown className="h-3.5 w-3.5 text-foreground" />;
+  };
+
   const filteredIncomes = useMemo(() => {
     return incomes
       .filter(income => {
@@ -118,11 +140,31 @@ export default function Incomes() {
         return true;
       })
       .sort((a, b) => {
-        const valA = sortField === 'receiveDate' ? new Date(a.receiveDate).getTime() : a.amount;
-        const valB = sortField === 'receiveDate' ? new Date(b.receiveDate).getTime() : b.amount;
-        return sortOrder === 'asc' ? valA - valB : valB - valA;
+        const categoryA = incomeCategories.find(c => c.id === a.categoryId)?.name || '';
+        const categoryB = incomeCategories.find(c => c.id === b.categoryId)?.name || '';
+
+        let comparison = 0;
+        switch (sortField) {
+          case 'category':
+            comparison = categoryA.localeCompare(categoryB, 'pt-BR', { sensitivity: 'base' });
+            break;
+          case 'description':
+            comparison = a.title.localeCompare(b.title, 'pt-BR', { sensitivity: 'base' });
+            break;
+          case 'amount':
+            comparison = a.amount - b.amount;
+            break;
+          case 'status':
+            comparison = getIncomeStatusRank(a) - getIncomeStatusRank(b);
+            break;
+          case 'receiveDate':
+          default:
+            comparison = new Date(a.receiveDate).getTime() - new Date(b.receiveDate).getTime();
+            break;
+        }
+        return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [incomes, selectedMonth, selectedYear, statusFilter, visualFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder]);
+  }, [incomes, selectedMonth, selectedYear, statusFilter, visualFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder, incomeCategories]);
 
   const handleClearFilters = () => {
     setStatusFilter('all');
@@ -131,7 +173,7 @@ export default function Incomes() {
     setSubcategoryFilter('all');
     setSearchTerm('');
     setSortField('receiveDate');
-    setSortOrder('asc');
+    setSortOrder('desc');
   };
 
   const handlePreviousMonth = () => {
@@ -330,17 +372,37 @@ export default function Incomes() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead className="text-center">Status</TableHead>
+                <TableHead>
+                  <button type="button" onClick={() => handleSort('category')} className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground">
+                    Categoria {renderSortIcon('category')}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" onClick={() => handleSort('receiveDate')} className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground">
+                    Data de Recebimento {renderSortIcon('receiveDate')}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" onClick={() => handleSort('description')} className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground">
+                    Descrição {renderSortIcon('description')}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" onClick={() => handleSort('amount')} className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground">
+                    Valor {renderSortIcon('amount')}
+                  </button>
+                </TableHead>
+                <TableHead className="text-center">
+                  <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground">
+                    Status {renderSortIcon('status')}
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredIncomes.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma receita encontrada.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma receita encontrada.</TableCell></TableRow>
               ) : (
                 filteredIncomes.map((income) => {
                   const category = incomeCategories.find(c => c.id === income.categoryId);

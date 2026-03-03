@@ -26,7 +26,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, isBefore, startOfDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Copy, Check } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Calendar, Filter, X, ChevronLeft, ChevronRight, History, CalendarClock, CalendarDays, Copy, Check, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
@@ -50,8 +50,8 @@ export default function Expenses() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [duplicatingExpense, setDuplicatingExpense] = useState<Expense | null>(null);
-  const [sortField, setSortField] = useState('date');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [sortField, setSortField] = useState<'dueDate' | 'category' | 'description' | 'amount' | 'status'>('dueDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
@@ -108,6 +108,28 @@ export default function Expenses() {
     return subcategories.filter(sub => sub.categoryId === categoryFilter);
   }, [categoryFilter, subcategories]);
 
+  const getExpenseStatusRank = (expense: Expense) => {
+    const dueDate = new Date(expense.dueDate);
+    const isOverdue = !expense.isPaid && isBefore(startOfDay(dueDate), startOfDay(new Date()));
+    if (expense.isPaid) return 2;
+    if (isOverdue) return 0;
+    return 1;
+  };
+
+  const handleSort = (field: 'dueDate' | 'category' | 'description' | 'amount' | 'status') => {
+    if (sortField === field) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortField(field);
+    setSortOrder('desc');
+  };
+
+  const renderSortIcon = (field: 'dueDate' | 'category' | 'description' | 'amount' | 'status') => {
+    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />;
+    return sortOrder === 'asc' ? <ArrowUp className="h-3.5 w-3.5 text-foreground" /> : <ArrowDown className="h-3.5 w-3.5 text-foreground" />;
+  };
+
   const filteredExpenses = useMemo(() => {
     return expenses
       .filter(expense => {
@@ -126,9 +148,30 @@ export default function Expenses() {
         return true;
       })
       .sort((a, b) => {
-        const valA = sortField === 'date' ? new Date(a.dueDate).getTime() : a.amount;
-        const valB = sortField === 'date' ? new Date(b.dueDate).getTime() : b.amount;
-        return sortOrder === 'asc' ? valA - valB : valB - valA;
+        const categoryA = categories.find(c => c.id === a.categoryId)?.name || '';
+        const categoryB = categories.find(c => c.id === b.categoryId)?.name || '';
+
+        let comparison = 0;
+        switch (sortField) {
+          case 'category':
+            comparison = categoryA.localeCompare(categoryB, 'pt-BR', { sensitivity: 'base' });
+            break;
+          case 'description':
+            comparison = a.description.localeCompare(b.description, 'pt-BR', { sensitivity: 'base' });
+            break;
+          case 'amount':
+            comparison = a.amount - b.amount;
+            break;
+          case 'status':
+            comparison = getExpenseStatusRank(a) - getExpenseStatusRank(b);
+            break;
+          case 'dueDate':
+          default:
+            comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+            break;
+        }
+
+        return sortOrder === 'asc' ? comparison : -comparison;
       });
   }, [expenses, selectedMonth, selectedYear, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder, categories, subcategories]);
 
@@ -137,7 +180,7 @@ export default function Expenses() {
     setCategoryFilter('all');
     setSubcategoryFilter('all');
     setSearchTerm('');
-    setSortField('date');
+    setSortField('dueDate');
     setSortOrder('desc');
   };
 
@@ -309,11 +352,31 @@ export default function Expenses() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead className="text-center">Status</TableHead>
+                <TableHead>
+                  <button type="button" onClick={() => handleSort('category')} className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground">
+                    Categoria {renderSortIcon('category')}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" onClick={() => handleSort('dueDate')} className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground">
+                    Vencimento {renderSortIcon('dueDate')}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" onClick={() => handleSort('description')} className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground">
+                    Descrição {renderSortIcon('description')}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" onClick={() => handleSort('amount')} className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground">
+                    Valor {renderSortIcon('amount')}
+                  </button>
+                </TableHead>
+                <TableHead className="text-center">
+                  <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground">
+                    Status {renderSortIcon('status')}
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
