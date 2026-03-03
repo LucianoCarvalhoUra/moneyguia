@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Goal } from '@/types/goals';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,7 +47,6 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error fetching goals:', error);
-      console.log('DEBUG: Erro detalhado ao buscar objetivos:', error);
       toast.error(`Erro: ${(error as any).message || 'Erro desconhecido ao carregar'}`);
     } finally {
       setIsLoading(false);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +7,6 @@ export type SubscriptionPlan = 'free' | 'premium' | 'total';
 export type SubscriptionStatus = 'active' | 'trial' | 'past_due' | 'canceled';
 export type FeatureKey = 'ai_classification' | 'advanced_reports' | 'extra_control';
 
-// Map auth errors to user-friendly messages
 function getAuthErrorMessage(error: { message: string }): string {
   console.error('Auth error:', error);
 
@@ -61,9 +60,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [subscriptionPlan, setSubscriptionPlan] = useState<SubscriptionPlan>('free');
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('trial');
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('active');
   const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  const getDefaultProfileState = useCallback(() => ({
+    subscription_plan: 'free' as SubscriptionPlan,
+    subscription_status: 'active' as SubscriptionStatus,
+    subscription_expiry: null as string | null,
+  }), []);
 
   const hasFeatureAccess = useCallback(
     (feature: FeatureKey) => {
@@ -75,36 +80,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return false;
     },
-    [subscriptionPlan]
+    [subscriptionPlan],
   );
 
   const loadProfile = useCallback(async (userId: string) => {
     setIsProfileLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('subscription_plan, subscription_status, subscription_expiry, subscription_end_date')
-      .eq('user_id', userId)
-      .maybeSingle();
 
-    if (error) {
-      console.error('Erro ao carregar perfil:', error);
-      // 42703 = coluna inexistente. Evita travar fluxo enquanto migration não roda.
-      setSubscriptionPlan('free');
-      setSubscriptionStatus('active');
-      setSubscriptionEndDate(null);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('subscription_plan, subscription_status, subscription_expiry, subscription_end_date')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      const defaults = getDefaultProfileState();
+      const plan = ((data as any)?.subscription_plan || defaults.subscription_plan) as SubscriptionPlan;
+      const status = ((data as any)?.subscription_status || defaults.subscription_status) as SubscriptionStatus;
+      const expiry =
+        (data as any)?.subscription_expiry ||
+        (data as any)?.subscription_end_date ||
+        defaults.subscription_expiry;
+
+      setSubscriptionPlan(plan);
+      setSubscriptionStatus(status);
+      setSubscriptionEndDate(expiry);
+    } catch (error) {
+      console.error('Erro ao carregar perfil, aplicando perfil padrao:', error);
+      const defaults = getDefaultProfileState();
+      setSubscriptionPlan(defaults.subscription_plan);
+      setSubscriptionStatus(defaults.subscription_status);
+      setSubscriptionEndDate(defaults.subscription_expiry);
+    } finally {
       setIsProfileLoading(false);
-      return;
     }
-
-    const plan = ((data as any)?.subscription_plan || 'free') as SubscriptionPlan;
-    const status = ((data as any)?.subscription_status || 'active') as SubscriptionStatus;
-    const expiry = (data as any)?.subscription_expiry || (data as any)?.subscription_end_date || null;
-
-    setSubscriptionPlan(plan);
-    setSubscriptionStatus(status);
-    setSubscriptionEndDate(expiry);
-    setIsProfileLoading(false);
-  }, []);
+  }, [getDefaultProfileState]);
 
   const refreshProfile = useCallback(async () => {
     if (!user?.id) return;
@@ -143,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (event === 'SIGNED_OUT') {
         setSubscriptionPlan('free');
-        setSubscriptionStatus('trial');
+        setSubscriptionStatus('active');
         setSubscriptionEndDate(null);
         setIsProfileLoading(false);
       }
@@ -163,14 +176,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [createProfileIfNotExists, loadProfile]);
 
-  // Timeout por inatividade
   useEffect(() => {
     let inactivityTimer: ReturnType<typeof setTimeout>;
 
     const handleLogoutOnInactivity = async () => {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (currentSession) {
-        console.log('Usuario inativo por 15 minutos. Deslogando.');
         await supabase.auth.signOut();
         setUser(null);
         setSession(null);
@@ -227,7 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setSubscriptionPlan('free');
-    setSubscriptionStatus('trial');
+    setSubscriptionStatus('active');
     setSubscriptionEndDate(null);
     navigate('/auth', { replace: true });
   };

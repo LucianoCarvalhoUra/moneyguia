@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -16,9 +16,9 @@ export default function ResetPassword() {
 
   useEffect(() => {
     // Captura a sessão de recuperação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === "PASSWORD_RECOVERY") {
-        console.log("Sessão de recuperação ativa");
+        return;
       }
     });
     return () => subscription.unsubscribe();
@@ -91,3 +91,5 @@ export default function ResetPassword() {
     </div>
   );
 }
+
+

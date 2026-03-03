@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export default function ExpenseList() {
   const { getMonthlyExpenses, getMonthlyTotal, removeExpense, updateExpense, getCategoryById, getSubcategoryById } = useFinance();
@@ -25,10 +27,7 @@ export default function ExpenseList() {
   const expenses = getMonthlyExpenses(selectedYear, selectedMonth);
   const total = getMonthlyTotal(selectedYear, selectedMonth);
 
-  const months = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-  ];
+  const getMonthLabel = (month: number) => format(new Date(selectedYear, month, 1), 'MMMM', { locale: ptBR });
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
@@ -52,7 +51,6 @@ export default function ExpenseList() {
   };
 
   const handleEdit = (expense: Expense) => {
-    console.log('Editando despesa:', expense);
     setEditingExpense(expense);
     setInitialData(null);
     setFormOpen(true);
@@ -97,7 +95,7 @@ export default function ExpenseList() {
           <div className="flex items-center gap-3">
             <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
               <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-              <SelectContent>{months.map((m, i) => <SelectItem key={i} value={i.toString()}>{m}</SelectItem>)}</SelectContent>
+              <SelectContent>{Array.from({ length: 12 }, (_, i) => <SelectItem key={i} value={i.toString()}>{getMonthLabel(i)}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
               <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
@@ -111,7 +109,7 @@ export default function ExpenseList() {
       {/* Resumo */}
       <Card className="bg-primary text-primary-foreground border-0">
         <CardContent className="py-6 text-center">
-          <p className="text-sm opacity-80">Total em {months[selectedMonth]}</p>
+          <p className="text-sm opacity-80">Total em {getMonthLabel(selectedMonth)}</p>
           <p className="text-3xl font-bold mt-1">{formatCurrency(total)}</p>
         </CardContent>
       </Card>

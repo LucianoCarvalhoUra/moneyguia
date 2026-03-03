@@ -10,17 +10,17 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const checkoutSchema = z.object({
-  fullName: z.string().trim().min(3, "Nome completo Ã© obrigatÃ³rio").max(100),
-  cpf: z.string().trim().min(11, "CPF invÃ¡lido").max(14),
-  email: z.string().trim().email("E-mail invÃ¡lido").max(255),
-  phone: z.string().trim().min(10, "Telefone invÃ¡lido").max(20),
-  street: z.string().trim().min(3, "EndereÃ§o Ã© obrigatÃ³rio").max(200),
-  number: z.string().trim().min(1, "NÃºmero Ã© obrigatÃ³rio").max(10),
+  fullName: z.string().trim().min(3, "Nome completo é obrigatório").max(100),
+  cpf: z.string().trim().min(11, "CPF inválido").max(14),
+  email: z.string().trim().email("E-mail inválido").max(255),
+  phone: z.string().trim().min(10, "Telefone inválido").max(20),
+  street: z.string().trim().min(3, "Endereço é obrigatório").max(200),
+  number: z.string().trim().min(1, "Número é obrigatório").max(10),
   complement: z.string().max(100).optional(),
-  neighborhood: z.string().trim().min(2, "Bairro Ã© obrigatÃ³rio").max(100),
-  city: z.string().trim().min(2, "Cidade Ã© obrigatÃ³ria").max(100),
-  state: z.string().trim().min(2, "Estado Ã© obrigatÃ³rio").max(2),
-  zipCode: z.string().trim().min(8, "CEP invÃ¡lido").max(10),
+  neighborhood: z.string().trim().min(2, "Bairro é obrigatório").max(100),
+  city: z.string().trim().min(2, "Cidade é obrigatória").max(100),
+  state: z.string().trim().min(2, "Estado é obrigatório").max(2),
+  zipCode: z.string().trim().min(8, "CEP inválido").max(10),
 });
 
 interface Plan {
@@ -79,7 +79,7 @@ export default function Checkout() {
       if (data) {
         setPlan(data);
       } else {
-        toast.error("Plano nÃ£o encontrado");
+        toast.error("Plano não encontrado");
         navigate("/plans");
       }
       setLoading(false);
@@ -133,7 +133,7 @@ export default function Checkout() {
 
   const handleConfirmPayment = async () => {
     if (!user || !plan) {
-      toast.info("FaÃ§a login para confirmar o pagamento.");
+      toast.info("Faça login para confirmar o pagamento.");
       navigate("/auth");
       return;
     }
@@ -217,7 +217,7 @@ export default function Checkout() {
           <div className="lg:col-span-2">
             {step === "info" && (
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-6 text-xl font-bold text-gray-900">InformaÃ§Ãµes pessoais</h2>
+                <h2 className="mb-6 text-xl font-bold text-gray-900">Informações pessoais</h2>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
@@ -266,7 +266,7 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                <h2 className="mb-4 mt-8 text-xl font-bold text-gray-900">EndereÃ§o de cobranÃ§a</h2>
+                <h2 className="mb-4 mt-8 text-xl font-bold text-gray-900">Endereço de cobrança</h2>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
@@ -292,7 +292,7 @@ export default function Checkout() {
                   </div>
 
                   <div>
-                    <Label htmlFor="number">NÃºmero</Label>
+                    <Label htmlFor="number">Número</Label>
                     <Input
                       id="number"
                       value={form.number}
@@ -394,7 +394,7 @@ export default function Checkout() {
                       disabled={submitting}
                       className="w-full rounded-md bg-emerald-500 text-white hover:bg-emerald-600"
                     >
-                      {submitting ? "Processando..." : "JÃ¡ realizei o pagamento"}
+                      {submitting ? "Processando..." : "Já realizei o pagamento"}
                     </Button>
                     <Button
                       variant="ghost"
@@ -455,4 +455,5 @@ export default function Checkout() {
     </div>
   );
 }
+
 

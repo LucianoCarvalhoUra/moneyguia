@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { BankAccount, CreditCard, Expense, Category, Subcategory, DEFAULT_CATEGORIES, PaymentMethod } from '@/types/finance';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -199,7 +199,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       }
     } catch (error: any) {
       console.error('Error fetching data:', error);
-      console.log('Supabase Error Details:', error.message, error.details, error.hint);
       toast.error('Erro ao carregar dados: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setIsLoading(false);
@@ -730,3 +729,4 @@ export function useFinance() {
   }
   return context;
 }
+

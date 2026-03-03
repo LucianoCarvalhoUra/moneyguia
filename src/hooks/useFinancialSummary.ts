@@ -1,12 +1,11 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { startOfDay, addDays, isWithinInterval, startOfMonth, endOfMonth, parseISO, format } from 'date-fns';
 
-// Função de Renderização 'Raw'
+// Função de renderização segura para datas
 const renderDateString = (value: any) => {
   // LOG DE DEBUG
-  console.log('DEBUG renderDateString IN:', value);
 
   if (!value) return "-";
 

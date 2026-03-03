@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,19 +42,19 @@ export function DashboardAI() {
     const newSuggestions = [];
 
     if (financialProfile.totalExpenses > financialProfile.totalIncome) {
-      newSuggestions.push('🚨 Por que gastei mais este mês?');
+      newSuggestions.push('Alerta: por que gastei mais este mês?');
     }
     if (criticalCategories.length > 0) {
-      newSuggestions.push(`📉 Reduzir ${criticalCategories[0].category}`);
+      newSuggestions.push(`Reduzir ${criticalCategories[0].category}`);
     }
     if (anomalies.length > 0) {
-      newSuggestions.push('🔍 Ver gastos atípicos');
+      newSuggestions.push('Ver gastos atípicos');
     }
     if (recurrenceAnalysis.totalRecurring > 0) {
-      newSuggestions.push('📅 Quais contas vencem logo?');
+      newSuggestions.push('Quais contas vencem logo?');
     }
     // Fallback suggestions
-    if (newSuggestions.length < 3) newSuggestions.push('💰 Como economizar?');
+    if (newSuggestions.length < 3) newSuggestions.push('Como economizar?');
     
     setSuggestions(newSuggestions.slice(0, 3));
   }, [aiConsultantContext]);
@@ -101,7 +101,7 @@ export function DashboardAI() {
       const { financialProfile } = aiConsultantContext;
       const monthlyExpenses = financialProfile.totalExpenses > 0 ? financialProfile.totalExpenses : 0;
       const idealReserve = monthlyExpenses * 6;
-      const response = `💰 **Cálculo de Reserva de Emergência:**\n\nBaseado na sua média de despesas mensais (${fmt(monthlyExpenses)}), o valor ideal para sua segurança (6 meses) é de **${fmt(idealReserve)}**.\n\nSugiro começar guardando 10% da sua receita mensal até atingir este objetivo.`;
+      const response = `**Cálculo de Reserva de Emergência:**\n\nBaseado na sua média de despesas mensais (${fmt(monthlyExpenses)}), o valor ideal para sua segurança (6 meses) é de **${fmt(idealReserve)}**.\n\nSugiro começar guardando 10% da sua receita mensal até atingir este objetivo.`;
       setTimeout(() => {
         setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', content: response }]);
         setIsThinking(false);
@@ -161,7 +161,6 @@ export function DashboardAI() {
         return;
       }
     } catch (error) {
-      console.log('Edge function not available, falling back to local logic', error);
     }
 
     // Fallback: Simulação da IA com Persona de Consultor (Local)
@@ -189,80 +188,80 @@ export function DashboardAI() {
             const impact = financialProfile.totalIncome > 0 ? (topExpense.amount / financialProfile.totalIncome) * 100 : 0;
             const isTopMandatory = topExpense ? isMandatory(topExpense.description, topExpense.category) : false;
             
-            response = `🚨 **Alerta Crítico:** Notei um desequilíbrio este mês. Seu saldo projetado está negativo em ${fmt(deficit)}.\n\n`;
+            response = `**Alerta Crítico:** Notei um desequilíbrio este mês. Seu saldo projetado está negativo em ${fmt(deficit)}.\n\n`;
             
             if (topExpense && impact > 10) {
                 if (isTopMandatory) {
-                    response += `📉 **Diagnóstico:** O gasto obrigatório com "**${topExpense.description}**" (${fmt(topExpense.amount)}) consumiu ${impact.toFixed(1)}% da sua receita, desestabilizando o fluxo.\n\n`;
+                    response += `**Diagnóstico:** O gasto obrigatório com "**${topExpense.description}**" (${fmt(topExpense.amount)}) consumiu ${impact.toFixed(1)}% da sua receita, desestabilizando o fluxo.\n\n`;
                     
                     const cutCandidates = variableAnalysis.variableExpenses.slice(0, 2);
                     if (cutCandidates.length > 0) {
-                        response += `⚖️ **Estratégia de Compensação:** Como o ${topExpense.description} é indispensável, identifiquei que você pode compensar reduzindo gastos em **${cutCandidates.map(c => c.category).join(' e ')}**.\n\n`;
+                        response += `**Estratégia de Compensação:** Como o ${topExpense.description} é indispensável, identifiquei que você pode compensar reduzindo gastos em **${cutCandidates.map(c => c.category).join(' e ')}**.\n\n`;
                     } else {
-                        response += `⚖️ **Estratégia:** Precisamos cortar gastos variáveis imediatamente para compensar.\n\n`;
+                        response += `**Estratégia:** Precisamos cortar gastos variáveis imediatamente para compensar.\n\n`;
                     }
 
                     // Projection
                     const monthsToRecover = financialProfile.savingsRate > 0 ? Math.ceil(deficit / (financialProfile.totalIncome * 0.1)) : 3;
-                    response += `📅 **Previsão de Caixa:** Com ajustes, o saldo deve se estabilizar em cerca de ${monthsToRecover} meses.`;
+                    response += `**Previsão de Caixa:** Com ajustes, o saldo deve se estabilizar em cerca de ${monthsToRecover} meses.`;
 
                     setCurrentAnalysisContext({ topic: 'compensation', data: { expense: topExpense, deficit } });
                 } else {
-                    response += `📉 **Contexto:** O gasto com "**${topExpense.description}**" (${fmt(topExpense.amount)}) foi alto e parece ser discricionário.\n\n`;
-                    response += `✂️ **Ação:** Considere cortar este tipo de gasto nos próximos meses.`;
+                    response += `**Contexto:** O gasto com "**${topExpense.description}**" (${fmt(topExpense.amount)}) foi alto e parece ser discricionário.\n\n`;
+                    response += `**Ação:** Considere cortar este tipo de gasto nos próximos meses.`;
                 }
             } else {
-                response += `🛡️ **Plano de Recuperação:** Corte gastos variáveis imediatamente para cobrir o rombo.`;
+                response += `**Plano de Recuperação:** Corte gastos variáveis imediatamente para cobrir o rombo.`;
             }
         } else {
-            response = `✅ **Saúde Financeira:** Seu saldo projetado é positivo (${fmt(projections.projectedBalance)}).\n\n`;
-            response += `📊 **Insight:** Suas despesas fixas estão em ${(recurrenceAnalysis.totalRecurring / financialProfile.totalIncome * 100).toFixed(1)}% da receita. `;
+            response = `**Saúde Financeira:** Seu saldo projetado é positivo (${fmt(projections.projectedBalance)}).\n\n`;
+            response += `**Insight:** Suas despesas fixas estão em ${(recurrenceAnalysis.totalRecurring / financialProfile.totalIncome * 100).toFixed(1)}% da receita. `;
             
             if (criticalCategories.length > 0) {
                 response += `Porém, a categoria **${criticalCategories[0].category}** está com tendência de alta.\n\n`;
-                response += `🎯 **Recomendação:** Monitore esta categoria para não comprometer a economia do próximo mês.`;
+                response += `**Recomendação:** Monitore esta categoria para não comprometer a economia do próximo mês.`;
             } else {
-                response += `Tudo sob controle.\n\n🚀 **Recomendação:** Aproveite o saldo positivo para aportar em sua reserva de emergência.`;
+                response += `Tudo sob controle.\n\n**Recomendação:** Aproveite o saldo positivo para aportar em sua reserva de emergência.`;
             }
         }
 
       } else if (lowerInput.includes('cortar') || lowerInput.includes('gastei mais') || lowerInput.includes('por que')) {
         if (criticalCategories.length > 0) {
           const topCrit = criticalCategories[0];
-          response = `📉 **Análise de Tendência:** Identifiquei que **${topCrit.category}** está crescendo e superou sua média em ${fmt(topCrit.currentAmount - topCrit.average3Months)}.\n\n`;
-          response += `✂️ **Ação Imediata:** Revise os gastos desta categoria. O maior item foi "${detailedBreakdown.topExpenses.find(e => e.category === topCrit.category)?.description || 'diversos'}". Corte excessos aqui.`;
+          response = `**Análise de Tendência:** Identifiquei que **${topCrit.category}** está crescendo e superou sua média em ${fmt(topCrit.currentAmount - topCrit.average3Months)}.\n\n`;
+          response += `**Ação Imediata:** Revise os gastos desta categoria. O maior item foi "${detailedBreakdown.topExpenses.find(e => e.category === topCrit.category)?.description || 'diversos'}". Corte excessos aqui.`;
         } else {
           const topVar = variableAnalysis.variableExpenses[0];
-          response = `🔍 **Análise:** Seus gastos recorrentes estão estáveis. O aumento vem de despesas variáveis como **${topVar?.category}**.\n\n`;
-          response += `💡 **Sugestão:** Tente reduzir o consumo em ${topVar?.category} em 20% na próxima semana para ver resultado imediato.`;
+          response = `**Análise:** Seus gastos recorrentes estão estáveis. O aumento vem de despesas variáveis como **${topVar?.category}**.\n\n`;
+          response += `**Sugestão:** Tente reduzir o consumo em ${topVar?.category} em 20% na próxima semana para ver resultado imediato.`;
         }
 
       } else if (lowerInput.includes('reduzir') && lowerInput.includes('categoria')) {
           if (criticalCategories.length > 0) {
               const top = criticalCategories[0];
-              response = `📉 **Foco no Problema:** Sua categoria **${top.category}** é a mais crítica no momento (R$ ${fmt(top.currentAmount)}).\n\n`;
-              response += `🎯 **Meta:** Estabeleça um teto de ${fmt(top.average3Months)} para o próximo mês e acompanhe semanalmente.`;
+              response = `**Foco no Problema:** Sua categoria **${top.category}** é a mais crítica no momento (R$ ${fmt(top.currentAmount)}).\n\n`;
+              response += `**Meta:** Estabeleça um teto de ${fmt(top.average3Months)} para o próximo mês e acompanhe semanalmente.`;
           } else {
-              response = `📉 **Observação:** Nenhuma categoria apresenta desvio alarmante hoje. Mantenha a disciplina nos gastos variáveis como **${variableAnalysis.variableExpenses[0]?.category}**.`;
+              response = `**Observação:** Nenhuma categoria apresenta desvio alarmante hoje. Mantenha a disciplina nos gastos variáveis como **${variableAnalysis.variableExpenses[0]?.category}**.`;
           }
 
       } else if (lowerInput.includes('receita') && lowerInput.includes('cobre')) {
           const fixedRatio = (recurrenceAnalysis.totalRecurring / financialProfile.totalIncome) * 100;
           const covers = financialProfile.totalIncome >= recurrenceAnalysis.totalRecurring;
           
-          response = `📅 **Diagnóstico:** ${covers ? 'Sim, sua receita cobre as fixas.' : 'Não, suas contas fixas excedem a receita.'}\n\n`;
-          response += `📊 **Dados:** Comprometimento de ${fixedRatio.toFixed(1)}% da renda.\n\n`;
+          response = `**Diagnóstico:** ${covers ? 'Sim, sua receita cobre as fixas.' : 'Não, suas contas fixas excedem a receita.'}\n\n`;
+          response += `**Dados:** Comprometimento de ${fixedRatio.toFixed(1)}% da renda.\n\n`;
           
           if (fixedRatio > 50) {
-              response += `⚠️ **Ação Necessária:** Este índice é alto (Ideal: <50%). Planeje reduzir custos fixos como ${recurrenceAnalysis.recurringExpenses[0]?.description} para ter folga.`;
+              response += `**Ação Necessária:** Este índice é alto (Ideal: <50%). Planeje reduzir custos fixos como ${recurrenceAnalysis.recurringExpenses[0]?.description} para ter folga.`;
           } else {
-              response += `✅ **Conclusão:** Você tem margem para investir. Priorize a quitação de dívidas ou aportes financeiros.`;
+              response += `**Conclusão:** Você tem margem para investir. Priorize a quitação de dívidas ou aportes financeiros.`;
           }
 
       } else if (lowerInput.includes('vencem') || lowerInput.includes('contas')) {
           const nextBills = recurrenceAnalysis.recurringExpenses.slice(0, 3);
-          response = `📅 **Agenda Financeira:** Próximos vencimentos identificados:\n${nextBills.map(b => `- ${b.description}: ${fmt(b.amount)}`).join('\n')}.\n\n`;
-          response += `💼 **Recomendação:** Agende esses pagamentos hoje para evitar multas e juros.`;
+          response = `**Agenda Financeira:** Próximos vencimentos identificados:\n${nextBills.map(b => `- ${b.description}: ${fmt(b.amount)}`).join('\n')}.\n\n`;
+          response += `**Recomendação:** Agende esses pagamentos hoje para evitar multas e juros.`;
 
       } else {
         // Fallback Genérico Inteligente (Sem menu fixo)
@@ -352,3 +351,4 @@ export function DashboardAI() {
     </>
   );
 }
+

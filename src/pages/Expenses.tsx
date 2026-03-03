@@ -143,8 +143,8 @@ export default function Expenses() {
 
   const handleDelete = (expense: Expense) => {
     setExpenseToDelete(expense);
-    // Define 'single' como padrÃ£o para garantir que o botÃ£o Confirmar funcione para itens Ãºnicos
-    // Se for recorrente, o usuÃ¡rio poderÃ¡ alterar no modal
+    // Define 'single' como padrão para garantir que o botão Confirmar funcione para itens únicos
+    // Se for recorrente, o usuário poderá alterar no modal
     setSelectedDeleteScope('single');
     setDeleteDialogOpen(true);
   };
@@ -156,7 +156,7 @@ export default function Expenses() {
       let query;
       const { recurrenceId, id, dueDate } = expenseToDelete;
       
-      // Se for exclusÃ£o Ãºnica ou nÃ£o tiver recorrÃªncia
+      // Se for exclusão única ou não tiver recorrência
       if (selectedDeleteScope === 'single' || !recurrenceId) {
         query = supabase.from('expenses').delete().eq('id', id);
       } else if (selectedDeleteScope === 'future') {
@@ -197,8 +197,8 @@ export default function Expenses() {
   const handleDuplicate = (expense: Expense) => {
     setDuplicatingExpense({
       ...expense,
-      description: `${expense.description} (CÃ³pia)`,
-      dueDate: new Date(), // Define para hoje por conveniÃªncia
+      description: `${expense.description} (Cópia)`,
+      dueDate: new Date(), // Define para hoje por conveniência
       isPaid: false,
     });
     setIsFormOpen(true);
@@ -235,14 +235,14 @@ export default function Expenses() {
 
       <div className="flex justify-end">
         <Button variant="outline" className="gap-2" onClick={() => setIsFiltersOpen(!isFiltersOpen)}>
-          <Filter className="w-4 h-4" /> {isFiltersOpen ? 'Ocultar Filtros' : 'Filtros e OpÃ§Ãµes'}
+          <Filter className="w-4 h-4" /> {isFiltersOpen ? 'Ocultar Filtros' : 'Filtros e Opções'}
         </Button>
       </div>
 
       {isFiltersOpen && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium">Filtros AvanÃ§ados</CardTitle>
+            <CardTitle className="text-base font-medium">Filtros Avançados</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -250,7 +250,7 @@ export default function Expenses() {
                 <Label>Buscar</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="DescriÃ§Ã£o..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+                  <Input placeholder="Descrição..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -311,10 +311,10 @@ export default function Expenses() {
               <TableRow>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Vencimento</TableHead>
-                <TableHead>DescriÃ§Ã£o</TableHead>
+                <TableHead>Descrição</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">AÃ§Ãµes</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -339,7 +339,7 @@ export default function Expenses() {
                                 <TooltipTrigger>
                                   <EyeOff className="w-4 h-4 text-muted-foreground" />
                                 </TooltipTrigger>
-                                <TooltipContent>NÃ£o contabilizado no saldo</TooltipContent>
+                                <TooltipContent>Não contabilizado no saldo</TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           )}
@@ -396,10 +396,10 @@ export default function Expenses() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir TransaÃ§Ã£o</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Transação</AlertDialogTitle>
             <AlertDialogDescription>
               {expenseToDelete?.recurrenceId 
-                ? "Esta despesa Ã© recorrente. Como vocÃª gostaria de excluÃ­-la?"
+                ? "Esta despesa é recorrente. Como você gostaria de excluí-la?"
                 : "Tem certeza que deseja excluir esta despesa?"
               }
             </AlertDialogDescription>
@@ -418,7 +418,7 @@ export default function Expenses() {
                 onClick={() => setSelectedDeleteScope('future')}
               >
                   <div className="p-2 bg-muted rounded-md"><CalendarClock className="w-4 h-4" /></div>
-                  <div className="text-left"><p className="font-medium">Esta e futuras</p><p className="text-xs text-muted-foreground">Exclui este e todos os prÃ³ximos</p></div>
+                  <div className="text-left"><p className="font-medium">Esta e futuras</p><p className="text-xs text-muted-foreground">Exclui este e todos os próximos</p></div>
               </div>
               <div 
                 className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'past' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
@@ -432,7 +432,7 @@ export default function Expenses() {
                 onClick={() => setSelectedDeleteScope('all')}
               >
                   <div className="p-2 bg-muted rounded-md"><CalendarDays className="w-4 h-4" /></div>
-                  <div className="text-left"><p className="font-medium">Todas</p><p className="text-xs text-muted-foreground">Exclui toda a sÃ©rie histÃ³rica</p></div>
+                  <div className="text-left"><p className="font-medium">Todas</p><p className="text-xs text-muted-foreground">Exclui toda a série histórica</p></div>
               </div>
             </div>
           )}
@@ -447,4 +447,5 @@ export default function Expenses() {
     </div>
   );
 }
+
 

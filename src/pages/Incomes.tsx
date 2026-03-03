@@ -197,8 +197,8 @@ export default function Incomes() {
   const handleDuplicate = (income: Income) => {
     setDuplicatingIncome({
       ...income,
-      title: `${income.title} (CÃ³pia)`,
-      receiveDate: new Date().toISOString() as unknown as Date, // Define para hoje por conveniÃªncia
+      title: `${income.title} (Cópia)`,
+      receiveDate: new Date().toISOString() as unknown as Date, // Define para hoje por conveniência
       isReceived: false,
     });
     setIsFormOpen(true);
@@ -247,14 +247,14 @@ export default function Incomes() {
       
       <div className="flex justify-end">
         <Button variant="outline" className="gap-2" onClick={() => setIsFiltersOpen(!isFiltersOpen)}>
-          <Filter className="w-4 h-4" /> {isFiltersOpen ? 'Ocultar Filtros' : 'Filtros e OpÃ§Ãµes'}
+          <Filter className="w-4 h-4" /> {isFiltersOpen ? 'Ocultar Filtros' : 'Filtros e Opções'}
         </Button>
       </div>
 
       {isFiltersOpen && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium">Filtros AvanÃ§ados</CardTitle>
+            <CardTitle className="text-base font-medium">Filtros Avançados</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -262,7 +262,7 @@ export default function Incomes() {
                 <Label>Buscar</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="DescriÃ§Ã£o..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+                  <Input placeholder="Descrição..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -332,10 +332,10 @@ export default function Incomes() {
               <TableRow>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Data</TableHead>
-                <TableHead>DescriÃ§Ã£o</TableHead>
+                <TableHead>Descrição</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">AÃ§Ãµes</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -360,7 +360,7 @@ export default function Incomes() {
                                 <TooltipTrigger>
                                   <EyeOff className="w-4 h-4 text-muted-foreground" />
                                 </TooltipTrigger>
-                                <TooltipContent>NÃ£o contabilizado no saldo</TooltipContent>
+                                <TooltipContent>Não contabilizado no saldo</TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           )}
@@ -416,7 +416,7 @@ export default function Incomes() {
             <AlertDialogTitle>Excluir Receita</AlertDialogTitle>
             <AlertDialogDescription>
               {incomeToDelete?.recurrenceId 
-                ? "Esta receita Ã© recorrente. Como vocÃª gostaria de excluÃ­-la?"
+                ? "Esta receita é recorrente. Como você gostaria de excluí-la?"
                 : "Tem certeza que deseja excluir esta receita?"
               }
             </AlertDialogDescription>
@@ -435,7 +435,7 @@ export default function Incomes() {
                 onClick={() => setSelectedDeleteScope('future')}
               >
                   <div className="p-2 bg-muted rounded-md"><CalendarClock className="w-4 h-4" /></div>
-                  <div className="text-left"><p className="font-medium">Esta e futuras</p><p className="text-xs text-muted-foreground">Exclui este e todos os prÃ³ximos</p></div>
+                  <div className="text-left"><p className="font-medium">Esta e futuras</p><p className="text-xs text-muted-foreground">Exclui este e todos os próximos</p></div>
               </div>
               <div 
                 className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", selectedDeleteScope === 'past' ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent")}
@@ -449,7 +449,7 @@ export default function Incomes() {
                 onClick={() => setSelectedDeleteScope('all')}
               >
                   <div className="p-2 bg-muted rounded-md"><CalendarDays className="w-4 h-4" /></div>
-                  <div className="text-left"><p className="font-medium">Todas</p><p className="text-xs text-muted-foreground">Exclui toda a sÃ©rie histÃ³rica</p></div>
+                  <div className="text-left"><p className="font-medium">Todas</p><p className="text-xs text-muted-foreground">Exclui toda a série histórica</p></div>
               </div>
             </div>
           )}
@@ -464,4 +464,5 @@ export default function Incomes() {
     </div>
   );
 }
+
 
