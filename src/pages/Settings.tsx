@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFinance } from '@/contexts/FinanceContext';
-import { supabase, recreateSupabaseClient } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -138,37 +138,43 @@ export default function Settings() {
     setIsSimulatingSubscription(true);
 
     try {
-      const nextStatus = subscriptionStatus === 'active' || subscriptionStatus === 'trial' ? 'canceled' : 'active';
-      const nextPlan = nextStatus === 'active' ? 'total' : 'free';
-      const nextEndDate = nextStatus === 'active' ? null : new Date().toISOString();
-
-      let { error } = await supabase
-        .from('profiles')
-        .update({
-          subscription_status: nextStatus,
-          subscription_plan: nextPlan,
-          subscription_end_date: nextEndDate,
-        } as any)
-        .eq('user_id', user.id);
-
-      if (error && (error.code === '42703' || error.code === 'PGRST204')) {
-        recreateSupabaseClient();
-        const retry = await supabase
-          .from('profiles')
-          .update({
-            subscription_status: nextStatus,
-            subscription_plan: nextPlan,
-            subscription_end_date: nextEndDate,
-          } as any)
-          .eq('user_id', user.id);
-
-        error = retry.error;
+      // Get a plan to simulate with
+      const isActive = subscriptionStatus === 'active' || subscriptionStatus === 'trial';
+      
+      if (isActive) {
+        // Cancel: update existing subscription
+        const { error } = await supabase
+          .from('user_subscriptions')
+          .update({ status: 'canceled', expires_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .in('status', ['active', 'trial']);
+        if (error) throw error;
+      } else {
+        // Activate: get premium plan and upsert subscription
+        const { data: plan } = await supabase
+          .from('subscription_plans')
+          .select('id')
+          .eq('plan_type', 'premium')
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (plan) {
+          const { error } = await supabase
+            .from('user_subscriptions')
+            .upsert({
+              user_id: user.id,
+              plan_id: plan.id,
+              status: 'active',
+              billing_cycle: 'monthly',
+              starts_at: new Date().toISOString(),
+              expires_at: null,
+            }, { onConflict: 'user_id' });
+          if (error) throw error;
+        }
       }
 
-      if (error) throw error;
-
       await refreshProfile();
-      toast.success(`Assinatura simulada: ${nextStatus}`);
+      toast.success(`Assinatura simulada: ${isActive ? 'canceled' : 'active'}`);
     } catch (error: any) {
       toast.error(error.message || 'Erro ao simular assinatura');
     } finally {

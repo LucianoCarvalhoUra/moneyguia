@@ -88,25 +88,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('subscription_plan, subscription_status, subscription_end_date')
+        .from('user_subscriptions')
+        .select('status, expires_at, billing_cycle, plan_id, subscription_plans(plan_type)')
         .eq('user_id', userId)
+        .in('status', ['active', 'trial'])
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) {
         throw error;
       }
 
-      const defaults = getDefaultProfileState();
-      const plan = ((data as any)?.subscription_plan || defaults.subscription_plan) as SubscriptionPlan;
-      const status = ((data as any)?.subscription_status || defaults.subscription_status) as SubscriptionStatus;
-      const expiry =
-        (data as any)?.subscription_end_date ||
-        defaults.subscription_end_date;
-
-      setSubscriptionPlan(plan);
-      setSubscriptionStatus(status);
-      setSubscriptionEndDate(expiry);
+      if (data) {
+        const planType = (data as any).subscription_plans?.plan_type || 'free';
+        const planMap: Record<string, SubscriptionPlan> = { free: 'free', pro: 'premium', premium: 'total' };
+        setSubscriptionPlan(planMap[planType] || 'free');
+        setSubscriptionStatus(data.status as SubscriptionStatus);
+        setSubscriptionEndDate(data.expires_at);
+      } else {
+        const defaults = getDefaultProfileState();
+        setSubscriptionPlan(defaults.subscription_plan);
+        setSubscriptionStatus(defaults.subscription_status);
+        setSubscriptionEndDate(defaults.subscription_end_date);
+      }
     } catch (error) {
       console.error('Erro ao carregar perfil, aplicando perfil padrao:', error);
       const defaults = getDefaultProfileState();
@@ -135,9 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user_id: authUser.id,
         name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
         email: authUser.email,
-        subscription_plan: 'free',
-        subscription_status: 'active',
-      } as any);
+      });
     }
   }, []);
 
