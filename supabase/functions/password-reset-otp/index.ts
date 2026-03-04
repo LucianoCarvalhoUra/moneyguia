@@ -111,7 +111,7 @@ Deno.serve(async (req: Request) => {
             Authorization: `Bearer ${resendApiKey}`,
           },
           body: JSON.stringify({
-            from: "KeepMoney Control <noreply@resend.dev>",
+            from: "KeepMoney Control <onboarding@resend.dev>",
             to: [email],
             subject: "Codigo de recuperacao de senha",
             // Requirement: only the numeric code in e-mail body.
@@ -120,9 +120,11 @@ Deno.serve(async (req: Request) => {
           }),
         });
 
+        const resendBody = await resendResponse.text();
         if (!resendResponse.ok) {
-          const errorText = await resendResponse.text();
-          console.error("Resend error:", errorText);
+          console.error("Resend error:", resendResponse.status, resendBody);
+        } else {
+          console.log("Resend email sent successfully:", resendBody);
         }
       } else {
         // Fallback for environments without email provider configured.
