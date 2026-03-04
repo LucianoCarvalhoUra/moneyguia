@@ -344,23 +344,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const sendPasswordRecoveryCode = async (email: string): Promise<{ success: boolean; error?: string }> => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false,
-      },
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
     });
 
     if (error) {
       return { success: false, error: getAuthErrorMessage(error) };
     }
-
-    // Supabase dashboard config required:
-    // Authentication > Email Templates > Magic Link:
-    // "Seu codigo de acesso e: {{ .TokenHash }}" (or "{{ .Token }}")
-    console.info(
-      'Configure Supabase Email Template (Magic Link) para enviar OTP: "Seu codigo de acesso e: {{ .TokenHash }}" ou "{{ .Token }}".',
-    );
 
     return { success: true };
   };

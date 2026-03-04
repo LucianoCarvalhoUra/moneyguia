@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Lock, Check, X } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PasswordStrength {
@@ -56,31 +56,67 @@ export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const [isValidatingSession, setIsValidatingSession] = useState(true);
+  const [hasRecoverySession, setHasRecoverySession] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
 
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
 
-  const passwordRequirements = [
-    { key: 'minLength', label: 'Minimo 8 caracteres' },
-    { key: 'hasUppercase', label: 'Letra maiuscula' },
-    { key: 'hasLowercase', label: 'Letra minuscula' },
-    { key: 'hasNumber', label: 'Numero' },
-    { key: 'hasSpecial', label: 'Caractere especial (!@#$%...)' },
-  ] as const;
-
   useEffect(() => {
-    const verified = sessionStorage.getItem('password_reset_verified') === 'true';
+    const bootstrapRecoverySession = async () => {
+      setIsValidatingSession(true);
 
-    supabase.auth.getSession().then(({ data }) => {
-      const hasSession = !!data.session;
-      if (!verified && !hasSession) {
-        toast.error('Sessao de recuperacao invalida. Solicite um novo codigo.');
+      try {
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const queryParams = new URLSearchParams(window.location.search);
+
+        const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+        const code = queryParams.get('code');
+        const flowType = hashParams.get('type') || queryParams.get('type');
+
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) throw error;
+        } else if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        }
+
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        const cameFromRecoveryLink =
+          flowType === 'recovery'
+          || !!accessToken
+          || !!refreshToken
+          || !!code
+          || sessionStorage.getItem('password_reset_flow') === 'true';
+
+        if (!data.session || !cameFromRecoveryLink) {
+          toast.error('Sessao de recuperacao invalida. Solicite um novo link.');
+          navigate('/auth', { replace: true });
+          return;
+        }
+
+        sessionStorage.setItem('password_reset_flow', 'true');
+        setHasRecoverySession(true);
+        window.history.replaceState({}, document.title, '/reset-password');
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : 'Nao foi possivel validar o link de recuperacao.';
+        toast.error(message);
         navigate('/auth', { replace: true });
-        return;
+      } finally {
+        setIsValidatingSession(false);
       }
-      setIsReady(true);
-    });
+    };
+
+    bootstrapRecoverySession();
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,22 +134,31 @@ export default function ResetPassword() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      sessionStorage.removeItem('password_reset_verified');
-      toast.success('Senha atualizada com sucesso!');
-      navigate('/dashboard', { replace: true });
-    } catch (error: any) {
-      toast.error(error?.message || 'Erro ao atualizar senha');
+
+      await supabase.auth.signOut();
+      sessionStorage.removeItem('password_reset_flow');
+
+      setSuccessMessage('Senha atualizada! Redirecionando para o login...');
+      toast.success('Senha atualizada!');
+      setTimeout(() => navigate('/auth', { replace: true }), 3000);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao atualizar senha';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!isReady) {
+  if (isValidatingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8 bg-background">
-        <p className="text-sm text-slate-500">Validando sessao de recuperacao...</p>
+        <p className="text-sm text-slate-500">Validando link de recuperacao...</p>
       </div>
     );
+  }
+
+  if (!hasRecoverySession) {
+    return null;
   }
 
   return (
@@ -140,51 +185,8 @@ export default function ResetPassword() {
                 />
               </div>
 
-              {password.length > 0 && (
-                <div className="space-y-3 pt-1">
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Forca da senha</span>
-                      <span
-                        className={cn(
-                          'font-medium',
-                          passwordStrength.score >= 4
-                            ? 'text-green-500'
-                            : passwordStrength.score >= 3
-                              ? 'text-yellow-500'
-                              : 'text-destructive',
-                        )}
-                      >
-                        {passwordStrength.label}
-                      </span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={cn('h-full transition-all duration-300', passwordStrength.color)}
-                        style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    {passwordRequirements.map((req) => {
-                      const isMet = passwordStrength.checks[req.key];
-                      return (
-                        <div
-                          key={req.key}
-                          className={cn('flex items-center gap-1.5 transition-colors', isMet ? 'text-green-500' : 'text-muted-foreground')}
-                        >
-                          {isMet ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                          <span>{req.label}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirme a Nova Senha</Label>
+                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -194,13 +196,43 @@ export default function ResetPassword() {
                 />
               </div>
 
+              {password.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Forca da senha</span>
+                    <span
+                      className={cn(
+                        'font-medium',
+                        passwordStrength.score >= 4
+                          ? 'text-green-500'
+                          : passwordStrength.score >= 3
+                            ? 'text-yellow-500'
+                            : 'text-destructive',
+                      )}
+                    >
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn('h-full transition-all duration-300', passwordStrength.color)}
+                      style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {successMessage && (
+                <p className="text-sm rounded-md bg-green-50 text-green-700 px-3 py-2">{successMessage}</p>
+              )}
+
               <Button
                 type="submit"
                 size="lg"
                 className="w-full bg-primary text-primary-foreground shadow hover:bg-primary/90"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !!successMessage}
               >
-                {isSubmitting ? 'Salvando...' : 'Salvar Nova Senha'}
+                {isSubmitting ? 'Salvando...' : 'Salvar nova senha'}
               </Button>
             </form>
           </CardContent>
