@@ -29,7 +29,6 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     if (!supabaseUrl || !serviceRoleKey) {
       return new Response(
@@ -103,32 +102,29 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      if (resendApiKey) {
-        const resendResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: "KeepMoney Control <onboarding@resend.dev>",
-            to: [email],
-            subject: "Codigo de recuperacao de senha",
-            // Requirement: only the numeric code in e-mail body.
-            text: code,
-            html: `<p style="font-size:24px;font-weight:700;letter-spacing:4px">${code}</p>`,
-          }),
-        });
+      const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-email-smtp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({
+          to: email,
+          subject: "Codigo de recuperacao de senha",
+          // Requirement: only numeric code in message.
+          text: code,
+          html: `<p style="font-size:24px;font-weight:700;letter-spacing:4px">${code}</p>`,
+        }),
+      });
 
-        const resendBody = await resendResponse.text();
-        if (!resendResponse.ok) {
-          console.error("Resend error:", resendResponse.status, resendBody);
-        } else {
-          console.log("Resend email sent successfully:", resendBody);
-        }
-      } else {
-        // Fallback for environments without email provider configured.
-        console.log(`[password-reset-otp] Simulated e-mail to ${email} with code ${code}`);
+      if (!emailResponse.ok) {
+        const emailError = await emailResponse.text();
+        console.error("Failed to send OTP email:", emailResponse.status, emailError);
+        await admin.from("password_reset_codes").delete().eq("email", email).eq("code", code);
+        return new Response(
+          JSON.stringify({ success: false, error: "Falha ao enviar e-mail do codigo." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
 
       return new Response(
