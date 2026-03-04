@@ -1,1 +1,4 @@
 project_id = "uuirvevhvjvnubihnstz"
+
+[functions.password-reset-otp]
+verify_jwt = false
