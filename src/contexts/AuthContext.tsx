@@ -348,13 +348,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/`,
       },
     });
 
     if (error) {
       return { success: false, error: getAuthErrorMessage(error) };
     }
+
+    // Supabase dashboard config required:
+    // Authentication > Email Templates > Magic Link:
+    // "Seu codigo de acesso e: {{ .TokenHash }}" (or "{{ .Token }}")
+    console.info(
+      'Configure Supabase Email Template (Magic Link) para enviar OTP: "Seu codigo de acesso e: {{ .TokenHash }}" ou "{{ .Token }}".',
+    );
 
     return { success: true };
   };
@@ -364,18 +370,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     token: string,
   ): Promise<{ success: boolean; error?: string }> => {
     const normalizedToken = token.replace(/\D/g, '');
-    const { error } = await supabase.auth.verifyOtp({
+    const recoveryAttempt = await supabase.auth.verifyOtp({
       email,
       token: normalizedToken,
-      type: 'email',
+      type: 'recovery',
     });
 
-    if (error) {
-      const message = error.message.toLowerCase();
+    if (!recoveryAttempt.error) {
+      return { success: true };
+    }
+
+    const magicLinkAttempt = await supabase.auth.verifyOtp({
+      email,
+      token: normalizedToken,
+      type: 'magiclink',
+    });
+
+    if (magicLinkAttempt.error) {
+      const message = magicLinkAttempt.error.message.toLowerCase();
       if (message.includes('expired') || message.includes('invalid')) {
         return { success: false, error: 'Codigo invalido ou expirado.' };
       }
-      return { success: false, error: getAuthErrorMessage(error) };
+      return { success: false, error: getAuthErrorMessage(magicLinkAttempt.error) };
     }
 
     return { success: true };

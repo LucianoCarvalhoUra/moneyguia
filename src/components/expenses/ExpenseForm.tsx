@@ -317,7 +317,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         }
       }
 
-      const user = (await supabase.auth.getUser()).data.user;
+      const authUser = (await supabase.auth.getUser()).data.user;
       const finalExpenseDate = isPaid ? paymentDate : launchDate;
 
       const payload = {
@@ -333,7 +333,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         is_paid: isPaid,
         is_recurring: isRecurring,
         installments: isRecurring ? parseInt(installments) : null,
-        user_id: user?.id,
+        user_id: authUser?.id,
         exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false
       };
 
