@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Wallet, TrendingUp, PieChart, Shield, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { OtpCodeInput } from '@/components/auth/OtpCodeInput';
 
 interface PasswordStrength {
   score: number;
@@ -56,15 +57,30 @@ function getPasswordStrength(password: string): PasswordStrength {
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [isRecovery, setIsRecovery] = useState(false);
+  const [recoveryStep, setRecoveryStep] = useState<'request' | 'verify' | 'reset'>('request');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [verifiedEmail, setVerifiedEmail] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [recoveryPassword, setRecoveryPassword] = useState('');
+  const [recoveryConfirmPassword, setRecoveryConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, register, sendPasswordRecoveryCode } = useAuth();
+  const {
+    login,
+    register,
+    sendPasswordRecoveryCode,
+    verifyPasswordRecoveryCode,
+    resetPasswordWithRecoveryCode,
+  } = useAuth();
   const navigate = useNavigate();
 
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
+  const recoveryPasswordStrength = useMemo(
+    () => getPasswordStrength(recoveryPassword),
+    [recoveryPassword],
+  );
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -73,23 +89,95 @@ export default function Auth() {
     }
   }, [cooldown]);
 
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('password_reset_verified_email');
+    const savedCode = localStorage.getItem('password_reset_verified_code');
+    if (savedEmail && savedCode) {
+      setIsRecovery(true);
+      setRecoveryStep('reset');
+      setEmail(savedEmail);
+      setVerifiedEmail(savedEmail);
+      setOtpDigits(savedCode.split(''));
+    }
+  }, []);
+
+  const resetRecoveryState = () => {
+    setRecoveryStep('request');
+    setOtpDigits(['', '', '', '', '', '']);
+    setRecoveryPassword('');
+    setRecoveryConfirmPassword('');
+    setVerifiedEmail('');
+    localStorage.removeItem('password_reset_verified_email');
+    localStorage.removeItem('password_reset_verified_code');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
       if (isRecovery) {
-        if (cooldown > 0) {
-          setIsSubmitting(false);
-          return;
-        }
+        if (recoveryStep === 'request') {
+          if (cooldown > 0) {
+            setIsSubmitting(false);
+            return;
+          }
 
-        const result = await sendPasswordRecoveryCode(email);
-        if (result.success) {
-          toast.success('Link de recuperação enviado! Verifique seu e-mail.');
-          setCooldown(60);
+          const result = await sendPasswordRecoveryCode(email);
+          if (result.success) {
+            toast.success('Codigo enviado por e-mail. Verifique sua caixa de entrada.');
+            setCooldown(60);
+            setRecoveryStep('verify');
+            setOtpDigits(['', '', '', '', '', '']);
+          } else {
+            toast.error(result.error || 'Erro ao enviar codigo');
+          }
+        } else if (recoveryStep === 'verify') {
+          const token = otpDigits.join('');
+          if (token.length !== 6) {
+            toast.error('Digite os 6 digitos do codigo.');
+            setIsSubmitting(false);
+            return;
+          }
+
+          const result = await verifyPasswordRecoveryCode(email, token);
+          if (result.success) {
+            setVerifiedEmail(email);
+            localStorage.setItem('password_reset_verified_email', email);
+            localStorage.setItem('password_reset_verified_code', token);
+            setRecoveryStep('reset');
+            toast.success('Codigo validado. Defina sua nova senha.');
+          } else {
+            toast.error(result.error || 'Codigo invalido ou expirado.');
+          }
         } else {
-          toast.error(result.error || 'Erro ao enviar link de recuperação');
+          if (recoveryPassword !== recoveryConfirmPassword) {
+            toast.error('As senhas nao coincidem');
+            setIsSubmitting(false);
+            return;
+          }
+          if (recoveryPasswordStrength.score < 3) {
+            toast.error('A senha esta fraca. Atenda pelo menos 3 requisitos.');
+            setIsSubmitting(false);
+            return;
+          }
+
+          const result = await resetPasswordWithRecoveryCode(
+            verifiedEmail || email,
+            otpDigits.join(''),
+            recoveryPassword,
+          );
+          if (!result.success) {
+            toast.error(result.error || 'Erro ao redefinir senha');
+            setIsSubmitting(false);
+            return;
+          }
+
+          resetRecoveryState();
+          setIsRecovery(false);
+          setIsLogin(true);
+          toast.success('Senha atualizada com sucesso!');
+          navigate('/login', { replace: true });
         }
       } else if (isLogin) {
         const result = await login(email, password);
@@ -199,7 +287,11 @@ export default function Auth() {
               </CardTitle>
               <CardDescription>
                 {isRecovery
-                  ? 'Digite seu e-mail para receber o link de recuperação'
+                  ? recoveryStep === 'request'
+                    ? 'Digite seu e-mail para receber um codigo de 6 digitos'
+                    : recoveryStep === 'verify'
+                      ? 'Digite o codigo enviado para seu e-mail'
+                      : 'Defina sua nova senha'
                   : isLogin
                     ? 'Entre para acessar seu controle financeiro'
                     : 'Comece a controlar suas financas hoje'}
@@ -230,8 +322,73 @@ export default function Auth() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isRecovery && recoveryStep !== 'request'}
                   />
                 </div>
+
+                {isRecovery && recoveryStep === 'verify' && (
+                  <div className="space-y-2">
+                    <Label>Codigo de 6 digitos</Label>
+                    <OtpCodeInput value={otpDigits} onChange={setOtpDigits} disabled={isSubmitting} />
+                  </div>
+                )}
+
+                {isRecovery && recoveryStep === 'reset' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="recovery-password">Nova senha</Label>
+                      <Input
+                        id="recovery-password"
+                        type="password"
+                        value={recoveryPassword}
+                        onChange={(e) => setRecoveryPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="recovery-confirm-password">Confirmar senha</Label>
+                      <Input
+                        id="recovery-confirm-password"
+                        type="password"
+                        value={recoveryConfirmPassword}
+                        onChange={(e) => setRecoveryConfirmPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    {recoveryPassword.length > 0 && (
+                      <div className="space-y-3 pt-2">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Forca da senha</span>
+                            <span
+                              className={cn(
+                                'font-medium',
+                                recoveryPasswordStrength.score >= 4
+                                  ? 'text-green-500'
+                                  : recoveryPasswordStrength.score >= 3
+                                    ? 'text-yellow-500'
+                                    : 'text-destructive',
+                              )}
+                            >
+                              {recoveryPasswordStrength.label}
+                            </span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={cn(
+                                'h-full transition-all duration-300',
+                                recoveryPasswordStrength.color,
+                              )}
+                              style={{ width: `${(recoveryPasswordStrength.score / 5) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
 
                 {!isRecovery && (
                   <div className="space-y-2">
@@ -309,18 +466,38 @@ export default function Auth() {
                   type="submit"
                   size="lg"
                   className="w-full bg-primary text-primary-foreground shadow hover:bg-primary/90"
-                  disabled={isSubmitting || (isRecovery && cooldown > 0)}
+                  disabled={
+                    isSubmitting
+                    || (isRecovery && recoveryStep === 'request' && cooldown > 0)
+                    || (isRecovery && recoveryStep === 'verify' && otpDigits.join('').length !== 6)
+                  }
                 >
                   {isSubmitting
                     ? 'Aguarde...'
                     : isRecovery
-                      ? cooldown > 0
-                        ? `Aguarde ${cooldown}s`
-                        : 'Enviar link de recuperacao'
+                      ? recoveryStep === 'request'
+                        ? cooldown > 0
+                          ? `Aguarde ${cooldown}s`
+                          : 'Enviar codigo'
+                        : recoveryStep === 'verify'
+                          ? 'Validar codigo'
+                          : 'Salvar nova senha'
                       : isLogin
                         ? 'Entrar'
                         : 'Criar conta'}
                 </Button>
+
+                {isRecovery && (recoveryStep === 'verify' || recoveryStep === 'reset') && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full text-xs"
+                    onClick={resetRecoveryState}
+                    disabled={isSubmitting}
+                  >
+                    Alterar e-mail / reenviar codigo
+                  </Button>
+                )}
               </form>
 
               <div className="mt-6 text-center">
@@ -330,6 +507,7 @@ export default function Auth() {
                     if (isRecovery) {
                       setIsRecovery(false);
                       setIsLogin(true);
+                      resetRecoveryState();
                     } else {
                       setIsLogin(!isLogin);
                     }

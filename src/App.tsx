@@ -85,6 +85,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+    <Route path="/login" element={<AuthRoute><Auth /></AuthRoute>} />
     <Route path="/" element={<LandingPage />} />
     <Route path="/planos" element={<Planos />} />
     <Route path="/welcome" element={<LandingPage />} />

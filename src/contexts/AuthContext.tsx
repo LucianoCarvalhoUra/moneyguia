@@ -51,6 +51,11 @@ interface AuthContextType {
   logout: () => Promise<void>;
   sendPasswordRecoveryCode: (email: string) => Promise<{ success: boolean; error?: string }>;
   verifyPasswordRecoveryCode: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
+  resetPasswordWithRecoveryCode: (
+    email: string,
+    token: string,
+    newPassword: string,
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -344,8 +349,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const sendPasswordRecoveryCode = async (email: string): Promise<{ success: boolean; error?: string }> => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    const { error } = await supabase.functions.invoke('password-reset-otp', {
+      body: {
+        action: 'request_code',
+        email,
+      },
     });
 
     if (error) {
@@ -360,28 +368,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     token: string,
   ): Promise<{ success: boolean; error?: string }> => {
     const normalizedToken = token.replace(/\D/g, '');
-    const recoveryAttempt = await supabase.auth.verifyOtp({
-      email,
-      token: normalizedToken,
-      type: 'recovery',
+    const { data, error } = await supabase.functions.invoke('password-reset-otp', {
+      body: {
+        action: 'verify_code',
+        email,
+        code: normalizedToken,
+      },
     });
 
-    if (!recoveryAttempt.error) {
+    if (error) {
+      return { success: false, error: getAuthErrorMessage(error) };
+    }
+
+    if (data?.valid) {
       return { success: true };
     }
 
-    const magicLinkAttempt = await supabase.auth.verifyOtp({
-      email,
-      token: normalizedToken,
-      type: 'magiclink',
+    return { success: false, error: 'Codigo invalido ou expirado.' };
+  };
+
+  const resetPasswordWithRecoveryCode = async (
+    email: string,
+    token: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    const normalizedToken = token.replace(/\D/g, '');
+    const { data, error } = await supabase.functions.invoke('password-reset-otp', {
+      body: {
+        action: 'update_password',
+        email,
+        code: normalizedToken,
+        newPassword,
+      },
     });
 
-    if (magicLinkAttempt.error) {
-      const message = magicLinkAttempt.error.message.toLowerCase();
-      if (message.includes('expired') || message.includes('invalid')) {
-        return { success: false, error: 'Codigo invalido ou expirado.' };
-      }
-      return { success: false, error: getAuthErrorMessage(magicLinkAttempt.error) };
+    if (error) {
+      return { success: false, error: getAuthErrorMessage(error) };
+    }
+
+    if (!data?.success) {
+      return { success: false, error: data?.error || 'Nao foi possivel redefinir a senha.' };
     }
 
     return { success: true };
@@ -405,6 +431,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       sendPasswordRecoveryCode,
       verifyPasswordRecoveryCode,
+      resetPasswordWithRecoveryCode,
     }),
     [
       user,
@@ -418,6 +445,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshProfile,
       sendPasswordRecoveryCode,
       verifyPasswordRecoveryCode,
+      resetPasswordWithRecoveryCode,
     ],
   );
 
