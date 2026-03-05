@@ -66,6 +66,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [newCategoryName, setNewCategoryName] = useState('');
   const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
+  const [observation, setObservation] = useState('');
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -116,6 +117,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setInstallments(dataToLoad.installments?.toString() || '1');
         setLaunchDate(dataToLoad.expenseDate ? formatToInput(dataToLoad.expenseDate) : today);
         setExcludeFromCalculations((dataToLoad as any).excludeFromCalculations || false);
+        setObservation((dataToLoad as any).observation || '');
       } else {
         // Reset
         setDescription('');
@@ -132,6 +134,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setInstallments('1');
         setLaunchDate(today);
         setExcludeFromCalculations(false);
+        setObservation('');
       }
     }
   }, [open, expense, initialData]);
@@ -334,7 +337,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         is_recurring: isRecurring,
         installments: isRecurring ? parseInt(installments) : null,
         user_id: authUser?.id,
-        exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false
+        exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
+        observation: observation || null,
       };
 
       if (expense) {
@@ -518,6 +522,17 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} disabled={!isPaid} className="h-9 rounded-lg" />
               </>
             )}
+          </div>
+
+          <div className="col-span-2 space-y-1">
+            <Label>Observação</Label>
+            <textarea
+              value={observation}
+              onChange={e => setObservation(e.target.value)}
+              className="flex min-h-[60px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              placeholder="Anotações opcionais..."
+              rows={2}
+            />
           </div>
 
           {/* Controle Visual */}
