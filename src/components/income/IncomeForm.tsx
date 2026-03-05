@@ -60,6 +60,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [newCategoryName, setNewCategoryName] = useState('');
   const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
+  const [observation, setObservation] = useState('');
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -104,6 +105,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setIsReceived(dataToLoad.isReceived || false);
         setIsRecurring(dataToLoad.isRecurring || false);
         setExcludeFromCalculations((dataToLoad as any).excludeFromCalculations || (dataToLoad as any).exclude_from_calculations || false);
+        setObservation((dataToLoad as any).description || '');
       } else {
         // Reset
         setDescription('');
@@ -114,6 +116,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setIsReceived(false);
         setIsRecurring(false);
         setExcludeFromCalculations(false);
+        setObservation('');
       }
     }
   }, [open, income, initialData]);
@@ -300,6 +303,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         is_received: isReceived,
         is_recurring: isRecurring,
         exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
+        description: observation || null,
       };
 
       if (income) {
@@ -440,6 +444,17 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                 Você possui {recurrenceUsage} de 2 recorrências utilizadas.
               </p>
             )}
+          </div>
+
+          <div className="col-span-2 space-y-1">
+            <Label>Observação</Label>
+            <textarea
+              value={observation}
+              onChange={e => setObservation(e.target.value)}
+              className="flex min-h-[60px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              placeholder="Anotações opcionais..."
+              rows={2}
+            />
           </div>
 
           {/* Controle Visual */}
