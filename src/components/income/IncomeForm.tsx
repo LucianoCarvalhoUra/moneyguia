@@ -403,7 +403,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
+          <div className="col-span-2 space-y-1">
             <Label>Subcategoria</Label>
             <Select value={subcategoryId} onValueChange={handleSubcategorySelectChange} disabled={!categoryId}>
               <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="Opcional" /></SelectTrigger>
