@@ -356,219 +356,194 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md gap-0 overflow-hidden rounded-lg border border-slate-200 bg-white p-0 shadow-sm">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b border-slate-200 bg-slate-50 px-6 py-4">
-          <DialogTitle className="text-lg font-semibold">
-            {income ? 'Editar Receita' : 'Nova Receita'}
-          </DialogTitle>
-          <DialogDescription className="sr-only">Preencha os detalhes da transação abaixo.</DialogDescription>
+      <DialogContent className="sm:max-w-2xl gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
+        {/* Header */}
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-6 py-4 bg-gradient-to-r from-primary/5 to-transparent">
+          <div>
+            <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
+              {income ? 'Editar Receita' : 'Nova Receita'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">Preencha os detalhes da transação</DialogDescription>
+          </div>
           {income && (
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="sm"
-              className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-lg" 
-              onClick={handleDelete}
-            >
-              <Trash2 className="w-4 h-4 mr-2" /> Excluir
+            <Button type="button" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-lg" onClick={handleDelete}>
+              <Trash2 className="w-4 h-4 mr-1" /> Excluir
             </Button>
           )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-x-4 gap-y-4 p-6">
-          
-          <div className="col-span-2 space-y-1">
-            <Label>Descrição</Label>
-            <Input 
-              value={description} 
-              onChange={e => setDescription(e.target.value)} 
-              className="h-9 rounded-lg" 
-              placeholder="Ex: Salário Mensal"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label>Categoria</Label>
-            <Select value={categoryId} onValueChange={handleCategorySelectChange}>
-              <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                {incomeCategories.map(c => (
-                  <SelectItem key={c.id} value={c.id}>
-                    <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-${c.color}`} /> {c.name}</div>
-                  </SelectItem>
-                ))}
-                <SelectItem value={ADD_CATEGORY_OPTION} className="border-t border-slate-200 mt-1 pt-2 font-medium text-emerald-700">
-                  + Adicionar nova categoria
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="col-span-2 space-y-1">
-            <Label>Subcategoria</Label>
-            <Select value={subcategoryId} onValueChange={handleSubcategorySelectChange} disabled={!categoryId}>
-              <SelectTrigger className="h-9 rounded-lg"><SelectValue placeholder="Opcional" /></SelectTrigger>
-              <SelectContent>
-                {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                <SelectItem value={ADD_SUBCATEGORY_OPTION} className="border-t border-slate-200 mt-1 pt-2 font-medium text-emerald-700">
-                  + Adicionar nova subcategoria
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <Label>Data de Recebimento</Label>
-            <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} className="h-9 rounded-lg" />
-          </div>
-          <div className="space-y-1">
-            <Label>Valor</Label>
-            <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className="h-9 rounded-lg text-right font-medium" placeholder="R$ 0,00" />
-          </div>
-
-          <div className="space-y-1">
-            <Label>Recebido</Label>
-            <div className="flex items-center gap-2 border rounded-lg px-2 h-9 bg-muted/10">
-              <Switch checked={isReceived} onCheckedChange={setIsReceived} />
-              <span className={cn("text-sm font-medium", isReceived ? "text-green-600" : "text-muted-foreground")}>{isReceived ? 'RECEBIDO' : 'PENDENTE'}</span>
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Row 1: Descrição + Valor */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Descrição</Label>
+              <Input value={description} onChange={e => setDescription(e.target.value)} className="h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors" placeholder="Ex: Salário Mensal" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valor</Label>
+              <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className="h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card text-right font-semibold transition-colors" placeholder="R$ 0,00" />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label>Recorrência</Label>
-            <div className="flex items-center gap-2 border rounded-lg px-2 h-9 bg-muted/10">
-              <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
-              <span className="text-sm text-muted-foreground flex-1">Repetir?</span>
+          {/* Row 2: Categoria + Subcategoria + Data */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categoria</Label>
+              <Select value={categoryId} onValueChange={handleCategorySelectChange}>
+                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {incomeCategories.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-${c.color}`} /> {c.name}</div>
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={ADD_CATEGORY_OPTION} className="border-t mt-1 pt-2 font-medium text-primary">+ Nova categoria</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            {!income && recurrencePlanLimit.limit === 2 && (
-              <p className="pt-1 text-xs text-muted-foreground">
-                Você possui {recurrenceUsage} de 2 recorrências utilizadas.
-              </p>
-            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
+              <Select value={subcategoryId} onValueChange={handleSubcategorySelectChange} disabled={!categoryId}>
+                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
+                <SelectContent>
+                  {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  <SelectItem value={ADD_SUBCATEGORY_OPTION} className="border-t mt-1 pt-2 font-medium text-primary">+ Nova subcategoria</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data de Recebimento</Label>
+              <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} className="h-10 rounded-xl border-border/60 bg-muted/30" />
+            </div>
           </div>
 
-          <div className="col-span-2 space-y-1">
-            <Label>Observação</Label>
-            <textarea
-              value={observation}
-              onChange={e => setObservation(e.target.value)}
-              className="flex min-h-[60px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              placeholder="Anotações opcionais..."
-              rows={2}
-            />
+          {/* Row 3: Status + Recorrência + Observação */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
+              <button type="button" onClick={() => setIsReceived(!isReceived)} className={cn(
+                "flex items-center justify-center gap-2 w-full h-10 rounded-xl border text-sm font-semibold transition-all",
+                isReceived ? "bg-primary/10 border-primary/30 text-primary" : "bg-muted/30 border-border/60 text-muted-foreground"
+              )}>
+                <span className={cn("w-2 h-2 rounded-full", isReceived ? "bg-primary" : "bg-muted-foreground/40")} />
+                {isReceived ? 'Recebido' : 'Pendente'}
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recorrência</Label>
+              <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={cn(
+                "flex items-center justify-center gap-2 w-full h-10 rounded-xl border text-sm font-semibold transition-all",
+                isRecurring ? "bg-primary/10 border-primary/30 text-primary" : "bg-muted/30 border-border/60 text-muted-foreground"
+              )}>
+                <span className={cn("w-2 h-2 rounded-full", isRecurring ? "bg-primary" : "bg-muted-foreground/40")} />
+                {isRecurring ? 'Sim' : 'Não'}
+              </button>
+              {!income && recurrencePlanLimit.limit === 2 && (
+                <p className="text-[10px] text-muted-foreground">{recurrenceUsage}/2 recorrências</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observação</Label>
+              <textarea
+                value={observation}
+                onChange={e => setObservation(e.target.value)}
+                className="flex w-full rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors focus:bg-card resize-none"
+                placeholder="Anotações opcionais..."
+                rows={2}
+              />
+            </div>
           </div>
 
-          {/* Controle Visual */}
-          <div className={cn("col-span-2 flex items-center space-x-2 pt-2", !canUseExtraControl && "opacity-50")}>
-            <Switch id="income-visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl} />
-            <Label htmlFor="income-visual-control" className="text-sm font-normal text-muted-foreground cursor-pointer flex items-center gap-1">
-              {!canUseExtraControl && <Lock className="w-3 h-3" />}
-              Apenas controle visual (Não contabilizar nos totais)
-            </Label>
+          {/* Bottom: Visual control + Actions */}
+          <div className="flex items-center justify-between pt-3 border-t border-border/40">
+            <div className={cn("flex items-center space-x-2", !canUseExtraControl && "opacity-40")}>
+              <Switch id="income-visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl} />
+              <Label htmlFor="income-visual-control" className="text-xs font-normal text-muted-foreground cursor-pointer flex items-center gap-1">
+                {!canUseExtraControl && <Lock className="w-3 h-3" />}
+                Apenas controle visual
+              </Label>
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl h-9 px-5 text-sm">Cancelar</Button>
+              <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[110px] h-9 bg-primary hover:bg-primary/90 shadow-sm">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+              </Button>
+            </div>
           </div>
-
-          <DialogFooter className="col-span-2 pt-4 border-t mt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-lg h-9">Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting} className="rounded-lg min-w-[100px] h-9">
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
-            </Button>
-          </DialogFooter>
         </form>
-
-        <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-          <DialogContent className="sm:max-w-sm rounded-lg border border-slate-200 bg-white">
-            <DialogHeader>
-              <DialogTitle>Nova categoria</DialogTitle>
-              <DialogDescription>Digite o nome da categoria para receitas.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-2">
-              <Label htmlFor="new-income-category">Nome</Label>
-              <Input
-                id="new-income-category"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="Ex: Comissões"
-                className="rounded-lg"
-              />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" className="rounded-lg" onClick={() => setCategoryDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="button" className="rounded-lg" onClick={handleCreateCategory}>
-                Salvar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={subcategoryDialogOpen} onOpenChange={setSubcategoryDialogOpen}>
-          <DialogContent className="sm:max-w-sm rounded-lg border border-slate-200 bg-white">
-            <DialogHeader>
-              <DialogTitle>Nova subcategoria</DialogTitle>
-              <DialogDescription>Digite o nome da subcategoria para a categoria selecionada.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-2">
-              <Label htmlFor="new-income-subcategory">Nome</Label>
-              <Input
-                id="new-income-subcategory"
-                value={newSubcategoryName}
-                onChange={(e) => setNewSubcategoryName(e.target.value)}
-                placeholder="Ex: Cliente recorrente"
-                className="rounded-lg"
-              />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" className="rounded-lg" onClick={() => setSubcategoryDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="button" className="rounded-lg" onClick={handleCreateSubcategory}>
-                Salvar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <AlertDialog open={scopeDialogOpen} onOpenChange={setScopeDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Atualizar Recorrência</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta é uma receita recorrente. Como deseja aplicar as alterações?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="flex flex-col gap-2 py-4">
-              <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('single')}>
-                <Calendar className="w-4 h-4 mr-3 text-muted-foreground" />
-                <div className="text-left">
-                  <div className="font-medium">Apenas esta</div>
-                  <div className="text-xs text-muted-foreground">Alterar somente a receita atual</div>
-                </div>
-              </Button>
-              <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('future')}>
-                <CalendarClock className="w-4 h-4 mr-3 text-muted-foreground" />
-                <div className="text-left">
-                  <div className="font-medium">Esta e próximas</div>
-                  <div className="text-xs text-muted-foreground">Alterar desta data em diante</div>
-                </div>
-              </Button>
-              <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
-                <CalendarDays className="w-4 h-4 mr-3 text-muted-foreground" />
-                <div className="text-left">
-                  <div className="font-medium">Todas</div>
-                  <div className="text-xs text-muted-foreground">Alterar toda a série</div>
-                </div>
-              </Button>
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </DialogContent>
+
+      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+        <DialogContent className="sm:max-w-sm rounded-2xl border-0 bg-card shadow-xl">
+          <DialogHeader>
+            <DialogTitle>Nova categoria</DialogTitle>
+            <DialogDescription>Digite o nome da categoria para receitas.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="new-income-category">Nome</Label>
+            <Input id="new-income-category" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Ex: Comissões" className="rounded-xl" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="rounded-xl" onClick={() => setCategoryDialogOpen(false)}>Cancelar</Button>
+            <Button type="button" className="rounded-xl" onClick={handleCreateCategory}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={subcategoryDialogOpen} onOpenChange={setSubcategoryDialogOpen}>
+        <DialogContent className="sm:max-w-sm rounded-2xl border-0 bg-card shadow-xl">
+          <DialogHeader>
+            <DialogTitle>Nova subcategoria</DialogTitle>
+            <DialogDescription>Digite o nome da subcategoria para a categoria selecionada.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="new-income-subcategory">Nome</Label>
+            <Input id="new-income-subcategory" value={newSubcategoryName} onChange={(e) => setNewSubcategoryName(e.target.value)} placeholder="Ex: Cliente recorrente" className="rounded-xl" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="rounded-xl" onClick={() => setSubcategoryDialogOpen(false)}>Cancelar</Button>
+            <Button type="button" className="rounded-xl" onClick={handleCreateSubcategory}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={scopeDialogOpen} onOpenChange={setScopeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Atualizar Recorrência</AlertDialogTitle>
+            <AlertDialogDescription>Esta é uma receita recorrente. Como deseja aplicar as alterações?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-4">
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('single')}>
+              <Calendar className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Apenas esta</div>
+                <div className="text-xs text-muted-foreground">Alterar somente a receita atual</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('future')}>
+              <CalendarClock className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Esta e próximas</div>
+                <div className="text-xs text-muted-foreground">Alterar desta data em diante</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
+              <CalendarDays className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Todas</div>
+                <div className="text-xs text-muted-foreground">Alterar toda a série</div>
+              </div>
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
-
 
 
 
