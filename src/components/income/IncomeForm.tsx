@@ -118,6 +118,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setIsRecurring(false);
         setExcludeFromCalculations(false);
         setObservation('');
+        setShowErrors(false);
       }
     }
   }, [open, income, initialData]);
