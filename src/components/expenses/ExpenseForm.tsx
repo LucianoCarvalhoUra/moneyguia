@@ -136,6 +136,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setLaunchDate(today);
         setExcludeFromCalculations(false);
         setObservation('');
+        setShowErrors(false);
       }
     }
   }, [open, expense, initialData]);
