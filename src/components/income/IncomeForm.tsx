@@ -426,7 +426,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           {/* Row 3: Status + Recorrência + Observação */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
               <button type="button" onClick={() => setIsReceived(!isReceived)} className={cn(
