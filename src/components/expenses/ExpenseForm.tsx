@@ -534,7 +534,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 <p className="text-[10px] text-muted-foreground">{recurrenceUsage}/2 recorrências</p>
               )}
             </div>
-            <div className="col-span-2 space-y-1.5">
+            <div className="sm:col-span-2 space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observação</Label>
               <textarea
                 value={observation}
