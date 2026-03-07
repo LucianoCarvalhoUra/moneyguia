@@ -466,7 +466,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           </div>
 
           {/* Row 3: Pagamento + Status + Recorrência */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Forma de Pagamento</Label>
               <Select value={paymentMethod} onValueChange={v => setPaymentMethod(v as PaymentMethod)}>
