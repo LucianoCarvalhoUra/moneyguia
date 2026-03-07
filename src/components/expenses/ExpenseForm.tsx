@@ -432,7 +432,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           </div>
 
           {/* Row 2: Categoria + Subcategoria + Vencimento */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
               <Select value={categoryId} onValueChange={handleCategorySelectChange}>
