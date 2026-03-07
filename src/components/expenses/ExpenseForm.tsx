@@ -67,6 +67,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [observation, setObservation] = useState('');
+  const [showErrors, setShowErrors] = useState(false);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -135,6 +136,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setLaunchDate(today);
         setExcludeFromCalculations(false);
         setObservation('');
+        setShowErrors(false);
       }
     }
   }, [open, expense, initialData]);
@@ -297,9 +299,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
     const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
     if (!description || !categoryId || !dueDate || numericAmount <= 0) {
+      setShowErrors(true);
       toast.error('Preencha os campos obrigatórios');
       return;
     }
+    setShowErrors(false);
 
     setIsSubmitting(true);
     try {
@@ -416,21 +420,23 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           {/* Row 1: Descrição + Valor */}
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2 space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Descrição</Label>
-              <Input value={description} onChange={e => setDescription(e.target.value)} className="h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors" placeholder="Ex: Supermercado" />
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !description ? "text-destructive" : "text-muted-foreground")}>Descrição *</Label>
+              <Input value={description} onChange={e => setDescription(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !description && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Supermercado" />
+              {showErrors && !description && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valor</Label>
-              <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className="h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card text-right font-semibold transition-colors" placeholder="R$ 0,00" />
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 ? "text-destructive" : "text-muted-foreground")}>Valor *</Label>
+              <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card text-right font-semibold transition-colors", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "border-destructive ring-1 ring-destructive/30")} placeholder="R$ 0,00" />
+              {showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
           </div>
 
           {/* Row 2: Categoria + Subcategoria + Vencimento */}
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categoria</Label>
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
               <Select value={categoryId} onValueChange={handleCategorySelectChange}>
-                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {categories.map(c => (
                     <SelectItem key={c.id} value={c.id}>
@@ -440,6 +446,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                   <SelectItem value={ADD_CATEGORY_OPTION} className="border-t mt-1 pt-2 font-medium text-primary">+ Nova categoria</SelectItem>
                 </SelectContent>
               </Select>
+              {showErrors && !categoryId && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
@@ -452,8 +459,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vencimento</Label>
-              <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="h-10 rounded-xl border-border/60 bg-muted/30" />
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !dueDate ? "text-destructive" : "text-muted-foreground")}>Vencimento *</Label>
+              <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !dueDate && "border-destructive ring-1 ring-destructive/30")} />
+              {showErrors && !dueDate && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
           </div>
 

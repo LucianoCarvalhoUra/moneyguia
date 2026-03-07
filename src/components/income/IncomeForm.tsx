@@ -61,6 +61,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [observation, setObservation] = useState('');
+  const [showErrors, setShowErrors] = useState(false);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -117,6 +118,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setIsRecurring(false);
         setExcludeFromCalculations(false);
         setObservation('');
+        setShowErrors(false);
       }
     }
   }, [open, income, initialData]);
@@ -271,9 +273,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
     const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
     if (!description || !categoryId || !receiveDate || numericAmount <= 0) {
+      setShowErrors(true);
       toast.error('Preencha os campos obrigatórios');
       return;
     }
+    setShowErrors(false);
 
     setIsSubmitting(true);
     try {
@@ -376,21 +380,23 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           {/* Row 1: Descrição + Valor */}
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2 space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Descrição</Label>
-              <Input value={description} onChange={e => setDescription(e.target.value)} className="h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors" placeholder="Ex: Salário Mensal" />
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !description ? "text-destructive" : "text-muted-foreground")}>Descrição *</Label>
+              <Input value={description} onChange={e => setDescription(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !description && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Salário Mensal" />
+              {showErrors && !description && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valor</Label>
-              <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className="h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card text-right font-semibold transition-colors" placeholder="R$ 0,00" />
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 ? "text-destructive" : "text-muted-foreground")}>Valor *</Label>
+              <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card text-right font-semibold transition-colors", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "border-destructive ring-1 ring-destructive/30")} placeholder="R$ 0,00" />
+              {showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
           </div>
 
           {/* Row 2: Categoria + Subcategoria + Data */}
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categoria</Label>
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
               <Select value={categoryId} onValueChange={handleCategorySelectChange}>
-                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {incomeCategories.map(c => (
                     <SelectItem key={c.id} value={c.id}>
@@ -400,6 +406,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                   <SelectItem value={ADD_CATEGORY_OPTION} className="border-t mt-1 pt-2 font-medium text-primary">+ Nova categoria</SelectItem>
                 </SelectContent>
               </Select>
+              {showErrors && !categoryId && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
@@ -412,8 +419,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data de Recebimento</Label>
-              <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} className="h-10 rounded-xl border-border/60 bg-muted/30" />
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !receiveDate ? "text-destructive" : "text-muted-foreground")}>Data de Recebimento *</Label>
+              <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
+              {showErrors && !receiveDate && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
           </div>
 
