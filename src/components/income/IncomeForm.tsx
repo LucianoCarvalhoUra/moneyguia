@@ -360,7 +360,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
         {/* Header */}
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-6 py-4 bg-gradient-to-r from-primary/5 to-transparent">
           <div>
@@ -376,10 +376,10 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-80px)]">
           {/* Row 1: Descrição + Valor */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 space-y-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2 space-y-1.5">
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !description ? "text-destructive" : "text-muted-foreground")}>Descrição *</Label>
               <Input value={description} onChange={e => setDescription(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !description && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Salário Mensal" />
               {showErrors && !description && <span className="text-xs text-destructive">Campo obrigatório</span>}
@@ -392,7 +392,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           {/* Row 2: Categoria + Subcategoria + Data */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
               <Select value={categoryId} onValueChange={handleCategorySelectChange}>
@@ -426,7 +426,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           {/* Row 3: Status + Recorrência + Observação */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
               <button type="button" onClick={() => setIsReceived(!isReceived)} className={cn(
@@ -463,7 +463,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           {/* Bottom: Visual control + Actions */}
-          <div className="flex items-center justify-between pt-3 border-t border-border/40">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-border/40">
             <div className={cn("flex items-center space-x-2", !canUseExtraControl && "opacity-40")}>
               <Switch id="income-visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl} />
               <Label htmlFor="income-visual-control" className="text-xs font-normal text-muted-foreground cursor-pointer flex items-center gap-1">
