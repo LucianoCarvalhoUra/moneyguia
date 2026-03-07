@@ -273,9 +273,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
     const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
     if (!description || !categoryId || !receiveDate || numericAmount <= 0) {
+      setShowErrors(true);
       toast.error('Preencha os campos obrigatórios');
       return;
     }
+    setShowErrors(false);
 
     setIsSubmitting(true);
     try {
