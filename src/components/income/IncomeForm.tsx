@@ -463,7 +463,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           {/* Bottom: Visual control + Actions */}
-          <div className="flex items-center justify-between pt-3 border-t border-border/40">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-border/40">
             <div className={cn("flex items-center space-x-2", !canUseExtraControl && "opacity-40")}>
               <Switch id="income-visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl} />
               <Label htmlFor="income-visual-control" className="text-xs font-normal text-muted-foreground cursor-pointer flex items-center gap-1">
