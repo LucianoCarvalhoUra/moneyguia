@@ -400,7 +400,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
         {/* Header */}
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-6 py-4 bg-gradient-to-r from-primary/5 to-transparent">
           <div>
