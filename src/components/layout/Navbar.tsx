@@ -25,7 +25,7 @@ const navItems = [
   { path: "/expenses", label: "Despesas", icon: Receipt },
   { path: "/incomes", label: "Receitas", icon: TrendingUp },
   { path: "/accounts", label: "Contas", icon: CreditCard },
-  { path: "/reconciliation", label: "Conciliação", icon: FileCheck },
+  { path: "/reconciliation", label: "Cartão", icon: FileCheck },
   { path: "/reports", label: "Relatórios", icon: FileText },
   { path: "/settings", label: "Configurações", icon: Settings },
 ];
