@@ -277,6 +277,7 @@ export default function Expenses() {
   };
 
   const handleEdit = (expense: Expense) => {
+    setDuplicatingExpense(null);
     setEditingExpense(expense);
     setIsFormOpen(true);
   };
