@@ -547,12 +547,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               <Select value={categoryId} onValueChange={handleCategorySelectChange}>
                 <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={ADD_CATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-primary">+ Nova categoria</SelectItem>
                   {categories.map(c => (
                     <SelectItem key={c.id} value={c.id}>
                       <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-${c.color}`} /> {c.name}</div>
                     </SelectItem>
                   ))}
-                  <SelectItem value={ADD_CATEGORY_OPTION} className="border-t mt-1 pt-2 font-medium text-primary">+ Nova categoria</SelectItem>
                 </SelectContent>
               </Select>
               {showErrors && !categoryId && <span className="text-xs text-destructive">Campo obrigatório</span>}
@@ -562,8 +562,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               <Select key={`subcat-${categoryId}-${subcategoryId}`} value={subcategoryId} onValueChange={handleSubcategorySelectChange} disabled={!categoryId}>
                 <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={ADD_SUBCATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-primary">+ Nova subcategoria</SelectItem>
                   {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  <SelectItem value={ADD_SUBCATEGORY_OPTION} className="border-t mt-1 pt-2 font-medium text-primary">+ Nova subcategoria</SelectItem>
                 </SelectContent>
               </Select>
             </div>
