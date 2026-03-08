@@ -62,6 +62,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [observation, setObservation] = useState('');
   const [showErrors, setShowErrors] = useState(false);
+  const [shakeKey, setShakeKey] = useState(0);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {

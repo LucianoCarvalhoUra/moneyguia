@@ -68,6 +68,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [observation, setObservation] = useState('');
   const [showErrors, setShowErrors] = useState(false);
+  const [shakeKey, setShakeKey] = useState(0);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
