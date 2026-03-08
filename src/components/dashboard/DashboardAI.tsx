@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -11,6 +11,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { format, startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
@@ -24,6 +25,8 @@ const QUICK_QUESTIONS = [
   '💡 Dicas de economia',
   '📈 Onde gasto mais?',
   '⚠️ Contas a vencer',
+  '➕ Cadastrar despesa',
+  '💵 Cadastrar receita',
 ];
 
 export function DashboardAI() {
@@ -34,9 +37,14 @@ export function DashboardAI() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { expenses, categories, cards, accounts } = useFinance();
-  const { incomes, incomeCategories } = useIncome();
+  const { user } = useAuth();
+  const { expenses, categories, cards, accounts, refreshData: refreshFinance } = useFinance();
+  const { incomes, incomeCategories, refreshData: refreshIncome } = useIncome();
   const summary = useFinancialSummary();
+
+  const refreshAllData = useCallback(async () => {
+    await Promise.all([refreshFinance(), refreshIncome()]);
+  }, [refreshFinance, refreshIncome]);
 
   // Build financial context string for the AI
   const financialContext = useMemo(() => {
@@ -177,6 +185,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
         body: JSON.stringify({
           messages: allMessages.map(m => ({ role: m.role, content: m.content })),
           financialContext,
+          userId: user?.id,
         }),
       });
 
@@ -216,6 +225,11 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
 
           try {
             const parsed = JSON.parse(jsonStr);
+            // Handle refresh marker from tool calls
+            if (parsed.refresh) {
+              refreshAllData();
+              continue;
+            }
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantSoFar += content;
@@ -327,7 +341,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
               {messages.length === 0 ? (
                 <div className="space-y-4">
                   <div className="bg-muted/50 p-3 rounded-xl rounded-tl-none text-sm text-foreground">
-                    Olá! 👋 Sou o assistente financeiro do <strong>KeepMoney</strong>. Tenho acesso aos seus dados e posso te ajudar com análises, dicas e dúvidas sobre suas finanças. O que gostaria de saber?
+                    Olá! 👋 Sou o assistente financeiro do <strong>KeepMoney</strong>. Tenho acesso aos seus dados e posso te ajudar com análises, dicas e até **cadastrar despesas e receitas** por texto. O que gostaria de fazer?
                   </div>
                   {/* Quick actions */}
                   <div className="grid grid-cols-2 gap-2">
