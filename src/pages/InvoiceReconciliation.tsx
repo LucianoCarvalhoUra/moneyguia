@@ -41,6 +41,7 @@ export default function InvoiceReconciliation() {
   
   // Adjustment form
   const [adjustmentCategory, setAdjustmentCategory] = useState<string>('');
+  const [adjustmentSubcategory, setAdjustmentSubcategory] = useState<string>('');
   const [adjustmentPaymentDate, setAdjustmentPaymentDate] = useState<Date | undefined>();
   const [adjustmentPaymentMethod, setAdjustmentPaymentMethod] = useState<'account' | 'pix'>('pix');
   const [adjustmentAccountId, setAdjustmentAccountId] = useState<string>('');
