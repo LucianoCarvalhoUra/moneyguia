@@ -139,6 +139,8 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             accountId: i.account_id || undefined,
             recurrenceId: (i as any).recurrence_id || undefined,
             excludeFromCalculations: i.exclude_from_calculations ?? false,
+            installments: (i as any).installments || undefined,
+            currentInstallment: (i as any).current_installment || undefined,
             userId: i.user_id,
             createdAt: new Date(i.created_at),
           };
