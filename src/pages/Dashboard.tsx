@@ -466,6 +466,61 @@ export default function Dashboard() {
             <BalanceProjectionChart data={projectionData} />
           </div>
         )}
+
+        {settings.showEssential && (
+          <ExpenseClassificationChart
+            type="essential"
+            expenses={monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).map(e => ({
+              id: e.id, description: e.description, amount: e.amount,
+              categoryId: e.categoryId, categoryName: categories?.find(c => c.id === e.categoryId)?.name,
+              isRecurring: e.isRecurring, installments: e.installments, currentInstallment: e.currentInstallment,
+            }))}
+          />
+        )}
+
+        {settings.showSuperfluous && (
+          <ExpenseClassificationChart
+            type="superfluous"
+            expenses={monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).map(e => ({
+              id: e.id, description: e.description, amount: e.amount,
+              categoryId: e.categoryId, categoryName: categories?.find(c => c.id === e.categoryId)?.name,
+              isRecurring: e.isRecurring, installments: e.installments, currentInstallment: e.currentInstallment,
+            }))}
+          />
+        )}
+
+        {settings.showFixed && (
+          <ExpenseClassificationChart
+            type="fixed"
+            expenses={monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).map(e => ({
+              id: e.id, description: e.description, amount: e.amount,
+              categoryId: e.categoryId, categoryName: categories?.find(c => c.id === e.categoryId)?.name,
+              isRecurring: e.isRecurring, installments: e.installments, currentInstallment: e.currentInstallment,
+            }))}
+          />
+        )}
+
+        {settings.showVariable && (
+          <ExpenseClassificationChart
+            type="variable"
+            expenses={monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).map(e => ({
+              id: e.id, description: e.description, amount: e.amount,
+              categoryId: e.categoryId, categoryName: categories?.find(c => c.id === e.categoryId)?.name,
+              isRecurring: e.isRecurring, installments: e.installments, currentInstallment: e.currentInstallment,
+            }))}
+          />
+        )}
+
+        {settings.showLongTerm && (
+          <ExpenseClassificationChart
+            type="long_term"
+            expenses={monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).map(e => ({
+              id: e.id, description: e.description, amount: e.amount,
+              categoryId: e.categoryId, categoryName: categories?.find(c => c.id === e.categoryId)?.name,
+              isRecurring: e.isRecurring, installments: e.installments, currentInstallment: e.currentInstallment,
+            }))}
+          />
+        )}
       </div>
 
       {/* Pending Expenses List */}
