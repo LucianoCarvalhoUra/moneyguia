@@ -275,16 +275,18 @@ export default function Incomes() {
   };
 
   const handleEdit = (income: Income) => {
+    setDuplicatingIncome(null);
     setEditingIncome(income);
     setIsFormOpen(true);
   };
 
 
   const handleDuplicate = (income: Income) => {
+    setEditingIncome(null);
     setDuplicatingIncome({
       ...income,
       title: `${income.title} (Cópia)`,
-      receiveDate: new Date().toISOString() as unknown as Date, // Define para hoje por conveniência
+      receiveDate: new Date().toISOString() as unknown as Date,
       isReceived: false,
     });
     setIsFormOpen(true);

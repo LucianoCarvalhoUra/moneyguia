@@ -277,15 +277,17 @@ export default function Expenses() {
   };
 
   const handleEdit = (expense: Expense) => {
+    setDuplicatingExpense(null);
     setEditingExpense(expense);
     setIsFormOpen(true);
   };
 
   const handleDuplicate = (expense: Expense) => {
+    setEditingExpense(null);
     setDuplicatingExpense({
       ...expense,
       description: `${expense.description} (Cópia)`,
-      dueDate: new Date(), // Define para hoje por conveniência
+      dueDate: new Date(),
       isPaid: false,
     });
     setIsFormOpen(true);
