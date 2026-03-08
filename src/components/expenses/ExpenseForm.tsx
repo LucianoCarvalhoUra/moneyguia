@@ -166,13 +166,43 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     }
   };
 
+  const renumberInstallments = async (recurrenceId: string) => {
+    try {
+      const { data: remaining } = await supabase
+        .from('expenses')
+        .select('id, due_date')
+        .eq('recurrence_id', recurrenceId)
+        .order('due_date', { ascending: true });
+
+      if (!remaining || remaining.length === 0) return;
+
+      const total = remaining.length;
+      for (let i = 0; i < remaining.length; i++) {
+        await supabase.from('expenses').update({
+          current_installment: i + 1,
+          installments: total,
+        }).eq('id', remaining[i].id);
+      }
+    } catch (err) {
+      console.error('Erro ao renumerar parcelas:', err);
+    }
+  };
+
   const handleDelete = async () => {
     if (!expense) return;
     if (!confirm('Tem certeza que deseja excluir esta despesa?')) return;
     
     setIsSubmitting(true);
     try {
+      const recurrenceId = expense.recurrenceId;
       await removeExpense(expense.id);
+      
+      // Renumber remaining installments
+      if (recurrenceId) {
+        await renumberInstallments(recurrenceId);
+        await refreshData();
+      }
+      
       toast.success('Despesa excluída!');
       onOpenChange(false);
     } catch (error: any) {
@@ -376,6 +406,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                expense_date: nextDueDateStr,
                is_paid: i === 0 ? isPaid : false,
                recurrence_id: newRecurrenceId,
+               current_installment: i + 1,
+               installments: limit,
              });
            }
            const { error } = await supabase.from('expenses').insert(newExpenses);
@@ -410,7 +442,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               {expense ? 'Editar Despesa' : 'Nova Despesa'}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-              {expense ? `Cadastrada em ${format(new Date(expense.createdAt), 'dd/MM/yyyy HH:mm')}` : 'Preencha os detalhes da transação'}
+              {expense 
+                ? `Cadastrada em ${format(new Date(expense.createdAt), 'dd/MM/yyyy HH:mm')}${expense.installments && expense.installments > 1 ? ` • Parcela ${expense.currentInstallment || '?'}/${expense.installments}` : ''}`
+                : 'Preencha os detalhes da transação'}
             </DialogDescription>
           </div>
           {expense && (

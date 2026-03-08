@@ -139,6 +139,8 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             accountId: i.account_id || undefined,
             recurrenceId: (i as any).recurrence_id || undefined,
             excludeFromCalculations: i.exclude_from_calculations ?? false,
+            installments: (i as any).installments || undefined,
+            currentInstallment: (i as any).current_installment || undefined,
             userId: i.user_id,
             createdAt: new Date(i.created_at),
           };
@@ -215,11 +217,14 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       account_id: string | null;
       recurrence_id: string | null;
       exclude_from_calculations: boolean;
+      current_installment?: number | null;
+      installments?: number | null;
     }> = [];
 
     // If recurring, create 12 months of income
     if (income.isRecurring) {
-      for (let i = 0; i < 12; i++) {
+      const totalInstallments = 12;
+      for (let i = 0; i < totalInstallments; i++) {
         const receiveDate = new Date(income.receiveDate);
         receiveDate.setMonth(receiveDate.getMonth() + i);
         
@@ -236,6 +241,8 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           account_id: income.accountId || null,
           recurrence_id: recurrenceId,
           exclude_from_calculations: income.excludeFromCalculations ?? false,
+          current_installment: i + 1,
+          installments: totalInstallments,
         });
       }
     } else {

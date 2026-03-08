@@ -312,9 +312,11 @@ export type Database = {
           amount: number
           category_id: string | null
           created_at: string
+          current_installment: number | null
           description: string | null
           exclude_from_calculations: boolean | null
           id: string
+          installments: number | null
           is_received: boolean
           is_recurring: boolean
           receive_date: string
@@ -329,9 +331,11 @@ export type Database = {
           amount: number
           category_id?: string | null
           created_at?: string
+          current_installment?: number | null
           description?: string | null
           exclude_from_calculations?: boolean | null
           id?: string
+          installments?: number | null
           is_received?: boolean
           is_recurring?: boolean
           receive_date: string
@@ -346,9 +350,11 @@ export type Database = {
           amount?: number
           category_id?: string | null
           created_at?: string
+          current_installment?: number | null
           description?: string | null
           exclude_from_calculations?: boolean | null
           id?: string
+          installments?: number | null
           is_received?: boolean
           is_recurring?: boolean
           receive_date?: string
