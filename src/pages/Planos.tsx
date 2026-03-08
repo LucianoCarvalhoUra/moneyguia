@@ -113,9 +113,9 @@ export default function Planos() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-slate-700" />
-                Controle Total
+                Premium
               </CardTitle>
-              <CardDescription>Experiencia completa para maximo controle</CardDescription>
+              <CardDescription>Experiência completa com IA e controle total</CardDescription>
               <p className="text-4xl font-bold">{prices.total}</p>
               <p className="text-sm text-slate-500">{periodLabel}</p>
             </CardHeader>
