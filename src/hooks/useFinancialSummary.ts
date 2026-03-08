@@ -80,7 +80,7 @@ export const useFinancialSummary = (selectedDate: Date = new Date()) => {
         if (isUpcoming) processedIds.add(expense.id);
         return isUpcoming;
       })
-      .sort((a, b) => parseISO(a.dueDate as unknown as string).getTime() - parseISO(b.dueDate as unknown as string).getTime())
+      .sort((a, b) => (a.dueDate instanceof Date ? a.dueDate : parseISO(a.dueDate as unknown as string)).getTime() - (b.dueDate instanceof Date ? b.dueDate : parseISO(b.dueDate as unknown as string)).getTime())
       .slice(0, 5)
       .map(expense => ({
         id: expense.id,
