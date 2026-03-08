@@ -68,6 +68,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [observation, setObservation] = useState('');
   const [showErrors, setShowErrors] = useState(false);
+  const [shakeKey, setShakeKey] = useState(0);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -300,6 +301,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
     if (!description || !categoryId || !dueDate || numericAmount <= 0) {
       setShowErrors(true);
+      setShakeKey(k => k + 1);
       toast.error('Preencha os campos obrigatórios');
       return;
     }
@@ -419,12 +421,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-80px)]">
           {/* Row 1: Descrição + Valor */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-2 space-y-1.5">
+            <div key={`desc-${shakeKey}`} className={cn("sm:col-span-2 space-y-1.5", showErrors && !description && "animate-shake")}>
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !description ? "text-destructive" : "text-muted-foreground")}>Descrição *</Label>
               <Input value={description} onChange={e => setDescription(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !description && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Supermercado" />
               {showErrors && !description && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
-            <div className="space-y-1.5">
+            <div key={`amt-${shakeKey}`} className={cn("space-y-1.5", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "animate-shake")}>
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 ? "text-destructive" : "text-muted-foreground")}>Valor *</Label>
               <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card text-right font-semibold transition-colors", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "border-destructive ring-1 ring-destructive/30")} placeholder="R$ 0,00" />
               {showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && <span className="text-xs text-destructive">Campo obrigatório</span>}
@@ -433,7 +435,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
           {/* Row 2: Categoria + Subcategoria + Vencimento */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
+            <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
               <Select value={categoryId} onValueChange={handleCategorySelectChange}>
                 <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -458,7 +460,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div key={`due-${shakeKey}`} className={cn("space-y-1.5", showErrors && !dueDate && "animate-shake")}>
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !dueDate ? "text-destructive" : "text-muted-foreground")}>Vencimento *</Label>
               <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !dueDate && "border-destructive ring-1 ring-destructive/30")} />
               {showErrors && !dueDate && <span className="text-xs text-destructive">Campo obrigatório</span>}
