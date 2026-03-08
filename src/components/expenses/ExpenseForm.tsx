@@ -435,7 +435,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
           {/* Row 2: Categoria + Subcategoria + Vencimento */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
+            <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
               <Select value={categoryId} onValueChange={handleCategorySelectChange}>
                 <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -460,7 +460,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div key={`due-${shakeKey}`} className={cn("space-y-1.5", showErrors && !dueDate && "animate-shake")}>
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !dueDate ? "text-destructive" : "text-muted-foreground")}>Vencimento *</Label>
               <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !dueDate && "border-destructive ring-1 ring-destructive/30")} />
               {showErrors && !dueDate && <span className="text-xs text-destructive">Campo obrigatório</span>}
