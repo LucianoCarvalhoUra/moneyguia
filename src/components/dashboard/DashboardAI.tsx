@@ -25,6 +25,8 @@ const QUICK_QUESTIONS = [
   '💡 Dicas de economia',
   '📈 Onde gasto mais?',
   '⚠️ Contas a vencer',
+  '➕ Cadastrar despesa',
+  '💵 Cadastrar receita',
 ];
 
 export function DashboardAI() {
