@@ -31,7 +31,7 @@ const MONTHS = [
 ];
 
 export default function InvoiceReconciliation() {
-  const { cards, expenses, categories, accounts, addExpense } = useFinance();
+  const { cards, expenses, categories, subcategories, accounts, addExpense } = useFinance();
   
   const currentDate = new Date();
   const [selectedCardId, setSelectedCardId] = useState<string>('');
@@ -41,6 +41,7 @@ export default function InvoiceReconciliation() {
   
   // Adjustment form
   const [adjustmentCategory, setAdjustmentCategory] = useState<string>('');
+  const [adjustmentSubcategory, setAdjustmentSubcategory] = useState<string>('');
   const [adjustmentPaymentDate, setAdjustmentPaymentDate] = useState<Date | undefined>();
   const [adjustmentPaymentMethod, setAdjustmentPaymentMethod] = useState<'account' | 'pix'>('pix');
   const [adjustmentAccountId, setAdjustmentAccountId] = useState<string>('');
@@ -154,6 +155,7 @@ export default function InvoiceReconciliation() {
     try {
       await addExpense({
         categoryId: adjustmentCategory,
+        subcategoryId: adjustmentSubcategory || undefined,
         description: `Ajuste de Fatura - ${selectedCard?.brand} ****${selectedCard?.lastFourDigits} (${MONTHS[selectedMonth]}/${selectedYear})`,
         amount: Math.abs(difference),
         expenseDate: new Date(),
@@ -173,6 +175,7 @@ export default function InvoiceReconciliation() {
       // Reset form
       setInvoiceAmount('');
       setAdjustmentCategory('');
+      setAdjustmentSubcategory('');
       setAdjustmentPaymentDate(undefined);
       setAdjustmentAccountId('');
     } catch (error) {
@@ -396,11 +399,11 @@ export default function InvoiceReconciliation() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {/* Category */}
               <div className="space-y-2">
                 <Label>Categoria</Label>
-                <Select value={adjustmentCategory} onValueChange={setAdjustmentCategory}>
+                <Select value={adjustmentCategory} onValueChange={(v) => { setAdjustmentCategory(v); setAdjustmentSubcategory(''); }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -413,6 +416,29 @@ export default function InvoiceReconciliation() {
                         </span>
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Subcategory */}
+              <div className="space-y-2">
+                <Label>Subcategoria</Label>
+                <Select 
+                  value={adjustmentSubcategory} 
+                  onValueChange={setAdjustmentSubcategory}
+                  disabled={!adjustmentCategory || subcategories.filter(s => s.categoryId === adjustmentCategory).length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={!adjustmentCategory ? "Selecione categoria" : "Opcional"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subcategories
+                      .filter(s => s.categoryId === adjustmentCategory)
+                      .map((sub) => (
+                        <SelectItem key={sub.id} value={sub.id}>
+                          {sub.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
