@@ -247,7 +247,92 @@ async function executeToolCall(
       return JSON.stringify({ success: true, message: `Subcategoria "${data.name}" criada com sucesso.`, data });
     }
 
-    if (toolName === "create_income_category") {
+    if (toolName === "update_expense") {
+      const updateData: any = {};
+      if (args.description !== undefined) updateData.description = args.description;
+      if (args.amount !== undefined) updateData.amount = args.amount;
+      if (args.due_date !== undefined) { updateData.due_date = args.due_date; updateData.expense_date = args.due_date; }
+      if (args.category_id !== undefined) updateData.category_id = args.category_id;
+      if (args.subcategory_id !== undefined) updateData.subcategory_id = args.subcategory_id;
+      if (args.is_paid !== undefined) updateData.is_paid = args.is_paid;
+      if (args.payment_method !== undefined) updateData.payment_method = args.payment_method;
+
+      const { data, error } = await supabase.from("expenses")
+        .update(updateData)
+        .eq("id", args.expense_id)
+        .eq("user_id", userId)
+        .select("id, description, amount, due_date, is_paid")
+        .single();
+
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({
+        success: true,
+        message: `Despesa "${data.description}" atualizada com sucesso. Valor: R$ ${Number(data.amount).toFixed(2)}, Vencimento: ${data.due_date}, Status: ${data.is_paid ? "Pago" : "Pendente"}.`,
+        data,
+      });
+    }
+
+    if (toolName === "delete_expense") {
+      const { data: expense } = await supabase.from("expenses")
+        .select("description, amount")
+        .eq("id", args.expense_id)
+        .eq("user_id", userId)
+        .single();
+
+      const { error } = await supabase.from("expenses")
+        .delete()
+        .eq("id", args.expense_id)
+        .eq("user_id", userId);
+
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({
+        success: true,
+        message: `Despesa "${expense?.description}" de R$ ${Number(expense?.amount).toFixed(2)} excluída com sucesso.`,
+      });
+    }
+
+    if (toolName === "update_income") {
+      const updateData: any = {};
+      if (args.title !== undefined) updateData.title = args.title;
+      if (args.amount !== undefined) updateData.amount = args.amount;
+      if (args.receive_date !== undefined) updateData.receive_date = args.receive_date;
+      if (args.category_id !== undefined) updateData.category_id = args.category_id;
+      if (args.is_received !== undefined) updateData.is_received = args.is_received;
+
+      const { data, error } = await supabase.from("incomes")
+        .update(updateData)
+        .eq("id", args.income_id)
+        .eq("user_id", userId)
+        .select("id, title, amount, receive_date, is_received")
+        .single();
+
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({
+        success: true,
+        message: `Receita "${data.title}" atualizada com sucesso. Valor: R$ ${Number(data.amount).toFixed(2)}, Data: ${data.receive_date}, Status: ${data.is_received ? "Recebido" : "Pendente"}.`,
+        data,
+      });
+    }
+
+    if (toolName === "delete_income") {
+      const { data: income } = await supabase.from("incomes")
+        .select("title, amount")
+        .eq("id", args.income_id)
+        .eq("user_id", userId)
+        .single();
+
+      const { error } = await supabase.from("incomes")
+        .delete()
+        .eq("id", args.income_id)
+        .eq("user_id", userId);
+
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({
+        success: true,
+        message: `Receita "${income?.title}" de R$ ${Number(income?.amount).toFixed(2)} excluída com sucesso.`,
+      });
+    }
+
       const { data, error } = await supabase.from("income_categories").insert({
         user_id: userId,
         name: args.name,
