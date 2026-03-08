@@ -228,8 +228,6 @@ export default function Settings() {
         <p className="text-muted-foreground">Gerencie suas preferências</p>
       </div>
 
-      {/* Subscription Info */}
-      <SubscriptionCard />
 
       {/* Profile Card */}
       <Card>
