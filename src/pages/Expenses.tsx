@@ -437,7 +437,7 @@ export default function Expenses() {
                     const isPaid = expense.isPaid;
 
                     return (
-                    <TableRow key={expense.id}>
+                    <TableRow key={expense.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleEdit(expense)}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {(expense as any).excludeFromCalculations && (
@@ -467,7 +467,7 @@ export default function Expenses() {
                             <span className="font-medium">{expense.description}</span>
                             {expense.installments && expense.installments > 1 && (
                               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">
-                                {expense.currentInstallment || '?'}/{expense.installments}
+                                {expense.currentInstallment || 1}/{expense.installments}
                               </Badge>
                             )}
                           </div>
@@ -483,7 +483,7 @@ export default function Expenses() {
                         {!isPaid && !isOverdue && <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800">Pendente</Badge>}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2" onClick={e => e.stopPropagation()}>
                           <Button 
                             size="icon" 
                             variant="ghost" 
