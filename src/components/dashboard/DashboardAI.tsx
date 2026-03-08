@@ -37,9 +37,14 @@ export function DashboardAI() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { expenses, categories, cards, accounts } = useFinance();
-  const { incomes, incomeCategories } = useIncome();
+  const { user } = useAuth();
+  const { expenses, categories, cards, accounts, refreshData: refreshFinance } = useFinance();
+  const { incomes, incomeCategories, refreshData: refreshIncome } = useIncome();
   const summary = useFinancialSummary();
+
+  const refreshAllData = useCallback(async () => {
+    await Promise.all([refreshFinance(), refreshIncome()]);
+  }, [refreshFinance, refreshIncome]);
 
   // Build financial context string for the AI
   const financialContext = useMemo(() => {
