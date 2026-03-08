@@ -485,7 +485,7 @@ export default function Incomes() {
                             <span className="font-medium">{income.title}</span>
                             {(income as any).installments && (income as any).installments > 1 && (
                               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">
-                                {(income as any).currentInstallment || '?'}/{(income as any).installments}
+                                {(income as any).currentInstallment || 1}/{(income as any).installments}
                               </Badge>
                             )}
                           </div>
