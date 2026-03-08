@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { ArrowLeft, Wallet, Copy, Check, QrCode, Clock, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Wallet, Copy, Check, QrCode, Clock, Loader2, RefreshCw, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { z } from "zod";
+import CardPaymentForm from "@/components/checkout/CardPaymentForm";
 
 const checkoutSchema = z.object({
   fullName: z.string().trim().min(3, "Nome completo é obrigatório").max(100),
@@ -40,7 +41,8 @@ interface PixData {
   status: string;
 }
 
-type Step = "info" | "payment" | "confirmation";
+type Step = "info" | "method" | "payment" | "confirmation";
+type PaymentMethod = "pix" | "card";
 
 export default function Checkout() {
   const [searchParams] = useSearchParams();
@@ -52,6 +54,7 @@ export default function Checkout() {
 
   const [plan, setPlan] = useState<Plan | null>(null);
   const [step, setStep] = useState<Step>("info");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -99,9 +102,9 @@ export default function Checkout() {
     fetchPlan();
   }, [planId, navigate]);
 
-  // Poll payment status when on payment step
+  // Poll payment status when on PIX payment step
   useEffect(() => {
-    if (step !== "payment" || !pixData?.paymentId) return;
+    if (step !== "payment" || paymentMethod !== "pix" || !pixData?.paymentId) return;
 
     const checkStatus = async () => {
       try {
@@ -123,7 +126,7 @@ export default function Checkout() {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [step, pixData]);
+  }, [step, pixData, paymentMethod]);
 
   const price = plan
     ? cycle === "yearly"
@@ -155,15 +158,18 @@ export default function Checkout() {
     return true;
   };
 
-  const handleNext = async () => {
+  const handleGoToMethod = () => {
     if (!validateForm()) return;
-
     if (!user) {
       toast.info("Faça login para continuar.");
       navigate("/auth");
       return;
     }
+    setStep("method");
+  };
 
+  const handleSelectPix = async () => {
+    setPaymentMethod("pix");
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-pix-payment", {
@@ -187,6 +193,11 @@ export default function Checkout() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSelectCard = () => {
+    setPaymentMethod("card");
+    setStep("payment");
   };
 
   const handleCopyPix = () => {
@@ -219,6 +230,8 @@ export default function Checkout() {
     }
   };
 
+  const stepIndex = ["info", "method", "payment", "confirmation"].indexOf(step);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -247,20 +260,20 @@ export default function Checkout() {
       <main className="mx-auto max-w-4xl px-4 py-8">
         {/* Steps indicator */}
         <div className="mb-8 flex items-center justify-center gap-2">
-          {(["info", "payment", "confirmation"] as Step[]).map((s, i) => (
-            <div key={s} className="flex items-center gap-2">
+          {["Dados", "Método", "Pagamento", "Confirmação"].map((label, i) => (
+            <div key={label} className="flex items-center gap-2">
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold ${
-                  step === s
+                  i === stepIndex
                     ? "bg-primary text-primary-foreground"
-                    : i < ["info", "payment", "confirmation"].indexOf(step)
+                    : i < stepIndex
                     ? "bg-primary/20 text-primary"
                     : "bg-muted text-muted-foreground"
                 }`}
               >
                 {i + 1}
               </div>
-              {i < 2 && <div className="h-0.5 w-8 bg-border" />}
+              {i < 3 && <div className="h-0.5 w-6 bg-border" />}
             </div>
           ))}
         </div>
@@ -271,7 +284,6 @@ export default function Checkout() {
             {step === "info" && (
               <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <h2 className="mb-6 text-xl font-bold">Informações pessoais</h2>
-
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <Label htmlFor="fullName">Nome completo</Label>
@@ -296,7 +308,6 @@ export default function Checkout() {
                 </div>
 
                 <h2 className="mb-4 mt-8 text-xl font-bold">Endereço de cobrança</h2>
-
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <Label htmlFor="zipCode">CEP</Label>
@@ -334,29 +345,51 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                <Button
-                  onClick={handleNext}
-                  disabled={submitting}
-                  className="mt-8 w-full"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Gerando PIX...
-                    </>
-                  ) : (
-                    "Continuar para pagamento"
-                  )}
+                <Button onClick={handleGoToMethod} className="mt-8 w-full">
+                  Continuar
                 </Button>
               </div>
             )}
 
-            {step === "payment" && pixData && (
+            {step === "method" && (
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h2 className="mb-6 text-xl font-bold">Escolha a forma de pagamento</h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <button
+                    onClick={handleSelectPix}
+                    disabled={submitting}
+                    className="flex flex-col items-center gap-3 rounded-xl border-2 border-border p-6 transition-all hover:border-primary hover:bg-primary/5 disabled:opacity-50"
+                  >
+                    {submitting && paymentMethod === "pix" ? (
+                      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                    ) : (
+                      <QrCode className="h-10 w-10 text-primary" />
+                    )}
+                    <span className="text-lg font-semibold">PIX</span>
+                    <span className="text-sm text-muted-foreground">Aprovação instantânea</span>
+                  </button>
+
+                  <button
+                    onClick={handleSelectCard}
+                    disabled={submitting}
+                    className="flex flex-col items-center gap-3 rounded-xl border-2 border-border p-6 transition-all hover:border-primary hover:bg-primary/5 disabled:opacity-50"
+                  >
+                    <CreditCard className="h-10 w-10 text-primary" />
+                    <span className="text-lg font-semibold">Cartão de Crédito</span>
+                    <span className="text-sm text-muted-foreground">Parcele em até 12x</span>
+                  </button>
+                </div>
+
+                <Button variant="ghost" onClick={() => setStep("info")} className="mt-6 w-full text-muted-foreground">
+                  Voltar
+                </Button>
+              </div>
+            )}
+
+            {step === "payment" && paymentMethod === "pix" && pixData && (
               <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <h2 className="mb-6 text-xl font-bold">Pagamento via PIX</h2>
-
                 <div className="flex flex-col items-center gap-6">
-                  {/* QR Code */}
                   {pixData.qrCodeBase64 ? (
                     <img
                       src={`data:image/png;base64,${pixData.qrCodeBase64}`}
@@ -368,12 +401,9 @@ export default function Checkout() {
                       <QrCode className="h-24 w-24 text-primary/40" />
                     </div>
                   )}
-
                   <p className="text-center text-sm text-muted-foreground">
                     Escaneie o QR code acima ou copie o código PIX abaixo
                   </p>
-
-                  {/* PIX copy-paste */}
                   {pixData.qrCode && (
                     <div className="flex w-full max-w-md items-center gap-2 rounded-xl border border-border bg-muted p-3">
                       <span className="flex-1 truncate text-sm font-mono text-muted-foreground">
@@ -384,12 +414,10 @@ export default function Checkout() {
                       </Button>
                     </div>
                   )}
-
-                  <div className="flex items-center gap-2 text-sm text-destructive">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
                     <span>O PIX expira em 30 minutos</span>
                   </div>
-
                   <div className="flex w-full flex-col gap-3 pt-4">
                     <Button onClick={handleCheckPayment} disabled={checkingPayment} className="w-full">
                       {checkingPayment ? (
@@ -407,12 +435,25 @@ export default function Checkout() {
                     <p className="text-center text-xs text-muted-foreground">
                       O pagamento é verificado automaticamente a cada 5 segundos
                     </p>
-                    <Button variant="ghost" onClick={() => setStep("info")} className="w-full text-muted-foreground">
+                    <Button variant="ghost" onClick={() => setStep("method")} className="w-full text-muted-foreground">
                       Voltar
                     </Button>
                   </div>
                 </div>
               </div>
+            )}
+
+            {step === "payment" && paymentMethod === "card" && (
+              <CardPaymentForm
+                planId={plan!.id}
+                billingCycle={cycle}
+                amount={price}
+                fullName={form.fullName}
+                cpf={form.cpf}
+                email={form.email}
+                onSuccess={() => setStep("confirmation")}
+                onBack={() => setStep("method")}
+              />
             )}
 
             {step === "confirmation" && (
