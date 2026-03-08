@@ -106,8 +106,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setDescription(dataToLoad.description || '');
         
         const catId = dataToLoad.categoryId || (dataToLoad as any).category_id || '';
+        const subCatId = dataToLoad.subcategoryId || (dataToLoad as any).subcategory_id || '';
+        console.log('[ExpenseForm] Loading data:', { catId, subCatId, raw_subcategoryId: dataToLoad.subcategoryId, raw_subcategory_id: (dataToLoad as any).subcategory_id });
         setCategoryId(catId);
-        setSubcategoryId(dataToLoad.subcategoryId || (dataToLoad as any).subcategory_id || '');
+        setSubcategoryId(subCatId);
         
         setDueDate(dataToLoad.dueDate ? formatToInput(dataToLoad.dueDate) : today);
         setAmount(dataToLoad.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) : '');
