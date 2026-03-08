@@ -604,12 +604,15 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                     <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
                   </Select>
                 </>
-              ) : (
+              ) : paymentMethod === 'pix' ? (
                 <>
-                  <Label className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground", !isPaid && "opacity-40")}>Data Pagamento</Label>
-                  <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} disabled={!isPaid} className="h-10 rounded-xl border-border/60 bg-muted/30" />
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Banco (PIX)</Label>
+                  <Select value={accountId} onValueChange={setAccountId}>
+                    <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
+                    <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
+                  </Select>
                 </>
-              )}
+              ) : null}
             </div>
             <div className="flex gap-4">
               <div className="flex-1 space-y-1.5">
