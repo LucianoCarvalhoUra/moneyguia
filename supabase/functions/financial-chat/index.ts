@@ -154,6 +154,38 @@ async function executeToolCall(
       });
     }
 
+    if (toolName === "create_category") {
+      const { data, error } = await supabase.from("categories").insert({
+        user_id: userId,
+        name: args.name,
+        icon: args.icon || "📦",
+        color: "category-other",
+      }).select("id, name").single();
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({ success: true, message: `Categoria "${data.name}" criada com sucesso.`, data });
+    }
+
+    if (toolName === "create_subcategory") {
+      const { data, error } = await supabase.from("subcategories").insert({
+        user_id: userId,
+        name: args.name,
+        category_id: args.category_id,
+      }).select("id, name").single();
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({ success: true, message: `Subcategoria "${data.name}" criada com sucesso.`, data });
+    }
+
+    if (toolName === "create_income_category") {
+      const { data, error } = await supabase.from("income_categories").insert({
+        user_id: userId,
+        name: args.name,
+        icon: args.icon || "💰",
+        color: "category-income-other",
+      }).select("id, name").single();
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({ success: true, message: `Categoria de receita "${data.name}" criada com sucesso.`, data });
+    }
+
     return JSON.stringify({ success: false, error: "Tool desconhecida" });
   } catch (e) {
     return JSON.stringify({ success: false, error: e.message || "Erro ao executar ação" });
