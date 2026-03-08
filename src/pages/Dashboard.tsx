@@ -1,10 +1,10 @@
 ﻿import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp, TrendingDown, AlertTriangle, X, Eye } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp, TrendingDown, AlertTriangle, X, Eye, Clock, ArrowRight } from 'lucide-react';
 import CategoryChart from '@/components/dashboard/CategoryChart';
 import RecentExpenses from '@/components/dashboard/RecentExpenses';
 import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
@@ -20,6 +20,7 @@ import BalanceProjectionChart from '@/components/dashboard/BalanceProjectionChar
 import { DEFAULT_DASHBOARD_SETTINGS, DashboardSettings } from '@/components/dashboard/DashboardCustomization';
 import ExpenseClassificationChart from '@/components/dashboard/ExpenseClassificationChart';
 import MonthlyComparisonChart from '@/components/dashboard/MonthlyComparisonChart';
+import { useUserPlan } from '@/hooks/useUserPlan';
 
 export default function Dashboard() {
   const navigate = useNavigate();
