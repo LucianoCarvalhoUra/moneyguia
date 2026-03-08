@@ -219,7 +219,8 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
 
     // If recurring, create 12 months of income
     if (income.isRecurring) {
-      for (let i = 0; i < 12; i++) {
+      const totalInstallments = 12;
+      for (let i = 0; i < totalInstallments; i++) {
         const receiveDate = new Date(income.receiveDate);
         receiveDate.setMonth(receiveDate.getMonth() + i);
         
@@ -236,6 +237,8 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           account_id: income.accountId || null,
           recurrence_id: recurrenceId,
           exclude_from_calculations: income.excludeFromCalculations ?? false,
+          current_installment: i + 1,
+          installments: totalInstallments,
         });
       }
     } else {
