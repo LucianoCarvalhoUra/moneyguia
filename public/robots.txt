@@ -12,3 +12,13 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /expenses
+Disallow: /incomes
+Disallow: /settings
+Disallow: /reports
+Disallow: /goals
+Disallow: /accounts
+Disallow: /checkout
+
+Sitemap: https://keepmoney.lovable.app/sitemap.xml
