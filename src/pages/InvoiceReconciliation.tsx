@@ -19,7 +19,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, CreditCard, AlertCircle, CheckCircle2, Calculator } from 'lucide-react';
+import { CalendarIcon, CreditCard, AlertCircle, CheckCircle2, Calculator, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { CategoryIcon } from '@/components/CategoryIcon';
@@ -97,6 +97,37 @@ export default function InvoiceReconciliation() {
       );
     });
   }, [expenses, selectedCardId, selectedMonth, selectedYear]);
+
+  // Filter installment expenses for the selected card (all time, not just selected month)
+  const installmentExpenses = useMemo(() => {
+    if (!selectedCardId) return [];
+    
+    return expenses.filter((expense) => 
+      expense.cardId === selectedCardId &&
+      expense.paymentMethod === 'credit_card' &&
+      expense.installments && expense.installments > 1
+    );
+  }, [expenses, selectedCardId]);
+
+  // Group installment expenses by recurrenceId or description
+  const groupedInstallments = useMemo(() => {
+    const groups: Record<string, typeof installmentExpenses> = {};
+    
+    installmentExpenses.forEach((expense) => {
+      const key = expense.recurrenceId || expense.description.replace(/\s*\(\d+\/\d+\)\s*$/, '');
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(expense);
+    });
+
+    // Sort each group by currentInstallment
+    Object.values(groups).forEach(group => {
+      group.sort((a, b) => (a.currentInstallment || 0) - (b.currentInstallment || 0));
+    });
+
+    return groups;
+  }, [installmentExpenses]);
+
+  const [showInstallments, setShowInstallments] = useState(false);
 
   const handleConfirmReconciliation = async () => {
     if (!hasDifference || difference === 0) {
@@ -525,6 +556,114 @@ export default function InvoiceReconciliation() {
               })}
             </div>
           </CardContent>
+        </Card>
+      )}
+      {/* Installment Expenses Toggle */}
+      {selectedCardId && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-primary" />
+                Despesas Parceladas
+              </CardTitle>
+              <CardDescription>
+                {Object.keys(groupedInstallments).length} compra(s) parcelada(s) no cartão {selectedCard?.brand} •••• {selectedCard?.lastFourDigits}
+              </CardDescription>
+            </div>
+            <Button
+              className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
+              size="sm"
+              onClick={() => setShowInstallments(!showInstallments)}
+            >
+              {showInstallments ? 'Ocultar' : 'Visualizar'}
+            </Button>
+          </CardHeader>
+          {showInstallments && (
+            <CardContent>
+              {Object.keys(groupedInstallments).length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Layers className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Nenhuma despesa parcelada</p>
+                  <p className="text-sm">Não há parcelas registradas neste cartão</p>
+                </div>
+              ) : (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {Object.entries(groupedInstallments).map(([key, group]) => {
+                    const firstExpense = group[0];
+                    const totalInstallments = firstExpense.installments || group.length;
+                    const paidCount = group.filter(e => e.isPaid).length;
+                    const totalAmount = group.reduce((sum, e) => sum + e.amount, 0);
+                    const category = categories.find(c => c.id === firstExpense.categoryId);
+                    const baseDescription = firstExpense.description.replace(/\s*\(\d+\/\d+\)\s*$/, '');
+                    const progress = (paidCount / totalInstallments) * 100;
+
+                    return (
+                      <div key={key} className="rounded-xl border border-border/50 overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 bg-muted/30">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <CategoryIcon iconName={category?.icon || 'Package'} className="w-5 h-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground">{baseDescription}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {paidCount}/{totalInstallments} parcelas pagas • Total: {formatCurrency(totalAmount)}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-sm font-medium text-muted-foreground">
+                            {formatCurrency(firstExpense.amount)}/mês
+                          </span>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="px-4 py-2 bg-muted/10">
+                          <div className="w-full h-2 rounded-full bg-muted">
+                            <div
+                              className="h-2 rounded-full bg-primary transition-all"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                        {/* Installment details */}
+                        <div className="divide-y divide-border/30">
+                          {group.map((expense) => (
+                            <div
+                              key={expense.id}
+                              className={cn(
+                                "flex items-center justify-between px-4 py-2.5 text-sm",
+                                expense.isPaid ? "opacity-60" : ""
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                {expense.isPaid ? (
+                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                ) : (
+                                  <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30" />
+                                )}
+                                <span className="text-foreground">
+                                  Parcela {expense.currentInstallment || '?'}/{totalInstallments}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span className="text-muted-foreground">
+                                  {format(new Date(expense.dueDate), 'dd/MM/yyyy')}
+                                </span>
+                                <span className="font-medium text-foreground w-24 text-right">
+                                  {formatCurrency(expense.amount)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          )}
         </Card>
       )}
     </div>
