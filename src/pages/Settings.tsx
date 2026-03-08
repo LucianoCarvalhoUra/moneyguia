@@ -361,37 +361,8 @@ export default function Settings() {
         <CardContent className="space-y-4">
           <ChangePasswordForm />
 
-          <div className="border-t pt-4 space-y-3">
-            <h4 className="font-medium">Teste de Assinatura (temporário)</h4>
-            <p className="text-sm text-muted-foreground">
-              Plano atual: <span className="font-semibold text-foreground">{subscriptionPlan === 'free' ? 'Essencial' : subscriptionPlan === 'premium' ? 'Pro' : subscriptionPlan === 'total' ? 'Premium' : subscriptionPlan}</span>
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { type: 'free' as const, label: 'Gratuito' },
-                { type: 'pro' as const, label: 'Pro' },
-                { type: 'premium' as const, label: 'Premium' },
-              ].map(({ type, label }) => (
-                <Button
-                  key={type}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSimulateSubscription(type)}
-                  disabled={isSimulatingSubscription}
-                  className={cn(
-                    (subscriptionPlan === 'free' && type === 'free') ||
-                    (subscriptionPlan === 'premium' && type === 'pro') ||
-                    (subscriptionPlan === 'total' && type === 'premium')
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : ''
-                  )}
-                >
-                  {isSimulatingSubscription ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
-                  {label}
-                </Button>
-              ))}
-            </div>
-          </div>
+
+
 
           <div className="border-t pt-4">
             <h4 className="font-medium text-destructive mb-2">Zona de Perigo</h4>
