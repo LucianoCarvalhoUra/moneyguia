@@ -45,14 +45,20 @@ export function DashboardAI() {
     const monthEnd = endOfMonth(now);
     const currentMonth = format(now, 'MMMM yyyy', { locale: ptBR });
 
+    const safeParseDate = (d: any): Date => {
+      if (d instanceof Date) return d;
+      if (typeof d === 'string') return parseISO(d);
+      return new Date(d);
+    };
+
     const monthlyExpenses = expenses.filter(e => {
       try {
-        return isWithinInterval(parseISO(e.dueDate as unknown as string), { start: monthStart, end: monthEnd });
+        return isWithinInterval(safeParseDate(e.dueDate), { start: monthStart, end: monthEnd });
       } catch { return false; }
     });
     const monthlyIncomes = incomes.filter(i => {
       try {
-        return isWithinInterval(parseISO(i.receiveDate as unknown as string), { start: monthStart, end: monthEnd });
+        return isWithinInterval(safeParseDate(i.receiveDate), { start: monthStart, end: monthEnd });
       } catch { return false; }
     });
 
