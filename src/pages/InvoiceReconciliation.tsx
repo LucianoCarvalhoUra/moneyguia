@@ -156,7 +156,7 @@ export default function InvoiceReconciliation() {
       await addExpense({
         categoryId: adjustmentCategory,
         subcategoryId: adjustmentSubcategory || undefined,
-        description: `Ajuste de Fatura - ${selectedCard?.brand} ****${selectedCard?.lastFourDigits} (${MONTHS[selectedMonth]}/${selectedYear})`,
+        description: `Ajuste de Fatura${selectedCard ? ` - ${selectedCard.brand} ****${selectedCard.lastFourDigits}` : ''} (${MONTHS[selectedMonth]}/${selectedYear})`,
         amount: Math.abs(difference),
         expenseDate: new Date(),
         dueDate: adjustmentPaymentDate,
