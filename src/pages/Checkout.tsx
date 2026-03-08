@@ -474,26 +474,48 @@ export default function Checkout() {
 
           {/* Order summary */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24 rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <h3 className="text-lg font-bold">Resumo do pedido</h3>
-              <div className="mt-4 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Plano</span>
-                  <span className="font-semibold">{plan?.name}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Ciclo</span>
-                  <span className="font-medium capitalize">{priceLabel}</span>
-                </div>
-                <div className="border-t border-border pt-3">
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Total</span>
-                    <span className="text-xl font-extrabold text-primary">
-                      R$ {price.toFixed(2).replace(".", ",")}
-                    </span>
+            <div className="sticky top-24 space-y-4">
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h3 className="text-lg font-bold">Resumo do pedido</h3>
+                <div className="mt-4 space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Plano</span>
+                    <span className="font-semibold">{plan?.name}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Ciclo</span>
+                    <span className="font-medium capitalize">{priceLabel}</span>
+                  </div>
+                  <div className="border-t border-border pt-3">
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Total</span>
+                      <span className="text-xl font-extrabold text-primary">
+                        R$ {price.toFixed(2).replace(".", ",")}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {stepIndex > 0 && step !== "confirmation" && (
+                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold">Seus dados</h3>
+                    <Button variant="ghost" size="sm" onClick={() => setStep("info")} className="h-auto px-2 py-1 text-xs text-primary hover:text-primary/80">
+                      Editar
+                    </Button>
+                  </div>
+                  <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                    <p className="font-medium text-foreground">{form.fullName}</p>
+                    <p>{form.email}</p>
+                    <p>CPF: {form.cpf}</p>
+                    <p>{form.phone}</p>
+                    <p className="pt-1">{form.street}, {form.number}{form.complement ? ` - ${form.complement}` : ""}</p>
+                    <p>{form.neighborhood} - {form.city}/{form.state}</p>
+                    <p>CEP: {form.zipCode}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
