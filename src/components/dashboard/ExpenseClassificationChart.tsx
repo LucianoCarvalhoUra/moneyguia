@@ -59,7 +59,8 @@ interface ExpenseClassification {
 }
 
 function classifyExpense(expense: ExpenseItem, metadata: Record<string, any>): ExpenseClassification {
-  const meta = metadata[expense.categoryName || ''] as any;
+  const catName = expense.categoryName || '';
+  const meta = metadata[catName] as any;
 
   if (meta) {
     const classification = normalizeClassification(meta.classification);
@@ -67,9 +68,43 @@ function classifyExpense(expense: ExpenseItem, metadata: Record<string, any>): E
     return { type: classification, recurrence };
   }
 
-  // Heuristic fallback
-  const recurrence = (expense.isRecurring || (expense.installments && expense.installments > 1)) ? 'fixo' : 'variavel';
-  const type = (expense.installments && expense.installments > 1) ? 'longo_prazo' : 'variavel';
+  // Enhanced heuristic fallback based on category name
+  const lower = catName.toLowerCase();
+  
+  let type = 'superfluo'; // default
+  let recurrence = 'variavel'; // default
+
+  // Essencial + Fixa
+  if (lower.match(/moradia|aluguel|condomínio|condominio|conta|básica|basica|dependente|iptu|taxa.*admin|transporte/)) {
+    type = 'essencial';
+    recurrence = 'fixo';
+  }
+  // Essencial + Variável
+  else if (lower.match(/mercado|supermercado|farmácia|farmacia|combustível|combustivel|alimentação|alimentacao|saúde|saude|benfeitoria|despesa.*apart/)) {
+    type = 'essencial';
+    recurrence = 'variavel';
+  }
+  // Longo Prazo
+  else if (lower.match(/investimento|poupança|poupanca|reserva|chamada.*capital|fundo.*reserva|previdência|previdencia|consórcio|consorcio|longo.*prazo|capital/)) {
+    type = 'longo_prazo';
+    recurrence = 'variavel';
+  }
+  // Supérfluo + Fixa (subscriptions)
+  else if (lower.match(/netflix|spotify|streaming|assinatura|academia|gym|clube/)) {
+    type = 'superfluo';
+    recurrence = 'fixo';
+  }
+  // Supérfluo + Variável
+  else if (lower.match(/pessoal|cartão|cartao|lazer|doaç|jogos|restaurante|bar|viagem|outros.*gasto|presente/)) {
+    type = 'superfluo';
+    recurrence = 'variavel';
+  }
+
+  // Override recurrence if expense is marked recurring
+  if (expense.isRecurring || (expense.installments && expense.installments > 1)) {
+    recurrence = 'fixo';
+  }
+
   return { type, recurrence };
 }
 
