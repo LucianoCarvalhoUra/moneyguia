@@ -23,7 +23,7 @@ import ExpenseClassificationChart from '@/components/dashboard/ExpenseClassifica
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses } = useFinance();
+  const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses, categories } = useFinance();
   const { getMonthlyIncomeTotal, incomes } = useIncome();
   const [formOpen, setFormOpen] = useState(false);
   
