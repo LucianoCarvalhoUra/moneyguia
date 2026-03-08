@@ -124,6 +124,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setReceiveDate(today);
         setAmount('');
         setIsReceived(false);
+        setAccountId('');
         setIsRecurring(false);
         setExcludeFromCalculations(false);
         setObservation('');
