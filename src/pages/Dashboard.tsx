@@ -28,7 +28,8 @@ export default function Dashboard() {
   const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses, categories } = useFinance();
   const { getMonthlyIncomeTotal, incomes } = useIncome();
   const [formOpen, setFormOpen] = useState(false);
-  
+  const { subscription, plan } = useUserPlan();
+  const [showSubAlert, setShowSubAlert] = useState(true);
   const now = new Date();
   const getInitialPeriod = () => {
     const monthParam = searchParams.get('month');
