@@ -139,19 +139,19 @@ ${catBreakdown.map(c => `- ${c.name}: ${fmt(c.total)}`).join('\n') || 'Nenhum ga
 ${incCatBreakdown.map(c => `- ${c.name}: ${fmt(c.total)}`).join('\n') || 'Nenhuma receita registrada'}
 
 === PRÓXIMAS CONTAS A PAGAR ===
-${unpaidBills.map(b => `- ${b.description}: ${fmt(Number(b.amount))} (vence ${format(new Date(b.dueDate as unknown as string), 'dd/MM/yyyy')})`).join('\n') || 'Nenhuma conta pendente'}
+${unpaidBills.map(b => `- [id:${b.id}] ${b.description}: ${fmt(Number(b.amount))} (vence ${format(new Date(b.dueDate as unknown as string), 'dd/MM/yyyy')})`).join('\n') || 'Nenhuma conta pendente'}
 
-=== DESPESAS DO MÊS (detalhado) ===
+=== DESPESAS DO MÊS (detalhado, com IDs para edição/exclusão) ===
 ${monthlyExpenses.slice(0, 30).map(e => {
   const cat = categories.find(c => c.id === e.categoryId)?.name || 'Sem categoria';
   const subcat = e.subcategoryId ? subcategories.find(s => s.id === e.subcategoryId)?.name : null;
-  return `- ${e.description} | ${cat}${subcat ? ' > ' + subcat : ''} | ${fmt(Number(e.amount))} | ${e.isPaid ? 'Pago' : 'Pendente'} | Venc: ${format(new Date(e.dueDate as unknown as string), 'dd/MM/yyyy')}${e.isRecurring ? ' | Recorrente' : ''}${e.installments ? ` | Parcela ${e.currentInstallment}/${e.installments}` : ''}`;
+  return `- [id:${e.id}] ${e.description} | ${cat}${subcat ? ' > ' + subcat : ''} | ${fmt(Number(e.amount))} | ${e.isPaid ? 'Pago' : 'Pendente'} | Venc: ${format(new Date(e.dueDate as unknown as string), 'dd/MM/yyyy')}${e.isRecurring ? ' | Recorrente' : ''}${e.installments ? ` | Parcela ${e.currentInstallment}/${e.installments}` : ''}`;
 }).join('\n') || 'Nenhuma despesa'}
 
-=== RECEITAS DO MÊS (detalhado) ===
+=== RECEITAS DO MÊS (detalhado, com IDs para edição/exclusão) ===
 ${monthlyIncomes.slice(0, 20).map(i => {
   const cat = incomeCategories.find(c => c.id === i.categoryId)?.name || 'Sem categoria';
-  return `- ${i.title} | ${cat} | ${fmt(Number(i.amount))} | ${i.isReceived ? 'Recebido' : 'Pendente'} | Data: ${format(new Date(i.receiveDate as unknown as string), 'dd/MM/yyyy')}`;
+  return `- [id:${i.id}] ${i.title} | ${cat} | ${fmt(Number(i.amount))} | ${i.isReceived ? 'Recebido' : 'Pendente'} | Data: ${format(new Date(i.receiveDate as unknown as string), 'dd/MM/yyyy')}`;
 }).join('\n') || 'Nenhuma receita'}
 
 === CONTAS E CARTÕES ===
