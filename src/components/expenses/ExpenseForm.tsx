@@ -191,25 +191,67 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
   const handleDelete = async () => {
     if (!expense) return;
+    
+    // If recurring, show scope dialog instead of simple confirm
+    if (expense.isRecurring && (expense.recurrenceId || (expense as any).recurrence_id)) {
+      setDeleteScopeDialogOpen(true);
+      return;
+    }
+    
     if (!confirm('Tem certeza que deseja excluir esta despesa?')) return;
     
     setIsSubmitting(true);
     try {
-      const recurrenceId = expense.recurrenceId;
       await removeExpense(expense.id);
-      
-      // Renumber remaining installments
-      if (recurrenceId) {
-        await renumberInstallments(recurrenceId);
-        await refreshData();
-      }
-      
       toast.success('Despesa excluída!');
       onOpenChange(false);
     } catch (error: any) {
       toast.error('Erro ao excluir: ' + error.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRecurrenceDelete = async (scope: 'single' | 'future' | 'all') => {
+    if (!expense) return;
+    
+    setIsSubmitting(true);
+    try {
+      const recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
+      const originalDueDate = expense.dueDate instanceof Date 
+        ? format(expense.dueDate, 'yyyy-MM-dd')
+        : String(expense.dueDate).split('T')[0];
+
+      if (scope === 'single') {
+        await removeExpense(expense.id);
+      } else if (scope === 'future') {
+        // Delete current + future
+        const { error } = await supabase.from('expenses')
+          .delete()
+          .eq('recurrence_id', recurrenceId)
+          .gte('due_date', originalDueDate);
+        if (error) throw error;
+      } else {
+        // Delete all in the series
+        const { error } = await supabase.from('expenses')
+          .delete()
+          .eq('recurrence_id', recurrenceId);
+        if (error) throw error;
+      }
+
+      // Renumber remaining installments if not deleting all
+      if (scope !== 'all' && recurrenceId) {
+        await renumberInstallments(recurrenceId);
+      }
+
+      await refreshData();
+      toast.success(scope === 'single' ? 'Despesa excluída!' : 'Despesas excluídas com sucesso!');
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error('Erro ao excluir: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+      setDeleteScopeDialogOpen(false);
     }
   };
 
