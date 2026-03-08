@@ -53,6 +53,54 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "create_category",
+      description: "Cria uma nova categoria de despesa para o usuário. Use quando o usuário confirmar que deseja criar uma nova categoria que não existe.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Nome da categoria" },
+          icon: { type: "string", description: "Emoji representativo da categoria (ex: 🚗, 🍔, 🏠)" },
+        },
+        required: ["name", "icon"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_subcategory",
+      description: "Cria uma nova subcategoria dentro de uma categoria de despesa existente.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Nome da subcategoria" },
+          category_id: { type: "string", description: "UUID da categoria pai" },
+        },
+        required: ["name", "category_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_income_category",
+      description: "Cria uma nova categoria de receita para o usuário. Use quando o usuário confirmar que deseja criar uma nova categoria de receita que não existe.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Nome da categoria de receita" },
+          icon: { type: "string", description: "Emoji representativo (ex: 💰, 💼, 📈)" },
+        },
+        required: ["name", "icon"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 async function executeToolCall(
@@ -104,6 +152,38 @@ async function executeToolCall(
         message: `Receita "${data.title}" de R$ ${Number(data.amount).toFixed(2)} criada com sucesso para ${data.receive_date}.`,
         data,
       });
+    }
+
+    if (toolName === "create_category") {
+      const { data, error } = await supabase.from("categories").insert({
+        user_id: userId,
+        name: args.name,
+        icon: args.icon || "📦",
+        color: "category-other",
+      }).select("id, name").single();
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({ success: true, message: `Categoria "${data.name}" criada com sucesso.`, data });
+    }
+
+    if (toolName === "create_subcategory") {
+      const { data, error } = await supabase.from("subcategories").insert({
+        user_id: userId,
+        name: args.name,
+        category_id: args.category_id,
+      }).select("id, name").single();
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({ success: true, message: `Subcategoria "${data.name}" criada com sucesso.`, data });
+    }
+
+    if (toolName === "create_income_category") {
+      const { data, error } = await supabase.from("income_categories").insert({
+        user_id: userId,
+        name: args.name,
+        icon: args.icon || "💰",
+        color: "category-income-other",
+      }).select("id, name").single();
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({ success: true, message: `Categoria de receita "${data.name}" criada com sucesso.`, data });
     }
 
     return JSON.stringify({ success: false, error: "Tool desconhecida" });
@@ -166,8 +246,13 @@ CRIAÇÃO DE DESPESAS/RECEITAS:
 - IMPORTANTE: Use SEMPRE os IDs das categorias e subcategorias listadas acima. Escolha a categoria e subcategoria mais adequada com base na descrição do usuário.
   - Exemplo: "gastei 20 reais em uber" → use a categoria "Transporte" e a subcategoria correspondente, usando seus IDs.
   - Exemplo: "gastei 50 no mercado" → use a categoria "Alimentação" e a subcategoria correspondente, usando seus IDs.
-- Se não houver uma categoria adequada, use a mais próxima disponível.
-- Após criar, confirme com os detalhes do que foi criado.
+- **QUANDO NÃO HOUVER CATEGORIA ADEQUADA**: NÃO crie a despesa/receita sem categoria. Em vez disso, PARE e pergunte ao usuário:
+  1. Informe que não encontrou uma categoria adequada nas categorias existentes.
+  2. Liste as categorias disponíveis para o usuário escolher.
+  3. Pergunte se o usuário quer usar uma das existentes ou se deseja que você crie uma nova categoria (e opcionalmente subcategoria).
+  4. Se o usuário pedir para criar nova categoria, use a ferramenta create_category primeiro, depois crie a despesa/receita com a categoria criada.
+  5. Só prossiga com o cadastro após o usuário confirmar a categoria.
+- Após criar, confirme com os detalhes do que foi criado (incluindo categoria e subcategoria usadas).
 - Se o usuário falar algo como "gastei 50 reais no mercado", interprete como uma despesa a ser criada.
 - Se o usuário falar algo como "recebi 5000 de salário", interprete como uma receita a ser criada.`;
 
