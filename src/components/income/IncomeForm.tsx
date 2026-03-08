@@ -54,6 +54,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [deleteScopeDialogOpen, setDeleteScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
   const [recurrenceUsage, setRecurrenceUsage] = useState(0);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -164,24 +165,64 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
   const handleDelete = async () => {
     if (!income) return;
+    
+    if (income.isRecurring && (income.recurrenceId || (income as any).recurrence_id)) {
+      setDeleteScopeDialogOpen(true);
+      return;
+    }
+    
     if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
     
     setIsSubmitting(true);
     try {
-      const recurrenceId = income.recurrenceId;
       await removeIncome(income.id);
-      
-      if (recurrenceId) {
-        await renumberIncomeInstallments(recurrenceId);
-      }
-      
       await refreshData();
-      toast.success('Receita excluída e sincronizada com o banco.');
+      toast.success('Receita excluída!');
       onOpenChange(false);
     } catch (error: any) {
       toast.error('Erro ao excluir: ' + error.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRecurrenceDelete = async (scope: 'single' | 'future' | 'all') => {
+    if (!income) return;
+    
+    setIsSubmitting(true);
+    try {
+      const recurrenceId = income.recurrenceId || (income as any).recurrence_id;
+      const originalReceiveDate = income.receiveDate instanceof Date 
+        ? format(income.receiveDate, 'yyyy-MM-dd')
+        : String(income.receiveDate).split('T')[0];
+
+      if (scope === 'single') {
+        await removeIncome(income.id);
+      } else if (scope === 'future') {
+        const { error } = await supabase.from('incomes')
+          .delete()
+          .eq('recurrence_id', recurrenceId)
+          .gte('receive_date', originalReceiveDate);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('incomes')
+          .delete()
+          .eq('recurrence_id', recurrenceId);
+        if (error) throw error;
+      }
+
+      if (scope !== 'all' && recurrenceId) {
+        await renumberIncomeInstallments(recurrenceId);
+      }
+
+      await refreshData();
+      toast.success(scope === 'single' ? 'Receita excluída!' : 'Receitas excluídas com sucesso!');
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error('Erro ao excluir: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+      setDeleteScopeDialogOpen(false);
     }
   };
 
@@ -258,6 +299,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     
     setIsSubmitting(true);
     try {
+      // Use original receive_date as anchor for future scope
+      const originalReceiveDate = income.receiveDate instanceof Date 
+        ? format(income.receiveDate, 'yyyy-MM-dd')
+        : String(income.receiveDate).split('T')[0];
+
       // 1. Atualiza a receita atual
       const { error: singleError } = await supabase.from('incomes').update(pendingData).eq('id', income.id);
       if (singleError) throw singleError;
@@ -276,8 +322,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         let query = supabase.from('incomes').update(batchData).eq('recurrence_id', recurrenceId).neq('id', income.id);
 
         if (scope === 'future') {
-          const anchorDate = pendingData.receive_date;
-          query = query.gte('receive_date', anchorDate);
+          // Use ORIGINAL date as anchor
+          query = query.gte('receive_date', originalReceiveDate);
         }
 
         const { error } = await query;
@@ -583,13 +629,45 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={deleteScopeDialogOpen} onOpenChange={setDeleteScopeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Recorrência</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta é uma receita recorrente. Como deseja excluir?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-4">
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('single')}>
+              <Calendar className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Apenas esta</div>
+                <div className="text-xs text-muted-foreground">Excluir somente a receita atual</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('future')}>
+              <CalendarClock className="w-4 h-4 mr-3 text-destructive" />
+              <div className="text-left">
+                <div className="font-medium">Esta e próximas</div>
+                <div className="text-xs text-muted-foreground">Excluir desta data em diante</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('all')}>
+              <CalendarDays className="w-4 h-4 mr-3 text-destructive" />
+              <div className="text-left">
+                <div className="font-medium">Todas</div>
+                <div className="text-xs text-muted-foreground">Excluir toda a série</div>
+              </div>
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
-
-
-
-
-
 
 

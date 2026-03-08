@@ -59,6 +59,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [launchDate, setLaunchDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [deleteScopeDialogOpen, setDeleteScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
   const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
   const [recurrenceUsage, setRecurrenceUsage] = useState(0);
@@ -190,25 +191,67 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
   const handleDelete = async () => {
     if (!expense) return;
+    
+    // If recurring, show scope dialog instead of simple confirm
+    if (expense.isRecurring && (expense.recurrenceId || (expense as any).recurrence_id)) {
+      setDeleteScopeDialogOpen(true);
+      return;
+    }
+    
     if (!confirm('Tem certeza que deseja excluir esta despesa?')) return;
     
     setIsSubmitting(true);
     try {
-      const recurrenceId = expense.recurrenceId;
       await removeExpense(expense.id);
-      
-      // Renumber remaining installments
-      if (recurrenceId) {
-        await renumberInstallments(recurrenceId);
-        await refreshData();
-      }
-      
       toast.success('Despesa excluída!');
       onOpenChange(false);
     } catch (error: any) {
       toast.error('Erro ao excluir: ' + error.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRecurrenceDelete = async (scope: 'single' | 'future' | 'all') => {
+    if (!expense) return;
+    
+    setIsSubmitting(true);
+    try {
+      const recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
+      const originalDueDate = expense.dueDate instanceof Date 
+        ? format(expense.dueDate, 'yyyy-MM-dd')
+        : String(expense.dueDate).split('T')[0];
+
+      if (scope === 'single') {
+        await removeExpense(expense.id);
+      } else if (scope === 'future') {
+        // Delete current + future
+        const { error } = await supabase.from('expenses')
+          .delete()
+          .eq('recurrence_id', recurrenceId)
+          .gte('due_date', originalDueDate);
+        if (error) throw error;
+      } else {
+        // Delete all in the series
+        const { error } = await supabase.from('expenses')
+          .delete()
+          .eq('recurrence_id', recurrenceId);
+        if (error) throw error;
+      }
+
+      // Renumber remaining installments if not deleting all
+      if (scope !== 'all' && recurrenceId) {
+        await renumberInstallments(recurrenceId);
+      }
+
+      await refreshData();
+      toast.success(scope === 'single' ? 'Despesa excluída!' : 'Despesas excluídas com sucesso!');
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error('Erro ao excluir: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+      setDeleteScopeDialogOpen(false);
     }
   };
 
@@ -285,7 +328,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     
     setIsSubmitting(true);
     try {
-      // 1. Atualiza a despesa atual (sempre) para garantir que datas e dados estejam corretos
+      // Use original due_date as anchor for future scope (before updating current)
+      const originalDueDate = expense.dueDate instanceof Date 
+        ? format(expense.dueDate, 'yyyy-MM-dd')
+        : String(expense.dueDate).split('T')[0];
+
+      // 1. Atualiza a despesa atual
       const { error: singleError } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
       if (singleError) throw singleError;
 
@@ -303,8 +351,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         let query = supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId).neq('id', expense.id);
 
         if (scope === 'future') {
-          const dueDate = pendingData.due_date;
-          query = query.gte('due_date', dueDate);
+          // Use ORIGINAL date as anchor to correctly identify future items
+          query = query.gte('due_date', originalDueDate);
         }
 
         const { error } = await query;
@@ -673,14 +721,46 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={deleteScopeDialogOpen} onOpenChange={setDeleteScopeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Recorrência</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta é uma despesa recorrente. Como deseja excluir?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-4">
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('single')}>
+              <Calendar className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Apenas esta</div>
+                <div className="text-xs text-muted-foreground">Excluir somente a despesa atual</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('future')}>
+              <CalendarClock className="w-4 h-4 mr-3 text-destructive" />
+              <div className="text-left">
+                <div className="font-medium">Esta e próximas</div>
+                <div className="text-xs text-muted-foreground">Excluir desta data em diante</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('all')}>
+              <CalendarDays className="w-4 h-4 mr-3 text-destructive" />
+              <div className="text-left">
+                <div className="font-medium">Todas</div>
+                <div className="text-xs text-muted-foreground">Excluir toda a série</div>
+              </div>
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
-
-
-
-
-
 
 
 

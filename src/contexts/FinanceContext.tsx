@@ -365,6 +365,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       exclude_from_calculations: boolean;
     }> = [];
     
+    const formatDateStr = (d: Date) => 
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     if (expense.isRecurring && expense.installments && expense.installments > 1) {
       for (let i = 0; i < expense.installments; i++) {
         const expenseDate = new Date(expense.expenseDate);
@@ -379,8 +382,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           subcategory_id: expense.subcategoryId || null,
           description: `${expense.description} (${i + 1}/${expense.installments})`,
           amount: expense.amount,
-          expense_date: expenseDate.toISOString().split('T')[0],
-          due_date: dueDate.toISOString().split('T')[0],
+          expense_date: formatDateStr(expenseDate),
+          due_date: formatDateStr(dueDate),
           payment_method: expense.paymentMethod,
           account_id: expense.accountId || null,
           card_id: expense.cardId || null,
@@ -399,8 +402,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         subcategory_id: expense.subcategoryId || null,
         description: expense.description,
         amount: expense.amount,
-        expense_date: expense.expenseDate.toISOString().split('T')[0],
-        due_date: expense.dueDate.toISOString().split('T')[0],
+        expense_date: formatDateStr(expense.expenseDate),
+        due_date: formatDateStr(expense.dueDate),
         payment_method: expense.paymentMethod,
         account_id: expense.accountId || null,
         card_id: expense.cardId || null,
