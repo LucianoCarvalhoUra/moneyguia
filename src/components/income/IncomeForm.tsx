@@ -23,6 +23,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Income } from '@/types/income';
 import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock } from 'lucide-react';
+import { CalculatorPopover } from '@/components/ui/calculator-popover';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { getPlanLimit, getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
