@@ -38,6 +38,13 @@ export function useUserPlan() {
   const { user } = useAuth();
   const [plan, setPlan] = useState<PlanLimits>(FREE_DEFAULTS);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const handler = () => setRefreshKey((k) => k + 1);
+    window.addEventListener("user-plan-changed", handler);
+    return () => window.removeEventListener("user-plan-changed", handler);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -84,7 +91,7 @@ export function useUserPlan() {
     };
 
     fetchPlan();
-  }, [user]);
+  }, [user, refreshKey]);
 
   const canAccess = (feature: keyof Pick<PlanLimits, "hasAiClassification" | "hasAdvancedReports" | "hasExport" | "hasGoals" | "hasNotifications">) => {
     return plan[feature];
