@@ -275,6 +275,7 @@ export default function Incomes() {
   };
 
   const handleEdit = (income: Income) => {
+    setDuplicatingIncome(null);
     setEditingIncome(income);
     setIsFormOpen(true);
   };
