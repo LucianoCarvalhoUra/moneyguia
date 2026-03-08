@@ -44,9 +44,7 @@ const FREE_DEFAULTS: PlanLimits = {
 
 export function useUserPlan() {
   const { user } = useAuth();
-  const [plan, setPlan] = useState<PlanLimits>(FREE_DEFAULTS);
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
 
   useEffect(() => {
     const handler = () => setRefreshKey((k) => k + 1);
