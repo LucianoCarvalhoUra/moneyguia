@@ -436,7 +436,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         subcategory_id: subcategoryId || null,
         payment_method: paymentMethod,
         card_id: paymentMethod === 'credit_card' && cardId ? cardId : null,
-        account_id: paymentMethod === 'account' && accountId ? accountId : null,
+        account_id: (paymentMethod === 'account' || paymentMethod === 'pix') && accountId ? accountId : null,
         is_paid: isPaid,
         is_recurring: isRecurring,
         installments: isRecurring ? parseInt(installments) : null,

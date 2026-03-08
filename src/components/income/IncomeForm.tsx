@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useIncome } from '@/contexts/IncomeContext';
+import { useFinance } from '@/contexts/FinanceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
