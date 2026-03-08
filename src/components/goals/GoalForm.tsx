@@ -1,13 +1,13 @@
-// Componente de formulário para objetivos
 import { useState, useEffect, useMemo } from 'react';
 import { useGoals } from '@/contexts/GoalsContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CategoryIcon, iconMap } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
-import { Goal } from '@/types/goals';
+import { Goal, GoalCategory, GoalPriority, GOAL_CATEGORIES } from '@/types/goals';
 import { Loader2, Calculator, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInMonths } from 'date-fns';
@@ -19,6 +19,12 @@ const AVAILABLE_COLORS = [
 ];
 
 const AVAILABLE_ICONS = Object.keys(iconMap);
+
+const PRIORITY_OPTIONS: { value: GoalPriority; label: string }[] = [
+  { value: 'low', label: 'Baixa' },
+  { value: 'medium', label: 'Média' },
+  { value: 'high', label: 'Alta' },
+];
 
 interface GoalFormProps {
   open: boolean;
@@ -34,30 +40,23 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
   const [deadline, setDeadline] = useState('');
   const [icon, setIcon] = useState('Target');
   const [color, setColor] = useState('blue-500');
+  const [category, setCategory] = useState<GoalCategory>('outros');
+  const [priority, setPriority] = useState<GoalPriority>('medium');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formatCurrencyInput = (value: string) => {
     const numericValue = value.replace(/\D/g, '');
     const floatValue = Number(numericValue) / 100;
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(floatValue);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(floatValue);
   };
 
-  // Calculate monthly savings needed
   const monthlyProjection = useMemo(() => {
     if (!targetAmount || !deadline) return 0;
-    
     const target = parseFloat(targetAmount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
     const current = parseFloat(currentAmount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
     const remaining = Math.max(0, target - current);
-    
-    const today = new Date();
-    const targetDate = new Date(deadline);
-    const months = differenceInMonths(targetDate, today);
-    
-    if (months <= 0) return remaining; // If due now or past, need full amount
+    const months = differenceInMonths(new Date(deadline), new Date());
+    if (months <= 0) return remaining;
     return remaining / months;
   }, [targetAmount, currentAmount, deadline]);
 
@@ -69,6 +68,8 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
       setDeadline(goal.deadline);
       setIcon(goal.icon);
       setColor(goal.color);
+      setCategory(goal.category);
+      setPriority(goal.priority);
     } else {
       resetForm();
     }
@@ -81,6 +82,8 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
     setDeadline('');
     setIcon('Target');
     setColor('blue-500');
+    setCategory('outros');
+    setPriority('medium');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,6 +102,9 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
         deadline,
         icon,
         color,
+        status: goal?.status || 'active' as const,
+        category,
+        priority,
       };
 
       if (goal) {
@@ -116,9 +122,8 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
     }
   };
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-  };
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -128,45 +133,69 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Nome do Objetivo</Label>
+            <Label>Nome do Objetivo *</Label>
             <Input placeholder="Ex: Casa Própria" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Valor Alvo</Label>
-              <Input 
-                placeholder="R$ 0,00" 
-                value={targetAmount} 
+              <Label>Categoria</Label>
+              <Select value={category} onValueChange={(v) => setCategory(v as GoalCategory)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {GOAL_CATEGORIES.map(c => (
+                    <SelectItem key={c.value} value={c.value}>
+                      <div className="flex items-center gap-2">
+                        <CategoryIcon iconName={c.icon} className={cn("w-4 h-4", `text-${c.color}`)} />
+                        {c.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Prioridade</Label>
+              <Select value={priority} onValueChange={(v) => setPriority(v as GoalPriority)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PRIORITY_OPTIONS.map(p => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Valor Alvo *</Label>
+              <Input
+                placeholder="R$ 0,00"
+                value={targetAmount}
                 onChange={(e) => setTargetAmount(formatCurrencyInput(e.target.value))}
                 className="text-right font-medium"
               />
             </div>
             <div className="space-y-2">
-              <Label>Data Limite</Label>
+              <Label>Data Limite *</Label>
               <div className="relative">
                 <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  type="date" 
-                  value={deadline} 
-                  onChange={(e) => setDeadline(e.target.value)} 
-                  className="pl-9"
-                />
+                <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="pl-9" />
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>Valor Inicial (Já guardado)</Label>
-            <Input 
-              placeholder="R$ 0,00" 
-              value={currentAmount} 
+            <Input
+              placeholder="R$ 0,00"
+              value={currentAmount}
               onChange={(e) => setCurrentAmount(formatCurrencyInput(e.target.value))}
               className="text-right font-medium"
             />
           </div>
 
-          {/* Calculation Feedback */}
           {monthlyProjection > 0 && (
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-start gap-3">
               <div className="p-2 bg-primary/10 rounded-full">
@@ -175,7 +204,7 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
               <div>
                 <p className="text-sm font-medium text-primary">Planejamento Mensal</p>
                 <p className="text-xs text-muted-foreground">
-                  Para atingir sua meta até a data limite, você precisa guardar aproximadamente <span className="font-bold text-foreground">{formatCurrency(monthlyProjection)}</span> por mês.
+                  Guarde aproximadamente <span className="font-bold text-foreground">{formatCurrency(monthlyProjection)}</span> por mês.
                 </p>
               </div>
             </div>
@@ -191,8 +220,8 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
                   onClick={() => setIcon(ic)}
                   className={cn(
                     'w-10 h-10 rounded-lg flex items-center justify-center transition-all',
-                    icon === ic 
-                      ? `bg-${color}/20 text-${color} ring-2 ring-${color} ring-offset-1` 
+                    icon === ic
+                      ? `bg-${color}/20 text-${color} ring-2 ring-${color} ring-offset-1`
                       : 'text-muted-foreground hover:bg-muted'
                   )}
                 >
