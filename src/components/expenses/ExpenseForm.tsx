@@ -421,12 +421,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-80px)]">
           {/* Row 1: Descrição + Valor */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-2 space-y-1.5">
+            <div key={`desc-${shakeKey}`} className={cn("sm:col-span-2 space-y-1.5", showErrors && !description && "animate-shake")}>
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !description ? "text-destructive" : "text-muted-foreground")}>Descrição *</Label>
               <Input value={description} onChange={e => setDescription(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !description && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Supermercado" />
               {showErrors && !description && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
-            <div className="space-y-1.5">
+            <div key={`amt-${shakeKey}`} className={cn("space-y-1.5", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "animate-shake")}>
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 ? "text-destructive" : "text-muted-foreground")}>Valor *</Label>
               <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card text-right font-semibold transition-colors", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "border-destructive ring-1 ring-destructive/30")} placeholder="R$ 0,00" />
               {showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && <span className="text-xs text-destructive">Campo obrigatório</span>}
