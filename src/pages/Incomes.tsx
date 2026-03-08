@@ -457,7 +457,7 @@ export default function Incomes() {
                   const isReceived = income.isReceived;
                   
                   return (
-                    <TableRow key={income.id}>
+                    <TableRow key={income.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleEdit(income)}>
                       <TableCell className="font-medium">
                          <div className="flex items-center gap-2">
                           {income.excludeFromCalculations && (
