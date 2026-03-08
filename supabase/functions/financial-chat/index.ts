@@ -101,6 +101,78 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "update_expense",
+      description: "Edita/atualiza uma despesa existente. Use quando o usuário pedir para alterar valor, descrição, data, categoria ou status de pagamento de uma despesa.",
+      parameters: {
+        type: "object",
+        properties: {
+          expense_id: { type: "string", description: "UUID da despesa a ser editada (use os IDs das despesas listadas no contexto financeiro)" },
+          description: { type: "string", description: "Nova descrição (opcional)" },
+          amount: { type: "number", description: "Novo valor (opcional)" },
+          due_date: { type: "string", description: "Nova data de vencimento YYYY-MM-DD (opcional)" },
+          category_id: { type: "string", description: "Novo UUID da categoria (opcional)" },
+          subcategory_id: { type: "string", description: "Novo UUID da subcategoria (opcional)" },
+          is_paid: { type: "boolean", description: "Marcar como pago/não pago (opcional)" },
+          payment_method: { type: "string", enum: ["pix", "account", "credit_card"], description: "Nova forma de pagamento (opcional)" },
+        },
+        required: ["expense_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_expense",
+      description: "Exclui uma despesa existente. Use quando o usuário pedir para remover/excluir/apagar uma despesa. SEMPRE confirme com o usuário antes de excluir.",
+      parameters: {
+        type: "object",
+        properties: {
+          expense_id: { type: "string", description: "UUID da despesa a ser excluída" },
+        },
+        required: ["expense_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_income",
+      description: "Edita/atualiza uma receita existente. Use quando o usuário pedir para alterar valor, título, data, categoria ou status de recebimento de uma receita.",
+      parameters: {
+        type: "object",
+        properties: {
+          income_id: { type: "string", description: "UUID da receita a ser editada (use os IDs das receitas listadas no contexto financeiro)" },
+          title: { type: "string", description: "Novo título (opcional)" },
+          amount: { type: "number", description: "Novo valor (opcional)" },
+          receive_date: { type: "string", description: "Nova data de recebimento YYYY-MM-DD (opcional)" },
+          category_id: { type: "string", description: "Novo UUID da categoria (opcional)" },
+          is_received: { type: "boolean", description: "Marcar como recebido/não recebido (opcional)" },
+        },
+        required: ["income_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_income",
+      description: "Exclui uma receita existente. Use quando o usuário pedir para remover/excluir/apagar uma receita. SEMPRE confirme com o usuário antes de excluir.",
+      parameters: {
+        type: "object",
+        properties: {
+          income_id: { type: "string", description: "UUID da receita a ser excluída" },
+        },
+        required: ["income_id"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 async function executeToolCall(
@@ -175,7 +247,92 @@ async function executeToolCall(
       return JSON.stringify({ success: true, message: `Subcategoria "${data.name}" criada com sucesso.`, data });
     }
 
-    if (toolName === "create_income_category") {
+    if (toolName === "update_expense") {
+      const updateData: any = {};
+      if (args.description !== undefined) updateData.description = args.description;
+      if (args.amount !== undefined) updateData.amount = args.amount;
+      if (args.due_date !== undefined) { updateData.due_date = args.due_date; updateData.expense_date = args.due_date; }
+      if (args.category_id !== undefined) updateData.category_id = args.category_id;
+      if (args.subcategory_id !== undefined) updateData.subcategory_id = args.subcategory_id;
+      if (args.is_paid !== undefined) updateData.is_paid = args.is_paid;
+      if (args.payment_method !== undefined) updateData.payment_method = args.payment_method;
+
+      const { data, error } = await supabase.from("expenses")
+        .update(updateData)
+        .eq("id", args.expense_id)
+        .eq("user_id", userId)
+        .select("id, description, amount, due_date, is_paid")
+        .single();
+
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({
+        success: true,
+        message: `Despesa "${data.description}" atualizada com sucesso. Valor: R$ ${Number(data.amount).toFixed(2)}, Vencimento: ${data.due_date}, Status: ${data.is_paid ? "Pago" : "Pendente"}.`,
+        data,
+      });
+    }
+
+    if (toolName === "delete_expense") {
+      const { data: expense } = await supabase.from("expenses")
+        .select("description, amount")
+        .eq("id", args.expense_id)
+        .eq("user_id", userId)
+        .single();
+
+      const { error } = await supabase.from("expenses")
+        .delete()
+        .eq("id", args.expense_id)
+        .eq("user_id", userId);
+
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({
+        success: true,
+        message: `Despesa "${expense?.description}" de R$ ${Number(expense?.amount).toFixed(2)} excluída com sucesso.`,
+      });
+    }
+
+    if (toolName === "update_income") {
+      const updateData: any = {};
+      if (args.title !== undefined) updateData.title = args.title;
+      if (args.amount !== undefined) updateData.amount = args.amount;
+      if (args.receive_date !== undefined) updateData.receive_date = args.receive_date;
+      if (args.category_id !== undefined) updateData.category_id = args.category_id;
+      if (args.is_received !== undefined) updateData.is_received = args.is_received;
+
+      const { data, error } = await supabase.from("incomes")
+        .update(updateData)
+        .eq("id", args.income_id)
+        .eq("user_id", userId)
+        .select("id, title, amount, receive_date, is_received")
+        .single();
+
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({
+        success: true,
+        message: `Receita "${data.title}" atualizada com sucesso. Valor: R$ ${Number(data.amount).toFixed(2)}, Data: ${data.receive_date}, Status: ${data.is_received ? "Recebido" : "Pendente"}.`,
+        data,
+      });
+    }
+
+    if (toolName === "delete_income") {
+      const { data: income } = await supabase.from("incomes")
+        .select("title, amount")
+        .eq("id", args.income_id)
+        .eq("user_id", userId)
+        .single();
+
+      const { error } = await supabase.from("incomes")
+        .delete()
+        .eq("id", args.income_id)
+        .eq("user_id", userId);
+
+      if (error) return JSON.stringify({ success: false, error: error.message });
+      return JSON.stringify({
+        success: true,
+        message: `Receita "${income?.title}" de R$ ${Number(income?.amount).toFixed(2)} excluída com sucesso.`,
+      });
+    }
+
       const { data, error } = await supabase.from("income_categories").insert({
         user_id: userId,
         name: args.name,
@@ -254,7 +411,19 @@ CRIAÇÃO DE DESPESAS/RECEITAS:
   5. Só prossiga com o cadastro após o usuário confirmar a categoria.
 - Após criar, confirme com os detalhes do que foi criado (incluindo categoria e subcategoria usadas).
 - Se o usuário falar algo como "gastei 50 reais no mercado", interprete como uma despesa a ser criada.
-- Se o usuário falar algo como "recebi 5000 de salário", interprete como uma receita a ser criada.`;
+- Se o usuário falar algo como "recebi 5000 de salário", interprete como uma receita a ser criada.
+
+EDIÇÃO DE DESPESAS/RECEITAS:
+- Quando o usuário pedir para editar, alterar, mudar ou corrigir uma despesa ou receita, use update_expense ou update_income.
+- Identifique a despesa/receita pelo nome, valor ou data mencionados pelo usuário, e use o ID correspondente dos dados listados acima.
+- Se houver ambiguidade (várias despesas com nome parecido), liste as opções e peça ao usuário para escolher.
+- Exemplos: "mude o aluguel para 4000", "marque a conta de luz como paga", "altere o valor do condomínio para 1400".
+
+EXCLUSÃO DE DESPESAS/RECEITAS:
+- Quando o usuário pedir para excluir, remover, apagar ou deletar uma despesa ou receita, use delete_expense ou delete_income.
+- **SEMPRE confirme com o usuário antes de excluir.** Mostre os detalhes (descrição, valor, data) e pergunte "Deseja realmente excluir?".
+- Só execute a exclusão APÓS o usuário confirmar explicitamente (ex: "sim", "pode excluir", "confirmo").
+- Se houver ambiguidade, liste as opções e peça para o usuário especificar qual.`;
 
     // First call: non-streaming to check for tool calls
     const firstResponse = await fetch(AI_URL, {
