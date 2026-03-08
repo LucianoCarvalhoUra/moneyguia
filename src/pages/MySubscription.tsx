@@ -115,7 +115,30 @@ export default function MySubscription() {
     fetchPayments();
   }, [user?.id]);
 
-  const features = [
+  const handleCancelSubscription = async () => {
+    if (!user?.id) return;
+    setCancelling(true);
+    try {
+      const { error } = await supabase
+        .from("user_subscriptions")
+        .update({ status: "canceled", expires_at: new Date().toISOString() })
+        .eq("user_id", user.id)
+        .in("status", ["active", "trial"]);
+
+      if (error) throw error;
+
+      window.dispatchEvent(new Event("user-plan-changed"));
+      const { toast } = await import("sonner");
+      toast.success("Assinatura cancelada. Você foi movido para o plano gratuito.");
+    } catch (err: any) {
+      const { toast } = await import("sonner");
+      toast.error(err.message || "Erro ao cancelar assinatura");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+
     { key: "hasAiClassification", label: "Classificação com IA", icon: Bot },
     { key: "hasAdvancedReports", label: "Relatórios avançados", icon: BarChart3 },
     { key: "hasExport", label: "Exportação de dados", icon: FileText },
