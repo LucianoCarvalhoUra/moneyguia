@@ -32,9 +32,19 @@ export const useFinancialSummary = (selectedDate: Date = new Date()) => {
     const monthStart = startOfMonth(selectedDate);
     const monthEnd = endOfMonth(selectedDate);
 
+    const safeParseDate = (d: any): Date => {
+      if (d instanceof Date) return d;
+      if (typeof d === 'string') return parseISO(d);
+      return new Date(d);
+    };
+
     // Filtrar receitas e despesas pelo mês selecionado
-    const monthlyIncomes = incomes.filter(i => isWithinInterval(parseISO(i.receiveDate as unknown as string), { start: monthStart, end: monthEnd }));
-    const monthlyExpenses = expenses.filter(e => isWithinInterval(parseISO(e.dueDate as unknown as string), { start: monthStart, end: monthEnd }));
+    const monthlyIncomes = incomes.filter(i => {
+      try { return isWithinInterval(safeParseDate(i.receiveDate), { start: monthStart, end: monthEnd }); } catch { return false; }
+    });
+    const monthlyExpenses = expenses.filter(e => {
+      try { return isWithinInterval(safeParseDate(e.dueDate), { start: monthStart, end: monthEnd }); } catch { return false; }
+    });
 
     // 1. Calcular totais (Receitas, Despesas e Saldo)
     const totalIncome = monthlyIncomes.reduce((acc, income) => acc + Number(income.amount), 0);
@@ -64,13 +74,13 @@ export const useFinancialSummary = (selectedDate: Date = new Date()) => {
         if (expense.isPaid) return false;
         if (processedIds.has(expense.id)) return false; // Fix: Group by ID
         
-        const dueDate = parseISO(expense.dueDate as unknown as string);
+        const dueDate = expense.dueDate instanceof Date ? expense.dueDate : parseISO(expense.dueDate as unknown as string);
         // Verifica se a data de vencimento está entre hoje e 30 dias à frente
         const isUpcoming = isWithinInterval(dueDate, { start: today, end: next30Days });
         if (isUpcoming) processedIds.add(expense.id);
         return isUpcoming;
       })
-      .sort((a, b) => parseISO(a.dueDate as unknown as string).getTime() - parseISO(b.dueDate as unknown as string).getTime())
+      .sort((a, b) => (a.dueDate instanceof Date ? a.dueDate : parseISO(a.dueDate as unknown as string)).getTime() - (b.dueDate instanceof Date ? b.dueDate : parseISO(b.dueDate as unknown as string)).getTime())
       .slice(0, 5)
       .map(expense => ({
         id: expense.id,
