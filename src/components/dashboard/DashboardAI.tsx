@@ -341,7 +341,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
               {messages.length === 0 ? (
                 <div className="space-y-4">
                   <div className="bg-muted/50 p-3 rounded-xl rounded-tl-none text-sm text-foreground">
-                    Olá! 👋 Sou o assistente financeiro do <strong>KeepMoney</strong>. Tenho acesso aos seus dados e posso te ajudar com análises, dicas e dúvidas sobre suas finanças. O que gostaria de saber?
+                    Olá! 👋 Sou o assistente financeiro do <strong>KeepMoney</strong>. Tenho acesso aos seus dados e posso te ajudar com análises, dicas e até **cadastrar despesas e receitas** por texto. O que gostaria de fazer?
                   </div>
                   {/* Quick actions */}
                   <div className="grid grid-cols-2 gap-2">
