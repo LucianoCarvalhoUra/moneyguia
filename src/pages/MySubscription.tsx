@@ -7,6 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Crown,
   Clock,
   CalendarDays,
@@ -23,6 +34,7 @@ import {
   Bell,
   FileText,
   Bot,
+  XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -49,6 +61,7 @@ export default function MySubscription() {
   const { plan, subscription, isLoading: planLoading } = useUserPlan();
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
 
   const isFree = plan.planType === "free";
   const isExpired =
@@ -101,6 +114,29 @@ export default function MySubscription() {
     };
     fetchPayments();
   }, [user?.id]);
+
+  const handleCancelSubscription = async () => {
+    if (!user?.id) return;
+    setCancelling(true);
+    try {
+      const { error } = await supabase
+        .from("user_subscriptions")
+        .update({ status: "canceled", expires_at: new Date().toISOString() })
+        .eq("user_id", user.id)
+        .in("status", ["active", "trial"]);
+
+      if (error) throw error;
+
+      window.dispatchEvent(new Event("user-plan-changed"));
+      const { toast } = await import("sonner");
+      toast.success("Assinatura cancelada. Você foi movido para o plano gratuito.");
+    } catch (err: any) {
+      const { toast } = await import("sonner");
+      toast.error(err.message || "Erro ao cancelar assinatura");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const features = [
     { key: "hasAiClassification", label: "Classificação com IA", icon: Bot },
@@ -337,6 +373,49 @@ export default function MySubscription() {
           )}
         </CardContent>
       </Card>
+
+      {/* Cancel Subscription */}
+      {!isFree && !isExpired && (
+        <Card className="border-destructive/30">
+          <CardContent className="flex items-center justify-between p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10">
+                <XCircle className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Cancelar assinatura</p>
+                <p className="text-xs text-muted-foreground">Você será movido para o plano gratuito imediatamente.</p>
+              </div>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="border-destructive/50 text-destructive hover:bg-destructive/10">
+                  Cancelar plano
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancelar assinatura?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Ao cancelar, você perderá acesso imediato aos recursos do plano <strong>{plan.planName}</strong> e será movido para o plano gratuito. Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Voltar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleCancelSubscription}
+                    disabled={cancelling}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {cancelling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Confirmar cancelamento
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
