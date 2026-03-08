@@ -1,5 +1,5 @@
 ﻿import { useState, useMemo, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useIncome } from '@/contexts/IncomeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,11 +38,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 export default function Incomes() {
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { incomes, incomeCategories, incomeSubcategories, removeIncome, updateIncome, refreshData } = useIncome();
   
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const p = searchParams.get('month');
+    return p !== null ? parseInt(p) : new Date().getMonth();
+  });
+  const [selectedYear, setSelectedYear] = useState(() => {
+    const p = searchParams.get('year');
+    return p !== null ? parseInt(p) : new Date().getFullYear();
+  });
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -66,6 +73,16 @@ export default function Incomes() {
   
   const currentYear = new Date().getFullYear();
   const years = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+
+  // Sync month/year to URL params
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('month', selectedMonth.toString());
+      next.set('year', selectedYear.toString());
+      return next;
+    }, { replace: true });
+  }, [selectedMonth, selectedYear, setSearchParams]);
 
   useEffect(() => {
     if (location.state?.filter === 'pending') {

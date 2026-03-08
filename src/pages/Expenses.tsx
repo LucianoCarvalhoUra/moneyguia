@@ -1,5 +1,5 @@
 ﻿import { useState, useMemo, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,10 +38,17 @@ import { EyeOff } from 'lucide-react';
 
 export default function Expenses() {
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { expenses, categories, subcategories, removeExpense, updateExpense, refreshData } = useFinance();
   
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const p = searchParams.get('month');
+    return p !== null ? parseInt(p) : new Date().getMonth();
+  });
+  const [selectedYear, setSelectedYear] = useState(() => {
+    const p = searchParams.get('year');
+    return p !== null ? parseInt(p) : new Date().getFullYear();
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -92,6 +99,16 @@ export default function Expenses() {
     }
   };
 
+  // Sync month/year to URL params
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('month', selectedMonth.toString());
+      next.set('year', selectedYear.toString());
+      return next;
+    }, { replace: true });
+  }, [selectedMonth, selectedYear, setSearchParams]);
+
   useEffect(() => {
     if (location.state?.filter === 'overdue') {
       setStatusFilter('overdue');
@@ -101,7 +118,7 @@ export default function Expenses() {
       }
       window.history.replaceState({}, document.title);
     }
-  }, [location.state, expenses]);
+  }, [location.state]);
 
   const filteredSubcategories = useMemo(() => {
     if (categoryFilter === 'all') return [];
