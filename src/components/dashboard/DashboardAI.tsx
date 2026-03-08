@@ -11,6 +11,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { format, startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
