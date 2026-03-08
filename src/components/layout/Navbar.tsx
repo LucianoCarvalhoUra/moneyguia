@@ -74,15 +74,15 @@ export default function Navbar() {
               const isAiActive = plan.hasAiClassification;
               const planLabel = plan.planType === 'free' ? 'Gratuito' : plan.planType === 'pro' ? 'Pro' : 'Premium';
               return (
-                <div className={cn(
-                  "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium",
+                <Link to="/plans" className={cn(
+                  "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
                   isAiActive 
-                    ? "border-amber-200 bg-amber-50 text-amber-700" 
-                    : "border-muted bg-muted/50 text-muted-foreground"
+                    ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" 
+                    : "border-muted bg-muted/50 text-muted-foreground hover:bg-muted"
                 )}>
                   <Sparkles className="h-4 w-4" />
                   {planLabel} • {isAiActive ? "IA ativa" : "IA inativa"}
-                </div>
+                </Link>
               );
             })()}
             <span className="text-sm text-slate-600">
