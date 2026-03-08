@@ -175,7 +175,7 @@ export default function ExpenseList() {
                         }
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(expense)} title="Copiar">
                             <Copy className="w-4 h-4 text-muted-foreground" />
                           </Button>
