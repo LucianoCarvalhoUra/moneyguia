@@ -225,6 +225,11 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
 
           try {
             const parsed = JSON.parse(jsonStr);
+            // Handle refresh marker from tool calls
+            if (parsed.refresh) {
+              refreshAllData();
+              continue;
+            }
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantSoFar += content;
