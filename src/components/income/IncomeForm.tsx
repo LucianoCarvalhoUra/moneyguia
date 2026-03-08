@@ -100,8 +100,10 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setDescription(dataToLoad.title || '');
         
         const catId = dataToLoad.categoryId || (dataToLoad as any).category_id || '';
+        const subCatId = dataToLoad.subcategoryId || (dataToLoad as any).subcategory_id || '';
+        console.log('[IncomeForm] Loading data:', { catId, subCatId, raw_subcategoryId: dataToLoad.subcategoryId, raw_subcategory_id: (dataToLoad as any).subcategory_id });
         setCategoryId(catId);
-        setSubcategoryId(dataToLoad.subcategoryId || (dataToLoad as any).subcategory_id || '');
+        setSubcategoryId(subCatId);
         
         setReceiveDate(dataToLoad.receiveDate ? formatToInput(dataToLoad.receiveDate) : today);
         setAmount(dataToLoad.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) : '');
