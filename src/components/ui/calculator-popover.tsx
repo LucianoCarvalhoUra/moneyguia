@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calculator } from 'lucide-react';
@@ -91,7 +91,6 @@ export function CalculatorPopover({ currentValue, onConfirm }: CalculatorPopover
   }, []);
 
   const handleConfirm = useCallback(() => {
-    // Execute pending operation first
     let finalValue = parseDisplay(display);
     if (previousValue !== null && operation) {
       finalValue = calculate(previousValue, operation, finalValue);
@@ -100,6 +99,25 @@ export function CalculatorPopover({ currentValue, onConfirm }: CalculatorPopover
     onConfirm(formatted);
     setOpen(false);
   }, [display, previousValue, operation, calculate, onConfirm]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      const key = e.key;
+      if (/^[0-9]$/.test(key)) { e.preventDefault(); handleNumber(key); }
+      else if (key === ',' || key === '.') { e.preventDefault(); handleNumber(','); }
+      else if (key === '+') { e.preventDefault(); handleOperation('+'); }
+      else if (key === '-') { e.preventDefault(); handleOperation('-'); }
+      else if (key === '*') { e.preventDefault(); handleOperation('×'); }
+      else if (key === '/') { e.preventDefault(); handleOperation('÷'); }
+      else if (key === 'Enter') { e.preventDefault(); handleConfirm(); }
+      else if (key === 'Escape') { e.preventDefault(); setOpen(false); }
+      else if (key === 'Backspace' || key === 'Delete') { e.preventDefault(); handleClear(); }
+      else if (key === '=') { e.preventDefault(); handleEquals(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, handleNumber, handleOperation, handleEquals, handleClear, handleConfirm]);
 
   const buttons = [
     ['7', '8', '9', '÷'],
