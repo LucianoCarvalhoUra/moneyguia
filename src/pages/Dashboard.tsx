@@ -18,11 +18,12 @@ import FiftyThirtyTwentyChart from '@/components/dashboard/FiftyThirtyTwentyChar
 import DailyCashFlowChart from '@/components/dashboard/DailyCashFlowChart';
 import BalanceProjectionChart from '@/components/dashboard/BalanceProjectionChart';
 import { DEFAULT_DASHBOARD_SETTINGS, DashboardSettings } from '@/components/dashboard/DashboardCustomization';
+import ExpenseClassificationChart from '@/components/dashboard/ExpenseClassificationChart';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses } = useFinance();
+  const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses, categories } = useFinance();
   const { getMonthlyIncomeTotal, incomes } = useIncome();
   const [formOpen, setFormOpen] = useState(false);
   
@@ -464,6 +465,61 @@ export default function Dashboard() {
           <div className="md:col-span-2">
             <BalanceProjectionChart data={projectionData} />
           </div>
+        )}
+
+        {settings.showEssential && (
+          <ExpenseClassificationChart
+            type="essential"
+            expenses={monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).map(e => ({
+              id: e.id, description: e.description, amount: e.amount,
+              categoryId: e.categoryId, categoryName: categories?.find(c => c.id === e.categoryId)?.name,
+              isRecurring: e.isRecurring, installments: e.installments, currentInstallment: e.currentInstallment,
+            }))}
+          />
+        )}
+
+        {settings.showSuperfluous && (
+          <ExpenseClassificationChart
+            type="superfluous"
+            expenses={monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).map(e => ({
+              id: e.id, description: e.description, amount: e.amount,
+              categoryId: e.categoryId, categoryName: categories?.find(c => c.id === e.categoryId)?.name,
+              isRecurring: e.isRecurring, installments: e.installments, currentInstallment: e.currentInstallment,
+            }))}
+          />
+        )}
+
+        {settings.showFixed && (
+          <ExpenseClassificationChart
+            type="fixed"
+            expenses={monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).map(e => ({
+              id: e.id, description: e.description, amount: e.amount,
+              categoryId: e.categoryId, categoryName: categories?.find(c => c.id === e.categoryId)?.name,
+              isRecurring: e.isRecurring, installments: e.installments, currentInstallment: e.currentInstallment,
+            }))}
+          />
+        )}
+
+        {settings.showVariable && (
+          <ExpenseClassificationChart
+            type="variable"
+            expenses={monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).map(e => ({
+              id: e.id, description: e.description, amount: e.amount,
+              categoryId: e.categoryId, categoryName: categories?.find(c => c.id === e.categoryId)?.name,
+              isRecurring: e.isRecurring, installments: e.installments, currentInstallment: e.currentInstallment,
+            }))}
+          />
+        )}
+
+        {settings.showLongTerm && (
+          <ExpenseClassificationChart
+            type="long_term"
+            expenses={monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).map(e => ({
+              id: e.id, description: e.description, amount: e.amount,
+              categoryId: e.categoryId, categoryName: categories?.find(c => c.id === e.categoryId)?.name,
+              isRecurring: e.isRecurring, installments: e.installments, currentInstallment: e.currentInstallment,
+            }))}
+          />
         )}
       </div>
 
