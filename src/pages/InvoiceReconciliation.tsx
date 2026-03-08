@@ -399,11 +399,11 @@ export default function InvoiceReconciliation() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {/* Category */}
               <div className="space-y-2">
                 <Label>Categoria</Label>
-                <Select value={adjustmentCategory} onValueChange={setAdjustmentCategory}>
+                <Select value={adjustmentCategory} onValueChange={(v) => { setAdjustmentCategory(v); setAdjustmentSubcategory(''); }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
@@ -416,6 +416,29 @@ export default function InvoiceReconciliation() {
                         </span>
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Subcategory */}
+              <div className="space-y-2">
+                <Label>Subcategoria</Label>
+                <Select 
+                  value={adjustmentSubcategory} 
+                  onValueChange={setAdjustmentSubcategory}
+                  disabled={!adjustmentCategory || subcategories.filter(s => s.categoryId === adjustmentCategory).length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={!adjustmentCategory ? "Selecione categoria" : "Opcional"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subcategories
+                      .filter(s => s.categoryId === adjustmentCategory)
+                      .map((sub) => (
+                        <SelectItem key={sub.id} value={sub.id}>
+                          {sub.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
