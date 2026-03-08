@@ -1,5 +1,4 @@
 ﻿import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFinance } from '@/contexts/FinanceContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +14,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { User, Shield, Loader2, Bell, Bot, Sparkles } from 'lucide-react';
-import SubscriptionCard from '@/components/settings/SubscriptionCard';
 import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
 import DashboardCustomization from '@/components/dashboard/DashboardCustomization';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
@@ -31,7 +29,7 @@ interface Profile {
 }
 
 export default function Settings() {
-  const { user, hasFeatureAccess, subscriptionStatus, subscriptionPlan, refreshProfile } = useAuth();
+  const { user, hasFeatureAccess } = useAuth();
   const { expenses, updateExpense, categories } = useFinance();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,7 +37,6 @@ export default function Settings() {
   const [alertEnabled, setAlertEnabled] = useState(true);
   const [alertType, setAlertType] = useState('expenses');
   const [isClassifying, setIsClassifying] = useState(false);
-  const [isSimulatingSubscription, setIsSimulatingSubscription] = useState(false);
   const canUseAiClassification = hasFeatureAccess('ai_classification');
 
   useEffect(() => {
@@ -105,7 +102,6 @@ export default function Settings() {
     if (data) {
       setProfile(data);
     } else {
-      // Fallback to auth user data
       setProfile({
         name: user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário',
         email: user.email || '',
@@ -132,20 +128,16 @@ export default function Settings() {
 
     setIsClassifying(true);
     try {
-      // Simulação da IA (Heurística baseada em categorias para demonstração)
-      // Em produção, isso chamaria uma Edge Function com GPT-4
       let updatedCount = 0;
 
       const updates = expenses.map(async (expense) => {
-        // Skip if already classified manually or by AI
         if ((expense as any).classificationType && (expense as any).classificationType !== 'variavel') return;
 
         const category = categories.find(c => c.id === expense.categoryId);
         const catName = category?.name.toLowerCase() || '';
 
-        let newType = 'variavel'; // Default
+        let newType = 'variavel';
 
-        // Heurística simples
         if (['aluguel', 'condomínio', 'luz', 'água', 'internet', 'saúde', 'educação'].some(k => catName.includes(k))) {
           newType = 'essencial';
         } else if (['lazer', 'restaurante', 'ifood', 'streaming', 'jogos'].some(k => catName.includes(k))) {
@@ -169,57 +161,6 @@ export default function Settings() {
     }
   };
 
-  const handleSimulateSubscription = async (targetPlanType: 'free' | 'pro' | 'premium') => {
-    if (!user?.id) return;
-    setIsSimulatingSubscription(true);
-
-    try {
-      if (targetPlanType === 'free') {
-        // Cancel any active subscription
-        await supabase
-          .from('user_subscriptions')
-          .update({ status: 'canceled', expires_at: new Date().toISOString() })
-          .eq('user_id', user.id)
-          .in('status', ['active', 'trial']);
-      } else {
-        // Get the target plan
-        const { data: plan } = await supabase
-          .from('subscription_plans')
-          .select('id, name')
-          .eq('plan_type', targetPlanType)
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (!plan) {
-          toast.error('Plano não encontrado');
-          return;
-        }
-
-        // Upsert subscription (unique on user_id)
-        const { error } = await supabase
-          .from('user_subscriptions')
-          .upsert({
-            user_id: user.id,
-            plan_id: plan.id,
-            status: 'active',
-            billing_cycle: 'monthly',
-            starts_at: new Date().toISOString(),
-            expires_at: null,
-          }, { onConflict: 'user_id' });
-        if (error) throw error;
-      }
-
-      await refreshProfile();
-      window.dispatchEvent(new Event("user-plan-changed"));
-      const labels: Record<string, string> = { free: 'Gratuito', pro: 'Pro', premium: 'Premium' };
-      toast.success(`Plano simulado: ${labels[targetPlanType] || targetPlanType}`);
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao simular assinatura');
-    } finally {
-      setIsSimulatingSubscription(false);
-    }
-  };
-
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
@@ -227,9 +168,6 @@ export default function Settings() {
         <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
         <p className="text-muted-foreground">Gerencie suas preferências</p>
       </div>
-
-      {/* Subscription Info */}
-      <SubscriptionCard />
 
       {/* Profile Card */}
       <Card>
@@ -362,38 +300,6 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <ChangePasswordForm />
-
-          <div className="border-t pt-4 space-y-3">
-            <h4 className="font-medium">Teste de Assinatura (temporário)</h4>
-            <p className="text-sm text-muted-foreground">
-              Plano atual: <span className="font-semibold text-foreground">{subscriptionPlan === 'free' ? 'Essencial' : subscriptionPlan === 'premium' ? 'Pro' : subscriptionPlan === 'total' ? 'Premium' : subscriptionPlan}</span>
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { type: 'free' as const, label: 'Gratuito' },
-                { type: 'pro' as const, label: 'Pro' },
-                { type: 'premium' as const, label: 'Premium' },
-              ].map(({ type, label }) => (
-                <Button
-                  key={type}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSimulateSubscription(type)}
-                  disabled={isSimulatingSubscription}
-                  className={cn(
-                    (subscriptionPlan === 'free' && type === 'free') ||
-                    (subscriptionPlan === 'premium' && type === 'pro') ||
-                    (subscriptionPlan === 'total' && type === 'premium')
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : ''
-                  )}
-                >
-                  {isSimulatingSubscription ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
-                  {label}
-                </Button>
-              ))}
-            </div>
-          </div>
 
           <div className="border-t pt-4">
             <h4 className="font-medium text-destructive mb-2">Zona de Perigo</h4>

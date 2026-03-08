@@ -24,6 +24,7 @@ import Plans from "./pages/Plans";
 import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import MySubscription from "./pages/MySubscription";
 import { APP_VERSION } from "@/config/version";
 
 const queryClient = new QueryClient();
@@ -100,6 +101,7 @@ const AppRoutes = () => (
     <Route path="/reports" element={<ProtectedRoute requiredFeature="advanced_reports"><Reports /></ProtectedRoute>} />
     <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+    <Route path="/subscription" element={<ProtectedRoute><MySubscription /></ProtectedRoute>} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
