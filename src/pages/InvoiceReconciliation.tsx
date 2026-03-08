@@ -175,6 +175,7 @@ export default function InvoiceReconciliation() {
       // Reset form
       setInvoiceAmount('');
       setAdjustmentCategory('');
+      setAdjustmentSubcategory('');
       setAdjustmentPaymentDate(undefined);
       setAdjustmentAccountId('');
     } catch (error) {
