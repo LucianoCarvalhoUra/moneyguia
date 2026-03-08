@@ -555,7 +555,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
-              <Select value={subcategoryId} onValueChange={handleSubcategorySelectChange} disabled={!categoryId}>
+              <Select key={`subcat-${categoryId}-${subcategoryId}`} value={subcategoryId} onValueChange={handleSubcategorySelectChange} disabled={!categoryId}>
                 <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
                 <SelectContent>
                   {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
