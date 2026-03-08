@@ -140,7 +140,7 @@ export default function ExpenseList() {
                   const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
 
                   return (
-                    <TableRow key={expense.id} className={cn(expense.isPaid ? "opacity-75" : "", "cursor-pointer hover:bg-muted/50 transition-colors")} onClick={() => handleEdit(expense)}>
+                    <TableRow key={expense.id} role="button" tabIndex={0} className={cn(expense.isPaid ? "opacity-75" : "", "cursor-pointer hover:bg-muted/50 transition-colors")} onClick={(e) => { e.preventDefault(); handleEdit(expense); }} onKeyDown={(e) => { if (e.key === 'Enter') handleEdit(expense); }}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className={cn('w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0', category?.color ? `bg-${category.color}/15` : 'bg-muted/50')}>
