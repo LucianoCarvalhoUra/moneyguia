@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.mercadopago-webhook]
 verify_jwt = false
+
+[functions.create-card-payment]
+verify_jwt = false
+
+[functions.mercadopago-public-key]
+verify_jwt = false
