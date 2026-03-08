@@ -409,7 +409,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
               {expense ? 'Editar Despesa' : 'Nova Despesa'}
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-0.5">Preencha os detalhes da transação</DialogDescription>
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              {expense ? `Cadastrada em ${format(new Date(expense.createdAt), 'dd/MM/yyyy HH:mm')}` : 'Preencha os detalhes da transação'}
+            </DialogDescription>
           </div>
           {expense && (
             <Button type="button" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-lg" onClick={handleDelete}>

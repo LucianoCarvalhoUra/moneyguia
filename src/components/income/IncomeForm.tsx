@@ -369,7 +369,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
               {income ? 'Editar Receita' : 'Nova Receita'}
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-0.5">Preencha os detalhes da transação</DialogDescription>
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              {income ? `Cadastrada em ${format(new Date(income.createdAt), 'dd/MM/yyyy HH:mm')}` : 'Preencha os detalhes da transação'}
+            </DialogDescription>
           </div>
           {income && (
             <Button type="button" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-lg" onClick={handleDelete}>
