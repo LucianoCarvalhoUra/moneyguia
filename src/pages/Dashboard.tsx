@@ -205,15 +205,14 @@ export default function Dashboard() {
     let savings = 0; // Using 'longo_prazo' as savings/debt for now
 
     monthlyExpenses.filter(e => !(e as any).excludeFromCalculations).forEach(e => {
-      // Try to find classification by category name (fallback) or ID if we had it
-      // Since we stored by name in UnifiedCategoryManager for this demo:
+      const categoryName = categories.find(c => c.id === e.categoryId)?.name || '';
       
       // Priority 1: Direct classification on the expense (AI or manual)
       let classification = normalizeClassification((e as any).classificationType);
 
-      // Priority 2: Category metadata fallback
+      // Priority 2: Category metadata fallback (stored by name)
       if (!classification || classification === 'variavel') {
-        const meta = Object.values(metadata).find((m: any) => m.id === e.categoryId) as any;
+        const meta = metadata[categoryName] as any;
         classification = normalizeClassification(meta?.classification);
       }
 
