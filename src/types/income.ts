@@ -27,6 +27,8 @@ export interface Income {
   accountId?: string;
   recurrenceId?: string;
   excludeFromCalculations?: boolean;
+  installments?: number;
+  currentInstallment?: number;
   userId: string;
   createdAt: Date;
 }

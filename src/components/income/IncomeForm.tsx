@@ -370,7 +370,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
               {income ? 'Editar Receita' : 'Nova Receita'}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-              {income ? `Cadastrada em ${format(new Date(income.createdAt), 'dd/MM/yyyy HH:mm')}` : 'Preencha os detalhes da transação'}
+              {income 
+                ? `Cadastrada em ${format(new Date(income.createdAt), 'dd/MM/yyyy HH:mm')}${(income as any).installments && (income as any).installments > 1 ? ` • Parcela ${(income as any).currentInstallment || '?'}/${(income as any).installments}` : ''}`
+                : 'Preencha os detalhes da transação'}
             </DialogDescription>
           </div>
           {income && (
