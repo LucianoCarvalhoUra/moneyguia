@@ -2,3 +2,6 @@ project_id = "uuirvevhvjvnubihnstz"
 
 [functions.password-reset-otp]
 verify_jwt = false
+
+[functions.financial-chat]
+verify_jwt = false

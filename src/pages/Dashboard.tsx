@@ -13,7 +13,7 @@ import PendingExpensesList from '@/components/dashboard/PendingExpensesList';
 import { toast } from 'sonner';
 import { addDays, startOfDay, endOfDay, isBefore, format, subMonths, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { DashboardAI } from '@/components/DashboardAI';
+import { DashboardAI } from '@/components/dashboard/DashboardAI';
 import FiftyThirtyTwentyChart from '@/components/dashboard/FiftyThirtyTwentyChart';
 import DailyCashFlowChart from '@/components/dashboard/DailyCashFlowChart';
 import BalanceProjectionChart from '@/components/dashboard/BalanceProjectionChart';
