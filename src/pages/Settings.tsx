@@ -47,6 +47,40 @@ export default function Settings() {
     }
   }, [user?.id]);
 
+  // Seed category metadata with proper classification/recurrence
+  useEffect(() => {
+    const CATEGORY_CLASSIFICATIONS: Record<string, { classification: string; recurrence: string }> = {
+      'Moradia': { classification: 'essencial', recurrence: 'fixa' },
+      'Contas Básicas': { classification: 'essencial', recurrence: 'fixa' },
+      'Dependentes': { classification: 'essencial', recurrence: 'fixa' },
+      'Pessoal': { classification: 'superfluo', recurrence: 'fixa' },
+      'Taxa Administração': { classification: 'essencial', recurrence: 'fixa' },
+      'Transporte': { classification: 'essencial', recurrence: 'fixa' },
+      'Moradia - Uberaba': { classification: 'essencial', recurrence: 'fixa' },
+      'Cartão': { classification: 'superfluo', recurrence: 'variavel' },
+      'Chamada de Capital': { classification: 'longo_prazo', recurrence: 'variavel' },
+      'Fundo de reserva': { classification: 'longo_prazo', recurrence: 'variavel' },
+      'Benfeitorias': { classification: 'essencial', recurrence: 'variavel' },
+      'Doações': { classification: 'superfluo', recurrence: 'variavel' },
+      'IPTU': { classification: 'essencial', recurrence: 'fixa' },
+      'Taxa de Condomínio': { classification: 'essencial', recurrence: 'fixa' },
+      'Despesas do Apartamento': { classification: 'essencial', recurrence: 'variavel' },
+      'Outros Gastos': { classification: 'superfluo', recurrence: 'variavel' },
+    };
+
+    const existing = JSON.parse(localStorage.getItem('category_metadata') || '{}');
+    let updated = false;
+    for (const [name, meta] of Object.entries(CATEGORY_CLASSIFICATIONS)) {
+      if (!existing[name]) {
+        existing[name] = meta;
+        updated = true;
+      }
+    }
+    if (updated) {
+      localStorage.setItem('category_metadata', JSON.stringify(existing));
+    }
+  }, []);
+
   useEffect(() => {
     const storedDays = localStorage.getItem('alert_days_before');
     if (storedDays) setAlertDays(storedDays);
