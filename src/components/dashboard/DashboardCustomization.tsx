@@ -48,6 +48,7 @@ export default function DashboardCustomization() {
     { key: 'show503020', label: 'Regra 50/30/20', desc: 'Análise de distribuição ideal de renda', icon: PieChart },
     { key: 'showProjection', label: 'Projeção de Saldo', desc: 'Tendência para os próximos 3 meses', icon: TrendingUp },
     { key: 'showDailyFlow', label: 'Fluxo Diário', desc: 'Entradas e saídas por dia', icon: BarChart3 },
+    { key: 'showComparison', label: 'Comparativo Mensal', desc: 'Gastos por categoria vs mês anterior', icon: ArrowUpDown },
     { key: 'showEssential', label: 'Despesas Essenciais', desc: 'Habitação, Saúde, Alimentação', icon: Wallet },
     { key: 'showSuperfluous', label: 'Despesas Supérfluas', desc: 'Lazer, Streaming, Compras', icon: Wallet },
     { key: 'showFixed', label: 'Despesas Fixas', desc: 'Contas recorrentes', icon: Wallet },
