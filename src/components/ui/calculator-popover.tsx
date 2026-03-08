@@ -90,6 +90,16 @@ export function CalculatorPopover({ currentValue, onConfirm }: CalculatorPopover
     setResetNext(false);
   }, []);
 
+  const handleConfirm = useCallback(() => {
+    let finalValue = parseDisplay(display);
+    if (previousValue !== null && operation) {
+      finalValue = calculate(previousValue, operation, finalValue);
+    }
+    const formatted = finalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    onConfirm(formatted);
+    setOpen(false);
+  }, [display, previousValue, operation, calculate, onConfirm]);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -108,17 +118,6 @@ export function CalculatorPopover({ currentValue, onConfirm }: CalculatorPopover
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [open, handleNumber, handleOperation, handleEquals, handleClear, handleConfirm]);
-
-  const handleConfirm = useCallback(() => {
-    // Execute pending operation first
-    let finalValue = parseDisplay(display);
-    if (previousValue !== null && operation) {
-      finalValue = calculate(previousValue, operation, finalValue);
-    }
-    const formatted = finalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    onConfirm(formatted);
-    setOpen(false);
-  }, [display, previousValue, operation, calculate, onConfirm]);
 
   const buttons = [
     ['7', '8', '9', '÷'],
