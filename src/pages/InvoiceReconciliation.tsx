@@ -31,7 +31,7 @@ const MONTHS = [
 ];
 
 export default function InvoiceReconciliation() {
-  const { cards, expenses, categories, accounts, addExpense } = useFinance();
+  const { cards, expenses, categories, subcategories, accounts, addExpense } = useFinance();
   
   const currentDate = new Date();
   const [selectedCardId, setSelectedCardId] = useState<string>('');
