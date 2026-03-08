@@ -91,9 +91,9 @@ export default function Planos() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-emerald-600" />
-                Premium
+                Pro
               </CardTitle>
-              <CardDescription>Mais automacao com IA</CardDescription>
+              <CardDescription>Relatórios avançados e mais controle</CardDescription>
               <p className="text-4xl font-bold">{prices.premium}</p>
               <p className="text-sm text-slate-500">{periodLabel}</p>
             </CardHeader>
