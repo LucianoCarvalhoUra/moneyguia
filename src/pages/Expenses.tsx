@@ -467,7 +467,7 @@ export default function Expenses() {
                             <span className="font-medium">{expense.description}</span>
                             {expense.installments && expense.installments > 1 && (
                               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">
-                                {expense.currentInstallment || '?'}/{expense.installments}
+                                {expense.currentInstallment || 1}/{expense.installments}
                               </Badge>
                             )}
                           </div>
