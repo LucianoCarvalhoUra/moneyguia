@@ -54,16 +54,23 @@ const CONFIG: Record<ClassificationType, { title: string; icon: React.ElementTyp
 };
 
 function classifyExpense(expense: ExpenseItem, metadata: Record<string, any>): string {
-  // Check category metadata classification
-  const meta = Object.values(metadata).find((m: any) => m.id === expense.categoryId) as any;
-  const metaClassification = meta?.classification;
+  // Check category metadata - stored by category NAME as key
+  const meta = metadata[expense.categoryName || ''] as any;
 
-  if (metaClassification) {
-    const normalized = normalizeClassification(metaClassification);
-    if (normalized !== 'variavel') return normalized;
+  if (meta) {
+    // metadata has: classification (essencial/superfluo/longo_prazo) and recurrence (fixa/variavel)
+    const classification = normalizeClassification(meta.classification);
+    const recurrence = meta.recurrence; // 'fixa' or 'variavel'
+
+    // For fixed/variable chart types, use recurrence field
+    if (recurrence === 'fixa') return 'fixo';
+    if (recurrence === 'variavel' && classification === 'variavel') return 'variavel';
+
+    // For essential/superfluous/long_term, use classification field
+    if (classification !== 'variavel') return classification;
   }
 
-  // Heuristic: installments > 1 = long_term (even if recurring), recurring without installments = fixed, else variable
+  // Heuristic fallback: installments > 1 = long_term, recurring = fixed, else variable
   if (expense.installments && expense.installments > 1) return 'longo_prazo';
   if (expense.isRecurring) return 'fixo';
   return 'variavel';
