@@ -121,10 +121,10 @@ export default function Planos() {
             </CardHeader>
             <CardContent>
               <ul className="mb-6 space-y-3 text-sm text-slate-600">
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Tudo do Premium</li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Relatorios avancados</li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Controle Extra e exportacoes</li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Multiplos usuarios</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Tudo do Pro</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Classificação com IA</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Exportação de relatórios</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Controle completo e ilimitado</li>
               </ul>
               <Link to="/auth" className="block">
                 <Button className="w-full bg-slate-900 text-white hover:bg-slate-800">Assinar Agora</Button>
