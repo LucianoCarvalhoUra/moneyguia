@@ -5,7 +5,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Sparkles, X, Send, Loader2, Trash2 } from 'lucide-react';
+import { Sparkles, X, Send, Loader2, Trash2, Square } from 'lucide-react';
 import { useFinancialSummary } from '@/hooks/useFinancialSummary';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
@@ -36,15 +36,27 @@ export function DashboardAI() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const { user } = useAuth();
-  const { expenses, categories, cards, accounts, refreshData: refreshFinance } = useFinance();
+  const { expenses, categories, subcategories, cards, accounts, refreshData: refreshFinance } = useFinance();
   const { incomes, incomeCategories, refreshData: refreshIncome } = useIncome();
   const summary = useFinancialSummary();
 
   const refreshAllData = useCallback(async () => {
     await Promise.all([refreshFinance(), refreshIncome()]);
   }, [refreshFinance, refreshIncome]);
+
+  // Build categories map with subcategories for the AI
+  const categoriesMap = useMemo(() => {
+    return categories.map(c => ({
+      id: c.id,
+      name: c.name,
+      subcategories: subcategories
+        .filter(s => s.categoryId === c.id)
+        .map(s => ({ id: s.id, name: s.name })),
+    }));
+  }, [categories, subcategories]);
 
   // Build financial context string for the AI
   const financialContext = useMemo(() => {
@@ -132,7 +144,8 @@ ${unpaidBills.map(b => `- ${b.description}: ${fmt(Number(b.amount))} (vence ${fo
 === DESPESAS DO MÊS (detalhado) ===
 ${monthlyExpenses.slice(0, 30).map(e => {
   const cat = categories.find(c => c.id === e.categoryId)?.name || 'Sem categoria';
-  return `- ${e.description} | ${cat} | ${fmt(Number(e.amount))} | ${e.isPaid ? 'Pago' : 'Pendente'} | Venc: ${format(new Date(e.dueDate as unknown as string), 'dd/MM/yyyy')}${e.isRecurring ? ' | Recorrente' : ''}${e.installments ? ` | Parcela ${e.currentInstallment}/${e.installments}` : ''}`;
+  const subcat = e.subcategoryId ? subcategories.find(s => s.id === e.subcategoryId)?.name : null;
+  return `- ${e.description} | ${cat}${subcat ? ' > ' + subcat : ''} | ${fmt(Number(e.amount))} | ${e.isPaid ? 'Pago' : 'Pendente'} | Venc: ${format(new Date(e.dueDate as unknown as string), 'dd/MM/yyyy')}${e.isRecurring ? ' | Recorrente' : ''}${e.installments ? ` | Parcela ${e.currentInstallment}/${e.installments}` : ''}`;
 }).join('\n') || 'Nenhuma despesa'}
 
 === RECEITAS DO MÊS (detalhado) ===
@@ -150,7 +163,7 @@ ${cards.map(c => `- ${c.brand} •••• ${c.lastFourDigits}`).join('\n') || 
 TOTAL GERAL DE DESPESAS NO SISTEMA: ${expenses.length}
 TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
 `;
-  }, [expenses, incomes, categories, incomeCategories, accounts, cards, summary]);
+  }, [expenses, incomes, categories, subcategories, incomeCategories, accounts, cards, summary]);
 
   // Auto scroll
   useEffect(() => {
@@ -164,6 +177,14 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
     }
   }, [isOpen]);
 
+  const cancelRequest = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+    }
+  }, []);
+
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
@@ -172,6 +193,9 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
     setMessages(allMessages);
     setInput('');
     setIsLoading(true);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     let assistantSoFar = '';
 
@@ -186,7 +210,10 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
           messages: allMessages.map(m => ({ role: m.role, content: m.content })),
           financialContext,
           userId: user?.id,
+          categoriesMap,
+          incomeCategoriesMap: incomeCategories.map(c => ({ id: c.id, name: c.name })),
         }),
+        signal: controller.signal,
       });
 
       if (!resp.ok) {
@@ -225,7 +252,6 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
 
           try {
             const parsed = JSON.parse(jsonStr);
-            // Handle refresh marker from tool calls
             if (parsed.refresh) {
               refreshAllData();
               continue;
@@ -273,10 +299,18 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
           } catch { /* ignore */ }
         }
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e.name === 'AbortError') {
+        // User cancelled - keep partial response if any
+        if (!assistantSoFar) {
+          setMessages(prev => prev.filter((_, i) => i !== prev.length - 1 || prev[prev.length - 1]?.role !== 'assistant'));
+        }
+        return;
+      }
       console.error('Chat error:', e);
       toast.error('Erro ao se comunicar com a IA');
     } finally {
+      abortControllerRef.current = null;
       setIsLoading(false);
     }
   };
@@ -287,6 +321,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
   };
 
   const clearChat = () => {
+    cancelRequest();
     setMessages([]);
   };
 
@@ -343,7 +378,6 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
                   <div className="bg-muted/50 p-3 rounded-xl rounded-tl-none text-sm text-foreground">
                     Olá! 👋 Sou o assistente financeiro do <strong>KeepMoney</strong>. Tenho acesso aos seus dados e posso te ajudar com análises, dicas e até **cadastrar despesas e receitas** por texto. O que gostaria de fazer?
                   </div>
-                  {/* Quick actions */}
                   <div className="grid grid-cols-2 gap-2">
                     {QUICK_QUESTIONS.map((q) => (
                       <button
@@ -401,14 +435,26 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
                   placeholder="Pergunte sobre suas finanças..."
                   disabled={isLoading}
                 />
-                <Button
-                  size="icon"
-                  type="submit"
-                  disabled={isLoading || !input.trim()}
-                  className="absolute right-1 h-8 w-8 bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50"
-                >
-                  {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                </Button>
+                {isLoading ? (
+                  <Button
+                    size="icon"
+                    type="button"
+                    onClick={cancelRequest}
+                    className="absolute right-1 h-8 w-8 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                    title="Parar"
+                  >
+                    <Square className="w-3 h-3" />
+                  </Button>
+                ) : (
+                  <Button
+                    size="icon"
+                    type="submit"
+                    disabled={!input.trim()}
+                    className="absolute right-1 h-8 w-8 bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50"
+                  >
+                    <Send className="w-3 h-3" />
+                  </Button>
+                )}
               </form>
             </div>
           </div>
