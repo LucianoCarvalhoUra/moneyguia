@@ -98,6 +98,37 @@ export default function InvoiceReconciliation() {
     });
   }, [expenses, selectedCardId, selectedMonth, selectedYear]);
 
+  // Filter installment expenses for the selected card (all time, not just selected month)
+  const installmentExpenses = useMemo(() => {
+    if (!selectedCardId) return [];
+    
+    return expenses.filter((expense) => 
+      expense.cardId === selectedCardId &&
+      expense.paymentMethod === 'credit_card' &&
+      expense.installments && expense.installments > 1
+    );
+  }, [expenses, selectedCardId]);
+
+  // Group installment expenses by recurrenceId or description
+  const groupedInstallments = useMemo(() => {
+    const groups: Record<string, typeof installmentExpenses> = {};
+    
+    installmentExpenses.forEach((expense) => {
+      const key = expense.recurrenceId || expense.description.replace(/\s*\(\d+\/\d+\)\s*$/, '');
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(expense);
+    });
+
+    // Sort each group by currentInstallment
+    Object.values(groups).forEach(group => {
+      group.sort((a, b) => (a.currentInstallment || 0) - (b.currentInstallment || 0));
+    });
+
+    return groups;
+  }, [installmentExpenses]);
+
+  const [showInstallments, setShowInstallments] = useState(false);
+
   const handleConfirmReconciliation = async () => {
     if (!hasDifference || difference === 0) {
       toast.success('Fatura conciliada! Não há diferença a ajustar.');
