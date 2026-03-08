@@ -112,6 +112,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setReceiveDate(dataToLoad.receiveDate ? formatToInput(dataToLoad.receiveDate) : today);
         setAmount(dataToLoad.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) : '');
         setIsReceived(dataToLoad.isReceived || false);
+        setAccountId(dataToLoad.accountId || (dataToLoad as any).account_id || '');
         setIsRecurring(dataToLoad.isRecurring || false);
         setExcludeFromCalculations((dataToLoad as any).excludeFromCalculations || (dataToLoad as any).exclude_from_calculations || false);
         setObservation((dataToLoad as any).description || '');
