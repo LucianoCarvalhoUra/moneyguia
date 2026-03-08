@@ -54,6 +54,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [deleteScopeDialogOpen, setDeleteScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
   const [recurrenceUsage, setRecurrenceUsage] = useState(0);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
