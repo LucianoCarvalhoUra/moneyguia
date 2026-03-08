@@ -74,6 +74,16 @@ export default function Incomes() {
   const currentYear = new Date().getFullYear();
   const years = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
 
+  // Sync month/year to URL params
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('month', selectedMonth.toString());
+      next.set('year', selectedYear.toString());
+      return next;
+    }, { replace: true });
+  }, [selectedMonth, selectedYear, setSearchParams]);
+
   useEffect(() => {
     if (location.state?.filter === 'pending') {
       setStatusFilter('pending');
