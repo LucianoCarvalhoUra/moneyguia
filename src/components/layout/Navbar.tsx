@@ -69,10 +69,20 @@ export default function Navbar() {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
-              <Sparkles className="h-4 w-4" />
-              IA ativa
-            </div>
+            {(() => {
+              const isAiActive = plan.hasAiClassification;
+              return (
+                <div className={cn(
+                  "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium",
+                  isAiActive 
+                    ? "border-amber-200 bg-amber-50 text-amber-700" 
+                    : "border-muted bg-muted/50 text-muted-foreground"
+                )}>
+                  <Sparkles className="h-4 w-4" />
+                  {isAiActive ? "IA ativa" : "IA inativa"}
+                </div>
+              );
+            })()}
             <span className="text-sm text-slate-600">
               Olá, <span className="font-semibold text-slate-800">{user?.user_metadata?.name?.split(" ")[0] || user?.email?.split("@")[0]}</span>
             </span>
