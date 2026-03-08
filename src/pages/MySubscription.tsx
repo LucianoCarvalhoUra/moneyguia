@@ -138,7 +138,7 @@ export default function MySubscription() {
     }
   };
 
-
+  const features = [
     { key: "hasAiClassification", label: "Classificação com IA", icon: Bot },
     { key: "hasAdvancedReports", label: "Relatórios avançados", icon: BarChart3 },
     { key: "hasExport", label: "Exportação de dados", icon: FileText },
