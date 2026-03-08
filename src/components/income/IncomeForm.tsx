@@ -53,6 +53,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [receiveDate, setReceiveDate] = useState('');
   const [amount, setAmount] = useState('');
   const [isReceived, setIsReceived] = useState(false);
+  const [accountId, setAccountId] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
