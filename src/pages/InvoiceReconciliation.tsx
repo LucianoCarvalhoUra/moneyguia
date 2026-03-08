@@ -19,7 +19,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, CreditCard, AlertCircle, CheckCircle2, Calculator } from 'lucide-react';
+import { CalendarIcon, CreditCard, AlertCircle, CheckCircle2, Calculator, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { CategoryIcon } from '@/components/CategoryIcon';
