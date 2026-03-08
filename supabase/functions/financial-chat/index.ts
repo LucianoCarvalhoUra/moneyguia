@@ -411,7 +411,19 @@ CRIAÇÃO DE DESPESAS/RECEITAS:
   5. Só prossiga com o cadastro após o usuário confirmar a categoria.
 - Após criar, confirme com os detalhes do que foi criado (incluindo categoria e subcategoria usadas).
 - Se o usuário falar algo como "gastei 50 reais no mercado", interprete como uma despesa a ser criada.
-- Se o usuário falar algo como "recebi 5000 de salário", interprete como uma receita a ser criada.`;
+- Se o usuário falar algo como "recebi 5000 de salário", interprete como uma receita a ser criada.
+
+EDIÇÃO DE DESPESAS/RECEITAS:
+- Quando o usuário pedir para editar, alterar, mudar ou corrigir uma despesa ou receita, use update_expense ou update_income.
+- Identifique a despesa/receita pelo nome, valor ou data mencionados pelo usuário, e use o ID correspondente dos dados listados acima.
+- Se houver ambiguidade (várias despesas com nome parecido), liste as opções e peça ao usuário para escolher.
+- Exemplos: "mude o aluguel para 4000", "marque a conta de luz como paga", "altere o valor do condomínio para 1400".
+
+EXCLUSÃO DE DESPESAS/RECEITAS:
+- Quando o usuário pedir para excluir, remover, apagar ou deletar uma despesa ou receita, use delete_expense ou delete_income.
+- **SEMPRE confirme com o usuário antes de excluir.** Mostre os detalhes (descrição, valor, data) e pergunte "Deseja realmente excluir?".
+- Só execute a exclusão APÓS o usuário confirmar explicitamente (ex: "sim", "pode excluir", "confirmo").
+- Se houver ambiguidade, liste as opções e peça para o usuário especificar qual.`;
 
     // First call: non-streaming to check for tool calls
     const firstResponse = await fetch(AI_URL, {
