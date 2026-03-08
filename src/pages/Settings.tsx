@@ -31,7 +31,7 @@ interface Profile {
 }
 
 export default function Settings() {
-  const { user, hasFeatureAccess, subscriptionStatus, subscriptionPlan, refreshProfile } = useAuth();
+  const { user, hasFeatureAccess, refreshProfile } = useAuth();
   const { expenses, updateExpense, categories } = useFinance();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
