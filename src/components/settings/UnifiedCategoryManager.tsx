@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Button } from '@/components/ui/button';
@@ -22,16 +22,28 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  Trash2, Plus, X, ChevronDown, Pencil, 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Trash2, Plus, X, ChevronDown, Pencil, Search,
   CreditCard, Banknote, Receipt, Wallet, TrendingUp, Gem, Coins,
   Home, Zap, Droplets, Wifi, Phone, ShieldCheck, Key,
   CarFront, Fuel, Bus, Truck, Plane,
   UserRound, Heart, Stethoscope, Pill, Dumbbell, Sparkles, Baby, PawPrint,
   GraduationCap, School, Briefcase, Laptop,
-  ShoppingBasket, Utensils, Coffee, Gift, Shirt, Tv, Gamepad2, Camera, Music
-, Brain } from 'lucide-react';
+  ShoppingBasket, Utensils, Coffee, Gift, Shirt, Tv, Gamepad2, Camera, Music,
+  Brain, Eye
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Icon configuration with groups
 const ICON_GROUPS = [
@@ -110,6 +122,17 @@ const ICON_GROUPS = [
 
 const ICONS = ICON_GROUPS.flatMap(group => group.icons);
 
+const CLASSIFICATION_LABELS: Record<string, { label: string; color: string }> = {
+  essencial: { label: 'Essencial', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
+  superfluo: { label: 'Supérfluo', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
+  longo_prazo: { label: 'Longo Prazo', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+};
+
+const RECURRENCE_LABELS: Record<string, { label: string; color: string }> = {
+  fixa: { label: 'Fixa', color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
+  variavel: { label: 'Variável', color: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
+};
+
 export default function UnifiedCategoryManager() {
   const { categories, subcategories, addCategory, updateCategory, removeCategory, addSubcategory, removeSubcategory } = useFinance();
   const { incomeCategories, incomeSubcategories, addIncomeCategory, updateIncomeCategory, removeIncomeCategory, addIncomeSubcategory, removeIncomeSubcategory } = useIncome();
@@ -125,11 +148,17 @@ export default function UnifiedCategoryManager() {
   const [classification, setClassification] = useState<'essencial' | 'superfluo' | 'longo_prazo'>('essencial');
   const [recurrence, setRecurrence] = useState<'fixa' | 'variavel'>('fixa');
 
+  // Search State
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Delete Confirmation
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState<{ id: string; name: string; type: 'expense' | 'income' } | null>(null);
+
   // AI Suggestion Logic
   const suggestClassification = (inputName: string) => {
     const lower = inputName.toLowerCase();
     
-    // Heuristics for AI suggestion
     if (lower.match(/aluguel|condom|luz|agua|água|internet|escola|faculdade|plano|seguro/)) {
       setClassification('essencial');
       setRecurrence('fixa');
@@ -158,6 +187,8 @@ export default function UnifiedCategoryManager() {
   // Edit Dialog State
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<{ id: string, name: string, icon: string, color: string, type: 'expense' | 'income' } | null>(null);
+  const [editClassification, setEditClassification] = useState<'essencial' | 'superfluo' | 'longo_prazo'>('essencial');
+  const [editRecurrence, setEditRecurrence] = useState<'fixa' | 'variavel'>('fixa');
 
   const toggleCategory = (id: string) => {
     setExpandedCategories(prev =>
@@ -165,45 +196,65 @@ export default function UnifiedCategoryManager() {
     );
   };
 
+  // Filtered categories
+  const filteredExpenseCategories = useMemo(() => {
+    if (!searchQuery.trim()) return categories;
+    const q = searchQuery.toLowerCase();
+    return categories.filter(c => c.name.toLowerCase().includes(q));
+  }, [categories, searchQuery]);
+
+  const filteredIncomeCategories = useMemo(() => {
+    if (!searchQuery.trim()) return incomeCategories;
+    const q = searchQuery.toLowerCase();
+    return incomeCategories.filter(c => c.name.toLowerCase().includes(q));
+  }, [incomeCategories, searchQuery]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) {
+    if (!name.trim()) {
       toast.error('Nome da categoria é obrigatório');
       return;
     }
 
     try {
       if (type === 'expense') {
-        const newCat = await addCategory({ name, icon, color });
-        // Save metadata to localStorage since DB schema might not support it yet
-        // In a real app, this would go to the database
+        await addCategory({ name: name.trim(), icon, color });
         const metadata = JSON.parse(localStorage.getItem('category_metadata') || '{}');
-        // We use name as key fallback if ID isn't returned immediately, 
-        // but ideally we'd use the ID. For now, we'll store by name for the demo logic.
-        metadata[name] = { classification, recurrence };
+        metadata[name.trim()] = { classification, recurrence };
         localStorage.setItem('category_metadata', JSON.stringify(metadata));
       } else {
-        await addIncomeCategory({ name, icon, color });
+        await addIncomeCategory({ name: name.trim(), icon, color });
       }
       toast.success('Categoria criada com sucesso!');
       setName('');
       setIcon('CreditCard');
       setColor('indigo');
+      setClassification('essencial');
+      setRecurrence('fixa');
     } catch (error) {
       toast.error('Erro ao criar categoria');
     }
   };
 
-  const handleDelete = async (id: string, type: 'expense' | 'income') => {
+  const handleRequestDelete = (id: string, name: string, type: 'expense' | 'income') => {
+    setDeletingCategory({ id, name, type });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingCategory) return;
     try {
-      if (type === 'expense') {
-        await removeCategory(id);
+      if (deletingCategory.type === 'expense') {
+        await removeCategory(deletingCategory.id);
       } else {
-        await removeIncomeCategory(id);
+        await removeIncomeCategory(deletingCategory.id);
       }
       toast.success('Categoria removida');
     } catch (error) {
       toast.error('Erro ao remover categoria');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setDeletingCategory(null);
     }
   };
 
@@ -215,22 +266,33 @@ export default function UnifiedCategoryManager() {
       color: cat.color,
       type
     });
+    // Load classification metadata
+    if (type === 'expense') {
+      const metadata = JSON.parse(localStorage.getItem('category_metadata') || '{}');
+      const meta = metadata[cat.name];
+      setEditClassification(meta?.classification || 'essencial');
+      setEditRecurrence(meta?.recurrence || 'variavel');
+    }
     setEditDialogOpen(true);
   };
 
   const handleUpdateCategory = async () => {
-    if (!editingCategory || !editingCategory.name) return;
+    if (!editingCategory || !editingCategory.name.trim()) return;
 
     try {
       if (editingCategory.type === 'expense') {
         await updateCategory(editingCategory.id, {
-          name: editingCategory.name,
+          name: editingCategory.name.trim(),
           icon: editingCategory.icon,
           color: editingCategory.color
         });
+        // Update classification metadata
+        const metadata = JSON.parse(localStorage.getItem('category_metadata') || '{}');
+        metadata[editingCategory.name.trim()] = { classification: editClassification, recurrence: editRecurrence };
+        localStorage.setItem('category_metadata', JSON.stringify(metadata));
       } else {
         await updateIncomeCategory(editingCategory.id, {
-          name: editingCategory.name,
+          name: editingCategory.name.trim(),
           icon: editingCategory.icon,
           color: editingCategory.color
         });
@@ -248,9 +310,9 @@ export default function UnifiedCategoryManager() {
 
     try {
       if (type === 'expense') {
-        await addSubcategory({ name: subName, categoryId });
+        await addSubcategory({ name: subName.trim(), categoryId });
       } else {
-        await addIncomeSubcategory({ name: subName, categoryId });
+        await addIncomeSubcategory({ name: subName.trim(), categoryId });
       }
       toast.success('Subcategoria adicionada');
       setSubcatInputs(prev => ({ ...prev, [categoryId]: '' }));
@@ -274,31 +336,217 @@ export default function UnifiedCategoryManager() {
   const editingIconObj = editingCategory ? (ICONS.find(i => i.name === editingCategory.icon) || ICONS[0]) : ICONS[0];
   const EditingIcon = editingIconObj.icon;
 
+  const getCategoryMetadata = (catName: string) => {
+    const metadata = JSON.parse(localStorage.getItem('category_metadata') || '{}');
+    return metadata[catName] || null;
+  };
+
+  const renderCategoryList = (cats: any[], sectionType: 'expense' | 'income') => {
+    const subs = sectionType === 'expense' ? subcategories : incomeSubcategories;
+
+    if (cats.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+            <Eye className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {searchQuery ? 'Nenhuma categoria encontrada' : 'Nenhuma categoria cadastrada'}
+          </p>
+          {searchQuery && (
+            <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => setSearchQuery('')}>
+              Limpar busca
+            </Button>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {cats.map(cat => {
+          const catSubcategories = subs.filter(s => s.categoryId === cat.id);
+          const isExpanded = expandedCategories.includes(cat.id);
+          const meta = sectionType === 'expense' ? getCategoryMetadata(cat.name) : null;
+
+          return (
+            <Collapsible 
+              key={cat.id} 
+              open={isExpanded} 
+              onOpenChange={() => toggleCategory(cat.id)}
+              className={cn(
+                "border rounded-xl bg-card transition-all duration-200",
+                isExpanded ? "shadow-md ring-1 ring-primary/10" : "hover:shadow-sm hover:border-border/80"
+              )}
+            >
+              <div className="flex items-center justify-between p-3">
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center gap-3 flex-1 cursor-pointer min-w-0">
+                    <div className={cn("w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center", `bg-${cat.color}/10`)}>
+                      <CategoryIcon iconName={cat.icon} className={cn("w-5 h-5", `text-${cat.color}`)} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium block truncate text-sm">{cat.name}</span>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[10px] text-muted-foreground">{catSubcategories.length} sub</span>
+                        {meta && (
+                          <>
+                            <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 border", CLASSIFICATION_LABELS[meta.classification]?.color)}>
+                              {CLASSIFICATION_LABELS[meta.classification]?.label}
+                            </Badge>
+                            <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 border", RECURRENCE_LABELS[meta.recurrence]?.color)}>
+                              {RECURRENCE_LABELS[meta.recurrence]?.label}
+                            </Badge>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0", isExpanded && "rotate-180")} />
+                  </div>
+                </CollapsibleTrigger>
+              </div>
+
+              <CollapsibleContent>
+                <div className="p-3 pt-0 space-y-3 border-t bg-muted/5">
+                  {/* Actions */}
+                  <div className="flex justify-end gap-2 pt-3">
+                    <Button variant="outline" size="sm" className="h-7 text-xs rounded-lg" onClick={() => handleOpenEdit(cat, sectionType)}>
+                      <Pencil className="w-3 h-3 mr-1" />
+                      Editar
+                    </Button>
+                    <Button variant="destructive" size="sm" className="h-7 text-xs rounded-lg" onClick={() => handleRequestDelete(cat.id, cat.name, sectionType)}>
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      Excluir
+                    </Button>
+                  </div>
+
+                  {/* Subcategories Section */}
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-semibold uppercase text-muted-foreground">Subcategorias</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {catSubcategories.length === 0 && (
+                        <span className="text-xs text-muted-foreground italic">Nenhuma subcategoria</span>
+                      )}
+                      {catSubcategories.map(sub => (
+                        <Badge key={sub.id} variant="secondary" className="gap-1 pr-1 hover:bg-secondary/80 text-xs rounded-lg">
+                          {sub.name}
+                          <div 
+                            className="cursor-pointer hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
+                            onClick={() => handleRemoveSubcategory(sub.id, sectionType)}
+                          >
+                            <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                          </div>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <Input 
+                        placeholder="Nome da subcategoria..." 
+                        className="h-8 text-xs rounded-lg"
+                        value={subcatInputs[cat.id] || ''}
+                        onChange={(e) => setSubcatInputs(prev => ({ ...prev, [cat.id]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddSubcategory(cat.id, sectionType);
+                          }
+                        }}
+                      />
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-8 px-3 rounded-lg text-xs"
+                        onClick={() => handleAddSubcategory(cat.id, sectionType)}
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Adicionar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Gerenciar Categorias</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Plus className="w-4 h-4 text-primary" />
+          </div>
+          Gerenciar Categorias
+        </CardTitle>
         <CardDescription>Crie e gerencie suas categorias de receitas e despesas</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 border p-4 rounded-lg bg-muted/5">
-          <div className="space-y-2">
-            <Label>Nome da Categoria</Label>
-            <Input value={name} onChange={handleNameChange} placeholder="Ex: Alimentação" />
+        {/* Create Form with Live Preview */}
+        <form onSubmit={handleSubmit} className="space-y-4 border rounded-xl p-4 bg-muted/5">
+          <div className="flex items-center gap-2 mb-1">
+            <Plus className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">Nova Categoria</span>
+          </div>
+
+          {/* Live Preview */}
+          {name.trim() && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-dashed border-primary/20">
+              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", `bg-${color}-500/15`)}>
+                <SelectedIcon className={cn("w-5 h-5", `text-${color}-500`)} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-medium text-sm block truncate">{name}</span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[10px] text-muted-foreground">{type === 'expense' ? 'Despesa' : 'Receita'}</span>
+                  {type === 'expense' && (
+                    <>
+                      <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 border", CLASSIFICATION_LABELS[classification]?.color)}>
+                        {CLASSIFICATION_LABELS[classification]?.label}
+                      </Badge>
+                      <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 border", RECURRENCE_LABELS[recurrence]?.color)}>
+                        {RECURRENCE_LABELS[recurrence]?.label}
+                      </Badge>
+                    </>
+                  )}
+                </div>
+              </div>
+              <span className="text-[10px] text-muted-foreground italic">Preview</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs">Nome da Categoria</Label>
+              <Input value={name} onChange={handleNameChange} placeholder="Ex: Alimentação" className="rounded-lg" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Tipo</Label>
+              <Select value={type} onValueChange={(v: 'expense' | 'income') => setType(v)}>
+                <SelectTrigger className="rounded-lg">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="expense">💸 Despesa</SelectItem>
+                  <SelectItem value="income">💰 Receita</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Ícone e Cor</Label>
+            <Label className="text-xs">Ícone e Cor</Label>
             <Popover open={isIconOpen} onOpenChange={setIsIconOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-between h-auto py-3 px-4">
+                <Button variant="outline" className="w-full justify-between h-auto py-3 px-4 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", `bg-${color}-500/15`)}>
                       <SelectedIcon className={cn("w-4 h-4", `text-${color}-500`)} />
                     </div>
                     <div className="text-left">
-                      <span className="block font-medium">{selectedIconObj.label}</span>
+                      <span className="block font-medium text-sm">{selectedIconObj.label}</span>
                       <span className="text-xs text-muted-foreground">Toque para alterar</span>
                     </div>
                   </div>
@@ -338,191 +586,122 @@ export default function UnifiedCategoryManager() {
             </Popover>
           </div>
 
-          <div className="space-y-2">
-            <Label>Tipo</Label>
-            <Select value={type} onValueChange={(v: 'expense' | 'income') => setType(v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="expense">Despesa</SelectItem>
-                <SelectItem value="income">Receita</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           {type === 'expense' && (
             <div className="grid grid-cols-2 gap-4 p-3 bg-primary/5 rounded-lg border border-primary/10">
               <div className="col-span-2 flex items-center gap-2 text-xs font-medium text-primary">
                 <Brain className="w-3 h-3" />
-                Sugestão Inteligente (IA)
+                Classificação Inteligente
               </div>
               <div className="space-y-2">
                 <Label className="text-xs">Classificação</Label>
                 <Select value={classification} onValueChange={(v: any) => setClassification(v)}>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-8 text-xs rounded-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="essencial">Essencial</SelectItem>
-                    <SelectItem value="superfluo">Supérfluo</SelectItem>
-                    <SelectItem value="longo_prazo">Longo Prazo</SelectItem>
+                    <SelectItem value="essencial">🟢 Essencial</SelectItem>
+                    <SelectItem value="superfluo">🟡 Supérfluo</SelectItem>
+                    <SelectItem value="longo_prazo">🔵 Longo Prazo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label className="text-xs">Recorrência</Label>
                 <Select value={recurrence} onValueChange={(v: any) => setRecurrence(v)}>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-8 text-xs rounded-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fixa">Fixa</SelectItem>
-                    <SelectItem value="variavel">Variável</SelectItem>
+                    <SelectItem value="fixa">🔁 Fixa</SelectItem>
+                    <SelectItem value="variavel">📊 Variável</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
           )}
 
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full rounded-lg" disabled={!name.trim()}>
             <Plus className="w-4 h-4 mr-2" />
             Adicionar Categoria
           </Button>
         </form>
 
-        {/* Lists */}
-        <div className="space-y-8 mt-6">
-          {['expense', 'income'].map((sectionType) => (
-            <div key={sectionType} className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1 border-b pb-2">
-                {sectionType === 'expense' ? 'Despesas' : 'Receitas'}
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {(sectionType === 'expense' ? categories : incomeCategories).map(cat => {
-                  const catSubcategories = sectionType === 'expense' 
-                    ? subcategories.filter(s => s.categoryId === cat.id)
-                    : incomeSubcategories.filter(s => s.categoryId === cat.id);
-                  const isExpanded = expandedCategories.includes(cat.id);
-
-                  return (
-                    <Collapsible 
-                      key={cat.id} 
-                      open={isExpanded} 
-                      onOpenChange={() => toggleCategory(cat.id)}
-                      className={cn(
-                        "border rounded-lg bg-card transition-all duration-200",
-                        isExpanded ? "shadow-md ring-1 ring-primary/10" : "hover:bg-muted/50"
-                      )}
-                    >
-                      <div className="flex items-center justify-between p-3">
-                        <CollapsibleTrigger asChild>
-                          <div className="flex items-center gap-3 flex-1 cursor-pointer min-w-0">
-                            <div className={cn("w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center", `bg-${cat.color}/10`)}>
-                              <CategoryIcon iconName={cat.icon} className={cn("w-5 h-5", `text-${cat.color}`)} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span className="font-medium block truncate text-sm">{cat.name}</span>
-                              <span className="text-xs text-muted-foreground">{catSubcategories.length} sub</span>
-                            </div>
-                            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0", isExpanded && "rotate-180")} />
-                          </div>
-                        </CollapsibleTrigger>
-                      </div>
-
-                      <CollapsibleContent>
-                        <div className="p-3 pt-0 space-y-3 border-t bg-muted/10">
-                          {/* Actions */}
-                          <div className="flex justify-end gap-2 pt-3">
-                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleOpenEdit(cat, sectionType as 'expense' | 'income')}>
-                              <Pencil className="w-3 h-3 mr-1" />
-                              Editar
-                            </Button>
-                            <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={() => handleDelete(cat.id, sectionType as 'expense' | 'income')}>
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Excluir
-                            </Button>
-                          </div>
-
-                          {/* Subcategories Section */}
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-semibold uppercase text-muted-foreground">Subcategorias</Label>
-                            <div className="flex flex-wrap gap-1.5">
-                              {catSubcategories.length === 0 && (
-                                <span className="text-xs text-muted-foreground italic">Vazio</span>
-                              )}
-                              {catSubcategories.map(sub => (
-                                <Badge key={sub.id} variant="secondary" className="gap-1 pr-1 hover:bg-secondary/80 text-xs">
-                                  {sub.name}
-                                  <div 
-                                    className="cursor-pointer hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
-                                    onClick={() => handleRemoveSubcategory(sub.id, sectionType as 'expense' | 'income')}
-                                  >
-                                    <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
-                                  </div>
-                                </Badge>
-                              ))}
-                            </div>
-                            <div className="flex gap-2 mt-2">
-                              <Input 
-                                placeholder="Nova sub..." 
-                                className="h-7 text-xs"
-                                value={subcatInputs[cat.id] || ''}
-                                onChange={(e) => setSubcatInputs(prev => ({ ...prev, [cat.id]: e.target.value }))}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    handleAddSubcategory(cat.id, sectionType as 'expense' | 'income');
-                                  }
-                                }}
-                              />
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-7 w-7 p-0"
-                                onClick={() => handleAddSubcategory(cat.id, sectionType as 'expense' | 'income')}
-                              >
-                                <Plus className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Buscar categorias..."
+            className="pl-9 rounded-lg h-9"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+            >
+              <X className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+            </button>
+          )}
         </div>
+
+        {/* Category Lists with Tabs */}
+        <Tabs defaultValue="expense" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 rounded-lg h-9">
+            <TabsTrigger value="expense" className="text-xs rounded-md">
+              💸 Despesas ({filteredExpenseCategories.length})
+            </TabsTrigger>
+            <TabsTrigger value="income" className="text-xs rounded-md">
+              💰 Receitas ({filteredIncomeCategories.length})
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="expense" className="mt-4">
+            {renderCategoryList(filteredExpenseCategories, 'expense')}
+          </TabsContent>
+          <TabsContent value="income" className="mt-4">
+            {renderCategoryList(filteredIncomeCategories, 'income')}
+          </TabsContent>
+        </Tabs>
       </CardContent>
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Editar Categoria</DialogTitle>
           </DialogHeader>
           {editingCategory && (
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-2">
+              {/* Edit Preview */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border">
+                <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", `bg-${editingCategory.color}-500/15`)}>
+                  <EditingIcon className={cn("w-5 h-5", `text-${editingCategory.color}-500`)} />
+                </div>
+                <div>
+                  <span className="font-medium text-sm">{editingCategory.name || 'Nome da categoria'}</span>
+                  <span className="text-[10px] text-muted-foreground block">{editingCategory.type === 'expense' ? 'Despesa' : 'Receita'}</span>
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label>Nome</Label>
+                <Label className="text-xs">Nome</Label>
                 <Input 
                   value={editingCategory.name} 
-                  onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })} 
+                  onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                  className="rounded-lg"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Ícone e Cor</Label>
+                <Label className="text-xs">Ícone e Cor</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between h-auto py-3 px-4">
+                    <Button variant="outline" className="w-full justify-between h-auto py-3 px-4 rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", `bg-${editingCategory.color}-500/15`)}>
                           <EditingIcon className={cn("w-4 h-4", `text-${editingCategory.color}-500`)} />
                         </div>
                         <div className="text-left">
-                          <span className="block font-medium">{editingIconObj.label}</span>
+                          <span className="block font-medium text-sm">{editingIconObj.label}</span>
                           <span className="text-xs text-muted-foreground">Toque para alterar</span>
                         </div>
                       </div>
@@ -559,15 +738,68 @@ export default function UnifiedCategoryManager() {
                   </PopoverContent>
                 </Popover>
               </div>
+
+              {/* Classification/Recurrence in Edit (expense only) */}
+              {editingCategory.type === 'expense' && (
+                <div className="grid grid-cols-2 gap-4 p-3 bg-primary/5 rounded-lg border border-primary/10">
+                  <div className="col-span-2 flex items-center gap-2 text-xs font-medium text-primary">
+                    <Brain className="w-3 h-3" />
+                    Classificação
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Tipo</Label>
+                    <Select value={editClassification} onValueChange={(v: any) => setEditClassification(v)}>
+                      <SelectTrigger className="h-8 text-xs rounded-lg">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="essencial">🟢 Essencial</SelectItem>
+                        <SelectItem value="superfluo">🟡 Supérfluo</SelectItem>
+                        <SelectItem value="longo_prazo">🔵 Longo Prazo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Recorrência</Label>
+                    <Select value={editRecurrence} onValueChange={(v: any) => setEditRecurrence(v)}>
+                      <SelectTrigger className="h-8 text-xs rounded-lg">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixa">🔁 Fixa</SelectItem>
+                        <SelectItem value="variavel">📊 Variável</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleUpdateCategory}>Salvar Alterações</Button>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="rounded-lg">Cancelar</Button>
+            <Button onClick={handleUpdateCategory} className="rounded-lg">Salvar Alterações</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Categoria</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a categoria <strong>"{deletingCategory?.name}"</strong>? 
+              Essa ação não pode ser desfeita e pode afetar despesas/receitas vinculadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
-
