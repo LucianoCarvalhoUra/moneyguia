@@ -596,7 +596,7 @@ export default function UnifiedCategoryManager() {
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Tipo</Label>
-              <Select value={type} onValueChange={(v: 'expense' | 'income') => setType(v)}>
+              <Select value={type} onValueChange={(v: 'expense' | 'income') => handleTypeChange(v)}>
                 <SelectTrigger className="rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
