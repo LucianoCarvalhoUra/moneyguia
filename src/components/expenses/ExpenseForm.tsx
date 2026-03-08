@@ -376,6 +376,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                expense_date: nextDueDateStr,
                is_paid: i === 0 ? isPaid : false,
                recurrence_id: newRecurrenceId,
+               current_installment: i + 1,
+               installments: limit,
              });
            }
            const { error } = await supabase.from('expenses').insert(newExpenses);
