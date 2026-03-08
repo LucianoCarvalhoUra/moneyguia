@@ -39,7 +39,7 @@ export default function Settings() {
   const [alertEnabled, setAlertEnabled] = useState(true);
   const [alertType, setAlertType] = useState('expenses');
   const [isClassifying, setIsClassifying] = useState(false);
-  const [isSimulatingSubscription, setIsSimulatingSubscription] = useState(false);
+  
   const canUseAiClassification = hasFeatureAccess('ai_classification');
 
   useEffect(() => {
