@@ -175,6 +175,7 @@ export default function Settings() {
       }
 
       await refreshProfile();
+      window.dispatchEvent(new Event("user-plan-changed"));
       const labels: Record<string, string> = { free: 'Gratuito', pro: 'Pro', premium: 'Premium' };
       toast.success(`Plano simulado: ${labels[targetPlanType] || targetPlanType}`);
     } catch (error: any) {
