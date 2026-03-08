@@ -333,6 +333,7 @@ async function executeToolCall(
       });
     }
 
+    if (toolName === "create_income_category") {
       const { data, error } = await supabase.from("income_categories").insert({
         user_id: userId,
         name: args.name,
