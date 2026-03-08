@@ -217,6 +217,28 @@ export default function Incomes() {
     setDeleteDialogOpen(true);
   };
   
+  const renumberIncomeInstallments = async (recurrenceId: string) => {
+    try {
+      const { data: remaining } = await supabase
+        .from('incomes')
+        .select('id, receive_date')
+        .eq('recurrence_id', recurrenceId)
+        .order('receive_date', { ascending: true });
+
+      if (!remaining || remaining.length === 0) return;
+
+      const total = remaining.length;
+      for (let i = 0; i < remaining.length; i++) {
+        await supabase.from('incomes').update({
+          current_installment: i + 1,
+          installments: total,
+        }).eq('id', remaining[i].id);
+      }
+    } catch (err) {
+      console.error('Erro ao renumerar parcelas:', err);
+    }
+  };
+
   const handleConfirmDelete = async () => {
     if (!incomeToDelete) return;
 
@@ -237,9 +259,14 @@ export default function Incomes() {
       const { error } = await query;
       if (error) throw error;
 
+      // Renumber remaining installments if it was a partial delete
+      if (recurrenceId && selectedDeleteScope !== 'all') {
+        await renumberIncomeInstallments(recurrenceId);
+      }
+
       await refreshData();
       toast.success('Receita(s) removida(s) e sincronizada(s) com o banco.');
-      setDeleteDialogOpen(false); // Ensure dialog closes immediately
+      setDeleteDialogOpen(false);
       setIncomeToDelete(null);
       setSelectedDeleteScope('single');
     } catch (error: any) {

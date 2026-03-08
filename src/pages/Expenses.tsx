@@ -209,6 +209,28 @@ export default function Expenses() {
     setDeleteDialogOpen(true);
   };
   
+  const renumberInstallments = async (recurrenceId: string) => {
+    try {
+      const { data: remaining } = await supabase
+        .from('expenses')
+        .select('id, due_date')
+        .eq('recurrence_id', recurrenceId)
+        .order('due_date', { ascending: true });
+
+      if (!remaining || remaining.length === 0) return;
+
+      const total = remaining.length;
+      for (let i = 0; i < remaining.length; i++) {
+        await supabase.from('expenses').update({
+          current_installment: i + 1,
+          installments: total,
+        }).eq('id', remaining[i].id);
+      }
+    } catch (err) {
+      console.error('Erro ao renumerar parcelas:', err);
+    }
+  };
+
   const handleConfirmDelete = async () => {
     if (!expenseToDelete) return;
 
@@ -230,9 +252,14 @@ export default function Expenses() {
       const { error } = await query;
       if (error) throw error;
 
+      // Renumber remaining installments if it was a partial delete of a recurrence
+      if (recurrenceId && selectedDeleteScope !== 'all') {
+        await renumberInstallments(recurrenceId);
+      }
+
       toast.success('Despesa(s) removida(s) com sucesso!');
       await refreshData();
-      setDeleteDialogOpen(false); // Ensure dialog closes immediately
+      setDeleteDialogOpen(false);
       setExpenseToDelete(null);
       setSelectedDeleteScope('single');
     } catch (error: any) {
