@@ -22,7 +22,8 @@ const tools = [
           amount: { type: "number", description: "Valor da despesa em reais (BRL)" },
           due_date: { type: "string", description: "Data de vencimento no formato YYYY-MM-DD" },
           expense_date: { type: "string", description: "Data da despesa no formato YYYY-MM-DD. Se não informada, usar a mesma do vencimento." },
-          category_name: { type: "string", description: "Nome da categoria da despesa (ex: Alimentação, Transporte, Saúde, etc.)" },
+          category_id: { type: "string", description: "UUID da categoria existente do usuário (use o categoriesMap fornecido)" },
+          subcategory_id: { type: "string", description: "UUID da subcategoria existente do usuário (use o categoriesMap fornecido)" },
           is_paid: { type: "boolean", description: "Se a despesa já foi paga. Padrão: false" },
           payment_method: { type: "string", enum: ["pix", "account", "credit_card"], description: "Forma de pagamento. Padrão: pix" },
           observation: { type: "string", description: "Observação adicional (opcional)" },
@@ -43,7 +44,7 @@ const tools = [
           title: { type: "string", description: "Título da receita" },
           amount: { type: "number", description: "Valor da receita em reais (BRL)" },
           receive_date: { type: "string", description: "Data de recebimento no formato YYYY-MM-DD" },
-          category_name: { type: "string", description: "Nome da categoria da receita (ex: Salário, Freelance, Investimentos, etc.)" },
+          category_id: { type: "string", description: "UUID da categoria de receita existente do usuário (use o incomeCategoriesMap fornecido)" },
           is_received: { type: "boolean", description: "Se a receita já foi recebida. Padrão: false" },
           description: { type: "string", description: "Descrição adicional (opcional)" },
         },
@@ -54,48 +55,6 @@ const tools = [
   },
 ];
 
-async function findOrCreateExpenseCategory(
-  supabase: any,
-  userId: string,
-  categoryName: string
-): Promise<string | null> {
-  if (!categoryName) return null;
-  const { data } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("user_id", userId)
-    .ilike("name", categoryName)
-    .limit(1);
-  if (data && data.length > 0) return data[0].id;
-  const { data: newCat } = await supabase
-    .from("categories")
-    .insert({ user_id: userId, name: categoryName, icon: "📦", color: "category-other" })
-    .select("id")
-    .single();
-  return newCat?.id || null;
-}
-
-async function findOrCreateIncomeCategory(
-  supabase: any,
-  userId: string,
-  categoryName: string
-): Promise<string | null> {
-  if (!categoryName) return null;
-  const { data } = await supabase
-    .from("income_categories")
-    .select("id")
-    .eq("user_id", userId)
-    .ilike("name", categoryName)
-    .limit(1);
-  if (data && data.length > 0) return data[0].id;
-  const { data: newCat } = await supabase
-    .from("income_categories")
-    .insert({ user_id: userId, name: categoryName, icon: "💰", color: "category-income-other" })
-    .select("id")
-    .single();
-  return newCat?.id || null;
-}
-
 async function executeToolCall(
   supabase: any,
   userId: string,
@@ -104,10 +63,6 @@ async function executeToolCall(
 ): Promise<string> {
   try {
     if (toolName === "create_expense") {
-      const categoryId = args.category_name
-        ? await findOrCreateExpenseCategory(supabase, userId, args.category_name)
-        : null;
-
       const today = new Date().toISOString().split("T")[0];
       const { data, error } = await supabase.from("expenses").insert({
         user_id: userId,
@@ -115,7 +70,8 @@ async function executeToolCall(
         amount: args.amount,
         due_date: args.due_date,
         expense_date: args.expense_date || args.due_date || today,
-        category_id: categoryId,
+        category_id: args.category_id || null,
+        subcategory_id: args.subcategory_id || null,
         is_paid: args.is_paid ?? false,
         payment_method: args.payment_method || "pix",
         observation: args.observation || null,
@@ -131,16 +87,12 @@ async function executeToolCall(
     }
 
     if (toolName === "create_income") {
-      const categoryId = args.category_name
-        ? await findOrCreateIncomeCategory(supabase, userId, args.category_name)
-        : null;
-
       const { data, error } = await supabase.from("incomes").insert({
         user_id: userId,
         title: args.title,
         amount: args.amount,
         receive_date: args.receive_date,
-        category_id: categoryId,
+        category_id: args.category_id || null,
         is_received: args.is_received ?? false,
         description: args.description || null,
         is_recurring: false,
@@ -166,17 +118,37 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, financialContext, userId } = await req.json();
+    const { messages, financialContext, userId, categoriesMap, incomeCategoriesMap } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Build categories info for the system prompt
+    const categoriesInfo = categoriesMap
+      ? `\n=== CATEGORIAS DE DESPESA DO USUÁRIO (use os IDs para criar despesas) ===\n${
+          categoriesMap.map((c: any) => {
+            const subs = c.subcategories?.length
+              ? c.subcategories.map((s: any) => `    - ${s.name} (id: ${s.id})`).join("\n")
+              : "    (sem subcategorias)";
+            return `- ${c.name} (id: ${c.id})\n${subs}`;
+          }).join("\n")
+        }`
+      : "";
+
+    const incomeCategoriesInfo = incomeCategoriesMap
+      ? `\n=== CATEGORIAS DE RECEITA DO USUÁRIO (use os IDs para criar receitas) ===\n${
+          incomeCategoriesMap.map((c: any) => `- ${c.name} (id: ${c.id})`).join("\n")
+        }`
+      : "";
+
     const systemPrompt = `Você é o KeepMoney AI, um assistente financeiro pessoal inteligente e amigável. Você tem acesso completo aos dados financeiros do usuário e pode CRIAR despesas e receitas quando solicitado.
 
 DADOS FINANCEIROS DO USUÁRIO:
 ${financialContext}
+${categoriesInfo}
+${incomeCategoriesInfo}
 
 INSTRUÇÕES:
 - Responda SEMPRE em português do Brasil.
@@ -191,7 +163,10 @@ INSTRUÇÕES:
 CRIAÇÃO DE DESPESAS/RECEITAS:
 - Quando o usuário pedir para cadastrar, adicionar ou registrar uma despesa ou receita, use as ferramentas disponíveis.
 - Se o usuário não informar a data, use a data de hoje (${new Date().toISOString().split("T")[0]}).
-- Se o usuário não informar a categoria, tente inferir pela descrição ou pergunte.
+- IMPORTANTE: Use SEMPRE os IDs das categorias e subcategorias listadas acima. Escolha a categoria e subcategoria mais adequada com base na descrição do usuário.
+  - Exemplo: "gastei 20 reais em uber" → use a categoria "Transporte" e a subcategoria correspondente, usando seus IDs.
+  - Exemplo: "gastei 50 no mercado" → use a categoria "Alimentação" e a subcategoria correspondente, usando seus IDs.
+- Se não houver uma categoria adequada, use a mais próxima disponível.
 - Após criar, confirme com os detalhes do que foi criado.
 - Se o usuário falar algo como "gastei 50 reais no mercado", interprete como uma despesa a ser criada.
 - Se o usuário falar algo como "recebi 5000 de salário", interprete como uma receita a ser criada.`;
@@ -204,7 +179,7 @@ CRIAÇÃO DE DESPESAS/RECEITAS:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [{ role: "system", content: systemPrompt }, ...messages],
         tools,
         stream: false,
@@ -239,20 +214,22 @@ CRIAÇÃO DE DESPESAS/RECEITAS:
 
     // If no tool calls, stream the response directly
     if (!toolCalls || toolCalls.length === 0) {
-      const streamResponse = await fetch(AI_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [{ role: "system", content: systemPrompt }, ...messages],
-          stream: true,
-        }),
-      });
-
-      return new Response(streamResponse.body, {
+      // Use the already-obtained response content instead of making a second call
+      const content = choice?.message?.content || "";
+      if (content) {
+        const encoder = new TextEncoder();
+        // Send content as a single SSE event for speed
+        const body = encoder.encode(
+          `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\ndata: [DONE]\n\n`
+        );
+        return new Response(body, {
+          headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+        });
+      }
+      // Fallback: empty response
+      const encoder = new TextEncoder();
+      const body = encoder.encode(`data: [DONE]\n\n`);
+      return new Response(body, {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
     }
@@ -282,7 +259,7 @@ CRIAÇÃO DE DESPESAS/RECEITAS:
       } catch {}
     }
 
-    // Second call with tool results - stream the final response
+    // Second call with tool results - non-streaming for speed
     const followUpMessages = [
       { role: "system", content: systemPrompt },
       ...messages,
@@ -297,48 +274,34 @@ CRIAÇÃO DE DESPESAS/RECEITAS:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: followUpMessages,
-        stream: true,
+        stream: false,
       }),
     });
+
+    const encoder = new TextEncoder();
 
     if (!finalResponse.ok) {
       const fallbackMsg = createdItems.length > 0
         ? `✅ ${createdItems.join("\n\n")}`
         : "Ação realizada, mas não foi possível gerar a confirmação detalhada.";
-      const encoder = new TextEncoder();
       const body = encoder.encode(
-        `data: ${JSON.stringify({ choices: [{ delta: { content: fallbackMsg } }] })}\n\ndata: [DONE]\n\n`
+        `data: ${JSON.stringify({ refresh: true })}\n\ndata: ${JSON.stringify({ choices: [{ delta: { content: fallbackMsg } }] })}\n\ndata: [DONE]\n\n`
       );
       return new Response(body, {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
     }
 
-    // Prepend refresh marker so frontend refreshes data
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
-    const encoder = new TextEncoder();
+    const finalResult = await finalResponse.json();
+    const finalContent = finalResult.choices?.[0]?.message?.content || 
+      (createdItems.length > 0 ? `✅ ${createdItems.join("\n\n")}` : "Pronto!");
 
-    await writer.write(
-      encoder.encode(`data: ${JSON.stringify({ refresh: true })}\n\n`)
+    const body = encoder.encode(
+      `data: ${JSON.stringify({ refresh: true })}\n\ndata: ${JSON.stringify({ choices: [{ delta: { content: finalContent } }] })}\n\ndata: [DONE]\n\n`
     );
-
-    const reader = finalResponse.body!.getReader();
-    (async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          await writer.write(value);
-        }
-      } finally {
-        writer.close();
-      }
-    })();
-
-    return new Response(readable, {
+    return new Response(body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
