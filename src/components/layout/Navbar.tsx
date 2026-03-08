@@ -72,6 +72,7 @@ export default function Navbar() {
           <div className="hidden items-center gap-3 md:flex">
             {(() => {
               const isAiActive = plan.hasAiClassification;
+              const planLabel = plan.planType === 'free' ? 'Gratuito' : plan.planType === 'pro' ? 'Pro' : 'Premium';
               return (
                 <div className={cn(
                   "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium",
@@ -80,7 +81,7 @@ export default function Navbar() {
                     : "border-muted bg-muted/50 text-muted-foreground"
                 )}>
                   <Sparkles className="h-4 w-4" />
-                  {isAiActive ? "IA ativa" : "IA inativa"}
+                  {planLabel} • {isAiActive ? "IA ativa" : "IA inativa"}
                 </div>
               );
             })()}
