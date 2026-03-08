@@ -74,7 +74,7 @@ export const useFinancialSummary = (selectedDate: Date = new Date()) => {
         if (expense.isPaid) return false;
         if (processedIds.has(expense.id)) return false; // Fix: Group by ID
         
-        const dueDate = parseISO(expense.dueDate as unknown as string);
+        const dueDate = expense.dueDate instanceof Date ? expense.dueDate : parseISO(expense.dueDate as unknown as string);
         // Verifica se a data de vencimento está entre hoje e 30 dias à frente
         const isUpcoming = isWithinInterval(dueDate, { start: today, end: next30Days });
         if (isUpcoming) processedIds.add(expense.id);
