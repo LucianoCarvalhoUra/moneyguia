@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { User, Shield, Loader2, Bell, Bot, Sparkles } from 'lucide-react';
+import SubscriptionCard from '@/components/settings/SubscriptionCard';
 import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
 import DashboardCustomization from '@/components/dashboard/DashboardCustomization';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
@@ -226,6 +227,9 @@ export default function Settings() {
         <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
         <p className="text-muted-foreground">Gerencie suas preferências</p>
       </div>
+
+      {/* Subscription Info */}
+      <SubscriptionCard />
 
       {/* Profile Card */}
       <Card>
