@@ -508,7 +508,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-0.5">
               {expense 
-                ? `Cadastrada em ${format(new Date(expense.createdAt), 'dd/MM/yyyy HH:mm')}${expense.installments && expense.installments > 1 ? ` • Parcela ${expense.currentInstallment || '?'}/${expense.installments}` : ''}`
+                ? `Cadastrada em ${format(new Date(expense.createdAt), 'dd/MM/yyyy HH:mm')}${expense.installments && expense.installments > 1 ? ` • Parcela ${expense.currentInstallment || 1}/${expense.installments}` : expense.isRecurring ? ' • Recorrente' : ''}`
                 : 'Preencha os detalhes da transação'}
             </DialogDescription>
           </div>
