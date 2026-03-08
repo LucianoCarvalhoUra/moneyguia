@@ -721,14 +721,46 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={deleteScopeDialogOpen} onOpenChange={setDeleteScopeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Recorrência</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta é uma despesa recorrente. Como deseja excluir?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-4">
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('single')}>
+              <Calendar className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Apenas esta</div>
+                <div className="text-xs text-muted-foreground">Excluir somente a despesa atual</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('future')}>
+              <CalendarClock className="w-4 h-4 mr-3 text-destructive" />
+              <div className="text-left">
+                <div className="font-medium">Esta e próximas</div>
+                <div className="text-xs text-muted-foreground">Excluir desta data em diante</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('all')}>
+              <CalendarDays className="w-4 h-4 mr-3 text-destructive" />
+              <div className="text-left">
+                <div className="font-medium">Todas</div>
+                <div className="text-xs text-muted-foreground">Excluir toda a série</div>
+              </div>
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
-
-
-
-
-
 
 
 
