@@ -519,7 +519,17 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
           </div>
 
-          {/* Row 3: Status + Recorrência + Observação */}
+          {/* Row 3: Banco + Status + Recorrência */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Banco</Label>
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
+                <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+
+          {/* Row 4: Status + Recorrência + Observação */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
