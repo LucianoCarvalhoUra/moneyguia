@@ -101,6 +101,78 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "update_expense",
+      description: "Edita/atualiza uma despesa existente. Use quando o usuário pedir para alterar valor, descrição, data, categoria ou status de pagamento de uma despesa.",
+      parameters: {
+        type: "object",
+        properties: {
+          expense_id: { type: "string", description: "UUID da despesa a ser editada (use os IDs das despesas listadas no contexto financeiro)" },
+          description: { type: "string", description: "Nova descrição (opcional)" },
+          amount: { type: "number", description: "Novo valor (opcional)" },
+          due_date: { type: "string", description: "Nova data de vencimento YYYY-MM-DD (opcional)" },
+          category_id: { type: "string", description: "Novo UUID da categoria (opcional)" },
+          subcategory_id: { type: "string", description: "Novo UUID da subcategoria (opcional)" },
+          is_paid: { type: "boolean", description: "Marcar como pago/não pago (opcional)" },
+          payment_method: { type: "string", enum: ["pix", "account", "credit_card"], description: "Nova forma de pagamento (opcional)" },
+        },
+        required: ["expense_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_expense",
+      description: "Exclui uma despesa existente. Use quando o usuário pedir para remover/excluir/apagar uma despesa. SEMPRE confirme com o usuário antes de excluir.",
+      parameters: {
+        type: "object",
+        properties: {
+          expense_id: { type: "string", description: "UUID da despesa a ser excluída" },
+        },
+        required: ["expense_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_income",
+      description: "Edita/atualiza uma receita existente. Use quando o usuário pedir para alterar valor, título, data, categoria ou status de recebimento de uma receita.",
+      parameters: {
+        type: "object",
+        properties: {
+          income_id: { type: "string", description: "UUID da receita a ser editada (use os IDs das receitas listadas no contexto financeiro)" },
+          title: { type: "string", description: "Novo título (opcional)" },
+          amount: { type: "number", description: "Novo valor (opcional)" },
+          receive_date: { type: "string", description: "Nova data de recebimento YYYY-MM-DD (opcional)" },
+          category_id: { type: "string", description: "Novo UUID da categoria (opcional)" },
+          is_received: { type: "boolean", description: "Marcar como recebido/não recebido (opcional)" },
+        },
+        required: ["income_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_income",
+      description: "Exclui uma receita existente. Use quando o usuário pedir para remover/excluir/apagar uma receita. SEMPRE confirme com o usuário antes de excluir.",
+      parameters: {
+        type: "object",
+        properties: {
+          income_id: { type: "string", description: "UUID da receita a ser excluída" },
+        },
+        required: ["income_id"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 async function executeToolCall(
