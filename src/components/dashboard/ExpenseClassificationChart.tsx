@@ -36,13 +36,13 @@ const CONFIG: Record<ClassificationType, { title: string; icon: React.ElementTyp
   fixed: {
     title: 'Despesas Fixas',
     icon: RefreshCw,
-    colors: ['#f59e0b', '#fbbf24', '#fcd34d', '#fde68a', '#d97706', '#b45309'],
+    colors: ['#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#0284c7', '#0369a1'],
     emptyMessage: 'Nenhuma despesa fixa encontrada',
   },
   variable: {
     title: 'Despesas Variáveis',
     icon: Shuffle,
-    colors: ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#059669', '#047857'],
+    colors: ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ea580c', '#c2410c'],
     emptyMessage: 'Nenhuma despesa variável encontrada',
   },
   long_term: {
@@ -63,9 +63,9 @@ function classifyExpense(expense: ExpenseItem, metadata: Record<string, any>): s
     if (normalized !== 'variavel') return normalized;
   }
 
-  // Heuristic: recurring = fixed, installments = long_term, else variable
-  if (expense.isRecurring) return 'fixo';
+  // Heuristic: installments > 1 = long_term (even if recurring), recurring without installments = fixed, else variable
   if (expense.installments && expense.installments > 1) return 'longo_prazo';
+  if (expense.isRecurring) return 'fixo';
   return 'variavel';
 }
 
