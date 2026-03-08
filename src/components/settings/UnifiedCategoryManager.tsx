@@ -155,20 +155,86 @@ export default function UnifiedCategoryManager() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<{ id: string; name: string; type: 'expense' | 'income' } | null>(null);
 
-  // AI Suggestion Logic
-  const suggestClassification = (inputName: string) => {
-    const lower = inputName.toLowerCase();
-    
-    if (lower.match(/aluguel|condom|luz|agua|água|internet|escola|faculdade|plano|seguro/)) {
+  // AI Suggestion Logic - also suggests icon based on name
+  const suggestFromName = (inputName: string) => {
+    const lower = inputName.toLowerCase().trim();
+    if (!lower) return;
+
+    // Icon + color suggestion map
+    const iconMap: Array<{ pattern: RegExp; icon: string; color: string }> = [
+      { pattern: /aluguel|moradia|casa|apartamento/, icon: 'Home', color: 'blue' },
+      { pattern: /luz|energia|eletric/, icon: 'Zap', color: 'amber' },
+      { pattern: /agua|água/, icon: 'Droplets', color: 'cyan' },
+      { pattern: /internet|wifi/, icon: 'Wifi', color: 'sky' },
+      { pattern: /celular|telefone|phone/, icon: 'Phone', color: 'indigo' },
+      { pattern: /seguro|proteção/, icon: 'ShieldCheck', color: 'emerald' },
+      { pattern: /carro|veículo|veiculo|estacion/, icon: 'CarFront', color: 'slate' },
+      { pattern: /combustível|combustivel|gasolina|etanol/, icon: 'Fuel', color: 'orange' },
+      { pattern: /ônibus|onibus|metro|metrô|transporte/, icon: 'Bus', color: 'blue' },
+      { pattern: /viagem|passagem|avião|aviao/, icon: 'Plane', color: 'teal' },
+      { pattern: /saúde|saude|médico|medico|hospital|consulta/, icon: 'Stethoscope', color: 'red' },
+      { pattern: /farmácia|farmacia|remédio|remedio/, icon: 'Pill', color: 'pink' },
+      { pattern: /academia|treino|gym/, icon: 'Dumbbell', color: 'rose' },
+      { pattern: /beleza|estética|estetica|salão|salao/, icon: 'Sparkles', color: 'purple' },
+      { pattern: /filho|filha|criança|crianca|beb[êe]/, icon: 'Baby', color: 'pink' },
+      { pattern: /pet|animal|cachorro|gato/, icon: 'PawPrint', color: 'amber' },
+      { pattern: /escola|faculdade|curso|educação|educacao|estudo/, icon: 'GraduationCap', color: 'blue' },
+      { pattern: /trabalho|emprego|empresa/, icon: 'Briefcase', color: 'slate' },
+      { pattern: /tecnologia|software|app/, icon: 'Laptop', color: 'zinc' },
+      { pattern: /mercado|supermercado|compras|feira/, icon: 'ShoppingBasket', color: 'emerald' },
+      { pattern: /alimentação|alimentacao|comida|restaurante|refeição|refeicao/, icon: 'Utensils', color: 'orange' },
+      { pattern: /café|cafe|lanche/, icon: 'Coffee', color: 'brown' },
+      { pattern: /presente|gift/, icon: 'Gift', color: 'red' },
+      { pattern: /roupa|vestuário|vestuario|moda/, icon: 'Shirt', color: 'violet' },
+      { pattern: /streaming|netflix|disney|hbo|amazon|tv|televisão/, icon: 'Tv', color: 'sky' },
+      { pattern: /jogo|game|playstation|xbox/, icon: 'Gamepad2', color: 'violet' },
+      { pattern: /música|musica|spotify/, icon: 'Music', color: 'fuchsia' },
+      { pattern: /cartão|cartao|crédito|credito/, icon: 'CreditCard', color: 'indigo' },
+      { pattern: /investimento|ação|acao|bolsa|fundo|renda fixa/, icon: 'TrendingUp', color: 'blue' },
+      { pattern: /poupança|poupanca|reserva|emergência|emergencia/, icon: 'Coins', color: 'amber' },
+      { pattern: /salário|salario|renda|receita|ganho/, icon: 'Banknote', color: 'emerald' },
+      { pattern: /freelance|extra|comiss/, icon: 'Gem', color: 'purple' },
+      { pattern: /condomínio|condominio|taxa|iptu|ipva/, icon: 'Receipt', color: 'slate' },
+      { pattern: /doação|doacao|caridade|ong/, icon: 'Heart', color: 'rose' },
+      { pattern: /pessoal|higiene|cuidado/, icon: 'UserRound', color: 'cyan' },
+    ];
+
+    for (const { pattern, icon: sugIcon, color: sugColor } of iconMap) {
+      if (lower.match(pattern)) {
+        setIcon(sugIcon);
+        setColor(sugColor);
+        break;
+      }
+    }
+
+    // Classification + recurrence suggestion
+    // Essencial + Fixa
+    if (lower.match(/aluguel|condomínio|condominio|luz|energia|agua|água|internet|escola|faculdade|plano|seguro|iptu|ipva|financiamento|prestação|prestacao|mensalidade|taxa|celular|telefone/)) {
       setClassification('essencial');
       setRecurrence('fixa');
-    } else if (lower.match(/mercado|farmacia|farmácia|combustivel|combustível|transporte/)) {
+    }
+    // Essencial + Variável
+    else if (lower.match(/mercado|supermercado|farmácia|farmacia|combustível|combustivel|gasolina|transporte|alimentação|alimentacao|feira|saúde|saude|médico|medico|remédio|remedio/)) {
       setClassification('essencial');
       setRecurrence('variavel');
-    } else if (lower.match(/lazer|stream|netflix|spotify|ifood|restaurante|bar|viagem|jogos/)) {
+    }
+    // Supérfluo + Fixa
+    else if (lower.match(/netflix|spotify|amazon|disney|hbo|streaming|academia|gym|assinatura|clube/)) {
       setClassification('superfluo');
-      setRecurrence(lower.match(/netflix|spotify|amazon/) ? 'fixa' : 'variavel');
-    } else if (lower.match(/investimento|poupanca|poupança|reserva/)) {
+      setRecurrence('fixa');
+    }
+    // Supérfluo + Variável
+    else if (lower.match(/lazer|ifood|restaurante|bar|viagem|jogos|game|roupa|shopping|presente|café|cafe|hobby|cinema|festa|delivery|lanche|beleza|estética|estetica/)) {
+      setClassification('superfluo');
+      setRecurrence('variavel');
+    }
+    // Longo Prazo + Fixa
+    else if (lower.match(/previdência|previdencia|consórcio|consorcio|seguro vida/)) {
+      setClassification('longo_prazo');
+      setRecurrence('fixa');
+    }
+    // Longo Prazo + Variável
+    else if (lower.match(/investimento|poupança|poupanca|reserva|ação|acao|fundo|bolsa|renda fixa|tesouro|cdb|lci|lca|cripto|bitcoin/)) {
       setClassification('longo_prazo');
       setRecurrence('variavel');
     }
@@ -177,7 +243,13 @@ export default function UnifiedCategoryManager() {
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
     setName(newName);
-    if (type === 'expense') suggestClassification(newName);
+    if (type === 'expense') suggestFromName(newName);
+  };
+
+  // Re-suggest when switching type to expense
+  const handleTypeChange = (v: 'expense' | 'income') => {
+    setType(v);
+    if (v === 'expense' && name.trim()) suggestFromName(name);
   };
 
   // Management State
@@ -524,7 +596,7 @@ export default function UnifiedCategoryManager() {
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Tipo</Label>
-              <Select value={type} onValueChange={(v: 'expense' | 'income') => setType(v)}>
+              <Select value={type} onValueChange={(v: 'expense' | 'income') => handleTypeChange(v)}>
                 <SelectTrigger className="rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
