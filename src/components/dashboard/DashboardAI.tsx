@@ -185,6 +185,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
         body: JSON.stringify({
           messages: allMessages.map(m => ({ role: m.role, content: m.content })),
           financialContext,
+          userId: user?.id,
         }),
       });
 
