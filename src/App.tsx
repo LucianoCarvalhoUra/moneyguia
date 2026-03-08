@@ -24,6 +24,7 @@ import Plans from "./pages/Plans";
 import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import MySubscription from "./pages/MySubscription";
 import { APP_VERSION } from "@/config/version";
 
 const queryClient = new QueryClient();
