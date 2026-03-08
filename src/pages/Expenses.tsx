@@ -437,7 +437,7 @@ export default function Expenses() {
                     const isPaid = expense.isPaid;
 
                     return (
-                    <TableRow key={expense.id}>
+                    <TableRow key={expense.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleEdit(expense)}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {(expense as any).excludeFromCalculations && (
