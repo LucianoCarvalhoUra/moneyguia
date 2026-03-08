@@ -115,18 +115,10 @@ export default function CardPaymentForm({
         if (!loaded) return;
       }
 
-      // Get payment method info
+      // Get payment method info from bin
       const bin = cleanCardNumber.substring(0, 6);
       let paymentMethodId = "visa";
       let issuerId = "";
-
-      try {
-        const pmResponse = await fetch(
-          `https://api.mercadopago.com/v1/payment_methods/search?bins=${bin}&marketplace=NONE`,
-          { headers: { Authorization: `Bearer ` } }
-        );
-        // We'll determine payment method from the card token response instead
-      } catch {}
 
       // Create card token via SDK
       const cardTokenResponse = await mpRef.current.createCardToken({
