@@ -390,6 +390,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         subcategory_id: subcategoryId || null,
         is_received: isReceived,
         is_recurring: isRecurring,
+        account_id: accountId || null,
         exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
         description: observation || null,
       };
