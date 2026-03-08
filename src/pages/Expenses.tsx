@@ -483,7 +483,7 @@ export default function Expenses() {
                         {!isPaid && !isOverdue && <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800">Pendente</Badge>}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2" onClick={e => e.stopPropagation()}>
                           <Button 
                             size="icon" 
                             variant="ghost" 
