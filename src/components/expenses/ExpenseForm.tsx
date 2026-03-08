@@ -338,12 +338,29 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       if (singleError) throw singleError;
 
       if (scope !== 'single') {
-        const recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
+        let recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
         
+        // Legacy: generate recurrence_id for old recurring expenses that don't have one
         if (!recurrenceId) {
-          toast.error("Não foi possível identificar a série de recorrência.");
-          setIsSubmitting(false);
-          return;
+          recurrenceId = crypto.randomUUID();
+          // Find all expenses with matching base description and is_recurring
+          const baseDesc = expense.description.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
+          const { data: siblings } = await supabase
+            .from('expenses')
+            .select('id, description')
+            .eq('user_id', expense.userId)
+            .eq('is_recurring', true);
+          
+          const matchingIds = (siblings || [])
+            .filter(s => s.description.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim() === baseDesc)
+            .map(s => s.id);
+          
+          if (matchingIds.length > 0) {
+            await supabase
+              .from('expenses')
+              .update({ recurrence_id: recurrenceId })
+              .in('id', matchingIds);
+          }
         }
         
         // Remove date fields, is_paid and user_id from batch to preserve individual state
