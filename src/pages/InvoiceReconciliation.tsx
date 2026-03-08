@@ -449,8 +449,9 @@ export default function InvoiceReconciliation() {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+                        "w-full justify-start text-left font-normal",
                         !adjustmentPaymentDate && "text-muted-foreground"
                       )}
                     >
