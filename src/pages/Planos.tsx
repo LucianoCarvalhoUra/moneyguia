@@ -70,7 +70,7 @@ export default function Planos() {
           <Card className="border border-slate-200 bg-white shadow-lg shadow-slate-200/60">
             <CardHeader>
               <CardTitle>Essencial</CardTitle>
-              <CardDescription>Para quem esta comecando</CardDescription>
+              <CardDescription>Para quem está começando</CardDescription>
               <p className="text-4xl font-bold">{prices.essencial}</p>
               <p className="text-sm text-slate-500">{periodLabel}</p>
             </CardHeader>
