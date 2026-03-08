@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { LayoutDashboard, PieChart, TrendingUp, BarChart3, Wallet } from 'lucide-react';
+import { LayoutDashboard, PieChart, TrendingUp, BarChart3, Wallet, ArrowUpDown } from 'lucide-react';
 
 export interface DashboardSettings {
   showEssential: boolean;
