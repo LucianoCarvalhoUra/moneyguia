@@ -53,6 +53,54 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "create_category",
+      description: "Cria uma nova categoria de despesa para o usuário. Use quando o usuário confirmar que deseja criar uma nova categoria que não existe.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Nome da categoria" },
+          icon: { type: "string", description: "Emoji representativo da categoria (ex: 🚗, 🍔, 🏠)" },
+        },
+        required: ["name", "icon"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_subcategory",
+      description: "Cria uma nova subcategoria dentro de uma categoria de despesa existente.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Nome da subcategoria" },
+          category_id: { type: "string", description: "UUID da categoria pai" },
+        },
+        required: ["name", "category_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_income_category",
+      description: "Cria uma nova categoria de receita para o usuário. Use quando o usuário confirmar que deseja criar uma nova categoria de receita que não existe.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Nome da categoria de receita" },
+          icon: { type: "string", description: "Emoji representativo (ex: 💰, 💼, 📈)" },
+        },
+        required: ["name", "icon"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 async function executeToolCall(
