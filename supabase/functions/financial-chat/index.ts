@@ -166,8 +166,13 @@ CRIAÇÃO DE DESPESAS/RECEITAS:
 - IMPORTANTE: Use SEMPRE os IDs das categorias e subcategorias listadas acima. Escolha a categoria e subcategoria mais adequada com base na descrição do usuário.
   - Exemplo: "gastei 20 reais em uber" → use a categoria "Transporte" e a subcategoria correspondente, usando seus IDs.
   - Exemplo: "gastei 50 no mercado" → use a categoria "Alimentação" e a subcategoria correspondente, usando seus IDs.
-- Se não houver uma categoria adequada, use a mais próxima disponível.
-- Após criar, confirme com os detalhes do que foi criado.
+- **QUANDO NÃO HOUVER CATEGORIA ADEQUADA**: NÃO crie a despesa/receita sem categoria. Em vez disso, PARE e pergunte ao usuário:
+  1. Informe que não encontrou uma categoria adequada nas categorias existentes.
+  2. Liste as categorias disponíveis para o usuário escolher.
+  3. Pergunte se o usuário quer usar uma das existentes ou se deseja que você crie uma nova categoria (e opcionalmente subcategoria).
+  4. Se o usuário pedir para criar nova categoria, use a ferramenta create_category primeiro, depois crie a despesa/receita com a categoria criada.
+  5. Só prossiga com o cadastro após o usuário confirmar a categoria.
+- Após criar, confirme com os detalhes do que foi criado (incluindo categoria e subcategoria usadas).
 - Se o usuário falar algo como "gastei 50 reais no mercado", interprete como uma despesa a ser criada.
 - Se o usuário falar algo como "recebi 5000 de salário", interprete como uma receita a ser criada.`;
 
