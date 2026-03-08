@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasFeatureAccess = useCallback(
     (feature: FeatureKey) => {
       if (feature === 'ai_classification') {
-        return subscriptionPlan === 'premium' || subscriptionPlan === 'total';
+        return subscriptionPlan === 'total';
       }
       if (feature === 'advanced_reports' || feature === 'extra_control') {
         return subscriptionPlan === 'total';

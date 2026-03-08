@@ -22,15 +22,15 @@ interface Plan {
 const planOrder = ["free", "pro", "premium"];
 
 const planLabels: Record<string, string> = {
-  free: "Plano Essencial (Gratuito)",
-  pro: "Plano Pro (IA & Relatórios)",
-  premium: "Plano Controle Total (Família & Negócios)",
+  free: "Essencial",
+  pro: "Pro",
+  premium: "Premium",
 };
 
 const planDescriptions: Record<string, string> = {
   free: "Ideal para começar o controle financeiro com organização e simplicidade.",
-  pro: "Para quem busca inteligência artificial aplicada e análises estratégicas completas.",
-  premium: "Gestão avançada para múltiplos contextos, com recursos para família e negócios.",
+  pro: "Para quem busca análises estratégicas e relatórios avançados.",
+  premium: "Gestão completa com inteligência artificial, exportação e controle total.",
 };
 
 export default function Plans() {

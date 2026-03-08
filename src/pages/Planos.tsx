@@ -70,7 +70,7 @@ export default function Planos() {
           <Card className="border border-slate-200 bg-white shadow-lg shadow-slate-200/60">
             <CardHeader>
               <CardTitle>Essencial</CardTitle>
-              <CardDescription>Para quem esta comecando</CardDescription>
+              <CardDescription>Para quem está começando</CardDescription>
               <p className="text-4xl font-bold">{prices.essencial}</p>
               <p className="text-sm text-slate-500">{periodLabel}</p>
             </CardHeader>
@@ -91,17 +91,17 @@ export default function Planos() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-emerald-600" />
-                Premium
+                Pro
               </CardTitle>
-              <CardDescription>Mais automacao com IA</CardDescription>
+              <CardDescription>Relatórios avançados e mais controle</CardDescription>
               <p className="text-4xl font-bold">{prices.premium}</p>
               <p className="text-sm text-slate-500">{periodLabel}</p>
             </CardHeader>
             <CardContent>
               <ul className="mb-6 space-y-3 text-sm text-slate-600">
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Tudo do Essencial</li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Classificacao com IA</li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Insights inteligentes</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Relatórios avançados</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Metas financeiras</li>
               </ul>
               <Link to="/auth" className="block">
                 <Button className="w-full bg-emerald-600 text-white hover:bg-emerald-700">Assinar Agora</Button>
@@ -113,18 +113,18 @@ export default function Planos() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-slate-700" />
-                Controle Total
+                Premium
               </CardTitle>
-              <CardDescription>Experiencia completa para maximo controle</CardDescription>
+              <CardDescription>Experiência completa com IA e controle total</CardDescription>
               <p className="text-4xl font-bold">{prices.total}</p>
               <p className="text-sm text-slate-500">{periodLabel}</p>
             </CardHeader>
             <CardContent>
               <ul className="mb-6 space-y-3 text-sm text-slate-600">
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Tudo do Premium</li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Relatorios avancados</li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Controle Extra e exportacoes</li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Multiplos usuarios</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Tudo do Pro</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Classificação com IA</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Exportação de relatórios</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Controle completo e ilimitado</li>
               </ul>
               <Link to="/auth" className="block">
                 <Button className="w-full bg-slate-900 text-white hover:bg-slate-800">Assinar Agora</Button>
