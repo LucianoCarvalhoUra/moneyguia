@@ -258,6 +258,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     
     setIsSubmitting(true);
     try {
+      // Use original receive_date as anchor for future scope
+      const originalReceiveDate = income.receiveDate instanceof Date 
+        ? format(income.receiveDate, 'yyyy-MM-dd')
+        : String(income.receiveDate).split('T')[0];
+
       // 1. Atualiza a receita atual
       const { error: singleError } = await supabase.from('incomes').update(pendingData).eq('id', income.id);
       if (singleError) throw singleError;
@@ -276,8 +281,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         let query = supabase.from('incomes').update(batchData).eq('recurrence_id', recurrenceId).neq('id', income.id);
 
         if (scope === 'future') {
-          const anchorDate = pendingData.receive_date;
-          query = query.gte('receive_date', anchorDate);
+          // Use ORIGINAL date as anchor
+          query = query.gte('receive_date', originalReceiveDate);
         }
 
         const { error } = await query;

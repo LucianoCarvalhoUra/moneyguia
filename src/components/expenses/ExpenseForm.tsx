@@ -285,7 +285,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     
     setIsSubmitting(true);
     try {
-      // 1. Atualiza a despesa atual (sempre) para garantir que datas e dados estejam corretos
+      // Use original due_date as anchor for future scope (before updating current)
+      const originalDueDate = expense.dueDate instanceof Date 
+        ? format(expense.dueDate, 'yyyy-MM-dd')
+        : String(expense.dueDate).split('T')[0];
+
+      // 1. Atualiza a despesa atual
       const { error: singleError } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
       if (singleError) throw singleError;
 
@@ -303,8 +308,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         let query = supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId).neq('id', expense.id);
 
         if (scope === 'future') {
-          const dueDate = pendingData.due_date;
-          query = query.gte('due_date', dueDate);
+          // Use ORIGINAL date as anchor to correctly identify future items
+          query = query.gte('due_date', originalDueDate);
         }
 
         const { error } = await query;
