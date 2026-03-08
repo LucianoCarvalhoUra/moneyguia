@@ -423,6 +423,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           subcategoryId: subcategoryId || undefined,
           isReceived,
           isRecurring,
+          accountId: accountId || undefined,
           excludeFromCalculations: canUseExtraControl ? excludeFromCalculations : false,
         });
       }
