@@ -90,6 +90,25 @@ export function CalculatorPopover({ currentValue, onConfirm }: CalculatorPopover
     setResetNext(false);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      const key = e.key;
+      if (/^[0-9]$/.test(key)) { e.preventDefault(); handleNumber(key); }
+      else if (key === ',' || key === '.') { e.preventDefault(); handleNumber(','); }
+      else if (key === '+') { e.preventDefault(); handleOperation('+'); }
+      else if (key === '-') { e.preventDefault(); handleOperation('-'); }
+      else if (key === '*') { e.preventDefault(); handleOperation('×'); }
+      else if (key === '/') { e.preventDefault(); handleOperation('÷'); }
+      else if (key === 'Enter') { e.preventDefault(); handleConfirm(); }
+      else if (key === 'Escape') { e.preventDefault(); setOpen(false); }
+      else if (key === 'Backspace' || key === 'Delete') { e.preventDefault(); handleClear(); }
+      else if (key === '=') { e.preventDefault(); handleEquals(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, handleNumber, handleOperation, handleEquals, handleClear, handleConfirm]);
+
   const handleConfirm = useCallback(() => {
     // Execute pending operation first
     let finalValue = parseDisplay(display);
