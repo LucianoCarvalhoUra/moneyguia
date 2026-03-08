@@ -373,6 +373,49 @@ export default function MySubscription() {
           )}
         </CardContent>
       </Card>
+
+      {/* Cancel Subscription */}
+      {!isFree && !isExpired && (
+        <Card className="border-destructive/30">
+          <CardContent className="flex items-center justify-between p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10">
+                <XCircle className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Cancelar assinatura</p>
+                <p className="text-xs text-muted-foreground">Você será movido para o plano gratuito imediatamente.</p>
+              </div>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="border-destructive/50 text-destructive hover:bg-destructive/10">
+                  Cancelar plano
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancelar assinatura?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Ao cancelar, você perderá acesso imediato aos recursos do plano <strong>{plan.planName}</strong> e será movido para o plano gratuito. Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Voltar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleCancelSubscription}
+                    disabled={cancelling}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {cancelling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Confirmar cancelamento
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
