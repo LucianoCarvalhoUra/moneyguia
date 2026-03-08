@@ -100,8 +100,8 @@ export default function Planos() {
             <CardContent>
               <ul className="mb-6 space-y-3 text-sm text-slate-600">
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Tudo do Essencial</li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Classificacao com IA</li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Insights inteligentes</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Relatórios avançados</li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Metas financeiras</li>
               </ul>
               <Link to="/auth" className="block">
                 <Button className="w-full bg-emerald-600 text-white hover:bg-emerald-700">Assinar Agora</Button>
