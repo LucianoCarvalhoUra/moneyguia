@@ -59,6 +59,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [launchDate, setLaunchDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [deleteScopeDialogOpen, setDeleteScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
   const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
   const [recurrenceUsage, setRecurrenceUsage] = useState(0);
