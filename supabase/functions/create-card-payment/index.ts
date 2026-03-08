@@ -124,14 +124,22 @@ Deno.serve(async (req) => {
 
     // If approved immediately, activate subscription
     if (mpData.status === "approved") {
+      const now = new Date();
+      const expiresAt = new Date(now);
+      if (billingCycle === "yearly") {
+        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      } else {
+        expiresAt.setDate(expiresAt.getDate() + 30);
+      }
+
       await serviceClient.from("user_subscriptions").upsert(
         {
           user_id: userId,
           plan_id: planId,
           billing_cycle: billingCycle || "monthly",
           status: "active",
-          starts_at: new Date().toISOString(),
-          expires_at: null,
+          starts_at: now.toISOString(),
+          expires_at: expiresAt.toISOString(),
         },
         { onConflict: "user_id" }
       );

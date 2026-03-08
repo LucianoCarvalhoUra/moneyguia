@@ -4,6 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export type PlanType = "free" | "pro" | "premium";
 
+export interface SubscriptionInfo {
+  expiresAt: string | null;
+  billingCycle: string;
+  status: string;
+  daysUntilExpiration: number | null;
+  isExpiringSoon: boolean; // true if <= 5 days
+}
+
 export interface PlanLimits {
   planType: PlanType;
   planName: string;

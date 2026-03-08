@@ -63,6 +63,14 @@ Deno.serve(async (req) => {
 
     // If payment approved, activate subscription
     if (mpPayment.status === "approved" && payment) {
+      const now = new Date();
+      const expiresAt = new Date(now);
+      if (payment.billing_cycle === "yearly") {
+        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      } else {
+        expiresAt.setDate(expiresAt.getDate() + 30);
+      }
+
       const { error: subError } = await supabase
         .from("user_subscriptions")
         .upsert(
@@ -71,8 +79,8 @@ Deno.serve(async (req) => {
             plan_id: payment.plan_id,
             billing_cycle: payment.billing_cycle,
             status: "active",
-            starts_at: new Date().toISOString(),
-            expires_at: null,
+            starts_at: now.toISOString(),
+            expires_at: expiresAt.toISOString(),
           },
           { onConflict: "user_id" }
         );
