@@ -13,6 +13,7 @@ export interface DashboardSettings {
   show503020: boolean;
   showDailyFlow: boolean;
   showProjection: boolean;
+  showComparison: boolean;
 }
 
 export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
@@ -24,6 +25,7 @@ export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
   show503020: true,
   showDailyFlow: true,
   showProjection: true,
+  showComparison: true,
 };
 
 export default function DashboardCustomization() {

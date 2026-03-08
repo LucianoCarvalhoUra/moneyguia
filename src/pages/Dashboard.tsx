@@ -487,6 +487,16 @@ export default function Dashboard() {
           </div>
         )}
 
+        {settings.showComparison && (
+          <div className="md:col-span-2">
+            <MonthlyComparisonChart
+              currentMonthLabel={selectedMonthLabel}
+              previousMonthLabel={previousMonthLabel}
+              data={comparisonData}
+            />
+          </div>
+        )}
+
         {settings.showEssential && (
           <ExpenseClassificationChart
             type="essential"
