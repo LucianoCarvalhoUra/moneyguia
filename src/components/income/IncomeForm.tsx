@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useIncome } from '@/contexts/IncomeContext';
+import { useFinance } from '@/contexts/FinanceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -38,6 +39,7 @@ interface IncomeFormProps {
 export default function IncomeForm({ open, onOpenChange, income, initialData }: IncomeFormProps) {
   const navigate = useNavigate();
   const { hasFeatureAccess, subscriptionPlan, user } = useAuth();
+  const { accounts } = useFinance();
   const { refreshData, incomeCategories, incomeSubcategories, removeIncome, addIncome, updateIncome, addIncomeCategory, addIncomeSubcategory } = useIncome();
   const canUseExtraControl = hasFeatureAccess('extra_control');
   const recurrencePlanLimit = getPlanLimit(subscriptionPlan as string);
@@ -51,6 +53,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [receiveDate, setReceiveDate] = useState('');
   const [amount, setAmount] = useState('');
   const [isReceived, setIsReceived] = useState(false);
+  const [accountId, setAccountId] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,6 +112,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setReceiveDate(dataToLoad.receiveDate ? formatToInput(dataToLoad.receiveDate) : today);
         setAmount(dataToLoad.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) : '');
         setIsReceived(dataToLoad.isReceived || false);
+        setAccountId(dataToLoad.accountId || (dataToLoad as any).account_id || '');
         setIsRecurring(dataToLoad.isRecurring || false);
         setExcludeFromCalculations((dataToLoad as any).excludeFromCalculations || (dataToLoad as any).exclude_from_calculations || false);
         setObservation((dataToLoad as any).description || '');
@@ -120,6 +124,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setReceiveDate(today);
         setAmount('');
         setIsReceived(false);
+        setAccountId('');
         setIsRecurring(false);
         setExcludeFromCalculations(false);
         setObservation('');
@@ -385,6 +390,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         subcategory_id: subcategoryId || null,
         is_received: isReceived,
         is_recurring: isRecurring,
+        account_id: accountId || null,
         exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
         description: observation || null,
       };
@@ -405,6 +411,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           subcategoryId: subcategoryId || undefined,
           isReceived,
           isRecurring,
+          accountId: accountId || undefined,
           excludeFromCalculations: canUseExtraControl ? excludeFromCalculations : false,
         });
       } else {
@@ -416,6 +423,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           subcategoryId: subcategoryId || undefined,
           isReceived,
           isRecurring,
+          accountId: accountId || undefined,
           excludeFromCalculations: canUseExtraControl ? excludeFromCalculations : false,
         });
       }
@@ -511,7 +519,18 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
           </div>
 
-          {/* Row 3: Status + Recorrência + Observação */}
+          {/* Row 3: Banco + Status + Recorrência */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Banco</Label>
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
+                <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Row 4: Status + Recorrência + Observação */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
