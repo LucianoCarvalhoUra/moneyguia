@@ -19,6 +19,7 @@ import DailyCashFlowChart from '@/components/dashboard/DailyCashFlowChart';
 import BalanceProjectionChart from '@/components/dashboard/BalanceProjectionChart';
 import { DEFAULT_DASHBOARD_SETTINGS, DashboardSettings } from '@/components/dashboard/DashboardCustomization';
 import ExpenseClassificationChart from '@/components/dashboard/ExpenseClassificationChart';
+import MonthlyComparisonChart from '@/components/dashboard/MonthlyComparisonChart';
 
 export default function Dashboard() {
   const navigate = useNavigate();
