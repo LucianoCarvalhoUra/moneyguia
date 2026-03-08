@@ -165,24 +165,64 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
   const handleDelete = async () => {
     if (!income) return;
+    
+    if (income.isRecurring && (income.recurrenceId || (income as any).recurrence_id)) {
+      setDeleteScopeDialogOpen(true);
+      return;
+    }
+    
     if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
     
     setIsSubmitting(true);
     try {
-      const recurrenceId = income.recurrenceId;
       await removeIncome(income.id);
-      
-      if (recurrenceId) {
-        await renumberIncomeInstallments(recurrenceId);
-      }
-      
       await refreshData();
-      toast.success('Receita excluída e sincronizada com o banco.');
+      toast.success('Receita excluída!');
       onOpenChange(false);
     } catch (error: any) {
       toast.error('Erro ao excluir: ' + error.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRecurrenceDelete = async (scope: 'single' | 'future' | 'all') => {
+    if (!income) return;
+    
+    setIsSubmitting(true);
+    try {
+      const recurrenceId = income.recurrenceId || (income as any).recurrence_id;
+      const originalReceiveDate = income.receiveDate instanceof Date 
+        ? format(income.receiveDate, 'yyyy-MM-dd')
+        : String(income.receiveDate).split('T')[0];
+
+      if (scope === 'single') {
+        await removeIncome(income.id);
+      } else if (scope === 'future') {
+        const { error } = await supabase.from('incomes')
+          .delete()
+          .eq('recurrence_id', recurrenceId)
+          .gte('receive_date', originalReceiveDate);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('incomes')
+          .delete()
+          .eq('recurrence_id', recurrenceId);
+        if (error) throw error;
+      }
+
+      if (scope !== 'all' && recurrenceId) {
+        await renumberIncomeInstallments(recurrenceId);
+      }
+
+      await refreshData();
+      toast.success(scope === 'single' ? 'Receita excluída!' : 'Receitas excluídas com sucesso!');
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error('Erro ao excluir: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+      setDeleteScopeDialogOpen(false);
     }
   };
 
