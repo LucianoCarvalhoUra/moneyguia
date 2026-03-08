@@ -99,6 +99,16 @@ export default function Expenses() {
     }
   };
 
+  // Sync month/year to URL params
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('month', selectedMonth.toString());
+      next.set('year', selectedYear.toString());
+      return next;
+    }, { replace: true });
+  }, [selectedMonth, selectedYear, setSearchParams]);
+
   useEffect(() => {
     if (location.state?.filter === 'overdue') {
       setStatusFilter('overdue');
@@ -108,7 +118,7 @@ export default function Expenses() {
       }
       window.history.replaceState({}, document.title);
     }
-  }, [location.state, expenses]);
+  }, [location.state]);
 
   const filteredSubcategories = useMemo(() => {
     if (categoryFilter === 'all') return [];
