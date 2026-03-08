@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { LayoutDashboard, PieChart, TrendingUp, BarChart3, Wallet } from 'lucide-react';
+import { LayoutDashboard, PieChart, TrendingUp, BarChart3, Wallet, ArrowUpDown } from 'lucide-react';
 
 export interface DashboardSettings {
   showEssential: boolean;
@@ -13,6 +13,7 @@ export interface DashboardSettings {
   show503020: boolean;
   showDailyFlow: boolean;
   showProjection: boolean;
+  showComparison: boolean;
 }
 
 export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
@@ -24,6 +25,7 @@ export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
   show503020: true,
   showDailyFlow: true,
   showProjection: true,
+  showComparison: true,
 };
 
 export default function DashboardCustomization() {
@@ -46,6 +48,7 @@ export default function DashboardCustomization() {
     { key: 'show503020', label: 'Regra 50/30/20', desc: 'Análise de distribuição ideal de renda', icon: PieChart },
     { key: 'showProjection', label: 'Projeção de Saldo', desc: 'Tendência para os próximos 3 meses', icon: TrendingUp },
     { key: 'showDailyFlow', label: 'Fluxo Diário', desc: 'Entradas e saídas por dia', icon: BarChart3 },
+    { key: 'showComparison', label: 'Comparativo Mensal', desc: 'Gastos por categoria vs mês anterior', icon: ArrowUpDown },
     { key: 'showEssential', label: 'Despesas Essenciais', desc: 'Habitação, Saúde, Alimentação', icon: Wallet },
     { key: 'showSuperfluous', label: 'Despesas Supérfluas', desc: 'Lazer, Streaming, Compras', icon: Wallet },
     { key: 'showFixed', label: 'Despesas Fixas', desc: 'Contas recorrentes', icon: Wallet },

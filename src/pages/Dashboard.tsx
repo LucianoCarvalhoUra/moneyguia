@@ -19,6 +19,7 @@ import DailyCashFlowChart from '@/components/dashboard/DailyCashFlowChart';
 import BalanceProjectionChart from '@/components/dashboard/BalanceProjectionChart';
 import { DEFAULT_DASHBOARD_SETTINGS, DashboardSettings } from '@/components/dashboard/DashboardCustomization';
 import ExpenseClassificationChart from '@/components/dashboard/ExpenseClassificationChart';
+import MonthlyComparisonChart from '@/components/dashboard/MonthlyComparisonChart';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -262,6 +263,26 @@ export default function Dashboard() {
     return data;
   }, [realBalance, currentIncomeTotal, currentExpenseTotal]);
 
+  // 4. Monthly Comparison Data
+  const previousMonthExpenses = getMonthlyExpenses(previousYear, previousMonth);
+  const comparisonData = useMemo(() => {
+    const allCatIds = new Set<string>();
+    monthlyExpenses.filter(e => !e.excludeFromCalculations).forEach(e => { if (e.categoryId) allCatIds.add(e.categoryId); });
+    previousMonthExpenses.filter(e => !e.excludeFromCalculations).forEach(e => { if (e.categoryId) allCatIds.add(e.categoryId); });
+
+    return Array.from(allCatIds).map(catId => {
+      const catName = categories?.find(c => c.id === catId)?.name || 'Sem categoria';
+      const current = monthlyExpenses.filter(e => e.categoryId === catId && !e.excludeFromCalculations).reduce((s, e) => s + e.amount, 0);
+      const previous = previousMonthExpenses.filter(e => e.categoryId === catId && !e.excludeFromCalculations).reduce((s, e) => s + e.amount, 0);
+      const diff = current - previous;
+      const diffPercent = previous > 0 ? (diff / previous) * 100 : (current > 0 ? 100 : 0);
+      return { name: catName, current, previous, diff, diffPercent };
+    });
+  }, [monthlyExpenses, previousMonthExpenses, categories]);
+
+  const previousMonthLabelRaw = format(new Date(previousYear, previousMonth, 1), 'MMMM', { locale: ptBR });
+  const previousMonthLabel = previousMonthLabelRaw.charAt(0).toUpperCase() + previousMonthLabelRaw.slice(1);
+
   const totalOverdueCount = overdueItems.expenses.length + overdueItems.incomes.length;
 
   const handleAlertClick = () => {
@@ -463,6 +484,16 @@ export default function Dashboard() {
         {settings.showProjection && (
           <div className="md:col-span-2">
             <BalanceProjectionChart data={projectionData} />
+          </div>
+        )}
+
+        {settings.showComparison && (
+          <div className="md:col-span-2">
+            <MonthlyComparisonChart
+              currentMonthLabel={selectedMonthLabel}
+              previousMonthLabel={previousMonthLabel}
+              data={comparisonData}
+            />
           </div>
         )}
 
