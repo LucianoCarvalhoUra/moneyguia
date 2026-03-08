@@ -39,6 +39,7 @@ interface IncomeFormProps {
 export default function IncomeForm({ open, onOpenChange, income, initialData }: IncomeFormProps) {
   const navigate = useNavigate();
   const { hasFeatureAccess, subscriptionPlan, user } = useAuth();
+  const { accounts } = useFinance();
   const { refreshData, incomeCategories, incomeSubcategories, removeIncome, addIncome, updateIncome, addIncomeCategory, addIncomeSubcategory } = useIncome();
   const canUseExtraControl = hasFeatureAccess('extra_control');
   const recurrencePlanLimit = getPlanLimit(subscriptionPlan as string);
