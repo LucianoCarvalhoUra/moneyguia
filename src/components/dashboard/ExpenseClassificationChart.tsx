@@ -53,27 +53,24 @@ const CONFIG: Record<ClassificationType, { title: string; icon: React.ElementTyp
   },
 };
 
-function classifyExpense(expense: ExpenseItem, metadata: Record<string, any>): string {
-  // Check category metadata - stored by category NAME as key
+interface ExpenseClassification {
+  type: string;       // essencial, superfluo, longo_prazo
+  recurrence: string; // fixo, variavel
+}
+
+function classifyExpense(expense: ExpenseItem, metadata: Record<string, any>): ExpenseClassification {
   const meta = metadata[expense.categoryName || ''] as any;
 
   if (meta) {
-    // metadata has: classification (essencial/superfluo/longo_prazo) and recurrence (fixa/variavel)
     const classification = normalizeClassification(meta.classification);
-    const recurrence = meta.recurrence; // 'fixa' or 'variavel'
-
-    // For fixed/variable chart types, use recurrence field
-    if (recurrence === 'fixa') return 'fixo';
-    if (recurrence === 'variavel' && classification === 'variavel') return 'variavel';
-
-    // For essential/superfluous/long_term, use classification field
-    if (classification !== 'variavel') return classification;
+    const recurrence = meta.recurrence === 'fixa' ? 'fixo' : 'variavel';
+    return { type: classification, recurrence };
   }
 
-  // Heuristic fallback: installments > 1 = long_term, recurring = fixed, else variable
-  if (expense.installments && expense.installments > 1) return 'longo_prazo';
-  if (expense.isRecurring) return 'fixo';
-  return 'variavel';
+  // Heuristic fallback
+  const recurrence = (expense.isRecurring || (expense.installments && expense.installments > 1)) ? 'fixo' : 'variavel';
+  const type = (expense.installments && expense.installments > 1) ? 'longo_prazo' : 'variavel';
+  return { type, recurrence };
 }
 
 function normalizeClassification(value?: string): string {
@@ -86,13 +83,13 @@ function normalizeClassification(value?: string): string {
   return value;
 }
 
-function matchesType(classification: string, type: ClassificationType): boolean {
+function matchesType(cl: ExpenseClassification, type: ClassificationType): boolean {
   switch (type) {
-    case 'essential': return classification === 'essencial';
-    case 'superfluous': return classification === 'superfluo';
-    case 'fixed': return classification === 'fixo';
-    case 'variable': return classification === 'variavel';
-    case 'long_term': return classification === 'longo_prazo';
+    case 'essential': return cl.type === 'essencial';
+    case 'superfluous': return cl.type === 'superfluo';
+    case 'fixed': return cl.recurrence === 'fixo';
+    case 'variable': return cl.recurrence === 'variavel';
+    case 'long_term': return cl.type === 'longo_prazo';
     default: return false;
   }
 }
