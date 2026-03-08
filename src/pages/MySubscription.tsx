@@ -61,6 +61,7 @@ export default function MySubscription() {
   const { plan, subscription, isLoading: planLoading } = useUserPlan();
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
 
   const isFree = plan.planType === "free";
   const isExpired =
