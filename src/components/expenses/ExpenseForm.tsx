@@ -112,12 +112,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setCategoryId(catId);
         setSubcategoryId(subCatId);
         
-        setDueDate(dataToLoad.dueDate ? formatToInput(dataToLoad.dueDate) : today);
+        setDueDate(dataToLoad.dueDate ? formatToInput(dataToLoad.dueDate) : (dataToLoad as any).due_date ? formatToInput((dataToLoad as any).due_date) : today);
         setAmount(dataToLoad.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) : '');
-        setPaymentMethod(dataToLoad.paymentMethod || 'pix');
-        setCardId(dataToLoad.cardId || '');
-        setAccountId(dataToLoad.accountId || '');
-        setIsPaid(dataToLoad.isPaid || false);
+        setPaymentMethod(dataToLoad.paymentMethod || (dataToLoad as any).payment_method || 'pix');
+        setCardId(dataToLoad.cardId || (dataToLoad as any).card_id || '');
+        setAccountId(dataToLoad.accountId || (dataToLoad as any).account_id || '');
+        setIsPaid(dataToLoad.isPaid || (dataToLoad as any).is_paid || false);
         setPaymentDate((dataToLoad.isPaid && dataToLoad.expenseDate) ? formatToInput(dataToLoad.expenseDate) : today);
         setIsRecurring(dataToLoad.isRecurring || false);
         setInstallments(dataToLoad.installments?.toString() || '1');
