@@ -562,8 +562,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               <Select key={`subcat-${categoryId}-${subcategoryId}`} value={subcategoryId} onValueChange={handleSubcategorySelectChange} disabled={!categoryId}>
                 <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={ADD_SUBCATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-primary">+ Nova subcategoria</SelectItem>
                   {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  <SelectItem value={ADD_SUBCATEGORY_OPTION} className="border-t mt-1 pt-2 font-medium text-primary">+ Nova subcategoria</SelectItem>
                 </SelectContent>
               </Select>
             </div>
