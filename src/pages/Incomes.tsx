@@ -454,7 +454,14 @@ export default function Incomes() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium">{income.title}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium">{income.title}</span>
+                            {(income as any).installments && (income as any).installments > 1 && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">
+                                {(income as any).currentInstallment || '?'}/{(income as any).installments}
+                              </Badge>
+                            )}
+                          </div>
                           {subcategory && <span className="text-xs text-muted-foreground">{subcategory.name}</span>}
                         </div>
                       </TableCell>

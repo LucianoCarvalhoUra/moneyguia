@@ -436,7 +436,14 @@ export default function Expenses() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium">{expense.description}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium">{expense.description}</span>
+                            {expense.installments && expense.installments > 1 && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">
+                                {expense.currentInstallment || '?'}/{expense.installments}
+                              </Badge>
+                            )}
+                          </div>
                           {subcategory && <span className="text-xs text-muted-foreground">{subcategory.name}</span>}
                         </div>
                       </TableCell>

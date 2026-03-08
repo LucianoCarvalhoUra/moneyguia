@@ -412,7 +412,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               {expense ? 'Editar Despesa' : 'Nova Despesa'}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-              {expense ? `Cadastrada em ${format(new Date(expense.createdAt), 'dd/MM/yyyy HH:mm')}` : 'Preencha os detalhes da transação'}
+              {expense 
+                ? `Cadastrada em ${format(new Date(expense.createdAt), 'dd/MM/yyyy HH:mm')}${expense.installments && expense.installments > 1 ? ` • Parcela ${expense.currentInstallment || '?'}/${expense.installments}` : ''}`
+                : 'Preencha os detalhes da transação'}
             </DialogDescription>
           </div>
           {expense && (
