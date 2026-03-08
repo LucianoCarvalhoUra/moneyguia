@@ -140,15 +140,43 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     loadQuota();
   }, [open, income, user?.id, subscriptionPlan]);
 
+  const renumberIncomeInstallments = async (recurrenceId: string) => {
+    try {
+      const { data: remaining } = await supabase
+        .from('incomes')
+        .select('id, receive_date')
+        .eq('recurrence_id', recurrenceId)
+        .order('receive_date', { ascending: true });
+
+      if (!remaining || remaining.length === 0) return;
+
+      const total = remaining.length;
+      for (let i = 0; i < remaining.length; i++) {
+        await supabase.from('incomes').update({
+          current_installment: i + 1,
+          installments: total,
+        }).eq('id', remaining[i].id);
+      }
+    } catch (err) {
+      console.error('Erro ao renumerar parcelas:', err);
+    }
+  };
+
   const handleDelete = async () => {
     if (!income) return;
     if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
     
     setIsSubmitting(true);
     try {
+      const recurrenceId = income.recurrenceId;
       await removeIncome(income.id);
+      
+      if (recurrenceId) {
+        await renumberIncomeInstallments(recurrenceId);
+      }
+      
       await refreshData();
-      toast.success('Receita excluida e sincronizada com o banco.');
+      toast.success('Receita excluída e sincronizada com o banco.');
       onOpenChange(false);
     } catch (error: any) {
       toast.error('Erro ao excluir: ' + error.message);
