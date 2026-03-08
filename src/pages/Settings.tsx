@@ -328,7 +328,7 @@ export default function Settings() {
           <div className="border-t pt-4 space-y-3">
             <h4 className="font-medium">Teste de Assinatura (temporário)</h4>
             <p className="text-sm text-muted-foreground">
-              Plano atual: <span className="font-semibold text-foreground">{subscriptionPlan === 'free' ? 'Gratuito' : subscriptionPlan === 'premium' ? 'Pro' : subscriptionPlan === 'total' ? 'Premium' : subscriptionPlan}</span>
+              Plano atual: <span className="font-semibold text-foreground">{subscriptionPlan === 'free' ? 'Essencial' : subscriptionPlan === 'premium' ? 'Pro' : subscriptionPlan === 'total' ? 'Premium' : subscriptionPlan}</span>
             </p>
             <div className="flex flex-wrap gap-2">
               {[

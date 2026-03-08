@@ -72,7 +72,7 @@ export default function Navbar() {
           <div className="hidden items-center gap-3 md:flex">
             {(() => {
               const isAiActive = plan.hasAiClassification;
-              const planLabel = plan.planType === 'free' ? 'Gratuito' : plan.planType === 'pro' ? 'Pro' : 'Premium';
+              const planLabel = plan.planType === 'free' ? 'Essencial' : plan.planType === 'pro' ? 'Pro' : 'Premium';
               return (
                 <Link to="/plans" className={cn(
                   "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
