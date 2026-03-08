@@ -346,8 +346,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           return;
         }
         
-        // Remove date fields from batch to preserve individual dates
-        const { due_date, expense_date, ...batchData } = pendingData;
+        // Remove date fields, is_paid and user_id from batch to preserve individual state
+        const { due_date, expense_date, is_paid, user_id, current_installment, ...batchData } = pendingData;
         let query = supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId).neq('id', expense.id);
 
         if (scope === 'future') {
