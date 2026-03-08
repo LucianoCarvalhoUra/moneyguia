@@ -211,7 +211,7 @@ export default function InvoiceReconciliation() {
             {/* Card Selection */}
             <div className="space-y-2">
               <Label>Cartão de Crédito</Label>
-              <Select value={selectedCardId} onValueChange={setSelectedCardId}>
+              <Select value={selectedCardId} onValueChange={(v) => { setSelectedCardId(v); setShowInstallments(false); }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um cartão" />
                 </SelectTrigger>
