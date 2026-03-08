@@ -63,9 +63,9 @@ function classifyExpense(expense: ExpenseItem, metadata: Record<string, any>): s
     if (normalized !== 'variavel') return normalized;
   }
 
-  // Heuristic: recurring = fixed, installments = long_term, else variable
-  if (expense.isRecurring) return 'fixo';
+  // Heuristic: installments > 1 = long_term (even if recurring), recurring without installments = fixed, else variable
   if (expense.installments && expense.installments > 1) return 'longo_prazo';
+  if (expense.isRecurring) return 'fixo';
   return 'variavel';
 }
 
