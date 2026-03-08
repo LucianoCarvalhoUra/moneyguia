@@ -1,10 +1,10 @@
 ﻿import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp, TrendingDown, AlertTriangle, X, Eye } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Wallet, TrendingUp, TrendingDown, AlertTriangle, X, Eye, Clock, ArrowRight } from 'lucide-react';
 import CategoryChart from '@/components/dashboard/CategoryChart';
 import RecentExpenses from '@/components/dashboard/RecentExpenses';
 import IncomeExpenseChart from '@/components/dashboard/IncomeExpenseChart';
@@ -20,6 +20,7 @@ import BalanceProjectionChart from '@/components/dashboard/BalanceProjectionChar
 import { DEFAULT_DASHBOARD_SETTINGS, DashboardSettings } from '@/components/dashboard/DashboardCustomization';
 import ExpenseClassificationChart from '@/components/dashboard/ExpenseClassificationChart';
 import MonthlyComparisonChart from '@/components/dashboard/MonthlyComparisonChart';
+import { useUserPlan } from '@/hooks/useUserPlan';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -27,7 +28,8 @@ export default function Dashboard() {
   const { getMonthlyTotal, getTotalByCategory, getMonthlyExpenses, expenses, categories } = useFinance();
   const { getMonthlyIncomeTotal, incomes } = useIncome();
   const [formOpen, setFormOpen] = useState(false);
-  
+  const { subscription, plan } = useUserPlan();
+  const [showSubAlert, setShowSubAlert] = useState(true);
   const now = new Date();
   const getInitialPeriod = () => {
     const monthParam = searchParams.get('month');
@@ -337,6 +339,45 @@ export default function Dashboard() {
           >
             <X className="w-5 h-5" />
           </Button>
+        </div>
+      )}
+
+      {/* Subscription Expiring Banner */}
+      {showSubAlert && subscription && (subscription.isExpiringSoon || (subscription.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 0)) && (
+        <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 shadow-sm animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-amber-100 p-2">
+              <Clock className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="font-bold text-amber-800">
+                {subscription.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 0
+                  ? 'Sua assinatura expirou!'
+                  : `Sua assinatura expira em ${subscription.daysUntilExpiration} dia(s)`}
+              </p>
+              <p className="text-xs text-amber-600">
+                {subscription.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 0
+                  ? 'Você está no plano gratuito. Renove para recuperar seus recursos.'
+                  : `Renove o plano ${plan.planName} para continuar com acesso completo.`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/plans">
+              <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700 text-xs font-semibold">
+                Renovar
+                <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Button>
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-amber-600 hover:bg-amber-200 hover:text-amber-700"
+              onClick={() => setShowSubAlert(false)}
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       )}
 
