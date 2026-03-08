@@ -140,7 +140,7 @@ export default function ExpenseList() {
                   const subcategory = expense.subcategoryId ? getSubcategoryById(expense.subcategoryId) : null;
 
                   return (
-                    <TableRow key={expense.id} className={cn(expense.isPaid ? "opacity-75" : "")}>
+                    <TableRow key={expense.id} className={cn(expense.isPaid ? "opacity-75" : "", "cursor-pointer hover:bg-muted/50 transition-colors")} onClick={() => handleEdit(expense)}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className={cn('w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0', category?.color ? `bg-${category.color}/15` : 'bg-muted/50')}>
@@ -175,7 +175,7 @@ export default function ExpenseList() {
                         }
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(expense)} title="Copiar">
                             <Copy className="w-4 h-4 text-muted-foreground" />
                           </Button>

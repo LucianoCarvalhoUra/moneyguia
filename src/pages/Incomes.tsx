@@ -457,7 +457,7 @@ export default function Incomes() {
                   const isReceived = income.isReceived;
                   
                   return (
-                    <TableRow key={income.id}>
+                    <TableRow key={income.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleEdit(income)}>
                       <TableCell className="font-medium">
                          <div className="flex items-center gap-2">
                           {income.excludeFromCalculations && (
@@ -485,7 +485,7 @@ export default function Incomes() {
                             <span className="font-medium">{income.title}</span>
                             {(income as any).installments && (income as any).installments > 1 && (
                               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">
-                                {(income as any).currentInstallment || '?'}/{(income as any).installments}
+                                {(income as any).currentInstallment || 1}/{(income as any).installments}
                               </Badge>
                             )}
                           </div>
@@ -499,7 +499,7 @@ export default function Incomes() {
                         {!isReceived && !isOverdue && <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800">Pendente</Badge>}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2" onClick={e => e.stopPropagation()}>
                           <Button 
                             size="icon" 
                             variant="ghost" 
