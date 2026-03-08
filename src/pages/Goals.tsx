@@ -207,31 +207,33 @@ export default function Goals() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="w-full sm:w-auto">
-          <TabsList>
+      <div className="space-y-3">
+        <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="w-full">
+          <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="all">Todos</TabsTrigger>
             <TabsTrigger value="active">Ativos</TabsTrigger>
             <TabsTrigger value="paused">Pausados</TabsTrigger>
             <TabsTrigger value="completed">Concluídos</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant={categoryFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setCategoryFilter('all')}>
-            Todas
-          </Button>
-          {GOAL_CATEGORIES.map(cat => (
-            <Button
-              key={cat.value}
-              variant={categoryFilter === cat.value ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setCategoryFilter(cat.value)}
-              className="gap-1"
-            >
-              <CategoryIcon iconName={cat.icon} className="w-3 h-3" />
-              {cat.label}
+        <div className="overflow-x-auto pb-1 -mx-1 px-1">
+          <div className="flex gap-2 min-w-max">
+            <Button variant={categoryFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setCategoryFilter('all')}>
+              Todas
             </Button>
-          ))}
+            {GOAL_CATEGORIES.map(cat => (
+              <Button
+                key={cat.value}
+                variant={categoryFilter === cat.value ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setCategoryFilter(cat.value)}
+                className="gap-1 whitespace-nowrap"
+              >
+                <CategoryIcon iconName={cat.icon} className="w-3 h-3" />
+                {cat.label}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
