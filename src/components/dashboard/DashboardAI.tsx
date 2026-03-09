@@ -5,11 +5,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Sparkles, X, Send, Loader2, Trash2, Square } from 'lucide-react';
+import { Sparkles, X, Send, Loader2, Trash2, Square, MessageCircle, ArrowRight } from 'lucide-react';
 import { useFinancialSummary } from '@/hooks/useFinancialSummary';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
@@ -20,14 +20,50 @@ type Message = { role: 'user' | 'assistant'; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/financial-chat`;
 
-const QUICK_QUESTIONS = [
-  '📊 Resumo do mês',
-  '💡 Dicas de economia',
-  '📈 Onde gasto mais?',
-  '⚠️ Contas a vencer',
-  '➕ Cadastrar despesa',
-  '💵 Cadastrar receita',
+const STARTER_SUGGESTIONS = [
+  { emoji: '📊', text: 'Como estão minhas finanças este mês?' },
+  { emoji: '💡', text: 'Onde posso economizar?' },
+  { emoji: '⚠️', text: 'Quais contas vencem em breve?' },
+  { emoji: '➕', text: 'Quero registrar um gasto' },
 ];
+
+function getFollowUpSuggestions(lastAssistantMsg: string): string[] {
+  const suggestions: string[] = [];
+  const lower = lastAssistantMsg.toLowerCase();
+
+  if (lower.includes('despesa') || lower.includes('gasto') || lower.includes('criada com sucesso')) {
+    suggestions.push('Qual meu saldo atualizado?');
+    suggestions.push('Registrar outra despesa');
+  }
+  if (lower.includes('receita') || lower.includes('ganho') || lower.includes('recebimento')) {
+    suggestions.push('Quanto já recebi este mês?');
+    suggestions.push('Registrar outra receita');
+  }
+  if (lower.includes('categoria') || lower.includes('alimentação') || lower.includes('transporte')) {
+    suggestions.push('Detalhar gastos dessa categoria');
+    suggestions.push('Comparar com o mês passado');
+  }
+  if (lower.includes('economia') || lower.includes('dica') || lower.includes('economizar')) {
+    suggestions.push('Como aplicar essa dica?');
+    suggestions.push('Outras formas de economizar');
+  }
+  if (lower.includes('vencimento') || lower.includes('pendente') || lower.includes('a pagar')) {
+    suggestions.push('Marcar alguma como paga');
+    suggestions.push('Quanto devo no total?');
+  }
+  if (lower.includes('saldo') || lower.includes('balanço') || lower.includes('resumo')) {
+    suggestions.push('Como melhorar meu saldo?');
+    suggestions.push('Projeção para o fim do mês');
+  }
+
+  // Always add a generic fallback if few suggestions
+  if (suggestions.length < 2) {
+    suggestions.push('Me dê um resumo geral');
+    suggestions.push('Quero registrar algo');
+  }
+
+  return suggestions.slice(0, 3);
+}
 
 export function DashboardAI() {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,7 +71,7 @@ export function DashboardAI() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const { user } = useAuth();
@@ -47,7 +83,6 @@ export function DashboardAI() {
     await Promise.all([refreshFinance(), refreshIncome()]);
   }, [refreshFinance, refreshIncome]);
 
-  // Build categories map with subcategories for the AI
   const categoriesMap = useMemo(() => {
     return categories.map(c => ({
       id: c.id,
@@ -58,7 +93,6 @@ export function DashboardAI() {
     }));
   }, [categories, subcategories]);
 
-  // Build financial context string for the AI
   const financialContext = useMemo(() => {
     const now = new Date();
     const monthStart = startOfMonth(now);
@@ -85,7 +119,6 @@ export function DashboardAI() {
     const fmt = (v: number) =>
       new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
-    // Category breakdown
     const catBreakdown = categories
       .map(c => {
         const total = monthlyExpenses
@@ -96,7 +129,6 @@ export function DashboardAI() {
       .filter(c => c.total > 0)
       .sort((a, b) => b.total - a.total);
 
-    // Income category breakdown
     const incCatBreakdown = incomeCategories
       .map(c => {
         const total = monthlyIncomes
@@ -107,13 +139,11 @@ export function DashboardAI() {
       .filter(c => c.total > 0)
       .sort((a, b) => b.total - a.total);
 
-    // Upcoming unpaid bills
     const unpaidBills = expenses
       .filter(e => !e.isPaid)
       .sort((a, b) => new Date(a.dueDate as unknown as string).getTime() - new Date(b.dueDate as unknown as string).getTime())
       .slice(0, 10);
 
-    // Paid vs unpaid stats
     const paidExpenses = monthlyExpenses.filter(e => e.isPaid);
     const unpaidExpenses = monthlyExpenses.filter(e => !e.isPaid);
     const receivedIncomes = monthlyIncomes.filter(i => i.isReceived);
@@ -165,15 +195,13 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
 `;
   }, [expenses, incomes, categories, subcategories, incomeCategories, accounts, cards, summary]);
 
-  // Auto scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input when opened
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 200);
+      setTimeout(() => textareaRef.current?.focus(), 200);
     }
   }, [isOpen]);
 
@@ -193,6 +221,11 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
     setMessages(allMessages);
     setInput('');
     setIsLoading(true);
+
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -218,7 +251,13 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: 'Erro desconhecido' }));
-        toast.error(err.error || 'Erro ao se comunicar com a IA');
+        if (resp.status === 429) {
+          toast.error('Muitas requisições. Aguarde um momento e tente novamente.');
+        } else if (resp.status === 402) {
+          toast.error('Créditos de IA esgotados. Adicione créditos para continuar.');
+        } else {
+          toast.error(err.error || 'Erro ao se comunicar com a IA');
+        }
         setIsLoading(false);
         return;
       }
@@ -301,7 +340,6 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
       }
     } catch (e: any) {
       if (e.name === 'AbortError') {
-        // User cancelled - keep partial response if any
         if (!assistantSoFar) {
           setMessages(prev => prev.filter((_, i) => i !== prev.length - 1 || prev[prev.length - 1]?.role !== 'assistant'));
         }
@@ -320,10 +358,33 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
     sendMessage(input);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(input);
+    }
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    // Auto-resize
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  };
+
   const clearChat = () => {
     cancelRequest();
     setMessages([]);
   };
+
+  // Get follow-up suggestions from last assistant message
+  const followUpSuggestions = useMemo(() => {
+    if (messages.length === 0 || isLoading) return [];
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role !== 'assistant') return [];
+    return getFollowUpSuggestions(lastMsg.content);
+  }, [messages, isLoading]);
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
@@ -341,7 +402,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
           side="top"
           align="end"
         >
-          <div className="flex flex-col h-[540px] max-h-[80vh] bg-background/95 backdrop-blur-sm rounded-2xl overflow-hidden">
+          <div className="flex flex-col h-[580px] max-h-[80vh] bg-background/95 backdrop-blur-sm rounded-2xl overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -350,7 +411,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">KeepMoney AI</h3>
-                  <p className="text-[10px] text-muted-foreground">Assistente Financeiro Inteligente</p>
+                  <p className="text-[10px] text-muted-foreground">Converse sobre suas finanças</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -360,7 +421,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
                     size="icon"
                     className="h-8 w-8 hover:bg-background/50"
                     onClick={clearChat}
-                    title="Limpar conversa"
+                    title="Nova conversa"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                   </Button>
@@ -374,73 +435,109 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 ? (
-                <div className="space-y-4">
-                  <div className="bg-muted/50 p-3 rounded-xl rounded-tl-none text-sm text-foreground">
-                    Olá! 👋 Sou o assistente financeiro do <strong>KeepMoney</strong>. Tenho acesso aos seus dados e posso te ajudar com análises, dicas e até **cadastrar despesas e receitas** por texto. O que gostaria de fazer?
+                <div className="space-y-5">
+                  {/* Welcome */}
+                  <div className="text-center space-y-3 py-4">
+                    <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/40 dark:to-blue-900/40 flex items-center justify-center">
+                      <MessageCircle className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm text-foreground">Como posso te ajudar?</h4>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-[260px] mx-auto">
+                        Pergunte qualquer coisa sobre suas finanças, peça análises ou registre gastos por texto.
+                      </p>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {QUICK_QUESTIONS.map((q) => (
-                      <button
-                        key={q}
-                        onClick={() => sendMessage(q)}
-                        className="text-xs text-left p-2.5 rounded-xl border border-border/60 bg-card hover:bg-muted/50 transition-colors text-foreground"
-                      >
-                        {q}
-                      </button>
-                    ))}
+
+                  {/* Starter suggestions */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">Sugestões para começar</p>
+                    <div className="space-y-1.5">
+                      {STARTER_SUGGESTIONS.map((s) => (
+                        <button
+                          key={s.text}
+                          onClick={() => sendMessage(s.text)}
+                          className="w-full flex items-center gap-3 text-left p-3 rounded-xl border border-border/60 bg-card hover:bg-muted/60 transition-all text-sm text-foreground group"
+                        >
+                          <span className="text-base shrink-0">{s.emoji}</span>
+                          <span className="flex-1">{s.text}</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : (
-                messages.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
+                <>
+                  {messages.map((msg, i) => (
                     <div
-                      className={`max-w-[85%] p-3 rounded-xl text-sm ${
-                        msg.role === 'user'
-                          ? 'bg-primary text-primary-foreground rounded-br-none'
-                          : 'bg-muted/50 text-foreground rounded-bl-none'
-                      }`}
+                      key={i}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      {msg.role === 'assistant' ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
-                        </div>
-                      ) : (
-                        <span>{msg.content}</span>
-                      )}
+                      <div
+                        className={`max-w-[85%] p-3 rounded-xl text-sm ${
+                          msg.role === 'user'
+                            ? 'bg-primary text-primary-foreground rounded-br-none'
+                            : 'bg-muted/50 text-foreground rounded-bl-none'
+                        }`}
+                      >
+                        {msg.role === 'assistant' ? (
+                          <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          <span>{msg.content}</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+
+                  {/* Follow-up suggestions after assistant response */}
+                  {followUpSuggestions.length > 0 && !isLoading && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {followUpSuggestions.map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          onClick={() => sendMessage(suggestion)}
+                          className="text-xs px-3 py-1.5 rounded-full border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
               {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
                 <div className="flex justify-start">
-                  <div className="bg-muted/50 p-3 rounded-xl rounded-bl-none">
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  <div className="bg-muted/50 p-3 rounded-xl rounded-bl-none flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
+                    <span className="text-xs text-muted-foreground">Analisando...</span>
                   </div>
                 </div>
               )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
+            {/* Input area */}
             <div className="p-3 border-t bg-background/50">
-              <form className="relative flex items-center gap-2" onSubmit={handleSubmit}>
-                <Input
-                  ref={inputRef}
+              <form className="relative flex items-end gap-2" onSubmit={handleSubmit}>
+                <Textarea
+                  ref={textareaRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  className="pr-10 bg-muted/30 border-muted-foreground/20 focus-visible:ring-purple-500 rounded-xl"
-                  placeholder="Pergunte sobre suas finanças..."
+                  onChange={handleTextareaChange}
+                  onKeyDown={handleKeyDown}
+                  className="min-h-[40px] max-h-[120px] resize-none pr-12 bg-muted/30 border-muted-foreground/20 focus-visible:ring-purple-500 rounded-xl text-sm"
+                  placeholder="Digite sua pergunta ou comando..."
                   disabled={isLoading}
+                  rows={1}
                 />
                 {isLoading ? (
                   <Button
                     size="icon"
                     type="button"
                     onClick={cancelRequest}
-                    className="absolute right-1 h-8 w-8 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                    className="absolute right-2 bottom-1.5 h-8 w-8 bg-red-600 hover:bg-red-700 text-white rounded-lg"
                     title="Parar"
                   >
                     <Square className="w-3 h-3" />
@@ -450,12 +547,15 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
                     size="icon"
                     type="submit"
                     disabled={!input.trim()}
-                    className="absolute right-1 h-8 w-8 bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50"
+                    className="absolute right-2 bottom-1.5 h-8 w-8 bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50"
                   >
                     <Send className="w-3 h-3" />
                   </Button>
                 )}
               </form>
+              <p className="text-[10px] text-muted-foreground text-center mt-2">
+                Shift+Enter para nova linha · Enter para enviar
+              </p>
             </div>
           </div>
         </PopoverContent>
