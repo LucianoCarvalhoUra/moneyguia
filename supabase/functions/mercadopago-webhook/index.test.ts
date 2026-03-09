@@ -40,17 +40,37 @@ describe("Mercado Pago Webhook", () => {
     expect(data.error).toBe("No payment ID");
   });
 
-  it("Fake payment ID does not crash webhook", async () => {
+  it("Payment without x-signature headers returns 401", async () => {
     const res = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "payment",
         action: "payment.updated",
-        data: { id: "999999999" },
+        data: { id: "123456789" },
       }),
     });
     const data = await res.json();
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(401);
+    expect(data.error).toBe("Invalid signature");
+  });
+
+  it("Payment with invalid x-signature returns 401", async () => {
+    const res = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-signature": "ts=1234567890,v1=invalidsignaturehash",
+        "x-request-id": "fake-request-id",
+      },
+      body: JSON.stringify({
+        type: "payment",
+        action: "payment.updated",
+        data: { id: "123456789" },
+      }),
+    });
+    const data = await res.json();
+    expect(res.status).toBe(401);
+    expect(data.error).toBe("Invalid signature");
   });
 });
