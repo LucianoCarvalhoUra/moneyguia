@@ -136,7 +136,7 @@ export default function Welcome() {
             <div className="rounded-xl border border-slate-100 bg-slate-900 p-4 text-white">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-slate-300">Dashboard Poupa.AI</p>
+                  <p className="text-xs text-slate-300">Dashboard MoneyGuia</p>
                   <p className="text-lg font-semibold">Resumo do mes</p>
                 </div>
                 <Badge className="bg-emerald-500 text-emerald-950 hover:bg-emerald-500">+12,4%</Badge>
