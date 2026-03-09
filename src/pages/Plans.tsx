@@ -151,7 +151,7 @@ export default function Plans() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Wallet className="h-5 w-5" />
             </div>
-            <span className="text-xl font-bold tracking-tight">KeepMoney</span>
+            <span className="text-xl font-bold tracking-tight">Poupa.AI</span>
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">

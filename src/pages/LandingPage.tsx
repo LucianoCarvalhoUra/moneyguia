@@ -43,7 +43,7 @@ export default function LandingPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#059669] text-white">
               <Wallet className="h-5 w-5" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-[#1e293b]">KeepMoney</span>
+            <span className="text-xl font-bold tracking-tight text-[#1e293b]">Poupa.AI</span>
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-[#64748b] md:flex">
