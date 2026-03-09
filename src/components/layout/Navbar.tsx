@@ -47,7 +47,7 @@ export default function Navbar() {
               <Wallet className="h-5 w-5" />
             </div>
             <div className="hidden sm:block">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">KeepMoney</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Poupa.AI</p>
               <p className="text-sm font-semibold text-slate-800">Painel Financeiro</p>
             </div>
           </Link>

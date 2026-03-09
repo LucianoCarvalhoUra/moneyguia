@@ -135,7 +135,7 @@ Deno.serve(async (req: Request) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "KeepMoney Control <onboarding@resend.dev>",
+        from: "Poupa.AI <onboarding@resend.dev>",
         to: [body.to],
         subject: body.subject,
         html,
