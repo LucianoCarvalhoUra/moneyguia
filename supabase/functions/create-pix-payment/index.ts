@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         transaction_amount: Number(amount),
-        description: `Assinatura Poupa.AI - ${billingCycle === "yearly" ? "Anual" : "Mensal"}`,
+        description: `Assinatura MoneyGuia - ${billingCycle === "yearly" ? "Anual" : "Mensal"}`,
         payment_method_id: "pix",
         payer: {
           email: email,

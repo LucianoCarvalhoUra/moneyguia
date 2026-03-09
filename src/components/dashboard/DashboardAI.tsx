@@ -410,7 +410,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
                   <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">Poupa.AI</h3>
+                  <h3 className="font-semibold text-sm">MoneyGuia</h3>
                   <p className="text-[10px] text-muted-foreground">Converse sobre suas finanças</p>
                 </div>
               </div>

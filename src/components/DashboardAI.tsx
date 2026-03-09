@@ -288,7 +288,7 @@ export function DashboardAI() {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5" />
                 <div>
-                  <span className="font-semibold block text-sm">Poupa.AI</span>
+                  <span className="font-semibold block text-sm">MoneyGuia</span>
                   <span className="text-[10px] opacity-90 font-light">Consultor Financeiro</span>
                 </div>
               </div>

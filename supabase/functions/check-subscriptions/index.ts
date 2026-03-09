@@ -97,13 +97,13 @@ Deno.serve(async (req) => {
                 html: `
                   <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2>Olá${profile.name ? `, ${profile.name}` : ""}!</h2>
-                    <p>Seu plano <strong>${planName}</strong> no Poupa.AI vence em <strong>${daysLeft} dia${daysLeft > 1 ? "s" : ""}</strong> (${expiresDate.toLocaleDateString("pt-BR")}).</p>
+                    <p>Seu plano <strong>${planName}</strong> no MoneyGuia vence em <strong>${daysLeft} dia${daysLeft > 1 ? "s" : ""}</strong> (${expiresDate.toLocaleDateString("pt-BR")}).</p>
                     <p>Para continuar aproveitando todos os recursos, renove sua assinatura antes do vencimento.</p>
                     <p>Caso não renove, seu plano será automaticamente alterado para o <strong>Plano Gratuito</strong>.</p>
                     <p style="margin-top: 24px;">
                       <a href="https://keepmoney.lovable.app/plans" style="background-color: #7c3aed; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Renovar agora</a>
                     </p>
-                    <p style="margin-top: 24px; color: #666; font-size: 14px;">Equipe Poupa.AI</p>
+                    <p style="margin-top: 24px; color: #666; font-size: 14px;">Equipe MoneyGuia</p>
                   </div>
                 `,
               },
