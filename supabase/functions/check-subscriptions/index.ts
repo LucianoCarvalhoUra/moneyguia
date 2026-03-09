@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
                     <p style="margin-top: 24px;">
                       <a href="https://keepmoney.lovable.app/plans" style="background-color: #7c3aed; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Renovar agora</a>
                     </p>
-                    <p style="margin-top: 24px; color: #666; font-size: 14px;">Equipe Poupa.AI</p>
+                    <p style="margin-top: 24px; color: #666; font-size: 14px;">Equipe MoneyGuia</p>
                   </div>
                 `,
               },

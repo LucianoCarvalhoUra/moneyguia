@@ -92,7 +92,7 @@ export default function Welcome() {
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-900 text-white">
               <CircleDollarSign className="h-4 w-4" />
             </div>
-            <span className="text-lg font-semibold tracking-tight">Poupa.AI</span>
+            <span className="text-lg font-semibold tracking-tight">MoneyGuia</span>
           </div>
           <Link to="/auth">
             <Button className="bg-emerald-600 text-white hover:bg-emerald-700">Entrar</Button>

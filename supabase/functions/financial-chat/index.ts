@@ -381,7 +381,7 @@ serve(async (req) => {
         }`
       : "";
 
-    const systemPrompt = `Você é o Poupa.AI, um assistente financeiro pessoal inteligente e amigável. Você tem acesso completo aos dados financeiros do usuário e pode CRIAR despesas e receitas quando solicitado.
+    const systemPrompt = `Você é o MoneyGuia, um assistente financeiro pessoal inteligente e amigável. Você tem acesso completo aos dados financeiros do usuário e pode CRIAR despesas e receitas quando solicitado.
 
 DADOS FINANCEIROS DO USUÁRIO:
 ${financialContext}

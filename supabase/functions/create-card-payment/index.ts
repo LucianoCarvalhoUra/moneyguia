@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         transaction_amount: Number(amount),
         token: cardToken,
-        description: `Assinatura Poupa.AI - ${billingCycle === "yearly" ? "Anual" : "Mensal"}`,
+        description: `Assinatura MoneyGuia - ${billingCycle === "yearly" ? "Anual" : "Mensal"}`,
         installments: Number(installments) || 1,
         payment_method_id: paymentMethodId,
         issuer_id: issuerId ? String(issuerId) : undefined,
