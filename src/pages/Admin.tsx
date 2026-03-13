@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Shield, Users, Search, Loader2, Crown, Check } from "lucide-react";
+import { Shield, Users, Search, Loader2, Crown, Check, Trash2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 
