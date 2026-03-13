@@ -82,6 +82,24 @@ export default function Admin() {
     }
   };
 
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Tem certeza que deseja excluir a conta de "${userName}"? Esta ação é irreversível.`)) return;
+    setDeletingUserId(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-users", {
+        body: { action: "delete_user", user_id: userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Conta excluída com sucesso!");
+      await loadUsers();
+    } catch (err: any) {
+      toast.error("Erro ao excluir conta: " + err.message);
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
   if (!isMaster) {
     return <Navigate to="/dashboard" replace />;
   }
