@@ -170,7 +170,7 @@ export default function Admin() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 sm:min-w-[220px]">
+                  <div className="flex items-center gap-2 sm:min-w-[280px]">
                     <Select
                       value={plans.find((p) => p.plan_type === u.current_plan_type)?.id || ""}
                       onValueChange={(planId) => handleChangePlan(u.user_id, planId)}
@@ -196,6 +196,21 @@ export default function Admin() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {u.email?.toLowerCase() !== MASTER_EMAIL && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:bg-destructive/10 shrink-0"
+                        onClick={() => handleDeleteUser(u.user_id, u.name || u.email)}
+                        disabled={deletingUserId === u.user_id}
+                      >
+                        {deletingUserId === u.user_id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
