@@ -114,6 +114,35 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "delete_user") {
+      const { user_id } = body;
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "user_id é obrigatório" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Delete all user data from public tables
+      const tables = [
+        "notification_settings", "expenses", "incomes", "subcategories",
+        "income_subcategories", "categories", "income_categories",
+        "credit_cards", "bank_accounts", "goal_contributions", "goals",
+        "user_subscriptions", "payments", "user_roles", "profiles",
+      ];
+      for (const table of tables) {
+        await supabase.from(table).delete().eq("user_id", user_id);
+      }
+
+      // Delete from auth
+      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(user_id);
+      if (authDeleteError) throw authDeleteError;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Ação inválida" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

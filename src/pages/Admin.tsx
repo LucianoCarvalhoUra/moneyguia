@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Shield, Users, Search, Loader2, Crown, Check } from "lucide-react";
+import { Shield, Users, Search, Loader2, Crown, Check, Trash2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 
@@ -41,6 +41,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const isMaster = user?.email?.toLowerCase() === MASTER_EMAIL;
 
@@ -78,6 +79,24 @@ export default function Admin() {
       toast.error("Erro ao atualizar plano: " + err.message);
     } finally {
       setUpdatingUserId(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Tem certeza que deseja excluir a conta de "${userName}"? Esta ação é irreversível.`)) return;
+    setDeletingUserId(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-users", {
+        body: { action: "delete_user", user_id: userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Conta excluída com sucesso!");
+      await loadUsers();
+    } catch (err: any) {
+      toast.error("Erro ao excluir conta: " + err.message);
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -151,7 +170,7 @@ export default function Admin() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 sm:min-w-[220px]">
+                  <div className="flex items-center gap-2 sm:min-w-[280px]">
                     <Select
                       value={plans.find((p) => p.plan_type === u.current_plan_type)?.id || ""}
                       onValueChange={(planId) => handleChangePlan(u.user_id, planId)}
@@ -177,6 +196,21 @@ export default function Admin() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {u.email?.toLowerCase() !== MASTER_EMAIL && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:bg-destructive/10 shrink-0"
+                        onClick={() => handleDeleteUser(u.user_id, u.name || u.email)}
+                        disabled={deletingUserId === u.user_id}
+                      >
+                        {deletingUserId === u.user_id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
