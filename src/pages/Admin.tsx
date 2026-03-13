@@ -41,6 +41,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const isMaster = user?.email?.toLowerCase() === MASTER_EMAIL;
 
