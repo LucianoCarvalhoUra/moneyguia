@@ -111,7 +111,7 @@ export default function Navbar() {
         {mobileMenuOpen && (
           <div className="border-t border-slate-200 py-4 md:hidden">
             <div className="flex flex-col gap-2">
-              {navItems.map((item) => (
+              {allNavItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
