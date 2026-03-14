@@ -406,9 +406,10 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         await updateIncome(income.id, {
           title: description,
           amount: numericAmount,
-          receiveDate: new Date(receiveDate),
+          receiveDate: new Date(receiveDate + 'T12:00:00'),
           categoryId,
           subcategoryId: subcategoryId || undefined,
+          description: observation || undefined,
           isReceived,
           isRecurring,
           accountId: accountId || undefined,
