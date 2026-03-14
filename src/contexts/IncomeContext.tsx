@@ -54,7 +54,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       const [categoriesRes, subcategoriesRes, incomesRes] = await Promise.all([
         supabase.from('income_categories').select('*').eq('user_id', user.id),
         supabase.from('income_subcategories').select('*').eq('user_id', user.id),
-        supabase.from('incomes').select('*, exclude_from_calculations').eq('user_id', user.id).order('receive_date', { ascending: false }),
+        supabase.from('incomes').select('*').eq('user_id', user.id).order('receive_date', { ascending: false }),
       ]);
 
       if (categoriesRes.data && categoriesRes.data.length > 0) {
