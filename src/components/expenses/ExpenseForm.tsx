@@ -248,7 +248,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       }
 
       await refreshData();
-      toast.success(scope === 'single' ? 'Despesa excluída!' : 'Despesas excluídas com sucesso!');
+      const successMessage = scope === 'single' ? 'Despesa excluída!' : 'Despesas excluídas com sucesso!';
+      const descriptionMessage = scope === 'single'
+        ? 'Apenas a despesa selecionada foi removida.'
+        : 'As despesas recorrentes foram removidas conforme sua seleção.';
+      toast.success(successMessage, { description: descriptionMessage });
       onOpenChange(false);
     } catch (error: any) {
       toast.error('Erro ao excluir: ' + error.message);
@@ -379,7 +383,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         if (error) throw error;
       }
 
-      toast.success('Despesas atualizadas com sucesso!');
+      toast.success('Despesas atualizadas com sucesso!', {
+        description: 'As alterações foram aplicadas à série de recorrência.',
+      });
       await new Promise(resolve => setTimeout(resolve, 300));
       await refreshData();
       onOpenChange(false);
@@ -480,7 +486,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
            }
            const { error } = await supabase.from('expenses').insert(newExpenses);
            if (error) throw error;
-           toast.success(`${limit} despesas criadas!`);
+           toast.success(`${limit} despesas criadas!`, {
+             description: `A despesa "${description}" foi parcelada em ${limit} vezes.`,
+           });
         } else {
            const { error } = await supabase.from('expenses').insert([payload]);
            if (error) throw error;
@@ -787,7 +795,3 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     </Dialog>
   );
 }
-
-
-
-

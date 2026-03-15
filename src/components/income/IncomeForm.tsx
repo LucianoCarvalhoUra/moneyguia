@@ -224,7 +224,13 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       }
 
       await refreshData();
-      toast.success(scope === 'single' ? 'Receita excluída!' : 'Receitas excluídas com sucesso!');
+      const successMessage = scope === 'single' ? 'Receita excluída!' : 'Receitas excluídas com sucesso!';
+      const descriptionMessage = scope === 'single'
+        ? 'Apenas a receita selecionada foi removida.'
+        : 'As receitas recorrentes foram removidas conforme sua seleção.';
+      toast.success(successMessage, {
+        description: descriptionMessage,
+      });
       onOpenChange(false);
     } catch (error: any) {
       toast.error('Erro ao excluir: ' + error.message);
@@ -339,7 +345,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       }
 
       await refreshData();
-      toast.success('Receitas atualizadas e sincronizadas com o banco.');
+      toast.success('Receitas atualizadas com sucesso!', {
+        description: 'As alterações foram aplicadas à série de recorrência.',
+      });
       onOpenChange(false);
     } catch (error: any) {
       console.error('[BatchUpdate] Error:', error);
@@ -694,5 +702,3 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     </Dialog>
   );
 }
-
-
