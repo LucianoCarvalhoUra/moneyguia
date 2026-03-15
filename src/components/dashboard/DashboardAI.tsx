@@ -252,11 +252,15 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: 'Erro desconhecido' }));
         if (resp.status === 429) {
-          toast.error('Muitas requisições. Aguarde um momento e tente novamente.');
+          toast.error('Muitas Requisições', {
+            description: 'Aguarde um momento e tente novamente.',
+          });
         } else if (resp.status === 402) {
-          toast.error('Créditos de IA esgotados. Adicione créditos para continuar.');
+          toast.error('Créditos Esgotados', {
+            description: 'Seus créditos de IA acabaram. Adicione mais para continuar.',
+          });
         } else {
-          toast.error(err.error || 'Erro ao se comunicar com a IA');
+          toast.error('Erro de Conexão', { description: err.error || 'Não foi possível se comunicar com a IA.' });
         }
         setIsLoading(false);
         return;
@@ -346,7 +350,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
         return;
       }
       console.error('Chat error:', e);
-      toast.error('Erro ao se comunicar com a IA');
+      toast.error('Erro de Conexão', { description: 'Não foi possível se comunicar com a IA.' });
     } finally {
       abortControllerRef.current = null;
       setIsLoading(false);

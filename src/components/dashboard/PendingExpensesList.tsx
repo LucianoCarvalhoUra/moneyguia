@@ -33,9 +33,13 @@ export default function PendingExpensesList({ selectedMonth, selectedYear }: Pen
   const handlePay = async (id: string) => {
     try {
       await updateExpense(id, { isPaid: true });
-      toast.success('Despesa marcada como paga!');
+      toast.success('Despesa Paga', {
+        description: 'A despesa foi marcada como paga com sucesso.',
+      });
     } catch (error) {
-      toast.error(getUserFriendlyError(error));
+      toast.error('Erro ao Pagar', {
+        description: getUserFriendlyError(error),
+      });
     }
   };
 

@@ -132,22 +132,28 @@ export default function InvoiceReconciliation() {
 
   const handleConfirmReconciliation = async () => {
     if (!hasDifference || difference === 0) {
-      toast.success('Fatura conciliada! Não há diferença a ajustar.');
+      toast.success('Fatura Conciliada', {
+        description: 'Não foi encontrada nenhuma diferença a ser ajustada.',
+      });
       return;
     }
 
     if (!adjustmentCategory) {
-      toast.error('Selecione uma categoria para o ajuste');
+      toast.error('Ajuste Incompleto', {
+        description: 'Por favor, selecione uma categoria para o lançamento de ajuste.',
+      });
       return;
     }
 
     if (!adjustmentPaymentDate) {
-      toast.error('Selecione a data de pagamento');
+      toast.error('Ajuste Incompleto', {
+        description: 'Por favor, selecione a data de pagamento do ajuste.',
+      });
       return;
     }
 
     if (adjustmentPaymentMethod === 'account' && !adjustmentAccountId) {
-      toast.error('Selecione a conta para pagamento');
+      toast.error('Ajuste Incompleto', { description: 'Por favor, selecione a conta para pagamento.' });
       return;
     }
 
@@ -169,8 +175,10 @@ export default function InvoiceReconciliation() {
           : 'Valor registrado a maior identificado na conciliação',
         isPaid: false,
       });
-
-      toast.success('Ajuste de fatura registrado com sucesso!');
+      
+      toast.success('Ajuste Registrado', {
+        description: 'A diferença da fatura foi registrada como uma nova despesa.',
+      });
       
       // Reset form
       setInvoiceAmount('');
@@ -179,7 +187,9 @@ export default function InvoiceReconciliation() {
       setAdjustmentPaymentDate(undefined);
       setAdjustmentAccountId('');
     } catch (error) {
-      toast.error(getUserFriendlyError(error));
+      toast.error('Erro ao Ajustar', {
+        description: getUserFriendlyError(error),
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -538,7 +548,9 @@ export default function InvoiceReconciliation() {
                   </p>
                 </div>
               </div>
-              <Button className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" onClick={() => toast.success('Conciliação confirmada!')}>
+              <Button className="border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" onClick={() => toast.success('Conciliação Confirmada', {
+                description: 'Os valores da fatura conferem com seus registros.',
+              })}>
                 Confirmar
               </Button>
             </div>

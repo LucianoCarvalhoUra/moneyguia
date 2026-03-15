@@ -125,12 +125,16 @@ export default function Auth() {
 
           const result = await sendPasswordRecoveryCode(email);
           if (result.success) {
-            toast.success('Codigo enviado por e-mail. Verifique sua caixa de entrada.');
+            toast.success('Código Enviado', {
+              description: 'Verifique seu e-mail para o código de recuperação.',
+            });
             setCooldown(60);
             setRecoveryStep('verify');
             setOtpDigits(['', '', '', '', '', '']);
           } else {
-            toast.error(result.error || 'Erro ao enviar codigo');
+            toast.error('Falha no Envio', {
+              description: result.error || 'Não foi possível enviar o código de recuperação.',
+            });
           }
         } else if (recoveryStep === 'verify') {
           const token = otpDigits.join('');
@@ -146,18 +150,26 @@ export default function Auth() {
             localStorage.setItem('password_reset_verified_email', email);
             localStorage.setItem('password_reset_verified_code', token);
             setRecoveryStep('reset');
-            toast.success('Codigo validado. Defina sua nova senha.');
+            toast.success('Código Validado', {
+              description: 'Agora você pode definir uma nova senha para sua conta.',
+            });
           } else {
-            toast.error(result.error || 'Codigo invalido ou expirado.');
+            toast.error('Código Inválido', {
+              description: result.error || 'O código informado é inválido ou já expirou.',
+            });
           }
         } else {
           if (recoveryPassword !== recoveryConfirmPassword) {
-            toast.error('As senhas nao coincidem');
+            toast.error('Senhas Divergentes', {
+              description: 'As senhas informadas não coincidem. Tente novamente.',
+            });
             setIsSubmitting(false);
             return;
           }
           if (recoveryPasswordStrength.score < 3) {
-            toast.error('A senha esta fraca. Atenda pelo menos 3 requisitos.');
+            toast.error('Senha Fraca', {
+              description: 'Sua senha não atende aos requisitos mínimos de segurança.',
+            });
             setIsSubmitting(false);
             return;
           }
@@ -168,7 +180,9 @@ export default function Auth() {
             recoveryPassword,
           );
           if (!result.success) {
-            toast.error(result.error || 'Erro ao redefinir senha');
+            toast.error('Erro ao Redefinir', {
+              description: result.error || 'Não foi possível redefinir sua senha.',
+            });
             setIsSubmitting(false);
             return;
           }
@@ -176,34 +190,48 @@ export default function Auth() {
           resetRecoveryState();
           setIsRecovery(false);
           setIsLogin(true);
-          toast.success('Senha atualizada com sucesso!');
+          toast.success('Senha Atualizada', {
+            description: 'Sua senha foi redefinida. Você já pode fazer o login.',
+          });
           navigate('/login', { replace: true });
         }
       } else if (isLogin) {
         const result = await login(email, password);
         if (result.success) {
-          toast.success('Login realizado com sucesso!');
+          toast.success('Login Efetuado', {
+            description: 'Bem-vindo(a) de volta!',
+          });
           navigate('/dashboard');
         } else {
-          toast.error(result.error || 'Erro ao fazer login');
+          toast.error('Falha no Login', {
+            description: result.error || 'Verifique seu e-mail e senha.',
+          });
         }
       } else {
         if (!name.trim()) {
-          toast.error('Por favor, informe seu nome');
+          toast.error('Campo Obrigatório', {
+            description: 'Por favor, informe seu nome completo.',
+          });
           setIsSubmitting(false);
           return;
         }
         if (passwordStrength.score < 3) {
-          toast.error('Sua senha e muito fraca. Atenda pelo menos 3 requisitos.');
+          toast.error('Senha Fraca', {
+            description: 'Sua senha não atende aos requisitos mínimos de segurança.',
+          });
           setIsSubmitting(false);
           return;
         }
         const result = await register(name, email, password);
         if (result.success) {
-          toast.success('Conta criada com sucesso!');
+          toast.success('Conta Criada', {
+            description: 'Seu cadastro foi realizado. Bem-vindo(a)!',
+          });
           navigate('/dashboard');
         } else {
-          toast.error(result.error || 'Erro ao criar conta');
+          toast.error('Falha no Cadastro', {
+            description: result.error || 'Não foi possível criar sua conta.',
+          });
         }
       }
     } finally {

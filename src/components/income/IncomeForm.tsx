@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿﻿import { useState, useEffect } from 'react';
 import { useIncome } from '@/contexts/IncomeContext';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -185,10 +185,14 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     try {
       await removeIncome(income.id);
       await refreshData();
-      toast.success('Receita excluída!');
+      toast.success('Receita Excluída', {
+        description: 'A receita foi removida dos seus registros.',
+      });
       onOpenChange(false);
     } catch (error: any) {
-      toast.error('Erro ao excluir: ' + error.message);
+      toast.error('Erro ao Excluir', {
+        description: error.message,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -233,7 +237,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       });
       onOpenChange(false);
     } catch (error: any) {
-      toast.error('Erro ao excluir: ' + error.message);
+      toast.error('Erro ao Excluir', {
+        description: error.message,
+      });
     } finally {
       setIsSubmitting(false);
       setDeleteScopeDialogOpen(false);
@@ -252,7 +258,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const handleSubcategorySelectChange = (value: string) => {
     if (value === ADD_SUBCATEGORY_OPTION) {
       if (!categoryId) {
-        toast.error('Selecione uma categoria antes de criar subcategoria.');
+        toast.error('Ação Necessária', {
+          description: 'Selecione uma categoria principal primeiro.',
+        });
         return;
       }
       setSubcategoryDialogOpen(true);
@@ -264,7 +272,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const handleCreateCategory = async () => {
     const name = newCategoryName.trim();
     if (!name) {
-      toast.error('Informe o nome da categoria.');
+      toast.error('Campo Obrigatório', {
+        description: 'Por favor, informe o nome da nova categoria.',
+      });
       return;
     }
 
@@ -280,18 +290,24 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       setSubcategoryId('');
       setNewCategoryName('');
       setCategoryDialogOpen(false);
-      toast.success('Categoria cadastrada com sucesso!');
+      toast.success('Categoria Criada', {
+        description: 'A nova categoria já está disponível para uso.',
+      });
     }
   };
 
   const handleCreateSubcategory = async () => {
     const name = newSubcategoryName.trim();
     if (!name) {
-      toast.error('Informe o nome da subcategoria.');
+      toast.error('Campo Obrigatório', {
+        description: 'Por favor, informe o nome da nova subcategoria.',
+      });
       return;
     }
     if (!categoryId) {
-      toast.error('Selecione uma categoria antes de criar subcategoria.');
+      toast.error('Ação Necessária', {
+        description: 'Selecione uma categoria antes de criar subcategoria.',
+      });
       return;
     }
 
@@ -304,7 +320,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       setSubcategoryId(created.id);
       setNewSubcategoryName('');
       setSubcategoryDialogOpen(false);
-      toast.success('Subcategoria cadastrada com sucesso!');
+      toast.success('Subcategoria Criada', {
+        description: 'A nova subcategoria já está disponível para uso.',
+      });
     }
   };
 
@@ -326,7 +344,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         const recurrenceId = income.recurrenceId || (income as any).recurrence_id;
         
         if (!recurrenceId) {
-          toast.error("Não foi possível identificar a série de recorrência.");
+          toast.error('Erro de Recorrência', {
+            description: 'Não foi possível identificar a série de recorrência para atualizar.',
+          });
           setIsSubmitting(false);
           return;
         }
@@ -345,13 +365,15 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       }
 
       await refreshData();
-      toast.success('Receitas atualizadas com sucesso!', {
+      toast.success('Receitas Atualizadas', {
         description: 'As alterações foram aplicadas à série de recorrência.',
       });
       onOpenChange(false);
     } catch (error: any) {
       console.error('[BatchUpdate] Error:', error);
-      toast.error('Erro ao atualizar: ' + error.message);
+      toast.error('Erro ao Atualizar', {
+        description: error.message,
+      });
     } finally {
       setIsSubmitting(false);
       setScopeDialogOpen(false);
@@ -366,7 +388,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     if (!description || !categoryId || !receiveDate || numericAmount <= 0) {
       setShowErrors(true);
       setShakeKey(k => k + 1);
-      toast.error('Preencha os campos obrigatórios');
+      toast.error('Campos Incompletos', {
+        description: 'Por favor, preencha todos os campos obrigatórios (*).',
+      });
       return;
     }
     setShowErrors(false);
@@ -439,15 +463,17 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       }
 
       await refreshData();
-      toast.success(
-        income
-          ? 'Receita atualizada e sincronizada com o banco.'
-          : 'Receita salva e sincronizada com o banco.',
-      );
+      const successTitle = income ? 'Receita Atualizada' : 'Receita Salva';
+      const successDescription = income
+        ? 'Sua receita foi atualizada com sucesso.'
+        : 'Sua nova receita foi registrada com sucesso.';
+      toast.success(successTitle, { description: successDescription });
       onOpenChange(false);
     } catch (error: any) {
       console.error(error);
-      toast.error('Erro ao salvar: ' + error.message);
+      toast.error('Erro ao Salvar', {
+        description: error.message,
+      });
     } finally {
       setIsSubmitting(false);
     }

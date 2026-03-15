@@ -47,11 +47,15 @@ export default function Accounts() {
   const handleAddAccount = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bankName || !agency || !accountNumber) {
-      toast.error('Preencha todos os campos');
+      toast.error('Campos Obrigatórios', {
+        description: 'Por favor, preencha todos os campos para continuar.',
+      });
       return;
     }
     addAccount({ bankName, agency, accountNumber });
-    toast.success('Conta adicionada com sucesso!');
+    toast.success('Conta Adicionada', {
+      description: 'Sua nova conta bancária foi cadastrada.',
+    });
     setAccountDialogOpen(false);
     setBankName('');
     setAgency('');
@@ -61,16 +65,22 @@ export default function Accounts() {
   const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!brand || !lastFourDigits || lastFourDigits.length !== 4) {
-      toast.error('Preencha todos os campos corretamente');
+      toast.error('Dados Incorretos', {
+        description: 'Verifique os dados do cartão, especialmente os 4 últimos dígitos.',
+      });
       return;
     }
     
     if (editingCard) {
       await updateCard(editingCard.id, { brand, lastFourDigits, limit: parseFloat(limit) || 0 } as any);
-      toast.success('Cartão atualizado com sucesso!');
+      toast.success('Cartão Atualizado', {
+        description: 'As informações do seu cartão foram salvas.',
+      });
     } else {
       await addCard({ brand, lastFourDigits, limit: parseFloat(limit) || 0 } as any);
-      toast.success('Cartão adicionado com sucesso!');
+      toast.success('Cartão Adicionado', {
+        description: 'Seu novo cartão de crédito foi cadastrado.',
+      });
     }
     
     closeCardDialog();
@@ -95,7 +105,9 @@ export default function Accounts() {
   const confirmDeleteAccount = () => {
     if (deleteAccountDialog) {
       removeAccount(deleteAccountDialog);
-      toast.success('Conta removida com sucesso!');
+      toast.success('Conta Removida', {
+        description: 'A conta bancária foi removida dos seus registros.',
+      });
       setDeleteAccountDialog(null);
     }
   };
@@ -103,7 +115,9 @@ export default function Accounts() {
   const confirmDeleteCard = () => {
     if (deleteCardDialog) {
       removeCard(deleteCardDialog);
-      toast.success('Cartão removido com sucesso!');
+      toast.success('Cartão Removido', {
+        description: 'O cartão de crédito foi removido dos seus registros.',
+      });
       setDeleteCardDialog(null);
     }
   };
