@@ -14,9 +14,28 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import ReactMarkdown from 'react-markdown';
+// import ReactMarkdown from 'react-markdown';
+
+// Fallback simples para renderizar texto caso a biblioteca não esteja instalada
+const ReactMarkdown = ({ children }: { children: React.ReactNode }) => (
+  <div className="whitespace-pre-wrap">{children}</div>
+);
 
 type Message = { role: 'user' | 'assistant'; content: string };
+
+const getInitialMessage = (): Message => {
+  return {
+    role: 'assistant',
+    content: `Olá! Sou o MoneyGuia, seu assistente financeiro.
+
+Como posso te ajudar a:
+*   Analisar suas despesas e receitas
+*   Encontrar formas de economizar
+*   Registrar novos gastos ou ganhos
+
+Como posso te ajudar hoje?`,
+  };
+};
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/financial-chat`;
 
@@ -67,7 +86,7 @@ function getFollowUpSuggestions(lastAssistantMsg: string): string[] {
 
 export function DashboardAI() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]); // Start with empty and let useEffect populate
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -201,9 +220,12 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
 
   useEffect(() => {
     if (isOpen) {
+      if (messages.length === 0) {
+        setMessages([getInitialMessage()]);
+      }
       setTimeout(() => textareaRef.current?.focus(), 200);
     }
-  }, [isOpen]);
+  }, [isOpen, messages.length]);
 
   const cancelRequest = useCallback(() => {
     if (abortControllerRef.current) {
@@ -410,7 +432,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
             {/* Header */}
             <div className="p-4 border-b bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="bg-purple-100 dark:bg-purple-900/50 p-1.5 rounded-md">
+                <div className="bg-purple-100 dark:bg-purple-900/50 p-1.5 rounded-lg">
                   <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
@@ -418,7 +440,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
                   <p className="text-[10px] text-muted-foreground">Converse sobre suas finanças</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 {messages.length > 0 && (
                   <Button
                     variant="ghost"
@@ -430,7 +452,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
                     <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background/50" onClick={() => setIsOpen(false)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background/50" onClick={() => setIsOpen(false)} title="Fechar">
                   <X className="w-4 h-4" />
                 </Button>
               </div>
@@ -488,7 +510,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
 
             {/* Input area */}
             <div className="p-3 border-t bg-background/50">
-              {messages.length === 1 && messages[0].role === 'assistant' && !isLoading && (
+              {messages.length <= 1 && !isLoading && (
                 <div className="mb-3 space-y-2">
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">Sugestões</p>
                   <div className="grid grid-cols-2 gap-2">
