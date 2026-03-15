@@ -375,7 +375,7 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
 
   const clearChat = () => {
     cancelRequest();
-    setMessages([]);
+    setMessages([getInitialMessage()]);
   };
 
   // Get follow-up suggestions from last assistant message
@@ -434,79 +434,42 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages.length === 0 ? (
-                <div className="space-y-5">
-                  {/* Welcome */}
-                  <div className="text-center space-y-3 py-4">
-                    <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/40 dark:to-blue-900/40 flex items-center justify-center">
-                      <MessageCircle className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm text-foreground">Como posso te ajudar?</h4>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-[260px] mx-auto">
-                        Pergunte qualquer coisa sobre suas finanças, peça análises ou registre gastos por texto.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Starter suggestions */}
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">Sugestões para começar</p>
-                    <div className="space-y-1.5">
-                      {STARTER_SUGGESTIONS.map((s) => (
-                        <button
-                          key={s.text}
-                          onClick={() => sendMessage(s.text)}
-                          className="w-full flex items-center gap-3 text-left p-3 rounded-xl border border-border/60 bg-card hover:bg-muted/60 transition-all text-sm text-foreground group"
-                        >
-                          <span className="text-base shrink-0">{s.emoji}</span>
-                          <span className="flex-1">{s.text}</span>
-                          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                        </button>
-                      ))}
-                    </div>
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[85%] p-3 rounded-xl text-sm ${
+                      msg.role === 'user'
+                        ? 'bg-primary text-primary-foreground rounded-br-none'
+                        : 'bg-muted/50 text-foreground rounded-bl-none'
+                    }`}
+                  >
+                    {msg.role === 'assistant' ? (
+                      <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <span>{msg.content}</span>
+                    )}
                   </div>
                 </div>
-              ) : (
-                <>
-                  {messages.map((msg, i) => (
-                    <div
-                      key={i}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[85%] p-3 rounded-xl text-sm ${
-                          msg.role === 'user'
-                            ? 'bg-primary text-primary-foreground rounded-br-none'
-                            : 'bg-muted/50 text-foreground rounded-bl-none'
-                        }`}
-                      >
-                        {msg.role === 'assistant' ? (
-                          <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm">
-                            <ReactMarkdown>{msg.content}</ReactMarkdown>
-                          </div>
-                        ) : (
-                          <span>{msg.content}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+              ))}
 
-                  {/* Follow-up suggestions after assistant response */}
-                  {followUpSuggestions.length > 0 && !isLoading && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {followUpSuggestions.map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          onClick={() => sendMessage(suggestion)}
-                          className="text-xs px-3 py-1.5 rounded-full border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
+              {/* Follow-up suggestions after assistant response */}
+              {followUpSuggestions.length > 0 && !isLoading && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {followUpSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => sendMessage(suggestion)}
+                      className="text-xs px-3 py-1.5 rounded-full border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
               )}
               {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
                 <div className="flex justify-start">
@@ -521,6 +484,23 @@ TOTAL GERAL DE RECEITAS NO SISTEMA: ${incomes.length}
 
             {/* Input area */}
             <div className="p-3 border-t bg-background/50">
+              {messages.length === 1 && messages[0].role === 'assistant' && !isLoading && (
+                <div className="mb-3 space-y-2">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">Sugestões</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {STARTER_SUGGESTIONS.map((s) => (
+                      <button
+                        key={s.text}
+                        onClick={() => sendMessage(s.text)}
+                        className="flex flex-col items-center justify-center text-center p-2 rounded-xl border border-border/60 bg-card hover:bg-muted/60 transition-all text-sm text-foreground group h-20"
+                      >
+                        <span className="text-2xl mb-1">{s.emoji}</span>
+                        <span className="text-xs leading-tight">{s.text}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <form className="relative flex items-end gap-2" onSubmit={handleSubmit}>
                 <Textarea
                   ref={textareaRef}
