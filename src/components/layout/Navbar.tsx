@@ -15,6 +15,7 @@ import {
   FileText,
   Target,
   Sparkles,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -32,11 +33,18 @@ const navItems = [
   { path: "/settings", label: "Configurações", icon: Settings },
 ];
 
+const MASTER_EMAIL = "lucianocarvalhoura@gmail.com";
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { plan } = useUserPlan();
+
+  const isMaster = user?.email?.toLowerCase() === MASTER_EMAIL;
+  const allNavItems = isMaster
+    ? [...navItems, { path: "/admin", label: "Admin", icon: Shield }]
+    : navItems;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
@@ -53,7 +61,7 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
-            {navItems.map((item) => (
+            {allNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -103,7 +111,7 @@ export default function Navbar() {
         {mobileMenuOpen && (
           <div className="border-t border-slate-200 py-4 md:hidden">
             <div className="flex flex-col gap-2">
-              {navItems.map((item) => (
+              {allNavItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
