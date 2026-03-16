@@ -11,9 +11,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
         unstyled: true,
         classNames: {
           toast:
-            'group flex items-start gap-4 p-4 rounded-xl border border-slate-100 bg-white/90 backdrop-blur-md shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)] text-slate-900 w-full min-w-[356px] transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none overflow-hidden relative',
-          title: 'font-semibold text-[15px] text-slate-900 leading-tight',
-          description: 'text-sm text-slate-500 leading-snug mt-1',
+            'group flex items-start gap-4 p-4 rounded-xl border border-slate-200/50 bg-white/80 backdrop-blur-md shadow-[0_4px_6px_-1px_rgb(0_0_0_/_0.1),_0_10px_20px_-5px_rgb(0_0_0_/_0.05)] text-slate-900 max-w-[350px] transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none overflow-hidden relative',
+          title: 'font-bold text-sm text-slate-900',
+          description: 'text-xs text-slate-600 leading-snug',
           actionButton: 'bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg',
           cancelButton: 'bg-slate-100 text-slate-500 text-xs font-medium px-3 py-1.5 rounded-lg',
           icon: 'flex-shrink-0 mt-0.5',
@@ -21,6 +21,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
             'absolute top-3 right-3 p-1 rounded-full text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-slate-100 transition-all cursor-pointer',
         },
       }}
+      // Progress bar styling
+      // Sonner automatically applies a progress bar. We can style it here.
       icons={{
         success: (
           <div className="rounded-full bg-emerald-50 p-2 border border-emerald-100">
