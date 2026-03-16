@@ -53,6 +53,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       position="bottom-right"
       expand={true}
       offset={32}
+      closeButton={true}
       {...props}
     />
   );
