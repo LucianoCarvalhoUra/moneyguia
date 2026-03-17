@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from 'react';
+﻿﻿import { useState, useMemo, useEffect } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,6 +60,7 @@ export default function Expenses() {
   const [sortField, setSortField] = useState<'dueDate' | 'category' | 'description' | 'amount' | 'status'>('dueDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
+  const [pendingDeletions, setPendingDeletions] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
@@ -149,6 +150,7 @@ export default function Expenses() {
 
   const filteredExpenses = useMemo(() => {
     return expenses
+      .filter(expense => !pendingDeletions.includes(expense.id))
       .filter(expense => {
         const expenseDate = new Date(expense.dueDate);
         if (statusFilter === 'overdue') return !expense.isPaid && isBefore(expenseDate, startOfDay(new Date()));
@@ -190,7 +192,7 @@ export default function Expenses() {
 
         return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [expenses, selectedMonth, selectedYear, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder, categories, subcategories]);
+  }, [expenses, selectedMonth, selectedYear, statusFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder, categories, subcategories, pendingDeletions]);
 
   const handleClearFilters = () => {
     setStatusFilter('all');
@@ -199,6 +201,39 @@ export default function Expenses() {
     setSearchTerm('');
     setSortField('dueDate');
     setSortOrder('desc');
+  };
+
+  const handleUndoableDelete = (expense: Expense) => {
+    // Add to pending list for optimistic UI update
+    setPendingDeletions(prev => [...prev, expense.id]);
+
+    // Schedule the actual deletion
+    const timer = setTimeout(async () => {
+        try {
+            const { error } = await supabase.from('expenses').delete().eq('id', expense.id);
+            if (error) throw error;
+            await refreshData();
+            // No success toast needed here, the action is completing silently
+        } catch (error: any) {
+            toast.error(`Erro ao remover despesa: ${error.message}`);
+            // Revert optimistic update on error
+            setPendingDeletions(prev => prev.filter(id => id !== expense.id));
+        } finally {
+            setPendingDeletions(prev => prev.filter(id => id !== expense.id));
+        }
+    }, 5000); // 5 seconds
+
+    // Show toast with Undo action
+    toast.success(`Despesa "${expense.description}" removida.`, {
+        duration: 5000,
+        action: {
+            label: 'Desfazer',
+            onClick: () => {
+                clearTimeout(timer);
+                setPendingDeletions(prev => prev.filter(id => id !== expense.id));
+            }
+        },
+    });
   };
 
   const handleDelete = (expense: Expense) => {
@@ -487,7 +522,7 @@ export default function Expenses() {
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2" onClick={e => e.stopPropagation()}>
                           <Button 
-                            size="icon" 
+                            size="icon"
                             variant="ghost" 
                             className={cn("h-8 w-8", expense.isPaid ? "text-green-600 hover:text-green-700" : "text-muted-foreground hover:text-green-600")}
                             onClick={() => handlePay(expense.id, expense.isPaid)} 
@@ -495,7 +530,17 @@ export default function Expenses() {
                           ><Check className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDuplicate(expense)} title="Duplicar"><Copy className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(expense)}><Pencil className="w-4 h-4" /></Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(expense)}><Trash2 className="w-4 h-4" /></Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => {
+                              if (expense.recurrenceId) {
+                                handleDelete(expense); // Open dialog for recurring
+                              } else {
+                                handleUndoableDelete(expense); // Use undo for single
+                              }
+                            }}><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -563,5 +608,3 @@ export default function Expenses() {
     </div>
   );
 }
-
-

@@ -14,8 +14,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
             'group flex items-center gap-4 p-3 pr-8 rounded-2xl shadow-2xl ring-1 ring-black/5 bg-white/90 backdrop-blur-xl text-slate-900 transition-all duration-500 ease-out data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=closed]:fade-out-0 overflow-hidden relative',
           title: 'font-bold text-sm text-slate-900',
           description: 'text-xs text-slate-600 leading-snug',
-          actionButton: 'bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg',
-          cancelButton: 'bg-slate-100 text-slate-500 text-xs font-medium px-3 py-1.5 rounded-lg',
+          actionButton: 'ml-2 px-3 py-1 rounded-lg text-xs font-semibold bg-transparent text-primary hover:bg-primary/10 border border-primary/30',
+          cancelButton: 'ml-2 px-3 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200',
           icon: 'flex-shrink-0',
           closeButton:
             'absolute top-3 right-3 p-1 rounded-full text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-slate-100 transition-all cursor-pointer',

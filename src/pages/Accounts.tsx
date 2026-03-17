@@ -4,35 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Building2, CreditCard, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { CreditCard as CreditCardType } from '@/types/finance';
 
 export default function Accounts() {
-  const { accounts, cards, addAccount, removeAccount, addCard, updateCard, removeCard } = useFinance();
+  const { accounts, cards, addAccount, removeAccount, addCard, updateCard, removeCard, refreshData } = useFinance();
   
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [cardDialogOpen, setCardDialogOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CreditCardType | null>(null);
-  const [deleteAccountDialog, setDeleteAccountDialog] = useState<string | null>(null);
-  const [deleteCardDialog, setDeleteCardDialog] = useState<string | null>(null);
+  const [pendingAccountDeletions, setPendingAccountDeletions] = useState<string[]>([]);
+  const [pendingCardDeletions, setPendingCardDeletions] = useState<string[]>([]);
 
   // Account form
   const [bankName, setBankName] = useState('');
@@ -102,24 +86,58 @@ export default function Accounts() {
     setLimit('');
   };
 
-  const confirmDeleteAccount = () => {
-    if (deleteAccountDialog) {
-      removeAccount(deleteAccountDialog);
-      toast.success('Conta Removida', {
-        description: 'A conta bancária foi removida dos seus registros.',
-      });
-      setDeleteAccountDialog(null);
-    }
+  const handleUndoableAccountDelete = (accountId: string, accountName: string) => {
+    setPendingAccountDeletions(prev => [...prev, accountId]);
+
+    const timer = setTimeout(async () => {
+      try {
+        await removeAccount(accountId);
+        await refreshData();
+      } catch (error: any) {
+        toast.error(`Erro ao remover conta: ${error.message}`);
+        setPendingAccountDeletions(prev => prev.filter(id => id !== accountId));
+      } finally {
+        setPendingAccountDeletions(prev => prev.filter(id => id !== accountId));
+      }
+    }, 5000);
+
+    toast.success(`Conta "${accountName}" removida.`, {
+      duration: 5000,
+      action: {
+        label: 'Desfazer',
+        onClick: () => {
+          clearTimeout(timer);
+          setPendingAccountDeletions(prev => prev.filter(id => id !== accountId));
+        },
+      },
+    });
   };
 
-  const confirmDeleteCard = () => {
-    if (deleteCardDialog) {
-      removeCard(deleteCardDialog);
-      toast.success('Cartão Removido', {
-        description: 'O cartão de crédito foi removido dos seus registros.',
-      });
-      setDeleteCardDialog(null);
-    }
+  const handleUndoableCardDelete = (cardId: string, cardBrand: string) => {
+    setPendingCardDeletions(prev => [...prev, cardId]);
+
+    const timer = setTimeout(async () => {
+      try {
+        await removeCard(cardId);
+        await refreshData();
+      } catch (error: any) {
+        toast.error(`Erro ao remover cartão: ${error.message}`);
+        setPendingCardDeletions(prev => prev.filter(id => id !== cardId));
+      } finally {
+        setPendingCardDeletions(prev => prev.filter(id => id !== cardId));
+      }
+    }, 5000);
+
+    toast.success(`Cartão "${cardBrand}" removido.`, {
+      duration: 5000,
+      action: {
+        label: 'Desfazer',
+        onClick: () => {
+          clearTimeout(timer);
+          setPendingCardDeletions(prev => prev.filter(id => id !== cardId));
+        },
+      },
+    });
   };
 
   const cardBrands = ['Visa', 'Mastercard', 'Elo', 'American Express', 'Hipercard'];
@@ -164,7 +182,7 @@ export default function Accounts() {
             </Button>
           </CardHeader>
           <CardContent>
-            {accounts.length === 0 ? (
+            {accounts.filter(a => !pendingAccountDeletions.includes(a.id)).length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p>Nenhuma conta cadastrada</p>
@@ -172,7 +190,7 @@ export default function Accounts() {
               </div>
             ) : (
               <div className="space-y-3">
-                {accounts.map((account) => (
+                {accounts.filter(a => !pendingAccountDeletions.includes(a.id)).map((account) => (
                   <div
                     key={account.id}
                     className="flex items-center justify-between p-4 rounded-xl bg-muted/50 group"
@@ -191,7 +209,7 @@ export default function Accounts() {
                     <Button
                       size="icon"
                       className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground"
-                      onClick={() => setDeleteAccountDialog(account.id)}
+                      onClick={() => handleUndoableAccountDelete(account.id, account.bankName)}
                     >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
@@ -218,7 +236,7 @@ export default function Accounts() {
             </Button>
           </CardHeader>
           <CardContent>
-            {cards.length === 0 ? (
+            {cards.filter(c => !pendingCardDeletions.includes(c.id)).length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p>Nenhum cartão cadastrado</p>
@@ -226,7 +244,7 @@ export default function Accounts() {
               </div>
             ) : (
               <div className="space-y-3">
-                {cards.map((card) => (
+                {cards.filter(c => !pendingCardDeletions.includes(c.id)).map((card) => (
                   <div
                     key={card.id}
                     className="flex items-center justify-between p-4 rounded-xl bg-muted/50 group cursor-pointer hover:bg-muted/70 transition-colors"
@@ -264,7 +282,7 @@ export default function Accounts() {
                         className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setDeleteCardDialog(card.id);
+                          handleUndoableCardDelete(card.id, card.brand);
                         }}
                       >
                         <Trash2 className="w-4 h-4 text-destructive" />
@@ -385,41 +403,6 @@ export default function Accounts() {
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Dialogs */}
-      <AlertDialog open={!!deleteAccountDialog} onOpenChange={() => setDeleteAccountDialog(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover conta</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja remover esta conta? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteAccount} className="bg-destructive hover:bg-destructive/90">
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!deleteCardDialog} onOpenChange={() => setDeleteCardDialog(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover cartão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja remover este cartão? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteCard} className="bg-destructive hover:bg-destructive/90">
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from 'react';
+﻿﻿import { useState, useMemo, useEffect } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useIncome } from '@/contexts/IncomeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -62,6 +62,7 @@ export default function Incomes() {
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [duplicatingIncome, setDuplicatingIncome] = useState<Income | null>(null);
 
+  const [pendingDeletions, setPendingDeletions] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState<Income | null>(null);
   const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
@@ -144,6 +145,7 @@ export default function Incomes() {
 
   const filteredIncomes = useMemo(() => {
     return incomes
+      .filter(income => !pendingDeletions.includes(income.id))
       .filter(income => {
         const incomeDate = new Date(income.receiveDate);
         if (incomeDate.getMonth() !== selectedMonth || incomeDate.getFullYear() !== selectedYear) return false;
@@ -181,7 +183,7 @@ export default function Incomes() {
         }
         return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [incomes, selectedMonth, selectedYear, statusFilter, visualFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder, incomeCategories]);
+  }, [incomes, selectedMonth, selectedYear, statusFilter, visualFilter, categoryFilter, subcategoryFilter, searchTerm, sortField, sortOrder, incomeCategories, pendingDeletions]);
 
   const handleClearFilters = () => {
     setStatusFilter('all');
@@ -215,6 +217,39 @@ export default function Incomes() {
     setIncomeToDelete(income);
     setSelectedDeleteScope('single');
     setDeleteDialogOpen(true);
+  };
+
+  const handleUndoableDelete = (income: Income) => {
+    // Add to pending list for optimistic UI update
+    setPendingDeletions(prev => [...prev, income.id]);
+
+    // Schedule the actual deletion
+    const timer = setTimeout(async () => {
+        try {
+            await removeIncome(income.id);
+            await refreshData();
+            // No success toast needed here, the action is completing silently
+        } catch (error: any) {
+            toast.error(`Erro ao remover receita: ${error.message}`);
+            // Revert optimistic update on error
+            setPendingDeletions(prev => prev.filter(id => id !== income.id));
+        } finally {
+            // Ensure it's removed from pending list even on success
+            setPendingDeletions(prev => prev.filter(id => id !== income.id));
+        }
+    }, 5000); // 5 seconds
+
+    // Show toast with Undo action
+    toast.success(`Receita "${income.title}" removida.`, {
+        duration: 5000,
+        action: {
+            label: 'Desfazer',
+            onClick: () => {
+                clearTimeout(timer);
+                setPendingDeletions(prev => prev.filter(id => id !== income.id));
+            }
+        },
+    });
   };
   
   const renumberIncomeInstallments = async (recurrenceId: string) => {
@@ -511,7 +546,15 @@ export default function Incomes() {
                           ><Check className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDuplicate(income)} title="Duplicar"><Copy className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(income)}><Pencil className="w-4 h-4" /></Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(income)}><Trash2 className="w-4 h-4" /></Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (income.recurrenceId) handleDelete(income);
+                              else handleUndoableDelete(income);
+                            }}><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -579,5 +622,3 @@ export default function Incomes() {
     </div>
   );
 }
-
-

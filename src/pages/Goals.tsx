@@ -36,6 +36,7 @@ export default function Goals() {
   // Filters
   const [categoryFilter, setCategoryFilter] = useState<GoalCategory | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<'active' | 'completed' | 'paused' | 'all'>('active');
+  const [pendingDeletions, setPendingDeletions] = useState<string[]>([]);
 
   // Add Funds
   const [isAddFundsOpen, setIsAddFundsOpen] = useState(false);
@@ -73,12 +74,14 @@ export default function Goals() {
 
   // Filtered goals
   const filteredGoals = useMemo(() => {
-    return goals.filter(g => {
-      if (categoryFilter !== 'all' && g.category !== categoryFilter) return false;
-      if (statusFilter !== 'all' && g.status !== statusFilter) return false;
-      return true;
-    });
-  }, [goals, categoryFilter, statusFilter]);
+    return goals
+      .filter(g => !pendingDeletions.includes(g.id))
+      .filter(g => {
+        if (categoryFilter !== 'all' && g.category !== categoryFilter) return false;
+        if (statusFilter !== 'all' && g.status !== statusFilter) return false;
+        return true;
+      });
+  }, [goals, categoryFilter, statusFilter, pendingDeletions]);
 
   // Stats
   const stats = useMemo(() => {
@@ -89,11 +92,31 @@ export default function Goals() {
     return { active: active.length, completed: completed.length, totalTarget, totalCurrent };
   }, [goals]);
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este objetivo?')) {
-      await removeGoal(id);
-      toast.success('Objetivo removido');
-    }
+  const handleUndoableDelete = (goal: Goal) => {
+    setPendingDeletions(prev => [...prev, goal.id]);
+
+    const timer = setTimeout(async () => {
+      try {
+        await removeGoal(goal.id);
+        await refreshGoals();
+      } catch (error: any) {
+        toast.error(`Erro ao remover objetivo: ${error.message}`);
+        setPendingDeletions(prev => prev.filter(id => id !== goal.id));
+      } finally {
+        setPendingDeletions(prev => prev.filter(id => id !== goal.id));
+      }
+    }, 5000);
+
+    toast.success(`Objetivo "${goal.name}" removido.`, {
+      duration: 5000,
+      action: {
+        label: 'Desfazer',
+        onClick: () => {
+          clearTimeout(timer);
+          setPendingDeletions(prev => prev.filter(id => id !== goal.id));
+        }
+      },
+    });
   };
 
   const handleToggleStatus = async (goal: Goal) => {
@@ -310,7 +333,7 @@ export default function Goals() {
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingGoal(goal); setIsFormOpen(true); }}>
                         <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(goal.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleUndoableDelete(goal)}>
                         <Trash2 className="w-3.5 h-3.5 text-destructive" />
                       </Button>
                     </div>
