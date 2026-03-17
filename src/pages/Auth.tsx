@@ -61,7 +61,6 @@ export default function Auth() {
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [cooldown, setCooldown] = useState(0);
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [recoveryPassword, setRecoveryPassword] = useState('');
@@ -69,14 +68,12 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     login,
-    register,
     sendPasswordRecoveryCode,
     verifyPasswordRecoveryCode,
     resetPasswordWithRecoveryCode,
   } = useAuth();
   const navigate = useNavigate();
 
-  const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
   const recoveryPasswordStrength = useMemo(
     () => getPasswordStrength(recoveryPassword),
     [recoveryPassword],
@@ -195,7 +192,7 @@ export default function Auth() {
           });
           navigate('/login', { replace: true });
         }
-      } else if (isLogin) {
+      } else {
         const result = await login(email, password);
         if (result.success) {
           toast.success('Login Efetuado', {
@@ -205,32 +202,6 @@ export default function Auth() {
         } else {
           toast.error('Falha no Login', {
             description: result.error || 'Verifique seu e-mail e senha.',
-          });
-        }
-      } else {
-        if (!name.trim()) {
-          toast.error('Campo Obrigatório', {
-            description: 'Por favor, informe seu nome completo.',
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        if (passwordStrength.score < 3) {
-          toast.error('Senha Fraca', {
-            description: 'Sua senha não atende aos requisitos mínimos de segurança.',
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        const result = await register(name, email, password);
-        if (result.success) {
-          toast.success('Conta Criada', {
-            description: 'Seu cadastro foi realizado. Bem-vindo(a)!',
-          });
-          navigate('/dashboard');
-        } else {
-          toast.error('Falha no Cadastro', {
-            description: result.error || 'Não foi possível criar sua conta.',
           });
         }
       }
@@ -311,7 +282,7 @@ export default function Auth() {
           <Card className="border-0 shadow-lg">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-2xl">
-                {isRecovery ? 'Recuperar Senha' : isLogin ? 'Bem-vindo de volta!' : 'Criar sua conta'}
+                {isRecovery ? 'Recuperar Senha' : 'Bem-vindo de volta!'}
               </CardTitle>
               <CardDescription>
                 {isRecovery
@@ -320,27 +291,11 @@ export default function Auth() {
                     : recoveryStep === 'verify'
                       ? 'Digite o codigo enviado para seu e-mail'
                       : 'Defina sua nova senha'
-                  : isLogin
-                    ? 'Entre para acessar seu controle financeiro'
-                    : 'Comece a controlar suas financas hoje'}
+                  : 'Entre para acessar seu controle financeiro'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {!isLogin && !isRecovery && (
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome completo</Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="Seu nome"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required={!isLogin}
-                    />
-                  </div>
-                )}
-
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>
                   <Input
@@ -441,52 +396,6 @@ export default function Auth() {
                         </button>
                       </div>
                     )}
-
-                    {!isLogin && password.length > 0 && (
-                      <div className="space-y-3 pt-2">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Forca da senha</span>
-                            <span
-                              className={cn(
-                                'font-medium',
-                                passwordStrength.score >= 4
-                                  ? 'text-green-500'
-                                  : passwordStrength.score >= 3
-                                    ? 'text-yellow-500'
-                                    : 'text-destructive',
-                              )}
-                            >
-                              {passwordStrength.label}
-                            </span>
-                          </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={cn('h-full transition-all duration-300', passwordStrength.color)}
-                              style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1 text-xs">
-                          {passwordRequirements.map((req) => {
-                            const isMet = passwordStrength.checks[req.key];
-                            return (
-                              <div
-                                key={req.key}
-                                className={cn(
-                                  'flex items-center gap-1.5 transition-colors',
-                                  isMet ? 'text-green-500' : 'text-muted-foreground',
-                                )}
-                              >
-                                {isMet ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                <span>{req.label}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -508,11 +417,8 @@ export default function Auth() {
                           ? `Aguarde ${cooldown}s`
                           : 'Enviar codigo'
                         : recoveryStep === 'verify'
-                          ? 'Validar codigo'
-                          : 'Salvar nova senha'
-                      : isLogin
-                        ? 'Entrar'
-                        : 'Criar conta'}
+                          ? 'Validar codigo' : 'Salvar nova senha'
+                      : 'Entrar'}
                 </Button>
 
                 {isRecovery && (recoveryStep === 'verify' || recoveryStep === 'reset') && (
@@ -537,20 +443,16 @@ export default function Auth() {
                       setIsLogin(true);
                       resetRecoveryState();
                     } else {
-                      setIsLogin(!isLogin);
+                      navigate('/plans');
                     }
                   }}
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   {isRecovery ? (
                     <>Voltar para o login</>
-                  ) : isLogin ? (
-                    <>
-                      Nao tem uma conta? <span className="text-primary font-semibold">Cadastre-se</span>
-                    </>
                   ) : (
                     <>
-                      Ja tem uma conta? <span className="text-primary font-semibold">Faca login</span>
+                      Nao tem uma conta? <span className="text-primary font-semibold">Cadastre-se</span>
                     </>
                   )}
                 </button>
