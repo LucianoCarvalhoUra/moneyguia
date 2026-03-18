@@ -15,6 +15,7 @@ const checkoutSchema = z.object({
   fullName: z.string().trim().min(3, "Nome completo é obrigatório").max(100),
   cpf: z.string().trim().min(11, "CPF inválido").max(14),
   email: z.string().trim().email("E-mail inválido").max(255),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   phone: z.string().trim().min(10, "Telefone inválido").max(20),
   street: z.string().trim().min(3, "Endereço é obrigatório").max(200),
   number: z.string().trim().min(1, "Número é obrigatório").max(10),
@@ -77,6 +78,8 @@ export default function Checkout() {
     fullName: "",
     cpf: "",
     email: "",
+    password: "",
+    confirmPassword: "",
     phone: "",
     street: "",
     number: "",
@@ -217,16 +220,53 @@ export default function Checkout() {
     return true;
   };
 
-  const handleGoToMethod = () => {
+  const handleGoToMethod = async () => {
     if (!validateForm()) return;
+    
+    // Se não tem usuário logado, cria a conta primeiro
     if (!user) {
-      toast.info("Faça login para continuar. Seus dados foram salvos.");
-      localStorage.setItem("checkout_pending_form", JSON.stringify(form));
-      localStorage.setItem("checkout_pending_plan", planId || "");
-      localStorage.setItem("checkout_pending_cycle", cycle);
-      navigate("/auth?returnTo=checkout");
+      // Validação extra para senhas
+      if (!form.password || form.password.length < 6) {
+        setErrors({ password: "Senha deve ter pelo menos 6 caracteres" });
+        return;
+      }
+      if (form.password !== form.confirmPassword) {
+        setErrors({ confirmPassword: "As senhas não coincidem" });
+        return;
+      }
+
+      setSubmitting(true);
+      try {
+        const result = await register(form.fullName, form.email, form.password);
+        
+        if (result.success) {
+          // Salvar dados do checkout pendentes
+          localStorage.setItem("checkout_pending_form", JSON.stringify(form));
+          localStorage.setItem("checkout_pending_plan", planId || "");
+          localStorage.setItem("checkout_pending_cycle", cycle);
+          
+          toast.success("Conta criada! Continue com o pagamento.");
+          setStep("method");
+        } else {
+          // Verificar se é erro de email já existente
+          if (result.error?.includes("já está") || result.error?.includes("already")) {
+            toast.error("Este e-mail já possui conta. Por favor, faça login para continuar a assinatura.");
+            localStorage.setItem("checkout_pending_form", JSON.stringify(form));
+            localStorage.setItem("checkout_pending_plan", planId || "");
+            localStorage.setItem("checkout_pending_cycle", cycle);
+            navigate("/auth?returnTo=checkout");
+          } else {
+            toast.error(result.error || "Erro ao criar conta");
+          }
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao criar conta");
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
+    
     setStep("method");
   };
 
@@ -420,6 +460,22 @@ export default function Checkout() {
                     <Input id="email" type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} placeholder="seu@email.com" />
                     {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email}</p>}
                   </div>
+                  
+                  {/* Campos de senha para novos usuários */}
+                  {!user && (
+                    <>
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="password">Senha <span className="text-red-500">*</span></Label>
+                        <Input id="password" type="password" value={form.password} onChange={(e) => handleChange("password", e.target.value)} placeholder="Mínimo 6 caracteres" />
+                        {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password}</p>}
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="confirmPassword">Confirmar senha <span className="text-red-500">*</span></Label>
+                        <Input id="confirmPassword" type="password" value={form.confirmPassword} onChange={(e) => handleChange("confirmPassword", e.target.value)} placeholder="Repita sua senha" />
+                        {errors.confirmPassword && <p className="mt-1 text-xs text-destructive">{errors.confirmPassword}</p>}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <h2 className="mb-4 mt-8 text-xl font-bold">Endereço de cobrança</h2>
@@ -460,8 +516,17 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                <Button onClick={handleGoToMethod} className="mt-8 w-full" type="button">
-                  Continuar
+                <Button onClick={handleGoToMethod} className="mt-8 w-full" type="button" disabled={submitting}>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processando...
+                    </>
+                  ) : user ? (
+                    "Continuar"
+                  ) : (
+                    "Criar conta e continuar"
+                  )}
                 </Button>
               </div>
             )}

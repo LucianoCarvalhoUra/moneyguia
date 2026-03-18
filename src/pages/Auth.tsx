@@ -473,7 +473,24 @@ export default function Auth() {
                 )}
               </form>
 
-              {/* Mostrar mensagem para redirecionar para planos - apenas na tela de login */}
+              {/* Link para voltar ao checkout quando vem de lá */}
+              {returnTo === 'checkout' && (
+                <div className="mt-6 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const plan = localStorage.getItem('checkout_pending_plan');
+                      const cycle = localStorage.getItem('checkout_pending_cycle');
+                      navigate(`/checkout?plan=${plan}&cycle=${cycle}`);
+                    }}
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    ← Voltar para contratação do plano
+                  </button>
+                </div>
+              )}
+
+              {/* Mostrar mensagem para redirecionar para planos - apenas na tela de login e quando não vem do checkout */}
               {!isRecovery && isLogin && returnTo !== 'checkout' && (
                 <div className="mt-6 text-center">
                   <p className="text-sm text-muted-foreground">
