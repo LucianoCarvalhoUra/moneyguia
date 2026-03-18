@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,11 +56,14 @@ function getPasswordStrength(password: string): PasswordStrength {
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   const [isRecovery, setIsRecovery] = useState(false);
   const [recoveryStep, setRecoveryStep] = useState<'request' | 'verify' | 'reset'>('request');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [cooldown, setCooldown] = useState(0);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [recoveryPassword, setRecoveryPassword] = useState('');
@@ -68,12 +71,14 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     login,
+    register,
     sendPasswordRecoveryCode,
     verifyPasswordRecoveryCode,
     resetPasswordWithRecoveryCode,
   } = useAuth();
   const navigate = useNavigate();
 
+  const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
   const recoveryPasswordStrength = useMemo(
     () => getPasswordStrength(recoveryPassword),
     [recoveryPassword],
@@ -193,25 +198,48 @@ export default function Auth() {
           navigate('/login', { replace: true });
         }
       } else {
-        const result = await login(email, password);
-        if (result.success) {
-          toast.success('Login Efetuado', {
-            description: 'Bem-vindo(a) de volta!',
-          });
+        if (isLogin) {
+          const result = await login(email, password);
+          if (result.success) {
+            toast.success('Login Efetuado', {
+              description: 'Bem-vindo(a) de volta!',
+            });
 
-          const searchParams = new URLSearchParams(window.location.search);
-          const returnTo = searchParams.get('returnTo');
-          if (returnTo === 'checkout') {
-            const plan = localStorage.getItem('checkout_pending_plan');
-            const cycle = localStorage.getItem('checkout_pending_cycle');
-            navigate(`/checkout?plan=${plan}&cycle=${cycle}`);
+            if (returnTo === 'checkout') {
+              const plan = localStorage.getItem('checkout_pending_plan');
+              const cycle = localStorage.getItem('checkout_pending_cycle');
+              navigate(`/checkout?plan=${plan}&cycle=${cycle}`);
+            } else {
+              navigate('/dashboard');
+            }
           } else {
-            navigate('/dashboard');
+            toast.error('Falha no Login', {
+              description: result.error || 'Verifique seu e-mail e senha.',
+            });
           }
         } else {
-          toast.error('Falha no Login', {
-            description: result.error || 'Verifique seu e-mail e senha.',
-          });
+          if (!name.trim()) {
+            toast.error('Campo Obrigatório', { description: 'Por favor, informe seu nome completo.' });
+            setIsSubmitting(false);
+            return;
+          }
+          
+          const result = await register(name, email, password);
+          if (result.success) {
+            toast.success('Conta Criada', {
+              description: 'Seu cadastro foi realizado com sucesso!',
+            });
+            
+            if (returnTo === 'checkout') {
+              const plan = localStorage.getItem('checkout_pending_plan');
+              const cycle = localStorage.getItem('checkout_pending_cycle');
+              navigate(`/checkout?plan=${plan}&cycle=${cycle}`);
+            } else {
+              navigate('/dashboard');
+            }
+          } else {
+            toast.error('Falha no Cadastro', { description: result.error || 'Não foi possível criar sua conta.' });
+          }
         }
       }
     } finally {
@@ -427,7 +455,9 @@ export default function Auth() {
                           : 'Enviar codigo'
                         : recoveryStep === 'verify'
                           ? 'Validar codigo' : 'Salvar nova senha'
-                      : 'Entrar'}
+                      : isLogin
+                        ? 'Entrar'
+                        : 'Criar conta'}
                 </Button>
 
                 {isRecovery && (recoveryStep === 'verify' || recoveryStep === 'reset') && (
@@ -452,16 +482,24 @@ export default function Auth() {
                       setIsLogin(true);
                       resetRecoveryState();
                     } else {
-                      navigate('/plans');
+                      if (returnTo === 'checkout') {
+                        setIsLogin(!isLogin);
+                      } else {
+                        navigate('/plans');
+                      }
                     }
                   }}
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   {isRecovery ? (
                     <>Voltar para o login</>
-                  ) : (
+                  ) : isLogin ? (
                     <>
                       Nao tem uma conta? <span className="text-primary font-semibold">Cadastre-se</span>
+                    </>
+                  ) : (
+                    <>
+                      Ja tem uma conta? <span className="text-primary font-semibold">Faca login</span>
                     </>
                   )}
                 </button>

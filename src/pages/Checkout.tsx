@@ -319,6 +319,9 @@ export default function Checkout() {
               >
                 {i + 1}
               </div>
+              <span className={`text-sm font-medium ${i === stepIndex ? "text-primary" : "text-muted-foreground"} hidden sm:block`}>
+                {label}
+              </span>
               {i < 3 && <div className="h-0.5 w-6 bg-border" />}
             </div>
           ))}
