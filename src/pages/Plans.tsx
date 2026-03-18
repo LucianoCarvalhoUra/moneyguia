@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, X, ArrowRight, ArrowDown, Wallet, Zap, Menu, X as XIcon, Sparkles, Crown, Shield, ChevronRight } from "lucide-react";
+import { Check, X, ArrowRight, ArrowDown, Zap, Sparkles, Crown, Shield, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import PublicHeader from "@/components/layout/PublicHeader";
 
 interface Plan {
   id: string;
@@ -44,7 +45,6 @@ export default function Plans() {
   const [isYearly, setIsYearly] = useState(true);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentPlanType, setCurrentPlanType] = useState<string>("free");
@@ -151,45 +151,7 @@ export default function Plans() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-foreground">
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Wallet className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">MoneyGuia</span>
-          </Link>
-
-          <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
-            <Link to="/" className="transition-colors hover:text-foreground">Início</Link>
-            <Link to="/plans" className="font-semibold text-primary">Planos</Link>
-          </nav>
-
-          <div className="hidden items-center gap-3 md:flex">
-            {user ? (
-              <Link to="/dashboard">
-                <Button variant="outline" className="text-sm font-medium">Voltar ao painel</Button>
-              </Link>
-            ) : selectedPlanId ? (
-              <Link to={`/checkout?plan=${selectedPlanId}&cycle=${isYearly ? 'yearly' : 'monthly'}`}>
-                <Button className="bg-primary px-8 text-base font-bold text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20">
-                  Vamos Começar
-                </Button>
-              </Link>
-            ) : (
-              <Link to="/auth">
-                <Button className="bg-primary px-8 text-base font-bold text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20">
-                  Vamos Começar
-                </Button>
-              </Link>
-            )}
-          </div>
-
-          <button className="rounded-lg p-2 md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <XIcon className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main>
         <section className="py-16 lg:py-20">

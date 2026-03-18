@@ -1,85 +1,30 @@
 import { Link } from "react-router-dom";
-import {
-  ArrowRight,
-  ShieldCheck,
-  TrendingUp,
-  Sparkles,
-  Menu,
-  X,
-  Wallet,
-  Bot,
-  BarChart3,
-  Landmark,
-} from "lucide-react";
+import { ArrowRight, ShieldCheck, TrendingUp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import PublicHeader from "@/components/layout/PublicHeader";
 
 const features = [
   {
-    icon: Bot,
+    icon: Sparkles,
     title: "Automação inteligente",
     description: "A IA categoriza transações e sugere ajustes com base no seu histórico financeiro.",
   },
   {
-    icon: BarChart3,
+    icon: TrendingUp,
     title: "Dashboard legível",
     description: "Visualizações claras para acompanhar receitas, despesas e metas sem ruído visual.",
   },
   {
-    icon: Landmark,
+    icon: ShieldCheck,
     title: "Segurança e governança",
     description: "Estrutura robusta para proteger dados e manter sua operação financeira confiável.",
   },
 ];
 
 export default function LandingPage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#1e293b]">
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#059669] text-white">
-              <Wallet className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-[#1e293b]">MoneyGuia</span>
-          </Link>
-
-          <nav className="hidden items-center gap-8 text-sm font-medium text-[#64748b] md:flex">
-            <a href="#recursos" className="transition-colors hover:text-[#1e293b]">Recursos</a>
-            <a href="#seguranca" className="transition-colors hover:text-[#1e293b]">Segurança</a>
-            <Link to="/plans" className="transition-colors hover:text-[#1e293b]">Planos</Link>
-          </nav>
-
-          <div className="hidden items-center gap-3 md:flex">
-            <Link to="/auth">
-              <Button className="bg-[#059669] px-8 text-base font-bold text-white hover:bg-[#047857] shadow-lg shadow-emerald-200">
-                Vamos Começar
-              </Button>
-            </Link>
-          </div>
-
-          <button className="rounded-lg p-2 text-[#1e293b] md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
-
-        {mobileMenuOpen && (
-          <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
-            <div className="flex flex-col gap-3">
-              <a href="#recursos" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-[#64748b]">Recursos</a>
-              <a href="#seguranca" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-[#64748b]">Segurança</a>
-              <Link to="/plans" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-[#64748b]">Planos</Link>
-              <div className="mt-2 pt-4">
-                <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                  <Button className="w-full bg-[#059669] text-white hover:bg-[#047857] font-semibold">Vamos Começar</Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-      </header>
+      <PublicHeader />
 
       <main>
         <section className="py-16 lg:py-24">
@@ -95,18 +40,18 @@ export default function LandingPage() {
               <p className="max-w-xl text-lg leading-relaxed text-[#64748b]">
                 O controle orçamentário que aprende com seus hábitos e automatiza sua gestão financeira.
               </p>
-              <div className="flex flex-col gap-4 sm:flex-row">
-                <Link to="/auth">
-                  <Button className="bg-[#059669] px-8 py-6 text-base font-semibold text-white hover:bg-[#047857]">
-                    Acessar plataforma
+              <div className="flex flex-col gap-4 sm:flex-row items-start sm:items-center">
+                <Link to="/plans">
+                  <Button 
+                    className="bg-emerald-500 hover:bg-emerald-600 px-8 py-4 text-lg font-bold text-white rounded-full shadow-lg shadow-emerald-200 hover:shadow-xl hover:scale-105 transition-all duration-200"
+                  >
+                    Vamos Começar
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link to="/plans">
-                  <Button variant="outline" className="px-8 py-6 text-base">
-                    Conhecer planos
-                  </Button>
-                </Link>
+                <p className="text-sm text-muted-foreground pl-2">
+                  Sem cartão de crédito. Grátis para sempre.
+                </p>
               </div>
             </div>
 

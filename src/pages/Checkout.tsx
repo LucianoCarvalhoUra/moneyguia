@@ -200,6 +200,7 @@ export default function Checkout() {
       : plan.price_monthly
     : 0;
 
+  const isFreePlan = price === 0;
   const priceLabel = cycle === "yearly" ? "anual" : "mensal";
 
   const handleChange = (field: string, value: string) => {
@@ -261,7 +262,57 @@ export default function Checkout() {
   const handleGoToMethod = async () => {
     if (!validateForm()) return;
     
-    // Se não tem usuário logado, cria a conta primeiro
+    // Se é plano FREE, pular para confirmação direta
+    if (isFreePlan) {
+      if (!user) {
+        // Validação extra para senhas
+        if (!form.password || form.password.length < 6) {
+          setErrors({ password: "Senha deve ter pelo menos 6 caracteres" });
+          return;
+        }
+        if (form.password !== form.confirmPassword) {
+          setErrors({ confirmPassword: "As senhas não coincidem" });
+          return;
+        }
+
+        setSubmitting(true);
+        try {
+          const result = await register(form.fullName, form.email, form.password);
+          
+          if (result.success) {
+            // Salvar dados do checkout pendentes
+            localStorage.setItem("checkout_pending_form", JSON.stringify(form));
+            localStorage.setItem("checkout_pending_plan", planId || "");
+            localStorage.setItem("checkout_pending_cycle", cycle);
+            
+            toast.success("Conta criada com sucesso! Bem-vindo ao MoneyGuia.");
+            setStep("confirmation");
+          } else {
+            // Verificar se é erro de email já existente
+            if (result.error?.includes("já está") || result.error?.includes("already")) {
+              toast.error("Este e-mail já possui conta. Por favor, faça login para continuar.");
+              localStorage.setItem("checkout_pending_form", JSON.stringify(form));
+              localStorage.setItem("checkout_pending_plan", planId || "");
+              localStorage.setItem("checkout_pending_cycle", cycle);
+              navigate("/auth?returnTo=checkout");
+            } else {
+              toast.error(result.error || "Erro ao criar conta");
+            }
+          }
+        } catch (err: any) {
+          toast.error(err.message || "Erro ao criar conta");
+        } finally {
+          setSubmitting(false);
+        }
+        return;
+      }
+      
+      // Usuário logado com plano free
+      setStep("confirmation");
+      return;
+    }
+    
+    // Se não tem usuário logado, cria a conta primeiro (para planos pagos)
     if (!user) {
       // Validação extra para senhas
       if (!form.password || form.password.length < 6) {
@@ -529,43 +580,48 @@ export default function Checkout() {
                   )}
                 </div>
 
-                <h2 className="mb-4 mt-8 text-xl font-bold">Endereço de cobrança</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <Label htmlFor="zipCode">CEP <span className="text-red-500">*</span></Label>
-                    <Input id="zipCode" autoComplete="off" value={form.zipCode} onChange={handleZipCodeChange} placeholder="00000-000" maxLength={9} />
-                    {errors.zipCode && <p className="mt-1 text-xs text-destructive">{errors.zipCode}</p>}
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Label htmlFor="street">Rua / Avenida <span className="text-red-500">*</span></Label>
-                    <Input id="street" autoComplete="off" value={form.street} onChange={(e) => handleChange("street", e.target.value)} placeholder="Nome da rua" />
-                    {errors.street && <p className="mt-1 text-xs text-destructive">{errors.street}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="number">Número <span className="text-red-500">*</span></Label>
-                    <Input id="number" autoComplete="off" value={form.number} onChange={(e) => handleChange("number", e.target.value)} placeholder="123" />
-                    {errors.number && <p className="mt-1 text-xs text-destructive">{errors.number}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="complement">Complemento</Label>
-                    <Input id="complement" autoComplete="off" value={form.complement} onChange={(e) => handleChange("complement", e.target.value)} placeholder="Apto, bloco..." />
-                  </div>
-                  <div>
-                    <Label htmlFor="neighborhood">Bairro <span className="text-red-500">*</span></Label>
-                    <Input id="neighborhood" autoComplete="off" value={form.neighborhood} onChange={(e) => handleChange("neighborhood", e.target.value)} placeholder="Bairro" />
-                    {errors.neighborhood && <p className="mt-1 text-xs text-destructive">{errors.neighborhood}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="city">Cidade <span className="text-red-500">*</span></Label>
-                    <Input id="city" autoComplete="off" value={form.city} onChange={(e) => handleChange("city", e.target.value)} placeholder="Cidade" />
-                    {errors.city && <p className="mt-1 text-xs text-destructive">{errors.city}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="state">Estado <span className="text-red-500">*</span></Label>
-                    <Input id="state" autoComplete="off" value={form.state} onChange={(e) => handleChange("state", e.target.value.toUpperCase())} placeholder="SP" maxLength={2} />
-                    {errors.state && <p className="mt-1 text-xs text-destructive">{errors.state}</p>}
-                  </div>
-                </div>
+                {/* Only show address for paid plans */}
+                {!isFreePlan && (
+                  <>
+                    <h2 className="mb-4 mt-8 text-xl font-bold">Endereço de cobrança</h2>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="zipCode">CEP <span className="text-red-500">*</span></Label>
+                        <Input id="zipCode" autoComplete="off" value={form.zipCode} onChange={handleZipCodeChange} placeholder="00000-000" maxLength={9} />
+                        {errors.zipCode && <p className="mt-1 text-xs text-destructive">{errors.zipCode}</p>}
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="street">Rua / Avenida <span className="text-red-500">*</span></Label>
+                        <Input id="street" autoComplete="off" value={form.street} onChange={(e) => handleChange("street", e.target.value)} placeholder="Nome da rua" />
+                        {errors.street && <p className="mt-1 text-xs text-destructive">{errors.street}</p>}
+                      </div>
+                      <div>
+                        <Label htmlFor="number">Número <span className="text-red-500">*</span></Label>
+                        <Input id="number" autoComplete="off" value={form.number} onChange={(e) => handleChange("number", e.target.value)} placeholder="123" />
+                        {errors.number && <p className="mt-1 text-xs text-destructive">{errors.number}</p>}
+                      </div>
+                      <div>
+                        <Label htmlFor="complement">Complemento</Label>
+                        <Input id="complement" autoComplete="off" value={form.complement} onChange={(e) => handleChange("complement", e.target.value)} placeholder="Apto, bloco..." />
+                      </div>
+                      <div>
+                        <Label htmlFor="neighborhood">Bairro <span className="text-red-500">*</span></Label>
+                        <Input id="neighborhood" autoComplete="off" value={form.neighborhood} onChange={(e) => handleChange("neighborhood", e.target.value)} placeholder="Bairro" />
+                        {errors.neighborhood && <p className="mt-1 text-xs text-destructive">{errors.neighborhood}</p>}
+                      </div>
+                      <div>
+                        <Label htmlFor="city">Cidade <span className="text-red-500">*</span></Label>
+                        <Input id="city" autoComplete="off" value={form.city} onChange={(e) => handleChange("city", e.target.value)} placeholder="Cidade" />
+                        {errors.city && <p className="mt-1 text-xs text-destructive">{errors.city}</p>}
+                      </div>
+                      <div>
+                        <Label htmlFor="state">Estado <span className="text-red-500">*</span></Label>
+                        <Input id="state" autoComplete="off" value={form.state} onChange={(e) => handleChange("state", e.target.value.toUpperCase())} placeholder="SP" maxLength={2} />
+                        {errors.state && <p className="mt-1 text-xs text-destructive">{errors.state}</p>}
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <Button onClick={handleGoToMethod} className="mt-8 w-full" type="button" disabled={submitting}>
                   {submitting ? (
@@ -573,6 +629,8 @@ export default function Checkout() {
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processando...
                     </>
+                  ) : isFreePlan ? (
+                    user ? "Ativar plano gratuito" : "Criar Minha Conta Grátis"
                   ) : user ? (
                     "Continuar"
                   ) : (
