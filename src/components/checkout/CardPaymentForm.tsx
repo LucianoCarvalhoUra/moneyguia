@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { CreditCard, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { CreditCard, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,24 +43,47 @@ export default function CardPaymentForm({
   const [submitting, setSubmitting] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
   const [sdkLoading, setSdkLoading] = useState(false);
+  const [sdkError, setSdkError] = useState<string | null>(null);
   const mpRef = useRef<any>(null);
 
-  const loadMercadoPagoSDK = async () => {
-    if (window.MercadoPago) {
+  const loadMercadoPagoSDK = useCallback(async () => {
+    // If already loaded, return true
+    if (window.MercadoPago && mpRef.current) {
       return true;
     }
 
+    // If already loading, wait
+    if (sdkLoading) {
+      return false;
+    }
+
     setSdkLoading(true);
+    setSdkError(null);
+    
     try {
       // Get public key from edge function
       const { data, error } = await supabase.functions.invoke("mercadopago-public-key");
       if (error || !data?.publicKey) {
-        toast.error("Erro ao carregar gateway de pagamento");
+        const errorMsg = "Erro ao carregar configurações de pagamento";
+        setSdkError(errorMsg);
+        toast.error(errorMsg);
         return false;
+      }
+
+      // Check if already loaded by another component
+      if (window.MercadoPago) {
+        mpRef.current = new window.MercadoPago(data.publicKey, { locale: "pt-BR" });
+        setSdkLoaded(true);
+        return true;
       }
 
       // Load MercadoPago.js SDK
       await new Promise<void>((resolve, reject) => {
+        const existingScript = document.querySelector('script[src*="mercadopago"]');
+        if (existingScript) {
+          existingScript.remove();
+        }
+        
         const script = document.createElement("script");
         script.src = "https://sdk.mercadopago.com/js/v2";
         script.onload = () => resolve();
@@ -73,17 +96,38 @@ export default function CardPaymentForm({
       return true;
     } catch (err) {
       console.error("SDK load error:", err);
-      toast.error("Erro ao carregar SDK de pagamento");
+      const errorMsg = "Estamos preparando o ambiente de pagamento seguro. Por favor, aguarde um instante.";
+      setSdkError(errorMsg);
+      toast.error(errorMsg);
       return false;
     } finally {
       setSdkLoading(false);
     }
-  };
+  }, [sdkLoading]);
 
-  // Load SDK on mount
-  useState(() => {
-    loadMercadoPagoSDK();
-  });
+  // Load SDK on mount with proper useEffect
+  useEffect(() => {
+    let mounted = true;
+    
+    const initSDK = async () => {
+      if (mounted) {
+        await loadMercadoPagoSDK();
+      }
+    };
+    
+    initSDK();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [loadMercadoPagoSDK]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mpRef.current = null;
+    };
+  }, []);
 
   const formatCardNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, "").slice(0, 16);
@@ -109,10 +153,13 @@ export default function CardPaymentForm({
 
     setSubmitting(true);
     try {
-      // Ensure SDK is loaded
+      // Ensure SDK is loaded with safety check
       if (!mpRef.current) {
         const loaded = await loadMercadoPagoSDK();
-        if (!loaded) return;
+        if (!loaded) {
+          setSubmitting(false);
+          return;
+        }
       }
 
       // Get payment method info from bin
@@ -120,8 +167,8 @@ export default function CardPaymentForm({
       let paymentMethodId = "visa";
       let issuerId = "";
 
-      // Create card token via SDK
-      const cardTokenResponse = await mpRef.current.createCardToken({
+      // Create card token via SDK with Optional Chaining for safety
+      const cardTokenResponse = await mpRef.current?.createCardToken({
         cardNumber: cleanCardNumber,
         cardholderName: cardholderName,
         cardExpirationMonth: expirationMonth,
@@ -136,13 +183,13 @@ export default function CardPaymentForm({
         return;
       }
 
-      // Determine payment method from bin
+      // Determine payment method from bin with safety check
       try {
-        const binInfo = await mpRef.current.getPaymentMethods({ bin });
+        const binInfo = await mpRef.current?.getPaymentMethods({ bin });
         if (binInfo?.results?.[0]) {
           paymentMethodId = binInfo.results[0].id;
           // Get issuer
-          const issuers = await mpRef.current.getIssuers({ paymentMethodId, bin });
+          const issuers = await mpRef.current?.getIssuers({ paymentMethodId, bin });
           if (issuers?.[0]) {
             issuerId = issuers[0].id;
           }
@@ -203,6 +250,31 @@ export default function CardPaymentForm({
         <CreditCard className="h-5 w-5" />
         Pagamento com Cartão de Crédito
       </h2>
+
+      {/* Error Banner for SDK */}
+      {(sdkError || sdkLoading) && (
+        <div className="mb-6 p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            {sdkLoading ? (
+              <p className="text-amber-800">Carregando ambiente de pagamento seguro...</p>
+            ) : (
+              <>
+                <p className="text-amber-800 font-medium">Ambiente de pagamento em preparação</p>
+                <p className="text-amber-700 mt-1">
+                  Estamos preparando o ambiente de pagamento seguro. 
+                  <button 
+                    onClick={() => loadMercadoPagoSDK()} 
+                    className="underline hover:text-amber-900 ml-1"
+                  >
+                    Clique aqui para tentar novamente
+                  </button>
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div>
