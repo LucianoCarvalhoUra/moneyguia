@@ -48,6 +48,7 @@ export default function Plans() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentPlanType, setCurrentPlanType] = useState<string>("free");
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -58,14 +59,19 @@ export default function Plans() {
         .order("price_monthly", { ascending: true });
 
       if (data) {
-        setPlans(
-          data
-            .map((p: any) => ({
-              ...p,
-              features: Array.isArray(p.features) ? p.features : JSON.parse(p.features || "[]"),
-            }))
-            .sort((a: Plan, b: Plan) => planOrder.indexOf(a.plan_type) - planOrder.indexOf(b.plan_type)),
-        );
+        const sortedPlans = data
+          .map((p: any) => ({
+            ...p,
+            features: Array.isArray(p.features) ? p.features : JSON.parse(p.features || "[]"),
+          }))
+          .sort((a: Plan, b: Plan) => planOrder.indexOf(a.plan_type) - planOrder.indexOf(b.plan_type));
+        
+        setPlans(sortedPlans);
+        
+        // Auto-select first plan (free) if none selected
+        if (!selectedPlanId && sortedPlans.length > 0) {
+          setSelectedPlanId(sortedPlans[0].id);
+        }
       }
       setLoading(false);
     };
@@ -85,7 +91,7 @@ export default function Plans() {
 
     fetchPlans();
     fetchUserPlan();
-  }, [user]);
+  }, [user, selectedPlanId]);
 
   const handleSelectPlan = (plan: Plan) => {
     if (plan.plan_type === currentPlanType) return;
@@ -164,15 +170,18 @@ export default function Plans() {
               <Link to="/dashboard">
                 <Button variant="outline" className="text-sm font-medium">Voltar ao painel</Button>
               </Link>
+            ) : selectedPlanId ? (
+              <Link to={`/checkout?plan=${selectedPlanId}&cycle=${isYearly ? 'yearly' : 'monthly'}`}>
+                <Button className="bg-primary px-8 text-base font-bold text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20">
+                  Vamos Começar
+                </Button>
+              </Link>
             ) : (
-              <>
-                <Link to="/auth">
-                  <Button variant="ghost" className="text-sm font-medium">Login</Button>
-                </Link>
-                <Link to="/auth">
-                  <Button className="bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Começar</Button>
-                </Link>
-              </>
+              <Link to="/auth">
+                <Button className="bg-primary px-8 text-base font-bold text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20">
+                  Vamos Começar
+                </Button>
+              </Link>
             )}
           </div>
 
@@ -221,6 +230,7 @@ export default function Plans() {
               {plans.map((plan) => {
                 const isCurrent = plan.plan_type === currentPlanType;
                 const isPremium = plan.plan_type === "premium";
+                const isSelected = selectedPlanId === plan.id;
                 const discount = getDiscount(plan);
                 const price = isYearly ? plan.price_yearly / 12 : plan.price_monthly;
                 const title = planLabels[plan.plan_type] ?? plan.name;
@@ -231,9 +241,12 @@ export default function Plans() {
                 return (
                   <div
                     key={plan.id}
+                    onClick={() => setSelectedPlanId(plan.id)}
                     className={cn(
-                      "relative flex flex-col rounded-2xl border-2 p-8 transition-all duration-300",
-                      isCurrent
+                      "relative flex flex-col rounded-2xl border-2 p-8 transition-all duration-300 cursor-pointer",
+                      isSelected && !isCurrent
+                        ? "border-primary bg-primary/[0.02] shadow-lg shadow-primary/20 ring-2 ring-primary/30"
+                        : isCurrent
                         ? "border-primary bg-primary/[0.02] shadow-lg shadow-primary/10 ring-1 ring-primary/20"
                         : isPremium
                           ? "border-amber-300 bg-gradient-to-b from-amber-50/50 to-white shadow-md hover:shadow-lg hover:-translate-y-1"
@@ -242,7 +255,13 @@ export default function Plans() {
                   >
                     {/* Badges */}
                     <div className="absolute -top-3 left-0 right-0 flex justify-center gap-2">
-                      {isPremium && !isCurrent && (
+                      {isSelected && !isCurrent && !isPremium && (
+                        <Badge className="bg-primary text-primary-foreground hover:bg-primary shadow-sm">
+                          <Check className="mr-1 h-3 w-3" />
+                          Selecionado
+                        </Badge>
+                      )}
+                      {isPremium && !isCurrent && !isSelected && (
                         <Badge className="bg-amber-500 text-white hover:bg-amber-500 shadow-sm">
                           <Sparkles className="mr-1 h-3 w-3" />
                           Mais completo

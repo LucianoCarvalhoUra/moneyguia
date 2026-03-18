@@ -54,10 +54,9 @@ export default function LandingPage() {
 
           <div className="hidden items-center gap-3 md:flex">
             <Link to="/auth">
-              <Button variant="ghost" className="text-sm font-medium text-[#1e293b]">Login</Button>
-            </Link>
-            <Link to="/auth">
-              <Button className="bg-[#059669] px-6 text-sm font-semibold text-white hover:bg-[#047857]">Começar</Button>
+              <Button className="bg-[#059669] px-8 text-base font-bold text-white hover:bg-[#047857] shadow-lg shadow-emerald-200">
+                Vamos Começar
+              </Button>
             </Link>
           </div>
 
@@ -72,10 +71,9 @@ export default function LandingPage() {
               <a href="#recursos" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-[#64748b]">Recursos</a>
               <a href="#seguranca" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-[#64748b]">Segurança</a>
               <Link to="/plans" onClick={() => setMobileMenuOpen(false)} className="py-2 text-sm font-medium text-[#64748b]">Planos</Link>
-              <div className="mt-2 flex flex-col gap-2 border-t border-slate-200 pt-4">
-                <Link to="/auth" className="text-center text-sm font-medium text-[#1e293b]">Login</Link>
-                <Link to="/auth">
-                  <Button className="w-full bg-[#059669] text-white hover:bg-[#047857]">Começar</Button>
+              <div className="mt-2 pt-4">
+                <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                  <Button className="w-full bg-[#059669] text-white hover:bg-[#047857] font-semibold">Vamos Começar</Button>
                 </Link>
               </div>
             </div>
