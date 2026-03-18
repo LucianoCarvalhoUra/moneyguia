@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Check, Lock, Sparkles, ShieldCheck, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const monthlyPlans = {
   essencial: "R$ 0",
@@ -23,6 +24,8 @@ export default function Planos() {
   const [yearlyBilling, setYearlyBilling] = useState(false);
   const [searchParams] = useSearchParams();
   const { isAuthenticated, subscriptionPlan, subscriptionStatus } = useAuth();
+  const navigate = useNavigate();
+  const [dbPlans, setDbPlans] = useState<any[]>([]);
 
   const prices = yearlyBilling ? yearlyPlans : monthlyPlans;
   const periodLabel = yearlyBilling ? "/mes no anual" : "/mes";
@@ -44,6 +47,33 @@ export default function Planos() {
     }
     return null;
   }, [reason, feature]);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      const { data } = await supabase.from("subscription_plans").select("*").eq("is_active", true);
+      if (data) setDbPlans(data);
+    };
+    fetchPlans();
+  }, []);
+
+  const handleSubscribe = (planKey: string) => {
+    // Mapeamento das chaves locais para os tipos no banco
+    const typeMap: Record<string, string> = {
+      'essencial': 'free',
+      'premium': 'pro',
+      'total': 'premium'
+    };
+
+    const planType = typeMap[planKey];
+    const plan = dbPlans.find(p => p.plan_type === planType);
+
+    if (!plan) return;
+
+    // Se for plano gratuito (price 0), pode manter o fluxo de auth direto se preferir, 
+    // mas para consistência vamos mandar para checkout ou auth dependendo da regra.
+    // Para planos pagos, vai para o checkout.
+    navigate(`/checkout?plan=${plan.id}&cycle=${yearlyBilling ? 'yearly' : 'monthly'}`);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -80,9 +110,9 @@ export default function Planos() {
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Dashboard basico</li>
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Metas financeiras</li>
               </ul>
-              <Link to="/auth" className="block">
-                <Button className="w-full bg-slate-900 text-white hover:bg-slate-800">Assinar Agora</Button>
-              </Link>
+              <div className="block">
+                <Button className="w-full bg-slate-900 text-white hover:bg-slate-800" onClick={() => handleSubscribe('essencial')}>Assinar Agora</Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -103,9 +133,9 @@ export default function Planos() {
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Relatórios avançados</li>
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Metas financeiras</li>
               </ul>
-              <Link to="/auth" className="block">
-                <Button className="w-full bg-emerald-600 text-white hover:bg-emerald-700">Assinar Agora</Button>
-              </Link>
+              <div className="block">
+                <Button className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => handleSubscribe('premium')}>Assinar Agora</Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -126,9 +156,9 @@ export default function Planos() {
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Exportação de relatórios</li>
                 <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Controle completo e ilimitado</li>
               </ul>
-              <Link to="/auth" className="block">
-                <Button className="w-full bg-slate-900 text-white hover:bg-slate-800">Assinar Agora</Button>
-              </Link>
+              <div className="block">
+                <Button className="w-full bg-slate-900 text-white hover:bg-slate-800" onClick={() => handleSubscribe('total')}>Assinar Agora</Button>
+              </div>
             </CardContent>
           </Card>
         </div>

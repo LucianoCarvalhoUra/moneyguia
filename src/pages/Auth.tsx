@@ -494,9 +494,15 @@ export default function Auth() {
                   {isRecovery ? (
                     <>Voltar para o login</>
                   ) : isLogin ? (
-                    <>
-                      Nao tem uma conta? <span className="text-primary font-semibold">Cadastre-se</span>
-                    </>
+                    returnTo === 'checkout' ? (
+                      <>
+                        Nao tem uma conta? <span className="text-primary font-semibold">Cadastre-se</span>
+                      </>
+                    ) : (
+                      <>
+                        Se voce nao tem uma conta, <span className="text-primary font-semibold">clique aqui</span>
+                      </>
+                    )
                   ) : (
                     <>
                       Ja tem uma conta? <span className="text-primary font-semibold">Faca login</span>
