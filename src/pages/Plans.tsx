@@ -207,7 +207,7 @@ export default function Plans() {
                     className={cn(
                       "relative flex flex-col rounded-2xl border-2 p-8 transition-all duration-300 cursor-pointer",
                       isSelected && !isCurrent
-                        ? "border-primary bg-primary/[0.02] shadow-lg shadow-primary/20 ring-2 ring-primary/30"
+                        ? "border-emerald-500 bg-emerald-50/50 shadow-xl shadow-emerald-200/30 ring-2 ring-emerald-500/30"
                         : isCurrent
                         ? "border-primary bg-primary/[0.02] shadow-lg shadow-primary/10 ring-1 ring-primary/20"
                         : isPremium
@@ -215,10 +215,17 @@ export default function Plans() {
                           : "border-slate-200 bg-white shadow-sm hover:shadow-md hover:-translate-y-1",
                     )}
                   >
+                    {/* Check Icon for Selected State */}
+                    {isSelected && !isCurrent && (
+                      <div className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                        <Check className="h-5 w-5 text-white" />
+                      </div>
+                    )}
+
                     {/* Badges */}
                     <div className="absolute -top-3 left-0 right-0 flex justify-center gap-2">
                       {isSelected && !isCurrent && !isPremium && (
-                        <Badge className="bg-primary text-primary-foreground hover:bg-primary shadow-sm">
+                        <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm">
                           <Check className="mr-1 h-3 w-3" />
                           Selecionado
                         </Badge>
@@ -310,7 +317,22 @@ export default function Plans() {
 
                     {/* Action Button */}
                     <div className="mt-8">
-                      {buttonInfo.variant === "current" ? (
+                      {isSelected && !isCurrent ? (
+                        <Button
+                          onClick={() => handleSelectPlan(plan)}
+                          className={cn(
+                            "w-full rounded-xl font-semibold",
+                            plan.price_monthly === 0
+                              ? "bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-200"
+                              : isPremium
+                                ? "bg-amber-500 text-white hover:bg-amber-600 shadow-md shadow-amber-200"
+                                : "bg-primary text-primary-foreground hover:bg-primary/90"
+                          )}
+                        >
+                          <Check className="mr-2 h-4 w-4" />
+                          Plano Escolhido
+                        </Button>
+                      ) : buttonInfo.variant === "current" ? (
                         <Button disabled className="w-full rounded-xl bg-primary/10 text-primary border border-primary/20 cursor-default">
                           <Check className="mr-2 h-4 w-4" />
                           Plano atual

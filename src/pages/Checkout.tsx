@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft, Wallet, Copy, Check, QrCode, Clock, Loader2, RefreshCw, CreditCard, User, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,51 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import CardPaymentForm from "@/components/checkout/CardPaymentForm";
+
+// Password strength checker
+interface PasswordStrength {
+  score: number;
+  label: string;
+  color: string;
+  checks: {
+    minLength: boolean;
+    hasUppercase: boolean;
+    hasLowercase: boolean;
+    hasNumber: boolean;
+    hasSpecial: boolean;
+  };
+}
+
+function getPasswordStrength(password: string): PasswordStrength {
+  const checks = {
+    minLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+    hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  const score = Object.values(checks).filter(Boolean).length;
+
+  let label = 'Muito fraca';
+  let color = 'bg-destructive';
+
+  if (score >= 5) {
+    label = 'Muito forte';
+    color = 'bg-green-500';
+  } else if (score >= 4) {
+    label = 'Forte';
+    color = 'bg-green-400';
+  } else if (score >= 3) {
+    label = 'Media';
+    color = 'bg-yellow-500';
+  } else if (score >= 2) {
+    label = 'Fraca';
+    color = 'bg-orange-500';
+  }
+
+  return { score, label, color, checks };
+}
 
 const checkoutSchema = z.object({
   fullName: z.string().trim().min(3, "Nome completo é obrigatório").max(100),
@@ -202,6 +247,26 @@ export default function Checkout() {
 
   const isFreePlan = price === 0;
   const priceLabel = cycle === "yearly" ? "anual" : "mensal";
+  
+  // Password strength indicator
+  const passwordStrength = useMemo(() => getPasswordStrength(form.password), [form.password]);
+  const passwordRequirements = [
+    { key: 'minLength', label: 'Mínimo 8 caracteres' },
+    { key: 'hasUppercase', label: 'Letra maiúscula' },
+    { key: 'hasLowercase', label: 'Letra minúscula' },
+    { key: 'hasNumber', label: 'Número' },
+    { key: 'hasSpecial', label: 'Símbolo (!@#$...)' },
+  ] as const;
+  
+  // Auto-redirect after confirmation
+  useEffect(() => {
+    if (step === "confirmation") {
+      const timer = setTimeout(() => {
+        navigate("/dashboard");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, navigate]);
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -570,6 +635,32 @@ export default function Checkout() {
                         <Label htmlFor="password">Senha <span className="text-red-500">*</span></Label>
                         <Input id="password" type="password" autoComplete="new-password" value={form.password} onChange={(e) => handleChange("password", e.target.value)} placeholder="Mínimo 6 caracteres" />
                         {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password}</p>}
+                        
+                        {/* Password strength indicator */}
+                        {form.password.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            <div className="flex justify-between text-xs">
+                              <span className="text-muted-foreground">Força da senha</span>
+                              <span className={cn(
+                                "font-medium",
+                                passwordStrength.score >= 4 ? "text-green-500" : passwordStrength.score >= 3 ? "text-yellow-500" : "text-destructive"
+                              )}>
+                                {passwordStrength.label}
+                              </span>
+                            </div>
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                              <div className={cn("h-full transition-all duration-300", passwordStrength.color)} style={{ width: `${(passwordStrength.score / 5) * 100}%` }} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 mt-2">
+                              {passwordRequirements.map((req) => (
+                                <div key={req.key} className={cn("text-xs flex items-center gap-1", passwordStrength.checks[req.key as keyof typeof passwordStrength.checks] ? "text-green-500" : "text-muted-foreground")}>
+                                  <Check className="h-3 w-3" />
+                                  {req.label}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="sm:col-span-2">
                         <Label htmlFor="confirmPassword">Confirmar senha <span className="text-red-500">*</span></Label>
@@ -861,9 +952,14 @@ export default function Checkout() {
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-md bg-primary/10">
                   <Check className="h-8 w-8 text-primary" />
                 </div>
-                <h2 className="text-2xl font-bold">Pagamento confirmado!</h2>
+                <h2 className="text-2xl font-bold">
+                  {isFreePlan ? "🚀 Seja bem-vindo ao MoneyGuia!" : "Pagamento confirmado!"}
+                </h2>
                 <p className="mt-2 text-muted-foreground">
-                  Seu plano <strong>{plan?.name}</strong> foi ativado com sucesso.
+                  {isFreePlan 
+                    ? "Seu plano Essencial foi ativado. Sua jornada para a liberdade financeira começa agora."
+                    : `Seu plano ${plan?.name} foi ativado com sucesso.`
+                  }
                 </p>
                 <Link to="/dashboard">
                   <Button className="mt-6 px-8">Ir para o Dashboard</Button>
