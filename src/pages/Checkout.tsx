@@ -78,6 +78,15 @@ export default function Checkout() {
   });
 
   useEffect(() => {
+    const savedForm = localStorage.getItem("checkout_pending_form");
+    if (savedForm) {
+      try {
+        setForm(JSON.parse(savedForm));
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
     if (!planId) {
       navigate("/plans");
       return;
@@ -143,6 +152,40 @@ export default function Checkout() {
     }
   };
 
+  const handleZipCodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    handleChange("zipCode", value);
+
+    const cleanCep = value.replace(/\D/g, "");
+    if (cleanCep.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+        const data = await response.json();
+        if (!data.erro) {
+          setForm((prev) => ({
+            ...prev,
+            street: data.logradouro,
+            neighborhood: data.bairro,
+            city: data.localidade,
+            state: data.uf,
+          }));
+          setErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.street;
+            delete newErrors.neighborhood;
+            delete newErrors.city;
+            delete newErrors.state;
+            return newErrors;
+          });
+        } else {
+          toast.error("CEP não encontrado.");
+        }
+      } catch (error) {
+        console.error("Erro ao buscar CEP", error);
+      }
+    }
+  };
+
   const validateForm = () => {
     const result = checkoutSchema.safeParse(form);
     if (!result.success) {
@@ -161,8 +204,11 @@ export default function Checkout() {
   const handleGoToMethod = () => {
     if (!validateForm()) return;
     if (!user) {
-      toast.info("Faça login para continuar.");
-      navigate("/auth");
+      toast.info("Faça login para continuar. Seus dados foram salvos.");
+      localStorage.setItem("checkout_pending_form", JSON.stringify(form));
+      localStorage.setItem("checkout_pending_plan", planId || "");
+      localStorage.setItem("checkout_pending_cycle", cycle);
+      navigate("/auth?returnTo=checkout");
       return;
     }
     setStep("method");
@@ -286,22 +332,22 @@ export default function Checkout() {
                 <h2 className="mb-6 text-xl font-bold">Informações pessoais</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
-                    <Label htmlFor="fullName">Nome completo</Label>
+                    <Label htmlFor="fullName">Nome completo <span className="text-red-500">*</span></Label>
                     <Input id="fullName" value={form.fullName} onChange={(e) => handleChange("fullName", e.target.value)} placeholder="Seu nome completo" />
                     {errors.fullName && <p className="mt-1 text-xs text-destructive">{errors.fullName}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="cpf">CPF</Label>
+                    <Label htmlFor="cpf">CPF <span className="text-red-500">*</span></Label>
                     <Input id="cpf" value={form.cpf} onChange={(e) => handleChange("cpf", e.target.value)} placeholder="000.000.000-00" />
                     {errors.cpf && <p className="mt-1 text-xs text-destructive">{errors.cpf}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="phone">Telefone</Label>
+                    <Label htmlFor="phone">Telefone <span className="text-red-500">*</span></Label>
                     <Input id="phone" value={form.phone} onChange={(e) => handleChange("phone", e.target.value)} placeholder="(11) 99999-9999" />
                     {errors.phone && <p className="mt-1 text-xs text-destructive">{errors.phone}</p>}
                   </div>
                   <div className="sm:col-span-2">
-                    <Label htmlFor="email">E-mail</Label>
+                    <Label htmlFor="email">E-mail <span className="text-red-500">*</span></Label>
                     <Input id="email" type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} placeholder="seu@email.com" />
                     {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email}</p>}
                   </div>
@@ -310,17 +356,17 @@ export default function Checkout() {
                 <h2 className="mb-4 mt-8 text-xl font-bold">Endereço de cobrança</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
-                    <Label htmlFor="zipCode">CEP</Label>
-                    <Input id="zipCode" value={form.zipCode} onChange={(e) => handleChange("zipCode", e.target.value)} placeholder="00000-000" />
+                    <Label htmlFor="zipCode">CEP <span className="text-red-500">*</span></Label>
+                    <Input id="zipCode" value={form.zipCode} onChange={handleZipCodeChange} placeholder="00000-000" maxLength={9} />
                     {errors.zipCode && <p className="mt-1 text-xs text-destructive">{errors.zipCode}</p>}
                   </div>
                   <div className="sm:col-span-2">
-                    <Label htmlFor="street">Rua / Avenida</Label>
+                    <Label htmlFor="street">Rua / Avenida <span className="text-red-500">*</span></Label>
                     <Input id="street" value={form.street} onChange={(e) => handleChange("street", e.target.value)} placeholder="Nome da rua" />
                     {errors.street && <p className="mt-1 text-xs text-destructive">{errors.street}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="number">Número</Label>
+                    <Label htmlFor="number">Número <span className="text-red-500">*</span></Label>
                     <Input id="number" value={form.number} onChange={(e) => handleChange("number", e.target.value)} placeholder="123" />
                     {errors.number && <p className="mt-1 text-xs text-destructive">{errors.number}</p>}
                   </div>
@@ -329,23 +375,23 @@ export default function Checkout() {
                     <Input id="complement" value={form.complement} onChange={(e) => handleChange("complement", e.target.value)} placeholder="Apto, bloco..." />
                   </div>
                   <div>
-                    <Label htmlFor="neighborhood">Bairro</Label>
+                    <Label htmlFor="neighborhood">Bairro <span className="text-red-500">*</span></Label>
                     <Input id="neighborhood" value={form.neighborhood} onChange={(e) => handleChange("neighborhood", e.target.value)} placeholder="Bairro" />
                     {errors.neighborhood && <p className="mt-1 text-xs text-destructive">{errors.neighborhood}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="city">Cidade</Label>
+                    <Label htmlFor="city">Cidade <span className="text-red-500">*</span></Label>
                     <Input id="city" value={form.city} onChange={(e) => handleChange("city", e.target.value)} placeholder="Cidade" />
                     {errors.city && <p className="mt-1 text-xs text-destructive">{errors.city}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="state">Estado</Label>
+                    <Label htmlFor="state">Estado <span className="text-red-500">*</span></Label>
                     <Input id="state" value={form.state} onChange={(e) => handleChange("state", e.target.value.toUpperCase())} placeholder="SP" maxLength={2} />
                     {errors.state && <p className="mt-1 text-xs text-destructive">{errors.state}</p>}
                   </div>
                 </div>
 
-                <Button onClick={handleGoToMethod} className="mt-8 w-full">
+                <Button onClick={handleGoToMethod} className="mt-8 w-full" type="button">
                   Continuar
                 </Button>
               </div>

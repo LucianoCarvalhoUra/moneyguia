@@ -198,7 +198,16 @@ export default function Auth() {
           toast.success('Login Efetuado', {
             description: 'Bem-vindo(a) de volta!',
           });
-          navigate('/dashboard');
+
+          const searchParams = new URLSearchParams(window.location.search);
+          const returnTo = searchParams.get('returnTo');
+          if (returnTo === 'checkout') {
+            const plan = localStorage.getItem('checkout_pending_plan');
+            const cycle = localStorage.getItem('checkout_pending_cycle');
+            navigate(`/checkout?plan=${plan}&cycle=${cycle}`);
+          } else {
+            navigate('/dashboard');
+          }
         } else {
           toast.error('Falha no Login', {
             description: result.error || 'Verifique seu e-mail e senha.',
