@@ -46,6 +46,32 @@ interface PixData {
 type Step = "info" | "method" | "payment" | "create-account" | "confirmation";
 type PaymentMethod = "pix" | "card";
 
+// Initial form state
+const initialFormState = {
+  fullName: "",
+  cpf: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+  phone: "",
+  street: "",
+  number: "",
+  complement: "",
+  neighborhood: "",
+  city: "",
+  state: "",
+  zipCode: "",
+};
+
+// Function to clear all sensitive data
+const clearCheckoutData = () => {
+  localStorage.removeItem("checkout_pending_form");
+  localStorage.removeItem("checkout_pending_plan");
+  localStorage.removeItem("checkout_pending_cycle");
+  localStorage.removeItem("checkout_completed_data");
+  sessionStorage.clear();
+};
+
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -90,11 +116,23 @@ export default function Checkout() {
     zipCode: "",
   });
 
+  // Cleanup on unmount - clear sensitive data
+  useEffect(() => {
+    return () => {
+      // Clear form state on unmount
+      setForm(initialFormState);
+      setAccountForm({ name: "", password: "", confirmPassword: "" });
+      setPixData(null);
+    };
+  }, []);
+
   useEffect(() => {
     const savedForm = localStorage.getItem("checkout_pending_form");
     if (savedForm) {
       try {
-        setForm(JSON.parse(savedForm));
+        const parsed = JSON.parse(savedForm);
+        // Don't pre-fill passwords for security
+        setForm({ ...parsed, password: "", confirmPassword: "" });
       } catch {}
     }
   }, []);
@@ -372,6 +410,10 @@ export default function Checkout() {
         
         toast.success("Conta criada com sucesso!");
         setStep("confirmation");
+        
+        // Limpar dados sensíveis após sucesso
+        setForm(initialFormState);
+        setAccountForm({ name: "", password: "", confirmPassword: "" });
       } else {
         toast.error(result.error || "Erro ao criar conta");
       }
@@ -380,6 +422,15 @@ export default function Checkout() {
     } finally {
       setCreatingAccount(false);
     }
+  };
+
+  // Handle confirmation - clear all data after success
+  const handleConfirmationRedirect = () => {
+    clearCheckoutData();
+    setForm(initialFormState);
+    setAccountForm({ name: "", password: "", confirmPassword: "" });
+    setPixData(null);
+    navigate("/dashboard");
   };
 
   const stepIndex = ["info", "method", "payment", "create-account", "confirmation"].indexOf(step);
@@ -442,22 +493,22 @@ export default function Checkout() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <Label htmlFor="fullName">Nome completo <span className="text-red-500">*</span></Label>
-                    <Input id="fullName" value={form.fullName} onChange={(e) => handleChange("fullName", e.target.value)} placeholder="Seu nome completo" />
+                    <Input id="fullName" autoComplete="off" value={form.fullName} onChange={(e) => handleChange("fullName", e.target.value)} placeholder="Seu nome completo" />
                     {errors.fullName && <p className="mt-1 text-xs text-destructive">{errors.fullName}</p>}
                   </div>
                   <div>
                     <Label htmlFor="cpf">CPF <span className="text-red-500">*</span></Label>
-                    <Input id="cpf" value={form.cpf} onChange={(e) => handleChange("cpf", e.target.value)} placeholder="000.000.000-00" />
+                    <Input id="cpf" autoComplete="off" value={form.cpf} onChange={(e) => handleChange("cpf", e.target.value)} placeholder="000.000.000-00" />
                     {errors.cpf && <p className="mt-1 text-xs text-destructive">{errors.cpf}</p>}
                   </div>
                   <div>
                     <Label htmlFor="phone">Telefone <span className="text-red-500">*</span></Label>
-                    <Input id="phone" value={form.phone} onChange={(e) => handleChange("phone", e.target.value)} placeholder="(11) 99999-9999" />
+                    <Input id="phone" autoComplete="off" value={form.phone} onChange={(e) => handleChange("phone", e.target.value)} placeholder="(11) 99999-9999" />
                     {errors.phone && <p className="mt-1 text-xs text-destructive">{errors.phone}</p>}
                   </div>
                   <div className="sm:col-span-2">
                     <Label htmlFor="email">E-mail <span className="text-red-500">*</span></Label>
-                    <Input id="email" type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} placeholder="seu@email.com" />
+                    <Input id="email" type="email" autoComplete="off" value={form.email} onChange={(e) => handleChange("email", e.target.value)} placeholder="seu@email.com" />
                     {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email}</p>}
                   </div>
                   
@@ -466,12 +517,12 @@ export default function Checkout() {
                     <>
                       <div className="sm:col-span-2">
                         <Label htmlFor="password">Senha <span className="text-red-500">*</span></Label>
-                        <Input id="password" type="password" value={form.password} onChange={(e) => handleChange("password", e.target.value)} placeholder="Mínimo 6 caracteres" />
+                        <Input id="password" type="password" autoComplete="new-password" value={form.password} onChange={(e) => handleChange("password", e.target.value)} placeholder="Mínimo 6 caracteres" />
                         {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password}</p>}
                       </div>
                       <div className="sm:col-span-2">
                         <Label htmlFor="confirmPassword">Confirmar senha <span className="text-red-500">*</span></Label>
-                        <Input id="confirmPassword" type="password" value={form.confirmPassword} onChange={(e) => handleChange("confirmPassword", e.target.value)} placeholder="Repita sua senha" />
+                        <Input id="confirmPassword" type="password" autoComplete="new-password" value={form.confirmPassword} onChange={(e) => handleChange("confirmPassword", e.target.value)} placeholder="Repita sua senha" />
                         {errors.confirmPassword && <p className="mt-1 text-xs text-destructive">{errors.confirmPassword}</p>}
                       </div>
                     </>
@@ -482,36 +533,36 @@ export default function Checkout() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <Label htmlFor="zipCode">CEP <span className="text-red-500">*</span></Label>
-                    <Input id="zipCode" value={form.zipCode} onChange={handleZipCodeChange} placeholder="00000-000" maxLength={9} />
+                    <Input id="zipCode" autoComplete="off" value={form.zipCode} onChange={handleZipCodeChange} placeholder="00000-000" maxLength={9} />
                     {errors.zipCode && <p className="mt-1 text-xs text-destructive">{errors.zipCode}</p>}
                   </div>
                   <div className="sm:col-span-2">
                     <Label htmlFor="street">Rua / Avenida <span className="text-red-500">*</span></Label>
-                    <Input id="street" value={form.street} onChange={(e) => handleChange("street", e.target.value)} placeholder="Nome da rua" />
+                    <Input id="street" autoComplete="off" value={form.street} onChange={(e) => handleChange("street", e.target.value)} placeholder="Nome da rua" />
                     {errors.street && <p className="mt-1 text-xs text-destructive">{errors.street}</p>}
                   </div>
                   <div>
                     <Label htmlFor="number">Número <span className="text-red-500">*</span></Label>
-                    <Input id="number" value={form.number} onChange={(e) => handleChange("number", e.target.value)} placeholder="123" />
+                    <Input id="number" autoComplete="off" value={form.number} onChange={(e) => handleChange("number", e.target.value)} placeholder="123" />
                     {errors.number && <p className="mt-1 text-xs text-destructive">{errors.number}</p>}
                   </div>
                   <div>
                     <Label htmlFor="complement">Complemento</Label>
-                    <Input id="complement" value={form.complement} onChange={(e) => handleChange("complement", e.target.value)} placeholder="Apto, bloco..." />
+                    <Input id="complement" autoComplete="off" value={form.complement} onChange={(e) => handleChange("complement", e.target.value)} placeholder="Apto, bloco..." />
                   </div>
                   <div>
                     <Label htmlFor="neighborhood">Bairro <span className="text-red-500">*</span></Label>
-                    <Input id="neighborhood" value={form.neighborhood} onChange={(e) => handleChange("neighborhood", e.target.value)} placeholder="Bairro" />
+                    <Input id="neighborhood" autoComplete="off" value={form.neighborhood} onChange={(e) => handleChange("neighborhood", e.target.value)} placeholder="Bairro" />
                     {errors.neighborhood && <p className="mt-1 text-xs text-destructive">{errors.neighborhood}</p>}
                   </div>
                   <div>
                     <Label htmlFor="city">Cidade <span className="text-red-500">*</span></Label>
-                    <Input id="city" value={form.city} onChange={(e) => handleChange("city", e.target.value)} placeholder="Cidade" />
+                    <Input id="city" autoComplete="off" value={form.city} onChange={(e) => handleChange("city", e.target.value)} placeholder="Cidade" />
                     {errors.city && <p className="mt-1 text-xs text-destructive">{errors.city}</p>}
                   </div>
                   <div>
                     <Label htmlFor="state">Estado <span className="text-red-500">*</span></Label>
-                    <Input id="state" value={form.state} onChange={(e) => handleChange("state", e.target.value.toUpperCase())} placeholder="SP" maxLength={2} />
+                    <Input id="state" autoComplete="off" value={form.state} onChange={(e) => handleChange("state", e.target.value.toUpperCase())} placeholder="SP" maxLength={2} />
                     {errors.state && <p className="mt-1 text-xs text-destructive">{errors.state}</p>}
                   </div>
                 </div>

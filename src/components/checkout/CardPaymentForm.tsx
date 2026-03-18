@@ -122,10 +122,14 @@ export default function CardPaymentForm({
     };
   }, [loadMercadoPagoSDK]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - clear sensitive card data
   useEffect(() => {
     return () => {
       mpRef.current = null;
+      setCardNumber("");
+      setCardholderName("");
+      setSecurityCode("");
+      setInstallments("1");
     };
   }, []);
 
@@ -281,6 +285,7 @@ export default function CardPaymentForm({
           <Label htmlFor="cardNumber">Número do cartão</Label>
           <Input
             id="cardNumber"
+            autoComplete="off"
             value={cardNumber}
             onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
             placeholder="0000 0000 0000 0000"
@@ -292,6 +297,7 @@ export default function CardPaymentForm({
           <Label htmlFor="cardholderName">Nome no cartão</Label>
           <Input
             id="cardholderName"
+            autoComplete="off"
             value={cardholderName}
             onChange={(e) => setCardholderName(e.target.value.toUpperCase())}
             placeholder="NOME COMO NO CARTÃO"
@@ -329,6 +335,7 @@ export default function CardPaymentForm({
             <Label htmlFor="cvv">CVV</Label>
             <Input
               id="cvv"
+              autoComplete="off"
               value={securityCode}
               onChange={(e) => setSecurityCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
               placeholder="123"
