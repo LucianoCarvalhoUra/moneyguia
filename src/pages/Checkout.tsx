@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { ArrowLeft, Wallet, Copy, Check, QrCode, Clock, Loader2, RefreshCw, CreditCard } from "lucide-react";
+import { ArrowLeft, Wallet, Copy, Check, QrCode, Clock, Loader2, RefreshCw, CreditCard, User, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { z } from "zod";
+import { cn } from "@/lib/utils";
 import CardPaymentForm from "@/components/checkout/CardPaymentForm";
 
 const checkoutSchema = z.object({
@@ -41,13 +42,13 @@ interface PixData {
   status: string;
 }
 
-type Step = "info" | "method" | "payment" | "confirmation";
+type Step = "info" | "method" | "payment" | "create-account" | "confirmation";
 type PaymentMethod = "pix" | "card";
 
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, register } = useAuth();
 
   const planId = searchParams.get("plan");
   const cycle = searchParams.get("cycle") || "monthly";
@@ -62,6 +63,15 @@ export default function Checkout() {
   const [pixData, setPixData] = useState<PixData | null>(null);
   const [checkingPayment, setCheckingPayment] = useState(false);
   const pollRef = useRef<number | null>(null);
+
+  // Estado para criação de conta após pagamento
+  const [accountForm, setAccountForm] = useState({
+    name: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [accountErrors, setAccountErrors] = useState<Record<string, string>>({});
+  const [creatingAccount, setCreatingAccount] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -124,8 +134,14 @@ export default function Checkout() {
           .single();
 
         if (!error && data?.status === "approved") {
-          setStep("confirmation");
-          toast.success("Pagamento confirmado! Plano ativado.");
+          // Se não tem usuário logado, vai para criação de conta
+          if (!user) {
+            setAccountForm(prev => ({ ...prev, name: form.fullName }));
+            setStep("create-account");
+          } else {
+            setStep("confirmation");
+          }
+          toast.success("Pagamento confirmado!");
           if (pollRef.current) clearInterval(pollRef.current);
         }
       } catch {}
@@ -135,7 +151,7 @@ export default function Checkout() {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [step, pixData, paymentMethod]);
+  }, [step, pixData, paymentMethod, user, form.fullName]);
 
   const price = plan
     ? cycle === "yearly"
@@ -264,8 +280,15 @@ export default function Checkout() {
         .single();
 
       if (data?.status === "approved") {
-        setStep("confirmation");
-        toast.success("Pagamento confirmado! Plano ativado.");
+        // Se não tem usuário logado, vai para criação de conta
+        if (!user) {
+          // Preencher o nome do formulário de dados para a criação de conta
+          setAccountForm(prev => ({ ...prev, name: form.fullName }));
+          setStep("create-account");
+        } else {
+          setStep("confirmation");
+        }
+        toast.success("Pagamento confirmado!");
       } else {
         toast.info("Pagamento ainda não confirmado. Aguarde alguns instantes.");
       }
@@ -276,7 +299,50 @@ export default function Checkout() {
     }
   };
 
-  const stepIndex = ["info", "method", "payment", "confirmation"].indexOf(step);
+  const handleCreateAccount = async () => {
+    // Validações
+    if (!accountForm.name.trim()) {
+      setAccountErrors({ name: "Nome é obrigatório" });
+      return;
+    }
+    if (!accountForm.password || accountForm.password.length < 6) {
+      setAccountErrors({ password: "Senha deve ter pelo menos 6 caracteres" });
+      return;
+    }
+    if (accountForm.password !== accountForm.confirmPassword) {
+      setAccountErrors({ confirmPassword: "As senhas não coincidem" });
+      return;
+    }
+
+    setCreatingAccount(true);
+    setAccountErrors({});
+
+    try {
+      // Criar usuário com o email do formulário de checkout
+      const result = await register(accountForm.name, form.email, accountForm.password);
+      
+      if (result.success) {
+        // Salvar dados do checkout pendentes para o webhook processar
+        localStorage.setItem("checkout_completed_data", JSON.stringify({
+          planId,
+          cycle,
+          userId: result.userId,
+          form,
+        }));
+        
+        toast.success("Conta criada com sucesso!");
+        setStep("confirmation");
+      } else {
+        toast.error(result.error || "Erro ao criar conta");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao criar conta");
+    } finally {
+      setCreatingAccount(false);
+    }
+  };
+
+  const stepIndex = ["info", "method", "payment", "create-account", "confirmation"].indexOf(step);
 
   if (loading) {
     return (
@@ -500,9 +566,120 @@ export default function Checkout() {
                 fullName={form.fullName}
                 cpf={form.cpf}
                 email={form.email}
-                onSuccess={() => setStep("confirmation")}
+                onSuccess={() => {
+                  if (!user) {
+                    setAccountForm(prev => ({ ...prev, name: form.fullName }));
+                    setStep("create-account");
+                  } else {
+                    setStep("confirmation");
+                  }
+                }}
                 onBack={() => setStep("method")}
               />
+            )}
+
+            {step === "create-account" && (
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <div className="text-center mb-6">
+                  <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                    <Lock className="h-6 w-6 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-bold">Crie sua senha</h2>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Defina uma senha para acessar sua conta. Use pelo menos 6 caracteres.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="account-name">Nome completo</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="account-name"
+                        value={accountForm.name}
+                        onChange={(e) => {
+                          setAccountForm(prev => ({ ...prev, name: e.target.value }));
+                          if (accountErrors.name) setAccountErrors(prev => ({ ...prev, name: "" }));
+                        }}
+                        placeholder="Seu nome completo"
+                        className="pl-10"
+                      />
+                    </div>
+                    {accountErrors.name && <p className="text-xs text-destructive">{accountErrors.name}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="account-email">E-mail</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="account-email"
+                        value={form.email}
+                        disabled
+                        className="pl-10 bg-muted"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="account-password">Senha</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="account-password"
+                        type="password"
+                        value={accountForm.password}
+                        onChange={(e) => {
+                          setAccountForm(prev => ({ ...prev, password: e.target.value }));
+                          if (accountErrors.password) setAccountErrors(prev => ({ ...prev, password: "" }));
+                        }}
+                        placeholder="Mínimo 6 caracteres"
+                        className="pl-10"
+                      />
+                    </div>
+                    {accountErrors.password && <p className="text-xs text-destructive">{accountErrors.password}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="account-confirm-password">Confirmar senha</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="account-confirm-password"
+                        type="password"
+                        value={accountForm.confirmPassword}
+                        onChange={(e) => {
+                          setAccountForm(prev => ({ ...prev, confirmPassword: e.target.value }));
+                          if (accountErrors.confirmPassword) setAccountErrors(prev => ({ ...prev, confirmPassword: "" }));
+                        }}
+                        placeholder="Repita sua senha"
+                        className="pl-10"
+                      />
+                    </div>
+                    {accountErrors.confirmPassword && <p className="text-xs text-destructive">{accountErrors.confirmPassword}</p>}
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleCreateAccount} 
+                  disabled={creatingAccount}
+                  className="mt-6 w-full"
+                >
+                  {creatingAccount ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Criando conta...
+                    </>
+                  ) : (
+                    "Criar conta"
+                  )}
+                </Button>
+
+                <p className="text-xs text-muted-foreground text-center mt-4">
+                  Ao criar sua conta, você concorda com nossos Termos de Uso e Política de Privacidade.
+                </p>
+              </div>
             )}
 
             {step === "confirmation" && (

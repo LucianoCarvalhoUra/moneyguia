@@ -47,7 +47,7 @@ interface AuthContextType {
   hasFeatureAccess: (feature: FeatureKey) => boolean;
   refreshProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string; userId?: string }>;
   logout: () => Promise<void>;
   sendPasswordRecoveryCode: (email: string) => Promise<{ success: boolean; error?: string }>;
   verifyPasswordRecoveryCode: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
@@ -319,10 +319,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
-  const register = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const register = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string; userId?: string }> => {
     const redirectUrl = `${window.location.origin}/`;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -335,7 +335,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: getAuthErrorMessage(error) };
     }
 
-    return { success: true };
+    return { success: true, userId: data.user?.id };
   };
 
   const logout = async () => {

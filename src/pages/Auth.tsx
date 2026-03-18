@@ -473,43 +473,21 @@ export default function Auth() {
                 )}
               </form>
 
-              <div className="mt-6 text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isRecovery) {
-                      setIsRecovery(false);
-                      setIsLogin(true);
-                      resetRecoveryState();
-                    } else {
-                      if (returnTo === 'checkout') {
-                        setIsLogin(!isLogin);
-                      } else {
-                        navigate('/plans');
-                      }
-                    }
-                  }}
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  {isRecovery ? (
-                    <>Voltar para o login</>
-                  ) : isLogin ? (
-                    returnTo === 'checkout' ? (
-                      <>
-                        Nao tem uma conta? <span className="text-primary font-semibold">Cadastre-se</span>
-                      </>
-                    ) : (
-                      <>
-                        Se voce nao tem uma conta, <span className="text-primary font-semibold">clique aqui</span>
-                      </>
-                    )
-                  ) : (
-                    <>
-                      Ja tem uma conta? <span className="text-primary font-semibold">Faca login</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              {/* Mostrar mensagem para redirecionar para planos - apenas na tela de login */}
+              {!isRecovery && isLogin && returnTo !== 'checkout' && (
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Para criar uma conta,{' '}
+                    <button
+                      type="button"
+                      onClick={() => navigate('/plans')}
+                      className="text-primary font-semibold hover:underline"
+                    >
+                      escolha um plano
+                    </button>
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
