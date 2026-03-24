@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, ShieldCheck, TrendingUp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 import PublicHeader from "@/components/layout/PublicHeader";
 
 const features = [
@@ -22,6 +23,19 @@ const features = [
 ];
 
 export default function LandingPage() {
+  // Scroll to section if hash exists in URL
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const element = document.getElementById(hash);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#1e293b]">
       <PublicHeader />

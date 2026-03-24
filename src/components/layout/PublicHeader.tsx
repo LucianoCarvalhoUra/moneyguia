@@ -1,5 +1,5 @@
-import { Link, useLocation } from "react-router-dom";
-import { Wallet, Menu, X, Sparkles, Crown, Shield, ChevronRight } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Wallet, Menu, X, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ export default function PublicHeader() {
   const [isYearly, setIsYearly] = useState(true);
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isHome = location.pathname === "/";
   const isPlans = location.pathname === "/plans";
@@ -48,19 +49,18 @@ export default function PublicHeader() {
     fetchPlans();
   }, [selectedPlanId]);
 
-  // Get the correct href for section links based on current location
-  const getSectionLink = (section: string) => {
-    if (isHome) {
-      return `#${section}`;
-    }
-    return `/#${section}`;
-  };
-
   const handleNavigation = (section: string) => {
     setMobileMenuOpen(false);
-    if (!isHome) {
-      // Navigate to home with hash
-      window.location.href = `/#${section}`;
+    
+    if (isHome) {
+      // If on home, scroll to section
+      const element = document.getElementById(section);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    } else {
+      // If on other page, navigate to home with hash
+      navigate(`/#${section}`);
     }
   };
 
@@ -101,7 +101,12 @@ export default function PublicHeader() {
         </nav>
 
         {/* Desktop Actions */}
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-4 md:flex">
+          {!user && (
+            <Link to="/auth" className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">
+              Entrar
+            </Link>
+          )}
           {user ? (
             <Link to="/dashboard">
               <Button variant="outline" className="text-sm font-medium">
