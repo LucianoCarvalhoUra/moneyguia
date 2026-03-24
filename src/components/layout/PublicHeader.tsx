@@ -102,10 +102,6 @@ export default function PublicHeader() {
 
         {/* Desktop Actions */}
         <div className="hidden items-center gap-4 md:flex">
-          {/* Link de Login - sempre visível para visitantes */}
-          <Link to="/auth" className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors mr-4">
-            Entrar
-          </Link>
           {user ? (
             <Link to="/dashboard">
               <Button variant="outline" className="text-sm font-medium">
@@ -113,18 +109,17 @@ export default function PublicHeader() {
                 Voltar ao painel
               </Button>
             </Link>
-          ) : selectedPlanId ? (
-            <Link to={`/checkout?plan=${selectedPlanId}&cycle=${isYearly ? 'yearly' : 'monthly'}`}>
-              <Button className="bg-[#059669] px-8 text-base font-bold text-white hover:bg-[#047857] shadow-lg shadow-emerald-200">
-                Vamos Começar
-              </Button>
-            </Link>
           ) : (
-            <Link to="/auth">
-              <Button className="bg-[#059669] px-8 text-base font-bold text-white hover:bg-[#047857] shadow-lg shadow-emerald-200">
-                Vamos Começar
-              </Button>
-            </Link>
+            <>
+              <Link to="/auth" className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors mr-4">
+                Entrar
+              </Link>
+              <Link to={selectedPlanId ? `/checkout?plan=${selectedPlanId}&cycle=${isYearly ? 'yearly' : 'monthly'}` : "/plans"}>
+                <Button className="bg-[#059669] px-8 text-base font-bold text-white hover:bg-[#047857] shadow-lg shadow-emerald-200">
+                  Vamos Começar
+                </Button>
+              </Link>
+            </>
           )}
         </div>
 
@@ -141,14 +136,15 @@ export default function PublicHeader() {
       {mobileMenuOpen && (
         <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
           <div className="flex flex-col gap-3">
-            {/* Login como primeiro item - sempre visível */}
-            <Link
-              to="/auth"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-3 text-left text-sm font-semibold text-emerald-600 border-b border-slate-100"
-            >
-              Entrar
-            </Link>
+            {!user && (
+              <Link
+                to="/auth"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-3 text-left text-sm font-semibold text-emerald-600 border-b border-slate-100"
+              >
+                Entrar
+              </Link>
+            )}
             <button
               onClick={() => handleNavigation("recursos")}
               className="py-2 text-left text-sm font-medium text-[#64748b]"
@@ -185,7 +181,7 @@ export default function PublicHeader() {
                 </Link>
               ) : (
                 <Link
-                  to={selectedPlanId ? `/checkout?plan=${selectedPlanId}&cycle=${isYearly ? 'yearly' : 'monthly'}` : "/auth"}
+                  to={selectedPlanId ? `/checkout?plan=${selectedPlanId}&cycle=${isYearly ? 'yearly' : 'monthly'}` : "/plans"}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Button className="w-full bg-[#059669] text-white hover:bg-[#047857] font-semibold">
