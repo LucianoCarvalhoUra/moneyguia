@@ -102,11 +102,10 @@ export default function PublicHeader() {
 
         {/* Desktop Actions */}
         <div className="hidden items-center gap-4 md:flex">
-          {!user && (
-            <Link to="/auth" className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">
-              Entrar
-            </Link>
-          )}
+          {/* Link de Login - sempre visível para visitantes */}
+          <Link to="/auth" className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors mr-4">
+            Entrar
+          </Link>
           {user ? (
             <Link to="/dashboard">
               <Button variant="outline" className="text-sm font-medium">
@@ -142,16 +141,14 @@ export default function PublicHeader() {
       {mobileMenuOpen && (
         <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
           <div className="flex flex-col gap-3">
-            {/* Login como primeiro item - para fácil alcance do polegar */}
-            {!user && (
-              <Link
-                to="/auth"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-3 text-left text-sm font-semibold text-emerald-600 border-b border-slate-100"
-              >
-                Entrar
-              </Link>
-            )}
+            {/* Login como primeiro item - sempre visível */}
+            <Link
+              to="/auth"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-3 text-left text-sm font-semibold text-emerald-600 border-b border-slate-100"
+            >
+              Entrar
+            </Link>
             <button
               onClick={() => handleNavigation("recursos")}
               className="py-2 text-left text-sm font-medium text-[#64748b]"
