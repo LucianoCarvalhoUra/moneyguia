@@ -1,8 +1,10 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, ShieldCheck, TrendingUp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import PublicHeader from "@/components/layout/PublicHeader";
+import PublicFooter from "@/components/layout/PublicFooter";
+import { useAuth } from "@/contexts/AuthContext";
 
 const features = [
   {
@@ -23,6 +25,16 @@ const features = [
 ];
 
 export default function LandingPage() {
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  // Auto-login: redireciona usuário logado para o Dashboard
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
   // Scroll to section if hash exists in URL
   useEffect(() => {
     const hash = window.location.hash.slice(1);
@@ -35,6 +47,19 @@ export default function LandingPage() {
       }
     }
   }, []);
+  
+  // Se estiver carregando ou usuário logado, não renderiza o conteúdo principal
+  if (isLoading || user) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc]">
+        <PublicHeader />
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-pulse text-slate-500">Carregando...</div>
+        </div>
+        <PublicFooter />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#1e293b]">
@@ -137,6 +162,8 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

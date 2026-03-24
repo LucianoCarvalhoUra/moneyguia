@@ -142,6 +142,16 @@ export default function PublicHeader() {
       {mobileMenuOpen && (
         <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
           <div className="flex flex-col gap-3">
+            {/* Login como primeiro item - para fácil alcance do polegar */}
+            {!user && (
+              <Link
+                to="/auth"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-3 text-left text-sm font-semibold text-emerald-600 border-b border-slate-100"
+              >
+                Entrar
+              </Link>
+            )}
             <button
               onClick={() => handleNavigation("recursos")}
               className="py-2 text-left text-sm font-medium text-[#64748b]"

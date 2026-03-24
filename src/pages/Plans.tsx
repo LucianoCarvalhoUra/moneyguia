@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import PublicHeader from "@/components/layout/PublicHeader";
+import PublicFooter from "@/components/layout/PublicFooter";
 
 interface Plan {
   id: string;
@@ -380,6 +381,8 @@ export default function Plans() {
           )}
         </section>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }
