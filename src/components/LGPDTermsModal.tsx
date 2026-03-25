@@ -31,7 +31,6 @@ export default function LGPDTermsModal() {
       return;
     }
 
-    // Verificar user_id de múltiplas fontes
     let userId = user?.id;
     
     if (!userId) {
@@ -104,12 +103,10 @@ export default function LGPDTermsModal() {
     }
   }, [user, authLoading]);
 
-  // Verificar termos quando auth estiver pronto
   useEffect(() => {
     if (!authLoading && user) {
       checkTermsAccepted();
     } else if (!authLoading && !user) {
-      // Tentar buscar user via getUser
       supabase.auth.getUser().then(({ data }) => {
         if (data?.user) {
           checkTermsAccepted();
@@ -124,7 +121,6 @@ export default function LGPDTermsModal() {
     setIsSubmitting(true);
 
     try {
-      // Obter user_id de múltiplas fontes
       let userId = user?.id;
       
       if (!userId) {
@@ -140,32 +136,52 @@ export default function LGPDTermsModal() {
         return;
       }
 
-      console.log('[LGPD] Saving terms acceptance with userId:', userId);
-      
-      // Usar UPSERT com user_id
-      const result = await (supabase
+      console.log('[LGPD] Tentando gravar para user_id:', userId);
+
+      // Estratégia: UPDATE primeiro, depois INSERT se necessário
+      const updateData = {
+        accepted_terms: true,
+        terms_accepted_at: new Date().toISOString(),
+        terms_version: '1.0',
+      };
+
+      // 1. Tentar UPDATE
+      console.log('[LGPD] Tentando UPDATE...');
+      const updateResult = await (supabase
         .from('profiles') as any)
-        .upsert({
-          id: userId,           // A tabela profiles usa 'id'
-          user_id: userId,      // Adicionado para evitar erro
-          accepted_terms: true,
-          terms_accepted_at: new Date().toISOString(),
-          terms_version: '1.0',
-          email: user?.email || '',
-          name: user?.user_metadata?.name || '',
-        }, {
-          onConflict: 'id'
-        });
+        .update(updateData)
+        .eq('id', userId)
+        .select();
 
-      const { data, error } = result;
+      const { data: updateDataResult, error: updateError, count } = updateResult;
 
-      console.log('[LGPD] UPSERT result - data:', data);
-      console.log('[LGPD] UPSERT result - error:', error);
+      console.log('[LGPD] UPDATE result - count:', count, 'data:', updateDataResult, 'error:', updateError);
 
-      if (error) {
-        console.error('[LGPD] Error saving terms:', error);
-        setIsSubmitting(false);
-        return;
+      if (updateError) {
+        console.error('[LGPD] UPDATE error:', updateError);
+        
+        // 2. Se UPDATE falhar, tentar INSERT
+        console.log('[LGPD] Tentando INSERT...');
+        const insertResult = await (supabase
+          .from('profiles') as any)
+          .insert({
+            id: userId,
+            user_id: userId,
+            accepted_terms: true,
+            terms_accepted_at: new Date().toISOString(),
+            terms_version: '1.0',
+            email: user?.email || '',
+            name: user?.user_metadata?.name || '',
+          });
+
+        const { data: insertDataResult, error: insertError } = insertResult;
+        console.log('[LGPD] INSERT result - data:', insertDataResult, 'error:', insertError);
+
+        if (insertError) {
+          console.error('[LGPD] INSERT error:', insertError);
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       console.log('[LGPD] Sucesso ao gravar. Terms accepted: true');
@@ -174,7 +190,7 @@ export default function LGPDTermsModal() {
       setTermsAccepted(true);
       setShowModal(false);
       
-      // Redirecionar usando window.location
+      // Redirecionar
       window.location.href = '/dashboard';
       
     } catch (err) {
@@ -183,24 +199,20 @@ export default function LGPDTermsModal() {
     }
   };
 
-  // Loading state - não mostra nada até auth estar pronto
   if (authLoading || loading) {
     return null;
   }
 
-  // Não mostra se não tem usuário ainda
   if (!userReady) {
     console.log('[LGPD] User not ready yet, not rendering');
     return null;
   }
 
-  // Não mostra se termos já aceitos
   if (termsAccepted) {
     console.log('[LGPD] Terms already accepted');
     return null;
   }
 
-  // Não mostra se não precisa mostrar
   if (!showModal) {
     console.log('[LGPD] Modal hidden by state');
     return null;
