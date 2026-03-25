@@ -37,35 +37,55 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
         return;
       }
 
-      console.log('[LGPD] Saving for user:', userId);
+      console.log('[LGPD] Saving for user_id:', userId);
 
-      // Usar UPSERT com user_id
-      const result = await (supabase
+      // Estratégia: UPDATE primeiro, depois INSERT
+      const updateData = {
+        accepted_terms: true,
+        terms_accepted_at: new Date().toISOString(),
+        terms_version: '1.0',
+      };
+
+      // 1. Tentar UPDATE por user_id
+      console.log('[LGPD] Trying UPDATE...');
+      const updateResult = await (supabase
         .from('profiles') as any)
-        .upsert({
-          id: userId,
-          user_id: userId,
-          accepted_terms: true,
-          terms_version: '1.0',
-          terms_accepted_at: new Date().toISOString(),
-          email: user.email || '',
-          name: user.user_metadata?.name || '',
-        }, {
-          onConflict: 'id'
-        });
+        .update(updateData)
+        .eq('user_id', userId);
 
-      const { data, error: upsertError } = result;
+      const { error: updateError, count } = updateResult;
 
-      console.log('[LGPD] Upsert result:', { data, error: upsertError });
+      console.log('[LGPD] UPDATE result:', { error: updateError, count });
 
-      if (upsertError) {
-        console.error('[LGPD] Upsert error:', upsertError);
-        setError(`Erro ao salvar: ${upsertError.message}`);
-        setIsSubmitting(false);
-        return;
+      if (updateError) {
+        console.error('[LGPD] UPDATE failed:', updateError);
+        
+        // 2. Se UPDATE falhar, tentar INSERT
+        console.log('[LGPD] Trying INSERT...');
+        const insertResult = await (supabase
+          .from('profiles') as any)
+          .insert({
+            id: userId,
+            user_id: userId,
+            accepted_terms: true,
+            terms_accepted_at: new Date().toISOString(),
+            terms_version: '1.0',
+            email: user.email || '',
+            name: user.user_metadata?.name || '',
+          });
+
+        const { error: insertError, data: insertData } = insertResult;
+        console.log('[LGPD] INSERT result:', { error: insertError, data: insertData });
+
+        if (insertError) {
+          console.error('[LGPD] INSERT failed:', insertError);
+          setError(`Erro ao salvar: ${insertError.message}`);
+          setIsSubmitting(false);
+          return;
+        }
       }
 
-      console.log('[LGPD] Success! Calling onAccept...');
+      console.log('[LGPD] Gravação bem sucedida para:', userId);
       
       // Fechar modal apenas após sucesso
       onAccept();
