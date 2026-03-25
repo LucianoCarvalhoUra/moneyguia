@@ -4,4 +4,4 @@ import "./index.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
 
-// Triggering fresh build
+console.log('Build Refresh');

@@ -90,8 +90,6 @@ const AppRoutes = () => (
     <Route path="/login" element={<AuthRoute><Auth /></AuthRoute>} />
     <Route path="/" element={<LandingPage />} />
     <Route path="/planos" element={<Planos />} />
-    <Route path="/welcome" element={<LandingPage />} />
-    <Route path="/home" element={<LandingPage />} />
     <Route path="/plans" element={<Plans />} />
     <Route path="/checkout" element={<Checkout />} />
     <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
