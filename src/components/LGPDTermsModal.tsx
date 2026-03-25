@@ -138,7 +138,6 @@ export default function LGPDTermsModal() {
 
       console.log('[LGPD] Tentando gravar para user_id:', userId);
 
-      // Estratégia: UPDATE primeiro, depois INSERT se necessário
       const updateData = {
         accepted_terms: true,
         terms_accepted_at: new Date().toISOString(),
@@ -153,9 +152,9 @@ export default function LGPDTermsModal() {
         .eq('id', userId)
         .select();
 
-      const { data: updateDataResult, error: updateError, count } = updateResult;
+      const { data: updateDataResult, error: updateError } = updateResult;
 
-      console.log('[LGPD] UPDATE result - count:', count, 'data:', updateDataResult, 'error:', updateError);
+      console.log('[LGPD] UPDATE result - data:', updateDataResult, 'error:', updateError);
 
       if (updateError) {
         console.error('[LGPD] UPDATE error:', updateError);
@@ -186,11 +185,13 @@ export default function LGPDTermsModal() {
 
       console.log('[LGPD] Sucesso ao gravar. Terms accepted: true');
 
-      // Atualizar estado local
+      // Fechar modal IMEDIATAMENTE
       setTermsAccepted(true);
       setShowModal(false);
+      setIsSubmitting(false);
       
-      // Redirecionar
+      // Redirecionar com reload para garantir estado fresco
+      console.log('[LGPD] Redirecting to dashboard...');
       window.location.href = '/dashboard';
       
     } catch (err) {
@@ -295,7 +296,7 @@ export default function LGPDTermsModal() {
             disabled={!acceptedTerms || isSubmitting || !userReady}
             className={cn(
               "w-full h-12 text-base font-semibold rounded-full transition-all",
-              acceptedTerms && userReady
+              acceptedTerms && userReady && !isSubmitting
                 ? "bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200/50" 
                 : "bg-slate-200 text-slate-400 cursor-not-allowed"
             )}
