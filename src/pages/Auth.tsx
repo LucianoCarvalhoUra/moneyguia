@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Wallet, TrendingUp, PieChart, Shield, Check, X, ArrowLeft } from 'lucide-react';
+import { Wallet, ArrowLeft, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { OtpCodeInput } from '@/components/auth/OtpCodeInput';
@@ -63,7 +63,6 @@ export default function Auth() {
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [cooldown, setCooldown] = useState(0);
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [recoveryPassword, setRecoveryPassword] = useState('');
@@ -71,14 +70,12 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     login,
-    register,
     sendPasswordRecoveryCode,
     verifyPasswordRecoveryCode,
     resetPasswordWithRecoveryCode,
   } = useAuth();
   const navigate = useNavigate();
 
-  const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
   const recoveryPasswordStrength = useMemo(
     () => getPasswordStrength(recoveryPassword),
     [recoveryPassword],
@@ -217,29 +214,6 @@ export default function Auth() {
               description: result.error || 'Verifique seu e-mail e senha.',
             });
           }
-        } else {
-          if (!name.trim()) {
-            toast.error('Campo Obrigatório', { description: 'Por favor, informe seu nome completo.' });
-            setIsSubmitting(false);
-            return;
-          }
-          
-          const result = await register(name, email, password);
-          if (result.success) {
-            toast.success('Conta Criada', {
-              description: 'Seu cadastro foi realizado com sucesso!',
-            });
-            
-            if (returnTo === 'checkout') {
-              const plan = localStorage.getItem('checkout_pending_plan');
-              const cycle = localStorage.getItem('checkout_pending_cycle');
-              navigate(`/checkout?plan=${plan}&cycle=${cycle}`);
-            } else {
-              navigate('/dashboard');
-            }
-          } else {
-            toast.error('Falha no Cadastro', { description: result.error || 'Não foi possível criar sua conta.' });
-          }
         }
       }
     } finally {
@@ -247,276 +221,241 @@ export default function Auth() {
     }
   };
 
-  const features = [
-    { icon: Wallet, title: 'Controle Total', desc: 'Gerencie todas suas despesas em um so lugar' },
-    { icon: TrendingUp, title: 'Analise Mensal', desc: 'Visualize seus gastos por categoria' },
-    { icon: PieChart, title: 'Relatorios', desc: 'Graficos e resumos detalhados' },
-    { icon: Shield, title: 'Seguro', desc: 'Seus dados protegidos e privados' },
-  ];
-
-  const passwordRequirements = [
-    { key: 'minLength', label: 'Minimo 8 caracteres' },
-    { key: 'hasUppercase', label: 'Letra maiuscula' },
-    { key: 'hasLowercase', label: 'Letra minuscula' },
-    { key: 'hasNumber', label: 'Numero' },
-    { key: 'hasSpecial', label: 'Caractere especial (!@#$%...)' },
-  ] as const;
-
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-1/2 gradient-hero relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '20px 20px',
-          }}
-        />
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      {/* Link para voltar à Home - canto superior esquerdo */}
+      <Link 
+        to="/" 
+        className="absolute top-8 left-8 text-sm text-slate-500 hover:text-emerald-600 flex items-center gap-2 transition-colors"
+      >
+        <ArrowLeft size={18} />
+        Voltar para a Home
+      </Link>
 
-        <div className="relative z-10 flex flex-col justify-center p-12 text-primary-foreground">
-          <div className="mb-8 animate-fade-in">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
-                <Wallet className="w-7 h-7" />
-              </div>
-              <h1 className="text-3xl font-bold">MeuBudget</h1>
-            </div>
-            <p className="text-xl text-primary-foreground/80 max-w-md">
-              Controle seu orcamento pessoal de forma simples e eficiente
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            {features.map((feature, index) => (
-              <div
-                key={feature.title}
-                className="flex items-start gap-4 animate-slide-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="w-10 h-10 rounded-lg bg-primary-foreground/20 flex items-center justify-center flex-shrink-0">
-                  <feature.icon className="w-5 h-5" />
+      {/* Card centralizado */}
+      <div className="w-full max-w-lg mx-4">
+        <Card className="border-0 shadow-2xl shadow-emerald-950/5 rounded-3xl overflow-hidden bg-white">
+          <CardContent className="p-12">
+            {/* Logo MoneyGuia */}
+            <div className="flex justify-center mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200">
+                  <Wallet className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">{feature.title}</h3>
-                  <p className="text-primary-foreground/70">{feature.desc}</p>
+                  <span className="text-2xl font-bold text-slate-900">MoneyGuia</span>
+                  <p className="text-xs text-slate-500 font-medium">Controle Financeiro</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-md animate-scale-in">
-          {/* Link para voltar à Home */}
-          <Link 
-            to="/" 
-            className="text-sm text-slate-500 hover:text-emerald-600 flex items-center gap-2 mb-8 transition-colors"
-          >
-            <ArrowLeft size={16} />
-            Voltar para a Home
-          </Link>
-
-          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <Wallet className="w-6 h-6 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">MeuBudget</h1>
-          </div>
 
-          <Card className="border-0 shadow-xl rounded-xl">
-            <CardHeader className="text-center pb-4">
-              <CardTitle className="text-2xl">
+            {/* Título e subtítulo */}
+            <div className="text-center mb-8">
+              <CardTitle className="text-3xl font-bold text-slate-900 mb-2">
                 {isRecovery ? 'Recuperar Senha' : 'Bem-vindo de volta!'}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base text-slate-600">
                 {isRecovery
                   ? recoveryStep === 'request'
-                    ? 'Digite seu e-mail para receber um codigo de 6 digitos'
+                    ? 'Digite seu e-mail para receber um código de 6 dígitos'
                     : recoveryStep === 'verify'
-                      ? 'Digite o codigo enviado para seu e-mail'
+                      ? 'Digite o código enviado para seu e-mail'
                       : 'Defina sua nova senha'
                   : 'Entre para acessar seu controle financeiro'}
               </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Campo E-mail */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-slate-700">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isRecovery && recoveryStep !== 'request'}
+                  className="h-12 border-slate-200 rounded-xl px-4 text-base focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all"
+                />
+              </div>
+
+              {/* Campo OTP (quando aplicável) */}
+              {isRecovery && recoveryStep === 'verify' && (
                 <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
+                  <Label className="text-sm font-medium text-slate-700">Código de 6 dígitos</Label>
+                  <OtpCodeInput value={otpDigits} onChange={setOtpDigits} disabled={isSubmitting} />
+                </div>
+              )}
+
+              {/* Campos de nova senha (quando aplicável) */}
+              {isRecovery && recoveryStep === 'reset' && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="recovery-password" className="text-sm font-medium text-slate-700">Nova senha</Label>
+                    <Input
+                      id="recovery-password"
+                      type="password"
+                      value={recoveryPassword}
+                      onChange={(e) => setRecoveryPassword(e.target.value)}
+                      required
+                      className="h-12 border-slate-200 rounded-xl px-4 text-base focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="recovery-confirm-password" className="text-sm font-medium text-slate-700">Confirmar senha</Label>
+                    <Input
+                      id="recovery-confirm-password"
+                      type="password"
+                      value={recoveryConfirmPassword}
+                      onChange={(e) => setRecoveryConfirmPassword(e.target.value)}
+                      required
+                      className="h-12 border-slate-200 rounded-xl px-4 text-base focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all"
+                    />
+                  </div>
+
+                  {recoveryPassword.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500">Força da senha</span>
+                        <span
+                          className={cn(
+                            'font-medium',
+                            recoveryPasswordStrength.score >= 4
+                              ? 'text-green-600'
+                              : recoveryPasswordStrength.score >= 3
+                                ? 'text-yellow-600'
+                                : 'text-red-500',
+                          )}
+                        >
+                          {recoveryPasswordStrength.label}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            'h-full transition-all duration-300',
+                            recoveryPasswordStrength.color,
+                          )}
+                          style={{ width: `${(recoveryPasswordStrength.score / 5) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Campo Senha (apenas quando não é recuperação) */}
+              {!isRecovery && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-sm font-medium text-slate-700">Senha</Label>
+                    {isLogin && (
+                      <button
+                        type="button"
+                        onClick={() => setIsRecovery(true)}
+                        className="text-xs text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
+                      >
+                        Esqueci minha senha
+                      </button>
+                    )}
+                  </div>
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="password"
+                    type="password"
+                    placeholder="********"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
-                    disabled={isRecovery && recoveryStep !== 'request'}
+                    className="h-12 border-slate-200 rounded-xl px-4 text-base focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all"
                   />
                 </div>
+              )}
 
-                {isRecovery && recoveryStep === 'verify' && (
-                  <div className="space-y-2">
-                    <Label>Codigo de 6 digitos</Label>
-                    <OtpCodeInput value={otpDigits} onChange={setOtpDigits} disabled={isSubmitting} />
-                  </div>
+              {/* Botão Entrar */}
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full h-12 bg-emerald-600 text-white font-semibold rounded-full shadow-lg shadow-emerald-200/50 hover:bg-emerald-700 hover:shadow-emerald-300/50 transition-all duration-200 text-base mt-6"
+                disabled={
+                  isSubmitting
+                  || (isRecovery && recoveryStep === 'request' && cooldown > 0)
+                  || (isRecovery && recoveryStep === 'verify' && otpDigits.join('').length !== 6)
+                }
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 animate-spin" />
+                    Aguarde...
+                  </span>
+                ) : isRecovery ? (
+                  recoveryStep === 'request' ? (
+                    cooldown > 0 ? `Aguarde ${cooldown}s` : 'Enviar código'
+                  ) : recoveryStep === 'verify' ? (
+                    'Validar código'
+                  ) : (
+                    'Salvar nova senha'
+                  )
+                ) : (
+                  'Entrar'
                 )}
+              </Button>
 
-                {isRecovery && recoveryStep === 'reset' && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="recovery-password">Nova senha</Label>
-                      <Input
-                        id="recovery-password"
-                        type="password"
-                        value={recoveryPassword}
-                        onChange={(e) => setRecoveryPassword(e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="recovery-confirm-password">Confirmar senha</Label>
-                      <Input
-                        id="recovery-confirm-password"
-                        type="password"
-                        value={recoveryConfirmPassword}
-                        onChange={(e) => setRecoveryConfirmPassword(e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    {recoveryPassword.length > 0 && (
-                      <div className="space-y-3 pt-2">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Forca da senha</span>
-                            <span
-                              className={cn(
-                                'font-medium',
-                                recoveryPasswordStrength.score >= 4
-                                  ? 'text-green-500'
-                                  : recoveryPasswordStrength.score >= 3
-                                    ? 'text-yellow-500'
-                                    : 'text-destructive',
-                              )}
-                            >
-                              {recoveryPasswordStrength.label}
-                            </span>
-                          </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={cn(
-                                'h-full transition-all duration-300',
-                                recoveryPasswordStrength.color,
-                              )}
-                              style={{ width: `${(recoveryPasswordStrength.score / 5) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {!isRecovery && (
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Senha</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="********"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-
-                    {isLogin && (
-                      <div className="text-right">
-                        <button
-                          type="button"
-                          onClick={() => setIsRecovery(true)}
-                          className="text-xs text-primary hover:underline"
-                        >
-                          Esqueci minha senha
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
+              {/* Botão para reenviar código */}
+              {isRecovery && (recoveryStep === 'verify' || recoveryStep === 'reset') && (
                 <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full bg-primary text-primary-foreground shadow hover:bg-primary/90"
-                  disabled={
-                    isSubmitting
-                    || (isRecovery && recoveryStep === 'request' && cooldown > 0)
-                    || (isRecovery && recoveryStep === 'verify' && otpDigits.join('').length !== 6)
-                  }
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-sm text-slate-500 hover:text-emerald-600"
+                  onClick={resetRecoveryState}
+                  disabled={isSubmitting}
                 >
-                  {isSubmitting
-                    ? 'Aguarde...'
-                    : isRecovery
-                      ? recoveryStep === 'request'
-                        ? cooldown > 0
-                          ? `Aguarde ${cooldown}s`
-                          : 'Enviar codigo'
-                        : recoveryStep === 'verify'
-                          ? 'Validar codigo' : 'Salvar nova senha'
-                      : isLogin
-                        ? 'Entrar'
-                        : 'Criar conta'}
+                  Alterar e-mail / reenviar código
                 </Button>
+              )}
+            </form>
 
-                {isRecovery && (recoveryStep === 'verify' || recoveryStep === 'reset') && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="w-full text-xs"
-                    onClick={resetRecoveryState}
-                    disabled={isSubmitting}
-                  >
-                    Alterar e-mail / reenviar codigo
-                  </Button>
-                )}
-              </form>
+            {/* Link para checkout quando vem de lá */}
+            {returnTo === 'checkout' && (
+              <div className="mt-6 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const plan = localStorage.getItem('checkout_pending_plan');
+                    const cycle = localStorage.getItem('checkout_pending_cycle');
+                    navigate(`/checkout?plan=${plan}&cycle=${cycle}`);
+                  }}
+                  className="text-sm text-slate-500 hover:text-emerald-600 transition-colors"
+                >
+                  ← Voltar para contratação do plano
+                </button>
+              </div>
+            )}
 
-              {/* Link para voltar ao checkout quando vem de lá */}
-              {returnTo === 'checkout' && (
-                <div className="mt-6 text-center">
+            {/* Link para escolher plano */}
+            {!isRecovery && isLogin && returnTo !== 'checkout' && (
+              <div className="mt-6 text-center">
+                <p className="text-sm text-slate-500">
+                  Para criar uma conta,{' '}
                   <button
                     type="button"
-                    onClick={() => {
-                      const plan = localStorage.getItem('checkout_pending_plan');
-                      const cycle = localStorage.getItem('checkout_pending_cycle');
-                      navigate(`/checkout?plan=${plan}&cycle=${cycle}`);
-                    }}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => navigate('/plans')}
+                    className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors"
                   >
-                    ← Voltar para contratação do plano
+                    escolha um plano
                   </button>
-                </div>
-              )}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-              {/* Mostrar mensagem para redirecionar para planos - apenas na tela de login e quando não vem do checkout */}
-              {!isRecovery && isLogin && returnTo !== 'checkout' && (
-                <div className="mt-6 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Para criar uma conta,{' '}
-                    <button
-                      type="button"
-                      onClick={() => navigate('/plans')}
-                      className="text-primary font-semibold hover:underline"
-                    >
-                      escolha um plano
-                    </button>
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* Footer discreto */}
+        <p className="text-center text-xs text-slate-400 mt-6">
+          Ao entrar, você concorda com nossos termos de uso
+        </p>
       </div>
     </div>
   );
