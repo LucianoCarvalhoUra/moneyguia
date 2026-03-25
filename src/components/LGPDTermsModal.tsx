@@ -14,11 +14,13 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
   const { user } = useAuth();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAcceptTerms = async () => {
     if (!user || !acceptedTerms) return;
 
     setIsSubmitting(true);
+    setError(null);
 
     try {
       let userId = user.id;
@@ -30,57 +32,47 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
 
       if (!userId) {
         console.error('[LGPD] FATAL: No user ID!');
+        setError('Erro: usuário não identificado');
         setIsSubmitting(false);
         return;
       }
 
       console.log('[LGPD] Saving for user:', userId);
 
-      const updateData = {
-        accepted_terms: true,
-        terms_accepted_at: new Date().toISOString(),
-        terms_version: '1.0',
-      };
-
-      const updateResult = await (supabase
+      // Usar UPSERT com user_id
+      const result = await (supabase
         .from('profiles') as any)
-        .update(updateData)
-        .eq('id', userId)
-        .select();
+        .upsert({
+          id: userId,
+          user_id: userId,
+          accepted_terms: true,
+          terms_version: '1.0',
+          terms_accepted_at: new Date().toISOString(),
+          email: user.email || '',
+          name: user.user_metadata?.name || '',
+        }, {
+          onConflict: 'id'
+        });
 
-      const { error: updateError } = updateResult;
+      const { data, error: upsertError } = result;
 
-      if (updateError) {
-        console.error('[LGPD] UPDATE error:', updateError);
-        
-        const insertResult = await (supabase
-          .from('profiles') as any)
-          .insert({
-            id: userId,
-            user_id: userId,
-            accepted_terms: true,
-            terms_accepted_at: new Date().toISOString(),
-            terms_version: '1.0',
-            email: user.email || '',
-            name: user.user_metadata?.name || '',
-          });
+      console.log('[LGPD] Upsert result:', { data, error: upsertError });
 
-        const { error: insertError } = insertResult;
-
-        if (insertError) {
-          console.error('[LGPD] INSERT error:', insertError);
-          setIsSubmitting(false);
-          return;
-        }
+      if (upsertError) {
+        console.error('[LGPD] Upsert error:', upsertError);
+        setError(`Erro ao salvar: ${upsertError.message}`);
+        setIsSubmitting(false);
+        return;
       }
 
       console.log('[LGPD] Success! Calling onAccept...');
       
-      // Chamar callback do pai para fechar o modal
+      // Fechar modal apenas após sucesso
       onAccept();
       
     } catch (err) {
       console.error('[LGPD] Exception:', err);
+      setError('Erro inesperado ao salvar');
       setIsSubmitting(false);
     }
   };
@@ -103,6 +95,12 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
         </div>
 
         <div className="p-8">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
           <div className="flex items-center justify-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
               <Wallet className="w-6 h-6 text-white" />
