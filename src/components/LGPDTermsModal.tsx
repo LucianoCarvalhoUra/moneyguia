@@ -6,6 +6,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Wallet, Shield, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Tipo para o perfil com campos LGPD
+interface ProfileWithLGPD {
+  id: string;
+  accepted_terms?: boolean;
+  terms_accepted_at?: string;
+  terms_version?: string;
+  [key: string]: unknown;
+}
+
 export default function LGPDTermsModal() {
   const { user, isLoading: authLoading } = useAuth();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -28,44 +37,57 @@ export default function LGPDTermsModal() {
         return;
       }
 
+      console.log('[LGPD] User ID:', user.id);
+      console.log('[LGPD] User email:', user.email);
+
       try {
-        console.log('[LGPD] Fetching profile for user:', user.id);
+        console.log('[LGPD] Fetching profile...');
         
-        const { data, error } = await supabase
-          .from('profiles')
+        // Usar any para evitar problemas de tipos com colunas LGPD
+        const result = await (supabase
+          .from('profiles') as any)
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
-        console.log('[LGPD] Profile response:', { data, error });
+        const { data, error, status } = result;
 
-        if (error || !data) {
-          console.log('[LGPD] Error or no data, showing modal');
+        console.log('[LGPD] Response status:', status);
+        console.log('[LGPD] Response data:', data);
+        console.log('[LGPD] Response error:', error);
+
+        // Tratar erro 406 ou outros erros
+        if (error || status === 406) {
+          console.log('[LGPD] Error fetching profile, showing modal as fallback');
           setShowModal(true);
           setLoading(false);
           return;
         }
 
-        const profileData = data as Record<string, unknown>;
-        console.log('[LGPD] Profile data:', profileData);
-        console.log('[LGPD] accepted_terms value:', profileData?.accepted_terms);
+        // Se não há dados, mostra o modal
+        if (!data) {
+          console.log('[LGPD] No profile data, showing modal');
+          setShowModal(true);
+          setLoading(false);
+          return;
+        }
+
+        // Verificar o valor de accepted_terms
+        const profileData = data as ProfileWithLGPD;
+        const acceptedTermsValue = profileData.accepted_terms;
+        console.log('[LGPD] accepted_terms value:', acceptedTermsValue);
+        console.log('[LGPD] accepted_terms type:', typeof acceptedTermsValue);
         
-        // Se o campo não existir, é undefined, então mostra o modal
-        // Se o campo for false ou null, mostra o modal
-        // Se o campo for true, NÃO mostra o modal
-        const termsAccepted = profileData?.accepted_terms === true;
-        
-        console.log('[LGPD] Terms accepted:', termsAccepted);
-        
-        if (!termsAccepted) {
-          console.log('[LGPD] Showing modal - terms NOT accepted');
+        // Se o campo não existir (undefined) ou for false, mostra o modal
+        if (acceptedTermsValue !== true) {
+          console.log('[LGPD] Terms NOT accepted, showing modal');
           setShowModal(true);
         } else {
-          console.log('[LGPD] Hiding modal - terms already accepted');
+          console.log('[LGPD] Terms already accepted, hiding modal');
         }
       } catch (err) {
         console.error('[LGPD] Exception:', err);
-        console.log('[LGPD] Showing modal as fallback');
+        console.log('[LGPD] Showing modal as fallback due to exception');
         setShowModal(true);
       } finally {
         setLoading(false);
@@ -83,24 +105,46 @@ export default function LGPDTermsModal() {
     setIsSubmitting(true);
 
     try {
-      console.log('[LGPD] Saving terms acceptance...');
+      console.log('[LGPD] Saving terms acceptance for user:', user.id);
       
-      const { error } = await supabase
-        .from('profiles')
+      // Primeiro, tentar update com any para evitar problemas de tipos
+      const updateResult = await (supabase
+        .from('profiles') as any)
         .update({
           accepted_terms: true,
           terms_accepted_at: new Date().toISOString(),
-          terms_version: '1.0'
-        } as Record<string, unknown>)
+        })
         .eq('id', user.id);
 
-      if (error) {
-        console.error('[LGPD] Error saving terms:', error);
-        setIsSubmitting(false);
-        return;
+      const { error: updateError } = updateResult;
+
+      if (updateError) {
+        console.error('[LGPD] Update error:', updateError);
+        
+        // Se update falhar, tentar upsert com any
+        const upsertResult = await (supabase
+          .from('profiles') as any)
+          .upsert({
+            id: user.id,
+            accepted_terms: true,
+            terms_accepted_at: new Date().toISOString(),
+            terms_version: '1.0',
+            email: user.email,
+            name: user.user_metadata?.name || '',
+          });
+
+        const { error: upsertError } = upsertResult;
+
+        if (upsertError) {
+          console.error('[LGPD] Upsert error:', upsertError);
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       console.log('[LGPD] Terms saved successfully!');
+      
+      // Recarregar a página
       window.location.reload();
     } catch (err) {
       console.error('[LGPD] Exception:', err);
