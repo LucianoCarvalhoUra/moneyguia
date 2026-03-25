@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Wallet, ArrowLeft, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
@@ -44,7 +44,7 @@ function getPasswordStrength(password: string): PasswordStrength {
     label = 'Forte';
     color = 'bg-green-400';
   } else if (score >= 3) {
-    label = 'Media';
+    label = 'Média';
     color = 'bg-yellow-500';
   } else if (score >= 2) {
     label = 'Fraca';
@@ -68,6 +68,8 @@ export default function Auth() {
   const [recoveryPassword, setRecoveryPassword] = useState('');
   const [recoveryConfirmPassword, setRecoveryConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [termsError, setTermsError] = useState(false);
   const {
     login,
     sendPasswordRecoveryCode,
@@ -110,9 +112,25 @@ export default function Auth() {
     localStorage.removeItem('password_reset_verified_code');
   };
 
+  const handleTermsChange = (checked: boolean) => {
+    setAcceptedTerms(checked);
+    if (checked) {
+      setTermsError(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar aceite dos termos (exceto para recuperação de senha)
+    if (!isRecovery && !acceptedTerms) {
+      setTermsError(true);
+      toast.error('Você precisa aceitar os termos para continuar');
+      return;
+    }
+    
     setIsSubmitting(true);
+    setTermsError(false);
 
     try {
       if (isRecovery) {
@@ -138,7 +156,7 @@ export default function Auth() {
         } else if (recoveryStep === 'verify') {
           const token = otpDigits.join('');
           if (token.length !== 6) {
-            toast.error('Digite os 6 digitos do codigo.');
+            toast.error('Digite os 6 dígitos do código.');
             setIsSubmitting(false);
             return;
           }
@@ -374,6 +392,57 @@ export default function Auth() {
                 </div>
               )}
 
+              {/* Checkbox de Termos LGPD (apenas quando não é recuperação) */}
+              {!isRecovery && (
+                <div className="space-y-2">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={acceptedTerms}
+                        onChange={(e) => handleTermsChange(e.target.checked)}
+                        className={cn(
+                          "peer h-5 w-5 shrink-0 rounded border-2 transition-all appearance-none cursor-pointer",
+                          termsError 
+                            ? "border-red-400 bg-red-50" 
+                            : "border-slate-300 bg-white hover:border-emerald-400",
+                          acceptedTerms && "bg-emerald-600 border-emerald-600"
+                        )}
+                      />
+                      {acceptedTerms && (
+                        <svg
+                          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className={cn(
+                      "text-sm transition-colors",
+                      termsError ? "text-red-500" : "text-slate-600 group-hover:text-slate-700"
+                    )}>
+                      Aceito os termos de uso e a{' '}
+                      <Link 
+                        to="/terms" 
+                        className="text-emerald-600 hover:text-emerald-700 font-medium underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Política de Proteção de Dados (LGPD)
+                      </Link>
+                    </span>
+                  </label>
+                  {termsError && (
+                    <p className="text-xs text-red-500 ml-8">
+                      Você precisa aceitar os termos para continuar
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Botão Entrar */}
               <Button
                 type="submit"
@@ -383,6 +452,7 @@ export default function Auth() {
                   isSubmitting
                   || (isRecovery && recoveryStep === 'request' && cooldown > 0)
                   || (isRecovery && recoveryStep === 'verify' && otpDigits.join('').length !== 6)
+                  || (!isRecovery && !acceptedTerms)
                 }
               >
                 {isSubmitting ? (
@@ -454,7 +524,7 @@ export default function Auth() {
 
         {/* Footer discreto */}
         <p className="text-center text-xs text-slate-400 mt-6">
-          Ao entrar, você concorda com nossos termos de uso
+          Protegido pela LGPD • Seus dados estão seguros
         </p>
       </div>
     </div>
