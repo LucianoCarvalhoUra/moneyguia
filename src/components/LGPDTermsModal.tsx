@@ -13,11 +13,9 @@ export default function LGPDTermsModal() {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  console.log('[LGPD] Render - user:', user?.id, 'authLoading:', authLoading, 'loading:', loading);
-
   useEffect(() => {
     const checkTermsAccepted = async () => {
-      console.log('[LGPD] Checking terms - user:', user?.id, 'authLoading:', authLoading);
+      console.log('[LGPD] Checking terms...');
       
       if (authLoading) {
         console.log('[LGPD] Auth is loading, waiting...');
@@ -39,40 +37,43 @@ export default function LGPDTermsModal() {
           .eq('id', user.id)
           .single();
 
-        if (error) {
-          console.error('[LGPD] Error fetching profile:', error);
-          console.log('[LGPD] Showing modal as fallback (error)');
+        console.log('[LGPD] Profile response:', { data, error });
+
+        if (error || !data) {
+          console.log('[LGPD] Error or no data, showing modal');
           setShowModal(true);
           setLoading(false);
           return;
         }
 
-        console.log('[LGPD] Profile data:', data);
-        
         const profileData = data as Record<string, unknown>;
-        const hasAcceptedTerms = profileData?.accepted_terms === true;
+        console.log('[LGPD] Profile data:', profileData);
+        console.log('[LGPD] accepted_terms value:', profileData?.accepted_terms);
         
-        console.log('[LGPD] accepted_terms value:', profileData?.accepted_terms, 'hasAcceptedTerms:', hasAcceptedTerms);
+        // Se o campo não existir, é undefined, então mostra o modal
+        // Se o campo for false ou null, mostra o modal
+        // Se o campo for true, NÃO mostra o modal
+        const termsAccepted = profileData?.accepted_terms === true;
         
-        if (!hasAcceptedTerms) {
-          console.log('[LGPD] Showing modal - terms not accepted');
+        console.log('[LGPD] Terms accepted:', termsAccepted);
+        
+        if (!termsAccepted) {
+          console.log('[LGPD] Showing modal - terms NOT accepted');
           setShowModal(true);
         } else {
           console.log('[LGPD] Hiding modal - terms already accepted');
         }
       } catch (err) {
         console.error('[LGPD] Exception:', err);
-        console.log('[LGPD] Showing modal as fallback (exception)');
+        console.log('[LGPD] Showing modal as fallback');
         setShowModal(true);
       } finally {
         setLoading(false);
       }
     };
 
-    if (!authLoading && user) {
+    if (!authLoading) {
       checkTermsAccepted();
-    } else if (!authLoading && !user) {
-      setLoading(false);
     }
   }, [user, authLoading]);
 
@@ -82,7 +83,7 @@ export default function LGPDTermsModal() {
     setIsSubmitting(true);
 
     try {
-      console.log('[LGPD] Saving terms acceptance for user:', user.id);
+      console.log('[LGPD] Saving terms acceptance...');
       
       const { error } = await supabase
         .from('profiles')
@@ -95,30 +96,39 @@ export default function LGPDTermsModal() {
 
       if (error) {
         console.error('[LGPD] Error saving terms:', error);
+        setIsSubmitting(false);
         return;
       }
 
-      console.log('[LGPD] Terms accepted successfully!');
-      
+      console.log('[LGPD] Terms saved successfully!');
       window.location.reload();
     } catch (err) {
-      console.error('[LGPD] Exception saving terms:', err);
-    } finally {
+      console.error('[LGPD] Exception:', err);
       setIsSubmitting(false);
     }
   };
 
+  // Loading state
   if (authLoading || loading) {
-    console.log('[LGPD] Returning null - authLoading:', authLoading, 'loading:', loading);
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-100">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-600">Verificando configuração...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't show if user is not authenticated
+  if (!user) {
     return null;
   }
 
+  // Only show modal if needed
   if (!showModal) {
-    console.log('[LGPD] Returning null - showModal:', showModal);
     return null;
   }
-
-  console.log('[LGPD] Rendering modal!');
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
@@ -170,28 +180,13 @@ export default function LGPDTermsModal() {
           </div>
 
           <label className="flex items-start gap-3 cursor-pointer group mb-6 p-4 border border-slate-200 rounded-xl hover:border-emerald-300 transition-colors">
-            <div className="relative flex items-center justify-center">
+            <div className="relative flex items-center justify-center shrink-0">
               <input
                 type="checkbox"
                 checked={acceptedTerms}
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
-                className={cn(
-                  "peer h-5 w-5 shrink-0 rounded border-2 transition-all appearance-none cursor-pointer",
-                  "border-slate-300 bg-white hover:border-emerald-400",
-                  acceptedTerms && "bg-emerald-600 border-emerald-600"
-                )}
+                className="h-5 w-5 rounded border-2 border-slate-300 bg-white cursor-pointer accent-emerald-600"
               />
-              {acceptedTerms && (
-                <svg
-                  className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={3}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              )}
             </div>
             <span className="text-sm text-slate-600 group-hover:text-slate-700">
               Li e aceito os{' '}
