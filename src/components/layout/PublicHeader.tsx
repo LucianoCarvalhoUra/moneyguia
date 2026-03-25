@@ -1,3 +1,4 @@
+// Public Header - Componente de navegação pública
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Wallet, Menu, X, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
