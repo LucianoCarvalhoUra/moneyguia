@@ -112,7 +112,7 @@ export default function PublicHeader() {
             </Link>
           ) : (
             <>
-              <Link to="/auth" className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors mr-4">
+              <Link to="/auth" className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors mr-6">
                 Entrar
               </Link>
               <Link to={selectedPlanId ? `/checkout?plan=${selectedPlanId}&cycle=${isYearly ? 'yearly' : 'monthly'}` : "/plans"}>
