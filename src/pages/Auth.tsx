@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Wallet, TrendingUp, PieChart, Shield, Check, X } from 'lucide-react';
+import { Wallet, TrendingUp, PieChart, Shield, Check, X, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { OtpCodeInput } from '@/components/auth/OtpCodeInput';
@@ -309,6 +309,15 @@ export default function Auth() {
 
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md animate-scale-in">
+          {/* Link para voltar à Home */}
+          <Link 
+            to="/" 
+            className="text-sm text-slate-500 hover:text-emerald-600 flex items-center gap-2 mb-8 transition-colors"
+          >
+            <ArrowLeft size={16} />
+            Voltar para a Home
+          </Link>
+
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
               <Wallet className="w-6 h-6 text-primary-foreground" />
@@ -316,7 +325,7 @@ export default function Auth() {
             <h1 className="text-2xl font-bold text-foreground">MeuBudget</h1>
           </div>
 
-          <Card className="border-0 shadow-lg">
+          <Card className="border-0 shadow-xl rounded-xl">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-2xl">
                 {isRecovery ? 'Recuperar Senha' : 'Bem-vindo de volta!'}
