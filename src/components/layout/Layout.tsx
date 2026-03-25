@@ -18,7 +18,7 @@ export default function Layout({ children }: LayoutProps) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      console.log('[Layout LGPD] Checking for user:', user?.id);
+      console.log('[Layout LGPD] Query executada para ID:', user?.id);
       
       if (!user) {
         console.log('[Layout LGPD] No user, hiding modal');
@@ -26,16 +26,16 @@ export default function Layout({ children }: LayoutProps) {
         return;
       }
 
+      // Usar user_id na consulta
       const { data, error } = await (supabase
         .from('profiles') as any)
         .select('accepted_terms')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .maybeSingle();
 
       console.log('[Layout LGPD] Profile data:', data);
       console.log('[Layout LGPD] Profile error:', error);
       console.log('[Layout LGPD] accepted_terms value:', data?.accepted_terms);
-      console.log('[Layout LGPD] accepted_terms type:', typeof data?.accepted_terms);
 
       // Tratamento robusto: mostrar modal se não tem dados OU accepted_terms não é explicitamente true
       const hasAcceptedTerms = data?.accepted_terms === true;
