@@ -1,8 +1,9 @@
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect, useCallback } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import LGPDTermsModal from "@/components/LGPDTermsModal";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,6 +11,44 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const isMobile = useIsMobile();
+  const [showLgpd, setShowLgpd] = useState(false);
+  const [lgpdLoading, setLgpdLoading] = useState(true);
+
+  const checkLgpdTerms = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setLgpdLoading(false);
+        return;
+      }
+
+      const { data, error } = await (supabase
+        .from('profiles') as any)
+        .select('accepted_terms')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error || !data) {
+        setShowLgpd(true);
+      } else if (data.accepted_terms !== true) {
+        setShowLgpd(true);
+      }
+    } catch (err) {
+      console.error('[Layout] LGPD check error:', err);
+      setShowLgpd(true);
+    } finally {
+      setLgpdLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkLgpdTerms();
+  }, [checkLgpdTerms]);
+
+  const handleLgpdAccept = () => {
+    setShowLgpd(false);
+  };
 
   return (
     <>
@@ -30,8 +69,10 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </SidebarProvider>
       
-      {/* Modal LGPD que bloqueia a navegação até aceitar os termos */}
-      <LGPDTermsModal />
+      {/* Modal LGPD - controlado pelo Layout */}
+      {!lgpdLoading && showLgpd && (
+        <LGPDTermsModal onAccept={handleLgpdAccept} />
+      )}
     </>
   );
 }

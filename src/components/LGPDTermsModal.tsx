@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,137 +6,35 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Wallet, Shield, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface ProfileWithLGPD {
-  id: string;
-  accepted_terms?: boolean;
-  terms_accepted_at?: string;
-  terms_version?: string;
-  [key: string]: unknown;
+interface LGPDTermsModalProps {
+  onAccept: () => void;
 }
 
-export default function LGPDTermsModal() {
-  const { user, isLoading: authLoading } = useAuth();
+export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
+  const { user } = useAuth();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [userReady, setUserReady] = useState(false);
-
-  const checkTermsAccepted = useCallback(async () => {
-    console.log('[LGPD] Checking terms...');
-    
-    if (authLoading) {
-      console.log('[LGPD] Auth is loading, waiting...');
-      return;
-    }
-
-    let userId = user?.id;
-    
-    if (!userId) {
-      console.log('[LGPD] user.id is null, trying getUser()...');
-      const { data } = await supabase.auth.getUser();
-      userId = data?.user?.id;
-      console.log('[LGPD] getUser() result:', data?.user?.id);
-    }
-
-    if (!userId) {
-      console.log('[LGPD] No user ID available, hiding modal');
-      setLoading(false);
-      setUserReady(false);
-      return;
-    }
-
-    setUserReady(true);
-    console.log('[LGPD] User ID:', userId);
-
-    try {
-      console.log('[LGPD] Fetching profile...');
-      
-      const result = await (supabase
-        .from('profiles') as any)
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      const { data, error, status } = result;
-
-      console.log('[LGPD] Response status:', status);
-      console.log('[LGPD] Response data:', data);
-      console.log('[LGPD] Response error:', error);
-
-      if (error || status === 406) {
-        console.log('[LGPD] Error fetching profile');
-        setShowModal(true);
-        setLoading(false);
-        return;
-      }
-
-      if (!data) {
-        console.log('[LGPD] No profile data, showing modal');
-        setShowModal(true);
-        setLoading(false);
-        return;
-      }
-
-      const profileData = data as ProfileWithLGPD;
-      const hasAccepted = profileData.accepted_terms === true;
-      
-      console.log('[LGPD] accepted_terms value:', profileData.accepted_terms);
-      console.log('[LGPD] Terms accepted:', hasAccepted);
-      
-      setTermsAccepted(hasAccepted);
-      
-      if (!hasAccepted) {
-        console.log('[LGPD] Terms NOT accepted, showing modal');
-        setShowModal(true);
-      } else {
-        console.log('[LGPD] Terms already accepted, hiding modal');
-        setShowModal(false);
-      }
-    } catch (err) {
-      console.error('[LGPD] Exception:', err);
-      console.log('[LGPD] Showing modal as fallback');
-      setShowModal(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, authLoading]);
-
-  useEffect(() => {
-    if (!authLoading && user) {
-      checkTermsAccepted();
-    } else if (!authLoading && !user) {
-      supabase.auth.getUser().then(({ data }) => {
-        if (data?.user) {
-          checkTermsAccepted();
-        } else {
-          setLoading(false);
-        }
-      });
-    }
-  }, [authLoading, user, checkTermsAccepted]);
 
   const handleAcceptTerms = async () => {
+    if (!user || !acceptedTerms) return;
+
     setIsSubmitting(true);
 
     try {
-      let userId = user?.id;
+      let userId = user.id;
       
       if (!userId) {
-        console.log('[LGPD] user.id is null, trying getUser()...');
         const { data } = await supabase.auth.getUser();
         userId = data?.user?.id;
-        console.log('[LGPD] getUser() result:', data?.user?.id);
       }
 
       if (!userId) {
-        console.error('[LGPD] FATAL: No user ID available!');
+        console.error('[LGPD] FATAL: No user ID!');
         setIsSubmitting(false);
         return;
       }
 
-      console.log('[LGPD] Tentando gravar para user_id:', userId);
+      console.log('[LGPD] Saving for user:', userId);
 
       const updateData = {
         accepted_terms: true,
@@ -144,23 +42,17 @@ export default function LGPDTermsModal() {
         terms_version: '1.0',
       };
 
-      // 1. Tentar UPDATE
-      console.log('[LGPD] Tentando UPDATE...');
       const updateResult = await (supabase
         .from('profiles') as any)
         .update(updateData)
         .eq('id', userId)
         .select();
 
-      const { data: updateDataResult, error: updateError } = updateResult;
-
-      console.log('[LGPD] UPDATE result - data:', updateDataResult, 'error:', updateError);
+      const { error: updateError } = updateResult;
 
       if (updateError) {
         console.error('[LGPD] UPDATE error:', updateError);
         
-        // 2. Se UPDATE falhar, tentar INSERT
-        console.log('[LGPD] Tentando INSERT...');
         const insertResult = await (supabase
           .from('profiles') as any)
           .insert({
@@ -169,12 +61,11 @@ export default function LGPDTermsModal() {
             accepted_terms: true,
             terms_accepted_at: new Date().toISOString(),
             terms_version: '1.0',
-            email: user?.email || '',
-            name: user?.user_metadata?.name || '',
+            email: user.email || '',
+            name: user.user_metadata?.name || '',
           });
 
-        const { data: insertDataResult, error: insertError } = insertResult;
-        console.log('[LGPD] INSERT result - data:', insertDataResult, 'error:', insertError);
+        const { error: insertError } = insertResult;
 
         if (insertError) {
           console.error('[LGPD] INSERT error:', insertError);
@@ -183,43 +74,16 @@ export default function LGPDTermsModal() {
         }
       }
 
-      console.log('[LGPD] Sucesso ao gravar. Terms accepted: true');
-
-      // Fechar modal IMEDIATAMENTE
-      setTermsAccepted(true);
-      setShowModal(false);
-      setIsSubmitting(false);
+      console.log('[LGPD] Success! Calling onAccept...');
       
-      // Redirecionar com reload para garantir estado fresco
-      console.log('[LGPD] Redirecting to dashboard...');
-      window.location.href = '/dashboard';
+      // Chamar callback do pai para fechar o modal
+      onAccept();
       
     } catch (err) {
       console.error('[LGPD] Exception:', err);
       setIsSubmitting(false);
     }
   };
-
-  if (authLoading || loading) {
-    return null;
-  }
-
-  if (!userReady) {
-    console.log('[LGPD] User not ready yet, not rendering');
-    return null;
-  }
-
-  if (termsAccepted) {
-    console.log('[LGPD] Terms already accepted');
-    return null;
-  }
-
-  if (!showModal) {
-    console.log('[LGPD] Modal hidden by state');
-    return null;
-  }
-
-  console.log('[LGPD] Rendering modal!');
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
@@ -293,10 +157,10 @@ export default function LGPDTermsModal() {
 
           <Button
             onClick={handleAcceptTerms}
-            disabled={!acceptedTerms || isSubmitting || !userReady}
+            disabled={!acceptedTerms || isSubmitting}
             className={cn(
               "w-full h-12 text-base font-semibold rounded-full transition-all",
-              acceptedTerms && userReady && !isSubmitting
+              acceptedTerms && !isSubmitting
                 ? "bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200/50" 
                 : "bg-slate-200 text-slate-400 cursor-not-allowed"
             )}
