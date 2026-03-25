@@ -18,7 +18,10 @@ export default function Layout({ children }: LayoutProps) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
+      console.log('[Layout LGPD] Checking for user:', user?.id);
+      
       if (!user) {
+        console.log('[Layout LGPD] No user, hiding modal');
         setLgpdLoading(false);
         return;
       }
@@ -29,13 +32,26 @@ export default function Layout({ children }: LayoutProps) {
         .eq('id', user.id)
         .maybeSingle();
 
-      if (error || !data) {
+      console.log('[Layout LGPD] Profile data:', data);
+      console.log('[Layout LGPD] Profile error:', error);
+      console.log('[Layout LGPD] accepted_terms value:', data?.accepted_terms);
+      console.log('[Layout LGPD] accepted_terms type:', typeof data?.accepted_terms);
+
+      // Tratamento robusto: mostrar modal se não tem dados OU accepted_terms não é explicitamente true
+      const hasAcceptedTerms = data?.accepted_terms === true;
+      
+      console.log('[Layout LGPD] Has accepted terms:', hasAcceptedTerms);
+
+      if (!hasAcceptedTerms) {
+        console.log('[Layout LGPD] Showing modal - terms NOT accepted');
         setShowLgpd(true);
-      } else if (data.accepted_terms !== true) {
-        setShowLgpd(true);
+      } else {
+        console.log('[Layout LGPD] Hiding modal - terms already accepted');
+        setShowLgpd(false);
       }
     } catch (err) {
-      console.error('[Layout] LGPD check error:', err);
+      console.error('[Layout LGPD] Exception checking terms:', err);
+      // Em caso de erro, mostrar modal como fallback
       setShowLgpd(true);
     } finally {
       setLgpdLoading(false);
@@ -47,6 +63,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [checkLgpdTerms]);
 
   const handleLgpdAccept = () => {
+    console.log('[Layout LGPD] onAccept called - hiding modal');
     setShowLgpd(false);
   };
 
