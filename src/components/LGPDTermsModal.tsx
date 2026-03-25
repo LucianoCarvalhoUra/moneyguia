@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,12 +16,12 @@ interface ProfileWithLGPD {
 
 export default function LGPDTermsModal() {
   const { user, isLoading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [userReady, setUserReady] = useState(false);
 
   const checkTermsAccepted = useCallback(async () => {
     console.log('[LGPD] Checking terms...');
@@ -31,13 +31,25 @@ export default function LGPDTermsModal() {
       return;
     }
 
-    if (!user) {
-      console.log('[LGPD] No user, hiding modal');
+    // Verificar user_id de múltiplas fontes
+    let userId = user?.id;
+    
+    if (!userId) {
+      console.log('[LGPD] user.id is null, trying getUser()...');
+      const { data } = await supabase.auth.getUser();
+      userId = data?.user?.id;
+      console.log('[LGPD] getUser() result:', data?.user?.id);
+    }
+
+    if (!userId) {
+      console.log('[LGPD] No user ID available, hiding modal');
       setLoading(false);
+      setUserReady(false);
       return;
     }
 
-    console.log('[LGPD] User ID:', user.id);
+    setUserReady(true);
+    console.log('[LGPD] User ID:', userId);
 
     try {
       console.log('[LGPD] Fetching profile...');
@@ -45,7 +57,7 @@ export default function LGPDTermsModal() {
       const result = await (supabase
         .from('profiles') as any)
         .select('*')
-        .eq('id', user.id)
+        .eq('id', userId)
         .maybeSingle();
 
       const { data, error, status } = result;
@@ -97,28 +109,50 @@ export default function LGPDTermsModal() {
     if (!authLoading && user) {
       checkTermsAccepted();
     } else if (!authLoading && !user) {
-      setLoading(false);
+      // Tentar buscar user via getUser
+      supabase.auth.getUser().then(({ data }) => {
+        if (data?.user) {
+          checkTermsAccepted();
+        } else {
+          setLoading(false);
+        }
+      });
     }
   }, [authLoading, user, checkTermsAccepted]);
 
   const handleAcceptTerms = async () => {
-    if (!user || !acceptedTerms) return;
-
     setIsSubmitting(true);
 
     try {
-      console.log('[LGPD] Saving terms acceptance using UPSERT...');
+      // Obter user_id de múltiplas fontes
+      let userId = user?.id;
       
-      // Usar UPSERT para criar ou atualizar
+      if (!userId) {
+        console.log('[LGPD] user.id is null, trying getUser()...');
+        const { data } = await supabase.auth.getUser();
+        userId = data?.user?.id;
+        console.log('[LGPD] getUser() result:', data?.user?.id);
+      }
+
+      if (!userId) {
+        console.error('[LGPD] FATAL: No user ID available!');
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log('[LGPD] Saving terms acceptance with userId:', userId);
+      
+      // Usar UPSERT com user_id
       const result = await (supabase
         .from('profiles') as any)
         .upsert({
-          id: user.id,
+          id: userId,           // A tabela profiles usa 'id'
+          user_id: userId,      // Adicionado para evitar erro
           accepted_terms: true,
           terms_accepted_at: new Date().toISOString(),
           terms_version: '1.0',
-          email: user.email,
-          name: user.user_metadata?.name || '',
+          email: user?.email || '',
+          name: user?.user_metadata?.name || '',
         }, {
           onConflict: 'id'
         });
@@ -140,8 +174,8 @@ export default function LGPDTermsModal() {
       setTermsAccepted(true);
       setShowModal(false);
       
-      // Redirecionar para o Dashboard
-      navigate('/dashboard');
+      // Redirecionar usando window.location
+      window.location.href = '/dashboard';
       
     } catch (err) {
       console.error('[LGPD] Exception:', err);
@@ -155,8 +189,8 @@ export default function LGPDTermsModal() {
   }
 
   // Não mostra se não tem usuário ainda
-  if (!user) {
-    console.log('[LGPD] No user yet, not rendering');
+  if (!userReady) {
+    console.log('[LGPD] User not ready yet, not rendering');
     return null;
   }
 
@@ -246,10 +280,10 @@ export default function LGPDTermsModal() {
 
           <Button
             onClick={handleAcceptTerms}
-            disabled={!acceptedTerms || isSubmitting}
+            disabled={!acceptedTerms || isSubmitting || !userReady}
             className={cn(
               "w-full h-12 text-base font-semibold rounded-full transition-all",
-              acceptedTerms 
+              acceptedTerms && userReady
                 ? "bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200/50" 
                 : "bg-slate-200 text-slate-400 cursor-not-allowed"
             )}
