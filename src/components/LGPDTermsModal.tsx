@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +16,7 @@ interface ProfileWithLGPD {
 
 export default function LGPDTermsModal() {
   const { user, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -55,15 +56,13 @@ export default function LGPDTermsModal() {
 
       if (error || status === 406) {
         console.log('[LGPD] Error fetching profile');
-        // Em caso de erro, mostra o modal
         setShowModal(true);
         setLoading(false);
         return;
       }
 
       if (!data) {
-        console.log('[LGPD] No profile data');
-        // Sem perfil, mostra o modal
+        console.log('[LGPD] No profile data, showing modal');
         setShowModal(true);
         setLoading(false);
         return;
@@ -75,7 +74,6 @@ export default function LGPDTermsModal() {
       console.log('[LGPD] accepted_terms value:', profileData.accepted_terms);
       console.log('[LGPD] Terms accepted:', hasAccepted);
       
-      // Atualizar estado local
       setTermsAccepted(hasAccepted);
       
       if (!hasAccepted) {
@@ -109,22 +107,26 @@ export default function LGPDTermsModal() {
     setIsSubmitting(true);
 
     try {
-      console.log('[LGPD] Saving terms acceptance...');
+      console.log('[LGPD] Saving terms acceptance using UPSERT...');
       
+      // Usar UPSERT para criar ou atualizar
       const result = await (supabase
         .from('profiles') as any)
-        .update({
+        .upsert({
+          id: user.id,
           accepted_terms: true,
           terms_accepted_at: new Date().toISOString(),
-        })
-        .eq('id', user.id)
-        .select()
-        .single();
+          terms_version: '1.0',
+          email: user.email,
+          name: user.user_metadata?.name || '',
+        }, {
+          onConflict: 'id'
+        });
 
       const { data, error } = result;
 
-      console.log('[LGPD] Save result - data:', data);
-      console.log('[LGPD] Save result - error:', error);
+      console.log('[LGPD] UPSERT result - data:', data);
+      console.log('[LGPD] UPSERT result - error:', error);
 
       if (error) {
         console.error('[LGPD] Error saving terms:', error);
@@ -132,13 +134,14 @@ export default function LGPDTermsModal() {
         return;
       }
 
-      // Atualizar dados retornados
-      const updatedData = data as ProfileWithLGPD;
-      console.log('[LGPD] Sucesso ao gravar. Novo estado:', updatedData?.accepted_terms);
+      console.log('[LGPD] Sucesso ao gravar. Terms accepted: true');
 
-      // Atualizar estado local ANTES de fechar o modal
+      // Atualizar estado local
       setTermsAccepted(true);
       setShowModal(false);
+      
+      // Redirecionar para o Dashboard
+      navigate('/dashboard');
       
     } catch (err) {
       console.error('[LGPD] Exception:', err);
@@ -146,25 +149,24 @@ export default function LGPDTermsModal() {
     }
   };
 
-  // Loading state
+  // Loading state - não mostra nada até auth estar pronto
   if (authLoading || loading) {
-    return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-100">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-600">Verificando configuração...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't show if user is not authenticated or terms already accepted
-  if (!user || termsAccepted) {
-    console.log('[LGPD] Not showing modal - user:', !!user, 'termsAccepted:', termsAccepted);
     return null;
   }
 
-  // Only show modal if needed
+  // Não mostra se não tem usuário ainda
+  if (!user) {
+    console.log('[LGPD] No user yet, not rendering');
+    return null;
+  }
+
+  // Não mostra se termos já aceitos
+  if (termsAccepted) {
+    console.log('[LGPD] Terms already accepted');
+    return null;
+  }
+
+  // Não mostra se não precisa mostrar
   if (!showModal) {
     console.log('[LGPD] Modal hidden by state');
     return null;
