@@ -7,8 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Shield, Users, Search, Loader2, Crown, Check, Trash2 } from "lucide-react";
+import { Shield, Users, Search, Loader2, Crown, Check, Trash2, AlertTriangle } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -54,6 +64,7 @@ export default function Admin() {
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [userSort, setUserSort] = useState<"recent" | "expires_soon">("recent");
+  const [deleteModalUser, setDeleteModalUser] = useState<UserInfo | null>(null);
   const [selectedStartsAt, setSelectedStartsAt] = useState<string>(() => {
     const now = new Date();
     const y = now.getFullYear();
@@ -156,8 +167,7 @@ export default function Admin() {
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    if (!confirm(`Tem certeza que deseja excluir a conta de "${userName}"? Esta ação é irreversível.`)) return;
+  const handleDeleteUser = async (userId: string) => {
     setDeletingUserId(userId);
     try {
       const { data, error } = await supabase.functions.invoke("admin-users", {
@@ -166,6 +176,7 @@ export default function Admin() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success("Conta excluída com sucesso!");
+      setDeleteModalUser(null);
       await loadUsers();
     } catch (err: any) {
       toast.error("Erro ao excluir conta: " + err.message);
@@ -369,7 +380,7 @@ export default function Admin() {
                 {selectedUser?.lgpd_accepted_at ? (
                   <>
                     <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-violet-100/80 px-3 py-1 text-xs font-semibold text-violet-700">
-                      <Shield className="h-3.5 w-3.5" />
+                      <Check className="h-3.5 w-3.5" />
                       Status LGPD: Aceito
                     </div>
                     <p className="mt-2 text-xs text-violet-700">
@@ -465,7 +476,7 @@ export default function Admin() {
                         {u.current_plan_name}
                       </Badge>
                       <Badge className={lgpdAccepted ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-600"}>
-                        <Shield className="mr-1 h-3 w-3" />
+                        {lgpdAccepted ? <Check className="mr-1 h-3 w-3" /> : <Shield className="mr-1 h-3 w-3" />}
                         {lgpdAccepted ? "LGPD OK" : "Pendente"}
                       </Badge>
                     </div>
@@ -488,7 +499,7 @@ export default function Admin() {
                         variant="ghost"
                         size="icon"
                         className="text-destructive hover:bg-destructive/10 shrink-0"
-                        onClick={() => handleDeleteUser(u.user_id, u.name || u.email)}
+                        onClick={() => setDeleteModalUser(u)}
                         disabled={deletingUserId === u.user_id}
                       >
                         {deletingUserId === u.user_id ? (
@@ -507,6 +518,31 @@ export default function Admin() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={Boolean(deleteModalUser)} onOpenChange={(open) => !open && setDeleteModalUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Excluir Conta de Usuário?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é permanente e removerá todos os dados de <strong>{deleteModalUser?.name || deleteModalUser?.email}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(deletingUserId)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteModalUser && handleDeleteUser(deleteModalUser.user_id)}
+              disabled={!deleteModalUser || Boolean(deletingUserId)}
+              className="bg-gradient-to-r from-indigo-700 via-violet-700 to-cyan-700 text-white shadow-lg shadow-violet-500/30 hover:brightness-110"
+            >
+              {deletingUserId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

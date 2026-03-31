@@ -3,6 +3,17 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { DialogTitle } from '@/components/ui/dialog';
 import { Wallet, Shield, ShieldCheck, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +26,7 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
 
   const handleAcceptTerms = async () => {
     if (!user || !acceptedTerms) return;
@@ -69,9 +81,15 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
     }
   };
 
+  const handleDeclineNow = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/auth';
+  };
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
       <div className="relative w-[90vw] max-w-lg overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-2xl shadow-violet-500/20 backdrop-blur-lg animate-in fade-in-0 zoom-in-95 duration-300">
+        <DialogTitle className="sr-only">Termos de Privacidade LGPD</DialogTitle>
         <ShieldCheck className="pointer-events-none absolute -bottom-8 -right-6 h-40 w-40 text-violet-400/15" />
         <div className="bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 p-8 text-center">
           <div className="mb-4 flex justify-center">
@@ -146,31 +164,63 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
             </span>
           </label>
 
-          <Button
-            onClick={handleAcceptTerms}
-            disabled={!acceptedTerms || isSubmitting}
-            className={cn(
-              "w-full h-12 rounded-2xl text-base font-semibold transition-all",
-              acceptedTerms && !isSubmitting
-                ? "bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 text-white shadow-lg hover:brightness-110" 
-                : "bg-slate-200 text-slate-400 cursor-not-allowed"
-            )}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              'Li e Aceito'
-            )}
-          </Button>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setExitConfirmOpen(true)}
+              disabled={isSubmitting}
+              className="h-12 rounded-2xl border-slate-300 bg-transparent text-slate-600 hover:bg-slate-100"
+            >
+              Não aceito agora
+            </Button>
+
+            <Button
+              onClick={handleAcceptTerms}
+              disabled={!acceptedTerms || isSubmitting}
+              className={cn(
+                "h-12 rounded-2xl text-base font-semibold transition-all",
+                acceptedTerms && !isSubmitting
+                  ? "bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 text-white shadow-lg hover:brightness-110"
+                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
+              )}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                'Li e Aceito'
+              )}
+            </Button>
+          </div>
 
           <p className="text-center text-xs text-slate-400 mt-4">
             Ao continuar, você concorda com nossos termos atualizados
           </p>
         </div>
       </div>
+
+      <AlertDialog open={exitConfirmOpen} onOpenChange={setExitConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Termos obrigatórios para acesso</AlertDialogTitle>
+            <AlertDialogDescription>
+              Para utilizar a plataforma, é necessário aceitar os termos. Deseja sair?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar no modal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeclineNow}
+              className="bg-gradient-to-r from-indigo-700 via-violet-700 to-cyan-700 text-white shadow-lg shadow-violet-500/30 hover:brightness-110"
+            >
+              Sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
