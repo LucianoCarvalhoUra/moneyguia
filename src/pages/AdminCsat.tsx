@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Megaphone, MessageSquare, Star } from "lucide-react";
+import { Loader2, Megaphone, MessageSquare, Star, Trash2 } from "lucide-react";
 
 type Campaign = {
   id: string;
@@ -34,6 +34,7 @@ export default function AdminCsat() {
   const [loading, setLoading] = useState(true);
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [togglingCampaignId, setTogglingCampaignId] = useState<string | null>(null);
+  const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(null);
   const [togglingPublicId, setTogglingPublicId] = useState<string | null>(null);
   const [skipResponsesFetch, setSkipResponsesFetch] = useState(false);
   const [responsesUnavailableReason, setResponsesUnavailableReason] = useState<string | null>(null);
@@ -188,6 +189,23 @@ export default function AdminCsat() {
     }
   };
 
+  const handleDeleteCampaign = async (campaignId: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta campanha permanentemente?")) return;
+    
+    setDeletingCampaignId(campaignId);
+    try {
+      const { error } = await supabase.from("csat_campaigns").delete().eq("id", campaignId);
+      if (error) throw error;
+      
+      toast.success("Campanha excluída com sucesso.");
+      await loadData();
+    } catch (error: any) {
+      toast.error(`Erro ao excluir campanha: ${error.message}`);
+    } finally {
+      setDeletingCampaignId(null);
+    }
+  };
+
   const handleTogglePublic = async (response: ResponseItem) => {
     setTogglingPublicId(response.id);
     try {
@@ -285,6 +303,15 @@ export default function AdminCsat() {
                       ) : (
                         "Ativar"
                       )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDeleteCampaign(campaign.id)}
+                      disabled={deletingCampaignId === campaign.id}
+                    >
+                      {deletingCampaignId === campaign.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>

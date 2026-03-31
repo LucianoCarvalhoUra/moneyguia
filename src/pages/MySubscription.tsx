@@ -104,6 +104,13 @@ export default function MySubscription() {
       : "bg-emerald-500";
 
   useEffect(() => {
+    // Debug solicitado: Verificar se o RLS liberou o acesso e se o mapeamento camelCase está correto
+    if (subscription) {
+      console.log("[Assinatura] Expira em:", subscription.expiresAt);
+    }
+  }, [subscription]);
+
+  useEffect(() => {
     if (!user?.id) return;
     const fetchPayments = async () => {
       setLoadingPayments(true);
