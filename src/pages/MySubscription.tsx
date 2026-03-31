@@ -84,7 +84,8 @@ export default function MySubscription() {
     : null;
 
   const progressPercent = (() => {
-    if (!startsDate || !expiresDate) return 0;
+    if (!startsDate || !expiresDate || Number.isNaN(expiresDate.getTime())) return 0;
+    
     const total = new Date(expiresDate).getTime() - new Date(startsDate).getTime();
     const progresso = new Date().getTime() - new Date(startsDate).getTime();
     const percentual = !Number.isFinite(total) || total <= 0

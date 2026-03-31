@@ -14,8 +14,6 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const CSAT_USER_ID = "fdf44143-6ac2-4479-bad9-26779914c841";
-
 export default function CsatSurvey() {
   const { user } = useAuth();
   const { isAdmin, isCheckingAdmin } = useIsAdmin();
@@ -56,11 +54,11 @@ export default function CsatSurvey() {
       const dismissedKey = `csat_dismissed_${campaign.id}`;
       const wasDismissed = localStorage.getItem(dismissedKey) === "true";
 
-      const { data: existingResponse, error: existingError } = await supabase
+      const { data: existingResponse, error: existingError } = await (supabase
         .from("csat_responses")
-        .select("id")
+        .select("id") as any)
         .eq("campaign_id", campaign.id)
-        .eq("user_id", CSAT_USER_ID)
+        .eq("user_id", user.id)
         .maybeSingle();
 
       if (existingError) {
@@ -82,7 +80,7 @@ export default function CsatSurvey() {
   }, [user?.id, isAdmin, isCheckingAdmin]);
 
   const handleSend = async () => {
-    if (!activeCampaign || !rating) {
+    if (!activeCampaign || !rating || !user?.id) {
       toast.error("Selecione uma nota de 1 a 5.");
       return;
     }
@@ -91,7 +89,7 @@ export default function CsatSurvey() {
     try {
       const { error } = await supabase.from("csat_responses").insert({
         campaign_id: activeCampaign.id,
-        user_id: CSAT_USER_ID,
+        user_id: user.id,
         rating,
         comment: comment.trim() || null,
       });
