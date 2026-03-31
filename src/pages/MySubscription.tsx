@@ -64,6 +64,9 @@ export default function MySubscription() {
   const [loadingPayments, setLoadingPayments] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
+  const [deletePaymentModalOpen, setDeletePaymentModalOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<PaymentRecord | null>(null);
+  const [lgpdAcceptedAt, setLgpdAcceptedAt] = useState<string | null>(null);
 
   const isFree = plan.planType === "free";
   const isExpired =
@@ -113,18 +116,27 @@ export default function MySubscription() {
 
   useEffect(() => {
     if (!user?.id) return;
+
     const fetchPayments = async () => {
       setLoadingPayments(true);
-      const { data } = await supabase
-        .from("payments")
-        .select("id, amount, status, billing_cycle, created_at, subscription_plans(name, plan_type)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
+      const [{ data: paymentsData }, { data: profileData }] = await Promise.all([
+        supabase
+          .from("payments")
+          .select("id, amount, status, billing_cycle, created_at, subscription_plans(name, plan_type)")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(20),
+        (supabase.from("profiles") as any)
+          .select("lgpd_accepted_at")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
 
-      if (data) {
+      setLgpdAcceptedAt(profileData?.lgpd_accepted_at || null);
+
+      if (paymentsData) {
         setPayments(
-          data.map((p: any) => ({
+          paymentsData.map((p: any) => ({
             id: p.id,
             amount: p.amount,
             status: p.status,
@@ -166,9 +178,6 @@ export default function MySubscription() {
   const handleDeletePayment = async (paymentId: string) => {
     if (!user?.id) return;
 
-    const shouldDelete = confirm("Deseja ocultar/excluir este pagamento do seu histórico?");
-    if (!shouldDelete) return;
-
     setDeletingPaymentId(paymentId);
     try {
       const { error } = await supabase
@@ -187,7 +196,14 @@ export default function MySubscription() {
       toast.error(err.message || "Erro ao remover pagamento");
     } finally {
       setDeletingPaymentId(null);
+      setDeletePaymentModalOpen(false);
+      setPaymentToDelete(null);
     }
+  };
+
+  const handleRequestDeletePayment = (payment: PaymentRecord) => {
+    setPaymentToDelete(payment);
+    setDeletePaymentModalOpen(true);
   };
 
   const features = [
@@ -214,26 +230,26 @@ export default function MySubscription() {
       </div>
 
       {/* Plan Card */}
-      <Card className="overflow-hidden border-0 shadow-xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <Card className="overflow-hidden rounded-3xl border border-white/40 bg-white/70 text-foreground shadow-2xl backdrop-blur-lg">
         <CardContent className="p-0">
           {/* Header */}
           <div className="flex items-center justify-between px-6 pt-6 pb-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur">
-                <Crown className="h-6 w-6 text-amber-400" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 backdrop-blur">
+                <Crown className="h-6 w-6 text-amber-500" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Plano Atual</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Plano Atual</p>
                 <h3 className="text-xl font-bold">{plan.planName}</h3>
               </div>
             </div>
             <Badge
               className={`border-0 font-semibold text-xs px-3 py-1 ${
                 isExpired
-                  ? "bg-red-500/20 text-red-300"
+                  ? "bg-red-500/10 text-red-600"
                   : isExpiringSoon
-                    ? "bg-amber-500/20 text-amber-300"
-                    : "bg-emerald-500/20 text-emerald-300"
+                    ? "bg-amber-500/10 text-amber-600"
+                    : "bg-emerald-500/10 text-emerald-600"
               }`}
             >
               {isExpired ? "Expirado" : isFree ? "Ativo" : "Ativo"}
@@ -243,25 +259,25 @@ export default function MySubscription() {
           {/* Subscription details */}
           {!isFree && subscription && (
             <div className="px-6 pb-6 space-y-4">
-              <div className="rounded-2xl bg-white/5 backdrop-blur p-5 space-y-4">
+              <div className="rounded-3xl border border-white/40 bg-white/65 backdrop-blur p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-slate-400" />
-                    <span className="text-sm text-slate-300">Tempo restante</span>
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Tempo restante</span>
                   </div>
                   <span className={`text-3xl font-bold tabular-nums ${isExpired ? "text-red-400" : isExpiringSoon ? "text-amber-400" : "text-emerald-400"}`}>
                     {isPending ? "Assinatura Pendente" : diasRestantes !== null && diasRestantes > 0 ? `Restam ${diasRestantes} dias` : "Assinatura Expirada"}
                   </span>
                 </div>
 
-                <div className="h-2.5 w-full rounded-full bg-white/10 overflow-hidden">
+                <div className="h-2.5 w-full rounded-full bg-muted/30 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${barColor}`}
                     style={{ width: `${remainingPercent}%` }}
                   />
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   {expiresFormatted && (
                     <div className="flex items-center gap-1.5">
                       <CalendarDays className="h-3.5 w-3.5" />
@@ -295,6 +311,19 @@ export default function MySubscription() {
                   </div>
                 </div>
               )}
+
+              <div className={`flex items-start gap-2 rounded-2xl border px-4 py-3 text-sm ${
+                lgpdAcceptedAt
+                  ? "border-emerald-200 bg-emerald-500/10 text-emerald-700"
+                  : "border-amber-200 bg-amber-500/10 text-amber-700"
+              }`}>
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                {lgpdAcceptedAt ? (
+                  <span>🛡️ Termos Aceitos em: {format(new Date(lgpdAcceptedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                ) : (
+                  <span className="font-semibold">⚠️ Termos Pendentes de Aceite</span>
+                )}
+              </div>
             </div>
           )}
 
@@ -311,7 +340,7 @@ export default function MySubscription() {
       </Card>
 
       {/* Features Grid */}
-      <Card>
+      <Card className="rounded-3xl border border-white/40 bg-white/70 shadow-2xl backdrop-blur-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Zap className="h-5 w-5 text-primary" />
@@ -368,7 +397,7 @@ export default function MySubscription() {
       </Card>
 
       {/* Payment History */}
-      <Card>
+      <Card className="rounded-3xl border border-white/40 bg-white/70 shadow-2xl backdrop-blur-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Receipt className="h-5 w-5 text-primary" />
@@ -394,7 +423,7 @@ export default function MySubscription() {
                 return (
                   <div
                     key={payment.id}
-                    className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between rounded-2xl border border-white/40 bg-white/60 p-4 backdrop-blur-sm transition-colors hover:bg-white/75"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800">
@@ -420,7 +449,7 @@ export default function MySubscription() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDeletePayment(payment.id)}
+                        onClick={() => handleRequestDeletePayment(payment)}
                         disabled={deletingPaymentId === payment.id}
                         title="Ocultar/Excluir"
                       >
@@ -441,7 +470,7 @@ export default function MySubscription() {
 
       {/* Cancel Subscription */}
       {!isFree && !isExpired && (
-        <Card className="border-destructive/30">
+        <Card className="rounded-3xl border border-destructive/30 bg-white/70 shadow-2xl backdrop-blur-lg">
           <CardContent className="flex items-center justify-between p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10">
@@ -481,6 +510,31 @@ export default function MySubscription() {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={deletePaymentModalOpen} onOpenChange={setDeletePaymentModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Excluir Registro de Pagamento?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é permanente e removerá este lançamento do histórico financeiro do usuário.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(deletingPaymentId)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => paymentToDelete && handleDeletePayment(paymentToDelete.id)}
+              disabled={!paymentToDelete || Boolean(deletingPaymentId)}
+              className="bg-red-600 text-white shadow-[0_0_24px_rgba(239,68,68,0.45)] hover:bg-red-700"
+            >
+              {deletingPaymentId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Sim, Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
