@@ -51,6 +51,7 @@ export default function Admin() {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [userSort, setUserSort] = useState<"recent" | "expires_soon">("recent");
   const [selectedStartsAt, setSelectedStartsAt] = useState<string>(() => {
     const now = new Date();
     const y = now.getFullYear();
@@ -189,6 +190,86 @@ export default function Admin() {
       u.email?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const resolveExpiresAt = (u: UserInfo): Date | null => {
+    const expiresFromDb = u.current_expires_at ? new Date(u.current_expires_at) : null;
+    if (expiresFromDb && !Number.isNaN(expiresFromDb.getTime())) {
+      return expiresFromDb;
+    }
+
+    const startsAt = u.current_starts_at ? new Date(u.current_starts_at) : null;
+    if (!startsAt || Number.isNaN(startsAt.getTime()) || !u.current_billing_cycle) {
+      return null;
+    }
+
+    const derived = new Date(startsAt);
+    if (u.current_billing_cycle === "yearly") {
+      derived.setFullYear(derived.getFullYear() + 1);
+    } else if (u.current_billing_cycle === "monthly") {
+      derived.setMonth(derived.getMonth() + 1);
+    }
+
+    return Number.isNaN(derived.getTime()) ? null : derived;
+  };
+
+  const getExpirationMeta = (u: UserInfo) => {
+    const expiresAt = resolveExpiresAt(u);
+    const isPaidPlan = ["pro", "premium"].includes((u.current_plan_type || "").toLowerCase());
+
+    if (!expiresAt) {
+      if (isPaidPlan) {
+        return {
+          label: "Vence em: pendente de sincronização",
+          className: "text-amber-600 font-medium",
+          sortValue: Number.MAX_SAFE_INTEGER,
+        };
+      }
+
+      return {
+        label: "Vence em: -",
+        className: "text-muted-foreground",
+        sortValue: Number.MAX_SAFE_INTEGER,
+      };
+    }
+
+    const now = new Date();
+    const startNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startExpiry = new Date(expiresAt.getFullYear(), expiresAt.getMonth(), expiresAt.getDate());
+    const msDiff = startExpiry.getTime() - startNow.getTime();
+    const dayDiff = Math.ceil(msDiff / (1000 * 60 * 60 * 24));
+
+    if (dayDiff < 0) {
+      return {
+        label: `Vence em: ${format(expiresAt, "dd/MM/yyyy", { locale: ptBR })}`,
+        className: "text-red-600 font-semibold",
+        sortValue: expiresAt.getTime(),
+      };
+    }
+
+    if (dayDiff <= 5) {
+      return {
+        label: `Vence em: ${format(expiresAt, "dd/MM/yyyy", { locale: ptBR })}`,
+        className: "text-amber-600 font-semibold",
+        sortValue: expiresAt.getTime(),
+      };
+    }
+
+    return {
+      label: `Vence em: ${format(expiresAt, "dd/MM/yyyy", { locale: ptBR })}`,
+      className: "text-muted-foreground",
+      sortValue: expiresAt.getTime(),
+    };
+  };
+
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    if (userSort === "expires_soon") {
+      const aSort = getExpirationMeta(a).sortValue;
+      const bSort = getExpirationMeta(b).sortValue;
+      if (aSort !== bSort) return aSort - bSort;
+    }
+
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
@@ -301,25 +382,37 @@ export default function Admin() {
           <CardDescription>Visualize planos, ciclo e vencimento</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome ou e-mail..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
+          <div className="grid gap-3 md:grid-cols-[1fr_260px]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome ou e-mail..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <Select value={userSort} onValueChange={(value) => setUserSort(value as "recent" | "expires_soon")}>
+              <SelectTrigger>
+                <SelectValue placeholder="Ordenação" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Mais recentes</SelectItem>
+                <SelectItem value="expires_soon">Vencimentos mais próximos</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
-          ) : filteredUsers.length === 0 ? (
+          ) : sortedUsers.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Nenhum usuário encontrado</p>
           ) : (
             <div className="space-y-3">
-              {filteredUsers.map((u) => (
+              {sortedUsers.map((u) => (
                 <div
                   key={u.user_id}
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border bg-card"
@@ -347,33 +440,8 @@ export default function Admin() {
                       <p>
                         {u.current_plan_type?.toUpperCase() || "FREE"} {u.current_billing_cycle === "yearly" ? "Anual" : u.current_billing_cycle === "monthly" ? "Mensal" : "-"}
                       </p>
-                      <p>
-                        {(() => {
-                          const startsAt = u.current_starts_at ? new Date(u.current_starts_at) : null;
-                          const startsAtValid = Boolean(startsAt && !Number.isNaN(startsAt.getTime()));
-
-                          const expiresAtFromDb = u.current_expires_at ? new Date(u.current_expires_at) : null;
-                          const expiresAtFromDbValid = Boolean(expiresAtFromDb && !Number.isNaN(expiresAtFromDb.getTime()));
-
-                          if (expiresAtFromDbValid) {
-                            return `Vence em: ${format(expiresAtFromDb!, "dd/MM/yyyy", { locale: ptBR })}`;
-                          }
-
-                          if (startsAtValid && u.current_billing_cycle) {
-                            const derived = new Date(startsAt!);
-                            if (u.current_billing_cycle === "yearly") {
-                              derived.setFullYear(derived.getFullYear() + 1);
-                            } else if (u.current_billing_cycle === "monthly") {
-                              derived.setMonth(derived.getMonth() + 1);
-                            }
-
-                            if (!Number.isNaN(derived.getTime())) {
-                              return `Vence em: ${format(derived, "dd/MM/yyyy", { locale: ptBR })}`;
-                            }
-                          }
-
-                          return "Vence em: -";
-                        })()}
+                      <p className={getExpirationMeta(u).className}>
+                        {getExpirationMeta(u).label}
                       </p>
                     </div>
                     {u.user_id !== user?.id && (
