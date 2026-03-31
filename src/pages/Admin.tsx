@@ -19,6 +19,7 @@ interface UserInfo {
   name: string;
   email: string;
   created_at: string;
+  lgpd_accepted_at: string | null;
   current_plan_type: string;
   current_plan_name: string;
   subscription_status: string | null;
@@ -35,6 +36,7 @@ interface PlanOption {
 
 const planBadgeColors: Record<string, string> = {
   free: "bg-slate-100 text-slate-700",
+  basic: "bg-slate-100 text-slate-700",
   pro: "bg-blue-100 text-blue-700",
   premium: "bg-amber-100 text-amber-700",
 };
@@ -80,7 +82,7 @@ export default function Admin() {
     }
   };
 
-  const paidPlans = plans.filter((p) => p.plan_type === "pro" || p.plan_type === "premium");
+  const licensePlans = plans.filter((p) => ["free", "basic", "pro", "premium"].includes((p.plan_type || "").toLowerCase()));
 
   const selectedUser = users.find((u) => u.user_id === selectedUserId) || null;
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) || null;
@@ -284,7 +286,7 @@ export default function Admin() {
         <CardHeader>
           <CardTitle>Gestão de Licenças</CardTitle>
           <CardDescription>
-            Defina plano (PRO/PREMIUM) e período (mensal/anual). O vencimento será calculado automaticamente.
+            Defina plano (Básico/Pro/Premium) e período (mensal/anual). O vencimento será calculado automaticamente.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
@@ -311,9 +313,15 @@ export default function Admin() {
                 <SelectValue placeholder="Selecione o plano" />
               </SelectTrigger>
               <SelectContent>
-                {paidPlans.map((plan) => (
+                {licensePlans.map((plan) => (
                   <SelectItem key={plan.id} value={plan.id}>
-                    {plan.plan_type.toUpperCase()}
+                    {(() => {
+                      const normalized = (plan.plan_type || "").toLowerCase();
+                      if (normalized === "free" || normalized === "basic") return "Básico";
+                      if (normalized === "pro") return "Pro";
+                      if (normalized === "premium") return "Premium";
+                      return plan.name;
+                    })()}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -356,19 +364,47 @@ export default function Admin() {
             />
           </div>
 
-          <div className="md:col-span-2 flex items-center justify-between rounded-lg border p-3 text-sm">
-            <div>
-              <p className="font-medium">Cliente selecionado</p>
-              <p className="text-muted-foreground">
-                {selectedUser ? `${selectedUser.name || "Sem nome"} • ${selectedUser.email}` : "Nenhum cliente selecionado"}
-              </p>
-              <p className="text-muted-foreground mt-1">
-                {selectedBillingCycle === "yearly" ? "Renovação Anual" : "Renovação Mensal"}
-              </p>
+          <div className="md:col-span-2 rounded-3xl border border-white/40 bg-white/70 p-4 text-sm shadow-2xl backdrop-blur-lg">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="font-medium">Cliente selecionado</p>
+                <p className="text-muted-foreground">
+                  {selectedUser ? `${selectedUser.name || "Sem nome"} • ${selectedUser.email}` : "Nenhum cliente selecionado"}
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  {selectedBillingCycle === "yearly" ? "Renovação Anual" : "Renovação Mensal"}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-white/40 bg-white/65 px-4 py-3 backdrop-blur-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conformidade (LGPD)</p>
+                {selectedUser?.lgpd_accepted_at ? (
+                  <>
+                    <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-emerald-100/80 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      <Shield className="h-3.5 w-3.5" />
+                      Status LGPD: Aceito
+                    </div>
+                    <p className="mt-2 text-xs text-emerald-700">
+                      Aceito em: {format(new Date(selectedUser.lgpd_accepted_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-amber-100/80 px-3 py-1 text-xs font-semibold text-amber-700">
+                      <Shield className="h-3.5 w-3.5" />
+                      Status LGPD: Pendente
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">Aguardando aceite de termos.</p>
+                  </>
+                )}
+              </div>
             </div>
-            <Button onClick={handleSaveSubscription} disabled={updatingUserId === selectedUserId || !selectedUserId || !selectedPlanId}>
-              {updatingUserId === selectedUserId ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-            </Button>
+
+            <div className="mt-4 flex justify-end">
+              <Button onClick={handleSaveSubscription} disabled={updatingUserId === selectedUserId || !selectedUserId || !selectedPlanId}>
+                {updatingUserId === selectedUserId ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -413,6 +449,14 @@ export default function Admin() {
           ) : (
             <div className="space-y-3">
               {sortedUsers.map((u) => (
+                (() => {
+                  const lgpdAccepted = Boolean(u.lgpd_accepted_at);
+                  const lgpdDate = u.lgpd_accepted_at ? new Date(u.lgpd_accepted_at) : null;
+                  const lgpdDateLabel = lgpdDate && !Number.isNaN(lgpdDate.getTime())
+                    ? format(lgpdDate, "dd/MM/yyyy", { locale: ptBR })
+                    : null;
+
+                  return (
                 <div
                   key={u.user_id}
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border bg-card"
@@ -432,7 +476,14 @@ export default function Admin() {
                       <Badge className={planBadgeColors[u.current_plan_type] || "bg-slate-100 text-slate-700"}>
                         {u.current_plan_name}
                       </Badge>
+                      <Badge className={lgpdAccepted ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}>
+                        <Shield className="mr-1 h-3 w-3" />
+                        {lgpdAccepted ? "LGPD OK" : "Pendente"}
+                      </Badge>
                     </div>
+                    {lgpdAccepted && lgpdDateLabel && (
+                      <p className="mt-1 text-xs text-emerald-700">LGPD aceito em: {lgpdDateLabel}</p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 sm:min-w-[280px]">
@@ -461,6 +512,8 @@ export default function Admin() {
                     )}
                   </div>
                 </div>
+                  );
+                })()
               ))}
             </div>
           )}

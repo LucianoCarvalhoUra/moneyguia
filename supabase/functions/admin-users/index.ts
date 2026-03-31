@@ -47,7 +47,7 @@ Deno.serve(async (req: Request) => {
       // Get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("user_id, name, email, created_at")
+        .select("user_id, name, email, created_at, lgpd_accepted_at")
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -85,6 +85,7 @@ Deno.serve(async (req: Request) => {
         name: p.name,
         email: p.email,
         created_at: p.created_at,
+        lgpd_accepted_at: p.lgpd_accepted_at || null,
         current_plan_type: subsMap[p.user_id]?.subscription_plans?.plan_type || "free",
         current_plan_name: subsMap[p.user_id]?.subscription_plans?.name || "Gratuito",
         subscription_status: subsMap[p.user_id]?.status || null,
