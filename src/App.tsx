@@ -28,6 +28,8 @@ import ResetPassword from "./pages/ResetPassword";
 import MySubscription from "./pages/MySubscription";
 import Admin from "./pages/Admin";
 import AdminCsat from "@/pages/AdminCsat";
+import TermsOfUse from "./pages/TermsOfUse";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { APP_VERSION } from "@/config/version";
 
 const queryClient = new QueryClient();
@@ -120,6 +122,8 @@ const AppRoutes = () => (
     <Route path="/home" element={<LandingPage />} />
     <Route path="/planos" element={<Planos />} />
     <Route path="/plans" element={<Plans />} />
+    <Route path="/terms" element={<TermsOfUse />} />
+    <Route path="/privacy" element={<PrivacyPolicy />} />
     <Route path="/checkout" element={<Checkout />} />
     <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
     <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />

@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Wallet, Shield, ShieldCheck, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -87,9 +87,15 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <div className="relative w-[90vw] max-w-lg overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-2xl shadow-violet-500/20 backdrop-blur-lg animate-in fade-in-0 zoom-in-95 duration-300">
-        <DialogTitle className="sr-only">Termos de Privacidade LGPD</DialogTitle>
+    <Dialog open={true}>
+      <DialogContent 
+        className="z-[9999] p-0 overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-2xl shadow-violet-500/20 backdrop-blur-lg animate-in fade-in-0 zoom-in-95 duration-300 max-w-lg w-[90vw] [&>button]:hidden"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <DialogHeader className="sr-only">
+          <DialogTitle>Termos de Privacidade LGPD</DialogTitle>
+        </DialogHeader>
         <ShieldCheck className="pointer-events-none absolute -bottom-8 -right-6 h-40 w-40 text-violet-400/15" />
         <div className="bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 p-8 text-center">
           <div className="mb-4 flex justify-center">
@@ -200,7 +206,7 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
             Ao continuar, você concorda com nossos termos atualizados
           </p>
         </div>
-      </div>
+      </DialogContent>
 
       <AlertDialog open={exitConfirmOpen} onOpenChange={setExitConfirmOpen}>
         <AlertDialogContent>

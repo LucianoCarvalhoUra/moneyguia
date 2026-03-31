@@ -536,7 +536,6 @@ export default function AdminCsat() {
               Confirmação para excluir campanha CSAT permanentemente.
             </DialogDescription>
           </DialogHeader>
-          <div className="fixed inset-0 -z-10 bg-black/40 backdrop-blur-sm" />
           <div className="space-y-5 p-6">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-500/15 text-red-500">
               <AlertTriangle className="h-6 w-6" />
