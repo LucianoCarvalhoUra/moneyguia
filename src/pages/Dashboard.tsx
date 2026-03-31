@@ -22,9 +22,6 @@ import ExpenseClassificationChart from '@/components/dashboard/ExpenseClassifica
 import MonthlyComparisonChart from '@/components/dashboard/MonthlyComparisonChart';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { supabase } from '@/integrations/supabase/client';
-import { Textarea } from '@/components/ui/textarea';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -33,8 +30,7 @@ export default function Dashboard() {
   const { getMonthlyIncomeTotal, incomes } = useIncome();
   const [formOpen, setFormOpen] = useState(false);
   const { subscription, plan } = useUserPlan();
-  const { user } = useAuth();
-  const { isAdmin, isCheckingAdmin } = useIsAdmin();
+  useAuth();
   const [showSubAlert, setShowSubAlert] = useState(true);
   const now = new Date();
   const getInitialPeriod = () => {
@@ -70,11 +66,6 @@ export default function Dashboard() {
   const [showOverdueAlert, setShowOverdueAlert] = useState(true);
   const [alertConfig, setAlertConfig] = useState({ enabled: true, days: 2, type: 'expenses' });
   const [settings, setSettings] = useState<DashboardSettings>(DEFAULT_DASHBOARD_SETTINGS);
-  const [activeCsatCampaign, setActiveCsatCampaign] = useState<{ id: string; name: string } | null>(null);
-  const [showCsatWidget, setShowCsatWidget] = useState(false);
-  const [csatRating, setCsatRating] = useState<number | null>(null);
-  const [csatComment, setCsatComment] = useState('');
-  const [sendingCsat, setSendingCsat] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('dashboard_settings');
@@ -82,114 +73,6 @@ export default function Dashboard() {
       setSettings(JSON.parse(stored));
     }
   }, []);
-
-  useEffect(() => {
-    const loadCsatWidget = async () => {
-      if (!user?.id || isCheckingAdmin) return;
-
-      if (isAdmin) {
-        setShowCsatWidget(false);
-        return;
-      }
-
-      try {
-        const isPermissionError = (error: any) => {
-          const status = Number(error?.status);
-          const code = String(error?.code || "");
-          const message = String(error?.message || "").toLowerCase();
-          return status === 403 || code === "42501" || message.includes("permission denied");
-        };
-
-        const activeCampaignResult = await supabase
-          .from('csat_campaigns')
-          .select('id, name')
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (activeCampaignResult.error) {
-          console.error('[CSAT] Erro ao buscar campanha ativa:', activeCampaignResult.error);
-          if (isPermissionError(activeCampaignResult.error)) {
-            toast.error('[CSAT] Erro de permissão (403) ao buscar campanha ativa. Ajuste o RLS no Supabase.');
-          }
-          setShowCsatWidget(false);
-          return;
-        }
-
-        if (!activeCampaignResult.data) {
-          console.warn('[CSAT] Nenhuma campanha ativa encontrada no banco.');
-          setShowCsatWidget(false);
-          return;
-        }
-
-        const campaign = activeCampaignResult.data as { id: string; name: string };
-        const dismissedKey = `csat_dismissed_${campaign.id}`;
-        const wasDismissed = localStorage.getItem(dismissedKey) === 'true';
-
-        const existingResponseResult = await supabase
-          .from('csat_responses')
-          .select('id')
-          .eq('campaign_id', campaign.id)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (existingResponseResult.error) {
-          console.error('[CSAT] Erro ao verificar resposta existente:', existingResponseResult.error);
-          if (isPermissionError(existingResponseResult.error)) {
-            toast.error('[CSAT] Erro de permissão (403) ao validar respostas. Ajuste o RLS no Supabase.');
-          }
-          setShowCsatWidget(false);
-          return;
-        }
-
-        if (existingResponseResult.data || wasDismissed) {
-          setShowCsatWidget(false);
-          return;
-        }
-
-        setActiveCsatCampaign(campaign);
-        setShowCsatWidget(true);
-      } catch {
-        setShowCsatWidget(false);
-      }
-    };
-
-    loadCsatWidget();
-  }, [user?.id, isAdmin, isCheckingAdmin]);
-
-  const handleSendCsat = async () => {
-    if (!user?.id || !activeCsatCampaign) return;
-    if (!csatRating) {
-      toast.error('Selecione uma nota de 1 a 5.');
-      return;
-    }
-
-    setSendingCsat(true);
-    try {
-      const { error } = await supabase.from('csat_responses').insert({
-        campaign_id: activeCsatCampaign.id,
-        user_id: user.id,
-        rating: csatRating,
-        comment: csatComment.trim() || null,
-      });
-
-      if (error) throw error;
-
-      toast.success('Obrigado pelo seu feedback!');
-      setShowCsatWidget(false);
-      localStorage.setItem(`csat_dismissed_${activeCsatCampaign.id}`, 'true');
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao enviar avaliação.');
-    } finally {
-      setSendingCsat(false);
-    }
-  };
-
-  const handleDismissCsat = () => {
-    if (activeCsatCampaign?.id) {
-      localStorage.setItem(`csat_dismissed_${activeCsatCampaign.id}`, 'true');
-    }
-    setShowCsatWidget(false);
-  };
 
   useEffect(() => {
     localStorage.setItem('dashboard_period', JSON.stringify({ month: selectedMonth, year: selectedYear }));
@@ -500,45 +383,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* CSAT Widget */}
-      {showCsatWidget && activeCsatCampaign && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-3 flex-1">
-              <p className="text-sm font-semibold text-emerald-800">Como está sua experiência com o MoneyGuia?</p>
-              <div className="flex items-center gap-2">
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <Button
-                    key={value}
-                    type="button"
-                    variant={csatRating === value ? 'default' : 'outline'}
-                    size="sm"
-                    className="min-w-9"
-                    onClick={() => setCsatRating(value)}
-                  >
-                    {value}
-                  </Button>
-                ))}
-              </div>
-              <Textarea
-                value={csatComment}
-                onChange={(e) => setCsatComment(e.target.value)}
-                placeholder="Quer deixar um comentário? (opcional)"
-                className="min-h-[70px] bg-white"
-              />
-              <div className="flex justify-end">
-                <Button type="button" onClick={handleSendCsat} disabled={sendingCsat || !csatRating}>
-                  {sendingCsat ? 'Enviando...' : 'Enviar avaliação'}
-                </Button>
-              </div>
-            </div>
-            <Button variant="ghost" size="icon" onClick={handleDismissCsat}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -766,6 +610,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
