@@ -16,7 +16,7 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [showLgpd, setShowLgpd] = useState(false);
   const [lgpdLoading, setLgpdLoading] = useState(true);
-  const shouldShowCsat = location.pathname === "/dashboard";
+  const shouldShowCsat = location.pathname.startsWith("/dashboard");
 
   const checkLgpdTerms = useCallback(async () => {
     try {

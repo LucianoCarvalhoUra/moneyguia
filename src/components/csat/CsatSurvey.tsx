@@ -8,6 +8,7 @@ import { Check, X } from "lucide-react";
 
 const CLOSE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const OPEN_DELAY_MS = 5000;
+const forceShow = true;
 
 const ratingOptions = [
   { value: 1, emoji: "😡", label: "Muito ruim" },
@@ -42,6 +43,14 @@ export default function CsatSurvey() {
     const loadCampaign = async () => {
       if (!user?.id || isRoleLoading) return;
 
+      if (forceShow) {
+        const forcedCampaign = { id: "force-csat-preview", name: "Teste Forçado CSAT" };
+        console.log("[CSAT Flow]", { campaign: forcedCampaign, userResponse: null, now: new Date() });
+        setActiveCampaign(forcedCampaign);
+        setOpen(true);
+        return;
+      }
+
       if (isAdmin) {
         setActiveCampaign(null);
         setOpen(false);
@@ -68,21 +77,6 @@ export default function CsatSurvey() {
       }
 
       if (!data) {
-        setActiveCampaign(null);
-        setOpen(false);
-        return;
-      }
-
-      const now = new Date();
-      const endDate = data.end_date ? new Date(`${data.end_date}T23:59:59`) : null;
-      const startDateRaw = (data as any).start_date ?? data.created_at;
-      const startDate = startDateRaw ? new Date(startDateRaw) : null;
-
-      const isWithinWindow =
-        Boolean(endDate && !Number.isNaN(endDate.getTime()) && now <= endDate) &&
-        (!startDate || !Number.isNaN(startDate.getTime()) ? now >= (startDate || now) : true);
-
-      if (!isWithinWindow) {
         setActiveCampaign(null);
         setOpen(false);
         return;
@@ -117,9 +111,12 @@ export default function CsatSurvey() {
 
       if (existingResponse) {
         localStorage.setItem(respondedKey(campaign.id), "true");
+        console.log("[CSAT Flow]", { campaign, userResponse: existingResponse, now: new Date() });
         setOpen(false);
         return;
       }
+
+      console.log("[CSAT Flow]", { campaign, userResponse: existingResponse, now: new Date() });
 
       setActiveCampaign(campaign);
       openTimer = setTimeout(() => {
@@ -137,6 +134,12 @@ export default function CsatSurvey() {
   const handleSend = async () => {
     if (!activeCampaign || !rating || !user?.id) {
       toast.error("Selecione uma opção para continuar.");
+      return;
+    }
+
+    if (forceShow) {
+      toast.success("Modo de teste ativo: modal renderizado com sucesso.");
+      setOpen(false);
       return;
     }
 
