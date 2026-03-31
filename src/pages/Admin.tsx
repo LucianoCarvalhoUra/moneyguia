@@ -314,7 +314,7 @@ export default function Admin() {
                         {u.current_plan_type?.toUpperCase() || "FREE"} {u.current_billing_cycle === "yearly" ? "Anual" : u.current_billing_cycle === "monthly" ? "Mensal" : "-"}
                       </p>
                       <p>
-                        {u.current_expires_at ? `Expira em ${format(new Date(u.current_expires_at), "dd/MM/yyyy", { locale: ptBR })}` : "Sem vencimento"}
+                        {u.current_expires_at ? `Vence em: ${format(new Date(u.current_expires_at), "dd/MM/yyyy", { locale: ptBR })}` : "Sem vencimento"}
                       </p>
                     </div>
                     {u.user_id !== user?.id && (

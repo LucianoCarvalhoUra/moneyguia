@@ -55,11 +55,6 @@ export default function AdminCsat() {
         .order("created_at", { ascending: false });
 
       if (campaignsResult.error) {
-        console.warn("[CSAT] Falha ao ordenar campanhas por created_at, tentando sem order...");
-        campaignsResult = await supabase.from("csat_campaigns").select("*");
-      }
-
-      if (campaignsResult.error) {
         console.error("[CSAT Error]", campaignsResult.error?.message, campaignsResult.error?.details);
         setCampaigns([]);
         toast.error(`Erro ao carregar campanhas CSAT: ${campaignsResult.error.message}`);
@@ -72,16 +67,6 @@ export default function AdminCsat() {
           .from("csat_responses")
           .select("id, campaign_id, rating, comment, is_public, created_at")
           .order("created_at", { ascending: false });
-
-        const isColumnError = responsesResult.error?.message?.toLowerCase().includes("column")
-          || responsesResult.error?.message?.toLowerCase().includes("does not exist");
-
-        if (responsesResult.error && isColumnError) {
-          console.warn("[CSAT] Falha ao ordenar respostas por created_at, tentando sem order...");
-          responsesResult = await supabase
-            .from("csat_responses")
-            .select("id, campaign_id, rating, comment, is_public, created_at");
-        }
 
         if (responsesResult.error) {
           console.error("[CSAT Error]", responsesResult.error?.message, responsesResult.error?.details);
