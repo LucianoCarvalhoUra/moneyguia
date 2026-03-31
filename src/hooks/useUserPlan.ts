@@ -42,6 +42,27 @@ const FREE_DEFAULTS: PlanLimits = {
   hasNotifications: true,
 };
 
+const calculateDaysUntilExpiration = (expiresAt: string | null): number | null => {
+  if (!expiresAt) {
+    return null;
+  }
+
+  const now = new Date();
+  const expires = new Date(expiresAt);
+  const diffInDays = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (!Number.isFinite(diffInDays)) {
+    console.warn("[Licença] Cálculo de tempo restante inválido:", {
+      expires_at: expiresAt,
+      now: now.toISOString(),
+      diffInDays,
+    });
+    return null;
+  }
+
+  return diffInDays;
+};
+
 export function useUserPlan() {
   const { user } = useAuth();
   const [plan, setPlan] = useState<PlanLimits>(FREE_DEFAULTS);
@@ -88,24 +109,8 @@ export function useUserPlan() {
           let isExpiringSoon = false;
           const isExpired = sub.expires_at ? new Date(sub.expires_at) <= new Date() : false;
 
-          if (sub.expires_at) {
-            const now = new Date();
-            const expires = new Date(sub.expires_at);
-
-            const diffInDays = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-            if (Number.isFinite(diffInDays)) {
-              daysUntilExpiration = diffInDays;
-              isExpiringSoon = diffInDays <= 5 && diffInDays > 0;
-            } else {
-              console.warn("[Licença] Cálculo de tempo restante inválido:", {
-                expires_at: sub.expires_at,
-                now: now.toISOString(),
-                diffInDays,
-              });
-              daysUntilExpiration = null;
-              isExpiringSoon = false;
-            }
-          }
+          daysUntilExpiration = calculateDaysUntilExpiration(sub.expires_at);
+          isExpiringSoon = daysUntilExpiration !== null && daysUntilExpiration <= 5 && daysUntilExpiration > 0;
 
           setSubscription({
             expiresAt: sub.expires_at,

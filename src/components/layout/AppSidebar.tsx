@@ -10,10 +10,11 @@ import {
   Settings,
   LogOut,
   Shield,
+  MessageSquare,
   Wallet,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -49,13 +50,21 @@ const bottomItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
   const { user, logout } = useAuth();
   const { plan } = useUserPlan();
-  const { isAdmin } = useIsAdmin();
+  const { userRole } = useIsAdmin();
+  const hasAdminAccess = userRole === "admin" || user?.email === "lucianocarvalhoura@gmail.com";
 
-  const allBottomItems = isAdmin
-    ? [...bottomItems, { path: "/admin", label: "Admin", icon: Shield }]
+  useEffect(() => {
+    console.log("[Auth] Meu cargo atual:", userRole);
+  }, [userRole]);
+
+  const allBottomItems = hasAdminAccess
+    ? [
+        ...bottomItems,
+        { path: "/admin", label: "Admin", icon: Shield },
+        { path: "/admin/csat", label: "CSAT", icon: MessageSquare },
+      ]
     : bottomItems;
 
   const planLabel = plan.planType === "free" ? "Essencial" : plan.planType === "pro" ? "Pro" : "Premium";

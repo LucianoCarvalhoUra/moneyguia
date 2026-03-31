@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import LGPDTermsModal from "@/components/LGPDTermsModal";
+import CsatSurvey from "@/components/csat/CsatSurvey";
 import { supabase } from "@/integrations/supabase/client";
 
 interface LayoutProps {
@@ -90,6 +91,8 @@ export default function Layout({ children }: LayoutProps) {
       {!lgpdLoading && showLgpd && (
         <LGPDTermsModal onAccept={handleLgpdAccept} />
       )}
+
+      <CsatSurvey />
     </>
   );
 }

@@ -16,6 +16,7 @@ export default function SubscriptionCard() {
   const isExpired = subscription?.status === "expired" || (subscription?.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 0);
   const isExpiringSoon = subscription?.isExpiringSoon ?? false;
   const daysLeft = subscription?.daysUntilExpiration ?? null;
+  const isLifetime = daysLeft === null;
 
   const expiresFormatted = subscription?.expiresAt
     ? format(new Date(subscription.expiresAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
@@ -76,8 +77,8 @@ export default function SubscriptionCard() {
                   <span className="text-sm text-slate-300">Tempo restante</span>
                 </div>
                 <span className={`text-2xl font-bold tabular-nums ${statusColor}`}>
-                  {daysLeft !== null && daysLeft > 0 ? daysLeft : 0}
-                  <span className="text-sm font-normal text-slate-400 ml-1">dias</span>
+                  {isLifetime ? "Ilimitado" : daysLeft !== null && daysLeft > 0 ? daysLeft : 0}
+                  {!isLifetime && <span className="text-sm font-normal text-slate-400 ml-1">dias</span>}
                 </span>
               </div>
 

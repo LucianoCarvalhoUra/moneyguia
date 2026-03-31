@@ -72,6 +72,7 @@ export default function MySubscription() {
     subscription.daysUntilExpiration <= 0;
   const isExpiringSoon = subscription?.isExpiringSoon ?? false;
   const daysLeft = subscription?.daysUntilExpiration ?? null;
+  const isLifetime = daysLeft === null;
 
   const expiresFormatted = subscription?.expiresAt
     ? format(new Date(subscription.expiresAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
@@ -227,8 +228,8 @@ export default function MySubscription() {
                     <span className="text-sm text-slate-300">Tempo restante</span>
                   </div>
                   <span className={`text-3xl font-bold tabular-nums ${isExpired ? "text-red-400" : isExpiringSoon ? "text-amber-400" : "text-emerald-400"}`}>
-                    {daysLeft !== null && daysLeft > 0 ? daysLeft : 0}
-                    <span className="text-sm font-normal text-slate-400 ml-1">dias</span>
+                    {isLifetime ? "Vitalício" : daysLeft !== null && daysLeft > 0 ? daysLeft : 0}
+                    {!isLifetime && <span className="text-sm font-normal text-slate-400 ml-1">dias</span>}
                   </span>
                 </div>
 
