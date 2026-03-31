@@ -25,12 +25,14 @@ type ResponseItem = {
   comment: string | null;
   is_public: boolean;
   created_at: string;
+  csat_campaigns?: { name: string } | { name: string }[] | null;
 };
 
 export default function AdminCsat() {
   const [campaignName, setCampaignName] = useState("");
   const [campaignEndDate, setCampaignEndDate] = useState("");
   const [campaignIsActive, setCampaignIsActive] = useState(false);
+  const [campaignFilter, setCampaignFilter] = useState<"all" | "active" | "ended">("all");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [responses, setResponses] = useState<ResponseItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +47,37 @@ export default function AdminCsat() {
       return acc;
     }, {});
   }, [campaigns]);
+
+  const isCampaignEnded = (campaign: Campaign) => {
+    if (!campaign.end_date) return false;
+    const parsed = parseISO(campaign.end_date);
+    if (!isValid(parsed)) return false;
+    return parsed.getTime() < new Date().getTime();
+  };
+
+  const filteredCampaigns = useMemo(() => {
+    if (campaignFilter === "active") {
+      return campaigns.filter((campaign) => campaign.is_active);
+    }
+
+    if (campaignFilter === "ended") {
+      return campaigns.filter((campaign) => isCampaignEnded(campaign));
+    }
+
+    return campaigns;
+  }, [campaigns, campaignFilter]);
+
+  const filteredCampaignIds = useMemo(() => new Set(filteredCampaigns.map((campaign) => campaign.id)), [filteredCampaigns]);
+
+  const filteredResponses = useMemo(() => {
+    if (campaignFilter === "all") return responses;
+    return responses.filter((response) => filteredCampaignIds.has(response.campaign_id));
+  }, [responses, campaignFilter, filteredCampaignIds]);
+
+  const totalResponses = responses.length;
+  const averageRating = totalResponses > 0
+    ? responses.reduce((acc, response) => acc + Number(response.rating || 0), 0) / totalResponses
+    : 0;
 
   const formatCampaignEndDate = (endDate?: string) => {
     if (!endDate) return "Sem data de término";
@@ -72,7 +105,7 @@ export default function AdminCsat() {
 
       let responsesResult = await supabase
         .from("csat_responses")
-        .select("id, campaign_id, rating, comment, is_public, created_at")
+        .select("id, campaign_id, rating, comment, is_public, created_at, csat_campaigns(name)")
         .order("created_at", { ascending: false });
 
       if (responsesResult.error) {
@@ -304,14 +337,41 @@ export default function AdminCsat() {
           </div>
 
           <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant={campaignFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCampaignFilter("all")}
+              >
+                Todas
+              </Button>
+              <Button
+                type="button"
+                variant={campaignFilter === "active" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCampaignFilter("active")}
+              >
+                Ativas
+              </Button>
+              <Button
+                type="button"
+                variant={campaignFilter === "ended" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCampaignFilter("ended")}
+              >
+                Campanhas Encerradas
+              </Button>
+            </div>
+
             {loading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Carregando campanhas...
               </div>
-            ) : campaigns.length === 0 ? (
+            ) : filteredCampaigns.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhuma campanha cadastrada.</p>
             ) : (
-              campaigns.map((campaign) => (
+              filteredCampaigns.map((campaign) => (
                 <div key={campaign.id} className="flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="font-medium">{campaign.name}</p>
@@ -360,15 +420,33 @@ export default function AdminCsat() {
           <CardDescription>Visualize notas e comentários e publique os melhores depoimentos na Home.</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border p-4">
+              <p className="text-xs text-muted-foreground">Total de Respostas</p>
+              <p className="text-2xl font-bold">{totalResponses}</p>
+              <p className="text-xs text-muted-foreground">Somando todas as campanhas</p>
+            </div>
+            <div className="rounded-xl border p-4">
+              <p className="text-xs text-muted-foreground">Média de Satisfação</p>
+              <p className="text-2xl font-bold">{averageRating.toFixed(1)} / 5</p>
+              <p className="text-xs text-muted-foreground">Base global de avaliações</p>
+            </div>
+          </div>
+
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Carregando respostas...
             </div>
-          ) : responses.length === 0 ? (
+          ) : filteredResponses.length === 0 ? (
             <p className="text-sm text-muted-foreground">Ainda não existem respostas CSAT.</p>
           ) : (
             <div className="space-y-3">
-              {responses.map((response) => (
+              {filteredResponses.map((response) => {
+                const campaignNameFromJoin = Array.isArray(response.csat_campaigns)
+                  ? response.csat_campaigns[0]?.name
+                  : response.csat_campaigns?.name;
+
+                return (
                 <div key={response.id} className="rounded-xl border p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-1 text-amber-500">
@@ -381,7 +459,7 @@ export default function AdminCsat() {
                       <span className="ml-1 text-sm font-medium text-foreground">{response.rating}/5</span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Campanha: {campaignMap[response.campaign_id] || "N/A"}
+                      Campanha: {campaignNameFromJoin || campaignMap[response.campaign_id] || "N/A"}
                     </div>
                   </div>
 
@@ -405,7 +483,7 @@ export default function AdminCsat() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </CardContent>

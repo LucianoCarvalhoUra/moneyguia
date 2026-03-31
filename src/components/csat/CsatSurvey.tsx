@@ -8,7 +8,6 @@ import { Check, X } from "lucide-react";
 
 const CLOSE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const OPEN_DELAY_MS = 5000;
-const forceShow = true;
 
 const ratingOptions = [
   { value: 1, emoji: "😡", label: "Muito ruim" },
@@ -43,14 +42,6 @@ export default function CsatSurvey() {
     const loadCampaign = async () => {
       if (!user?.id || isRoleLoading) return;
 
-      if (forceShow) {
-        const forcedCampaign = { id: "force-csat-preview", name: "Teste Forçado CSAT" };
-        console.log("[CSAT Flow]", { campaign: forcedCampaign, userResponse: null, now: new Date() });
-        setActiveCampaign(forcedCampaign);
-        setOpen(true);
-        return;
-      }
-
       if (isAdmin) {
         setActiveCampaign(null);
         setOpen(false);
@@ -59,9 +50,11 @@ export default function CsatSurvey() {
 
       const { data, error } = await supabase
         .from("csat_campaigns")
-        .select("*")
+        .select("id, name")
         .eq("is_active", true)
-        .single();
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (error) {
         const noActiveCampaign = error.code === "PGRST116";
@@ -134,12 +127,6 @@ export default function CsatSurvey() {
   const handleSend = async () => {
     if (!activeCampaign || !rating || !user?.id) {
       toast.error("Selecione uma opção para continuar.");
-      return;
-    }
-
-    if (forceShow) {
-      toast.success("Modo de teste ativo: modal renderizado com sucesso.");
-      setOpen(false);
       return;
     }
 
