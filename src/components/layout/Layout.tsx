@@ -6,6 +6,7 @@ import LGPDTermsModal from "@/components/LGPDTermsModal";
 import CsatSurvey from "@/components/csat/CsatSurvey";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,60 +15,50 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const isMobile = useIsMobile();
   const location = useLocation();
+  const { user, isAuthenticated } = useAuth();
   const [showLgpd, setShowLgpd] = useState(false);
   const [lgpdLoading, setLgpdLoading] = useState(true);
   const shouldShowCsat = location.pathname.startsWith("/dashboard");
 
   const checkLgpdTerms = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      console.log('[Layout LGPD] Query executada para ID:', user?.id);
-      
-      if (!user) {
-        console.log('[Layout LGPD] No user, hiding modal');
+      if (!isAuthenticated || !user?.id) {
+        setShowLgpd(false);
         setLgpdLoading(false);
         return;
       }
 
-      // Usar user_id na consulta
       const { data, error } = await (supabase
         .from('profiles') as any)
-        .select('accepted_terms')
+        .select('lgpd_accepted_at')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      console.log('[Layout LGPD] Profile data:', data);
-      console.log('[Layout LGPD] Profile error:', error);
-      console.log('[Layout LGPD] accepted_terms value:', data?.accepted_terms);
+      if (error) {
+        throw error;
+      }
 
-      // Tratamento robusto: mostrar modal se não tem dados OU accepted_terms não é explicitamente true
-      const hasAcceptedTerms = data?.accepted_terms === true;
-      
-      console.log('[Layout LGPD] Has accepted terms:', hasAcceptedTerms);
+      const hasAcceptedLgpd = Boolean(data?.lgpd_accepted_at);
 
-      if (!hasAcceptedTerms) {
-        console.log('[Layout LGPD] Showing modal - terms NOT accepted');
+      if (!hasAcceptedLgpd) {
         setShowLgpd(true);
       } else {
-        console.log('[Layout LGPD] Hiding modal - terms already accepted');
         setShowLgpd(false);
       }
     } catch (err) {
-      console.error('[Layout LGPD] Exception checking terms:', err);
-      // Em caso de erro, mostrar modal como fallback
+      console.error('[LGPD Guard] Erro ao verificar aceite LGPD:', err);
       setShowLgpd(true);
     } finally {
       setLgpdLoading(false);
     }
-  }, []);
+  }, [isAuthenticated, user?.id]);
 
   useEffect(() => {
     checkLgpdTerms();
   }, [checkLgpdTerms]);
 
-  const handleLgpdAccept = () => {
-    console.log('[Layout LGPD] onAccept called - hiding modal');
+  const handleLgpdAccept = async () => {
+    await checkLgpdTerms();
     setShowLgpd(false);
   };
 

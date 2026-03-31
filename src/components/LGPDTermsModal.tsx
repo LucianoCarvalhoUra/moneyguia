@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Wallet, Shield, Check } from 'lucide-react';
+import { Wallet, Shield, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LGPDTermsModalProps {
@@ -37,55 +37,27 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
         return;
       }
 
-      console.log('[LGPD] Saving for user_id:', userId);
+      const acceptedAt = new Date().toISOString();
 
-      // Estratégia: UPDATE primeiro, depois INSERT
-      const updateData = {
-        accepted_terms: true,
-        terms_accepted_at: new Date().toISOString(),
-        terms_version: '1.0',
-      };
+      const { error: upsertError } = await (supabase.from('profiles') as any).upsert(
+        {
+          id: userId,
+          user_id: userId,
+          email: user.email || '',
+          name: user.user_metadata?.name || '',
+          accepted_terms: true,
+          terms_accepted_at: acceptedAt,
+          terms_version: '1.0',
+          lgpd_accepted_at: acceptedAt,
+        },
+        { onConflict: 'user_id' },
+      );
 
-      // 1. Tentar UPDATE por user_id
-      console.log('[LGPD] Trying UPDATE...');
-      const updateResult = await (supabase
-        .from('profiles') as any)
-        .update(updateData)
-        .eq('user_id', userId);
-
-      const { error: updateError, count } = updateResult;
-
-      console.log('[LGPD] UPDATE result:', { error: updateError, count });
-
-      if (updateError) {
-        console.error('[LGPD] UPDATE failed:', updateError);
-        
-        // 2. Se UPDATE falhar, tentar INSERT
-        console.log('[LGPD] Trying INSERT...');
-        const insertResult = await (supabase
-          .from('profiles') as any)
-          .insert({
-            id: userId,
-            user_id: userId,
-            accepted_terms: true,
-            terms_accepted_at: new Date().toISOString(),
-            terms_version: '1.0',
-            email: user.email || '',
-            name: user.user_metadata?.name || '',
-          });
-
-        const { error: insertError, data: insertData } = insertResult;
-        console.log('[LGPD] INSERT result:', { error: insertError, data: insertData });
-
-        if (insertError) {
-          console.error('[LGPD] INSERT failed:', insertError);
-          setError(`Erro ao salvar: ${insertError.message}`);
-          setIsSubmitting(false);
-          return;
-        }
+      if (upsertError) {
+        setError(`Erro ao salvar: ${upsertError.message}`);
+        setIsSubmitting(false);
+        return;
       }
-
-      console.log('[LGPD] Gravação bem sucedida para:', userId);
       
       // Fechar modal apenas após sucesso
       onAccept();
@@ -98,11 +70,11 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
-      <div className="w-full max-w-lg mx-4 bg-white rounded-3xl shadow-2xl overflow-hidden animate-scale-in">
-        <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 p-8 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="w-[90vw] max-w-lg rounded-3xl border border-white/40 bg-white/80 shadow-2xl backdrop-blur-lg animate-in fade-in-0 zoom-in-95 duration-300">
+        <div className="bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 p-8 text-center">
+          <div className="mb-4 flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20">
               <Shield className="w-10 h-10 text-white" />
             </div>
           </div>
@@ -177,13 +149,20 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
             onClick={handleAcceptTerms}
             disabled={!acceptedTerms || isSubmitting}
             className={cn(
-              "w-full h-12 text-base font-semibold rounded-full transition-all",
+              "w-full h-12 rounded-2xl text-base font-semibold transition-all",
               acceptedTerms && !isSubmitting
-                ? "bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200/50" 
+                ? "bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 text-white shadow-lg hover:brightness-110" 
                 : "bg-slate-200 text-slate-400 cursor-not-allowed"
             )}
           >
-            {isSubmitting ? "Salvando..." : "Continuar"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              'Li e Aceito'
+            )}
           </Button>
 
           <p className="text-center text-xs text-slate-400 mt-4">
