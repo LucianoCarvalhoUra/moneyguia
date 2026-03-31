@@ -16,6 +16,7 @@ import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserPlan } from "@/hooks/useUserPlan";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -45,17 +46,15 @@ const bottomItems = [
   { path: "/settings", label: "Configurações", icon: Settings },
 ];
 
-const MASTER_EMAIL = "lucianocarvalhoura@gmail.com";
-
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { user, logout } = useAuth();
   const { plan } = useUserPlan();
+  const { isAdmin } = useIsAdmin();
 
-  const isMaster = user?.email?.toLowerCase() === MASTER_EMAIL;
-  const allBottomItems = isMaster
+  const allBottomItems = isAdmin
     ? [...bottomItems, { path: "/admin", label: "Admin", icon: Shield }]
     : bottomItems;
 

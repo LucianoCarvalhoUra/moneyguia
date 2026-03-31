@@ -22,6 +22,7 @@ import ExpenseClassificationChart from '@/components/dashboard/ExpenseClassifica
 import MonthlyComparisonChart from '@/components/dashboard/MonthlyComparisonChart';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -33,6 +34,7 @@ export default function Dashboard() {
   const [formOpen, setFormOpen] = useState(false);
   const { subscription, plan } = useUserPlan();
   const { user } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useIsAdmin();
   const [showSubAlert, setShowSubAlert] = useState(true);
   const now = new Date();
   const getInitialPeriod = () => {
@@ -83,21 +85,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     const loadCsatWidget = async () => {
-      if (!user?.id) return;
+      if (!user?.id || isCheckingAdmin) return;
+
+      if (isAdmin) {
+        setShowCsatWidget(false);
+        return;
+      }
 
       try {
-        const adminRole = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
-
-        if (adminRole.data) {
-          setShowCsatWidget(false);
-          return;
-        }
-
         const activeCampaignResult = await supabase
           .from('csat_campaigns')
           .select('id, name')
@@ -133,7 +128,7 @@ export default function Dashboard() {
     };
 
     loadCsatWidget();
-  }, [user?.id]);
+  }, [user?.id, isAdmin, isCheckingAdmin]);
 
   const handleSendCsat = async () => {
     if (!user?.id || !activeCsatCampaign) return;
@@ -745,6 +740,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 

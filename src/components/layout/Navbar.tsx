@@ -20,6 +20,7 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useUserPlan } from "@/hooks/useUserPlan";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -33,16 +34,14 @@ const navItems = [
   { path: "/settings", label: "Configurações", icon: Settings },
 ];
 
-const MASTER_EMAIL = "lucianocarvalhoura@gmail.com";
-
 export default function Navbar() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { plan } = useUserPlan();
+  const { isAdmin } = useIsAdmin();
 
-  const isMaster = user?.email?.toLowerCase() === MASTER_EMAIL;
-  const allNavItems = isMaster
+  const allNavItems = isAdmin
     ? [...navItems, { path: "/admin", label: "Admin", icon: Shield }]
     : navItems;
 

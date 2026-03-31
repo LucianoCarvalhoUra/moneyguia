@@ -35,6 +35,7 @@ import {
   FileText,
   Bot,
   XCircle,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -62,6 +63,7 @@ export default function MySubscription() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
 
   const isFree = plan.planType === "free";
   const isExpired =
@@ -135,6 +137,33 @@ export default function MySubscription() {
       toast.error(err.message || "Erro ao cancelar assinatura");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (!user?.id) return;
+
+    const shouldDelete = confirm("Deseja ocultar/excluir este pagamento do seu histórico?");
+    if (!shouldDelete) return;
+
+    setDeletingPaymentId(paymentId);
+    try {
+      const { error } = await supabase
+        .from("payments")
+        .delete()
+        .eq("id", paymentId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setPayments((current) => current.filter((item) => item.id !== paymentId));
+      const { toast } = await import("sonner");
+      toast.success("Pagamento removido do histórico.");
+    } catch (err: any) {
+      const { toast } = await import("sonner");
+      toast.error(err.message || "Erro ao remover pagamento");
+    } finally {
+      setDeletingPaymentId(null);
     }
   };
 
@@ -365,6 +394,20 @@ export default function MySubscription() {
                       <span className="text-sm font-bold text-foreground tabular-nums">
                         R$ {payment.amount.toFixed(2).replace(".", ",")}
                       </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeletePayment(payment.id)}
+                        disabled={deletingPaymentId === payment.id}
+                        title="Ocultar/Excluir"
+                      >
+                        {deletingPaymentId === payment.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
                   </div>
                 );

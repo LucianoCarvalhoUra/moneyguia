@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,8 +10,6 @@ import { toast } from "sonner";
 import { Shield, Users, Search, Loader2, Crown, Check, Trash2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-
-const MASTER_EMAIL = "lucianocarvalhoura@gmail.com";
 
 interface UserInfo {
   user_id: string;
@@ -36,6 +35,7 @@ const planBadgeColors: Record<string, string> = {
 
 export default function Admin() {
   const { user } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useIsAdmin();
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [plans, setPlans] = useState<PlanOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,11 +43,9 @@ export default function Admin() {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
-  const isMaster = user?.email?.toLowerCase() === MASTER_EMAIL;
-
   useEffect(() => {
-    if (isMaster) loadUsers();
-  }, [isMaster]);
+    if (isAdmin) loadUsers();
+  }, [isAdmin]);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -100,7 +98,15 @@ export default function Admin() {
     }
   };
 
-  if (!isMaster) {
+  if (isCheckingAdmin) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -155,10 +161,10 @@ export default function Admin() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium truncate">{u.name || "Sem nome"}</p>
-                      {u.email?.toLowerCase() === MASTER_EMAIL && (
+                      {u.user_id === user?.id && (
                         <Badge variant="outline" className="text-xs border-primary text-primary">
                           <Crown className="w-3 h-3 mr-1" />
-                          Master
+                          Admin
                         </Badge>
                       )}
                     </div>
@@ -196,7 +202,7 @@ export default function Admin() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {u.email?.toLowerCase() !== MASTER_EMAIL && (
+                    {u.user_id !== user?.id && (
                       <Button
                         variant="ghost"
                         size="icon"
