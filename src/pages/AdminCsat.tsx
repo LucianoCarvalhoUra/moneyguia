@@ -30,6 +30,7 @@ type ResponseItem = {
 export default function AdminCsat() {
   const [campaignName, setCampaignName] = useState("");
   const [campaignEndDate, setCampaignEndDate] = useState("");
+  const [campaignIsActive, setCampaignIsActive] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [responses, setResponses] = useState<ResponseItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,11 +112,16 @@ export default function AdminCsat() {
       }
 
       // Envia apenas campos existentes na tabela csat_campaigns
+      if (campaignIsActive) {
+        const deactivateAll = await supabase.from("csat_campaigns").update({ is_active: false }).eq("is_active", true);
+        if (deactivateAll.error) throw deactivateAll.error;
+      }
+
       const campaignData = {
         name: campaignName.trim(),
         end_date: campaignEndDate,
         created_by: user.id,
-        is_active: false,
+        is_active: campaignIsActive,
       };
 
       console.log("[CSAT] Dados sendo enviados:", campaignData);
@@ -131,6 +137,7 @@ export default function AdminCsat() {
       toast.success("Campanha CSAT criada com sucesso.");
       setCampaignName("");
       setCampaignEndDate("");
+      setCampaignIsActive(false);
       await loadData();
     } catch (error: any) {
       toast.error(`Erro ao criar campanha: ${error.message}`);
@@ -223,31 +230,78 @@ export default function AdminCsat() {
           <CardDescription>Inicie novas campanhas e controle qual campanha está ativa.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <form onSubmit={handleCreateCampaign} className="grid gap-4 md:grid-cols-[1fr_220px_auto]">
-            <div className="space-y-2">
-              <Label htmlFor="campaign-name">Nome da campanha</Label>
-              <Input
-                id="campaign-name"
-                value={campaignName}
-                onChange={(e) => setCampaignName(e.target.value)}
-                placeholder="Ex.: Abril 2026"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="campaign-end">Data de término</Label>
-              <Input
-                id="campaign-end"
-                type="date"
-                value={campaignEndDate}
-                onChange={(e) => setCampaignEndDate(e.target.value)}
-              />
-            </div>
-            <div className="flex items-end">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <form onSubmit={handleCreateCampaign} className="space-y-4 rounded-xl border p-4">
+              <div className="space-y-2">
+                <Label htmlFor="campaign-name">Nome da campanha</Label>
+                <Input
+                  id="campaign-name"
+                  value={campaignName}
+                  onChange={(e) => setCampaignName(e.target.value)}
+                  placeholder="Ex.: Abril 2026"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="campaign-end">Data de término</Label>
+                <Input
+                  id="campaign-end"
+                  type="date"
+                  value={campaignEndDate}
+                  onChange={(e) => setCampaignEndDate(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="text-sm font-medium">Status inicial</p>
+                  <p className="text-xs text-muted-foreground">Ativar campanha assim que criar</p>
+                </div>
+                <Switch checked={campaignIsActive} onCheckedChange={setCampaignIsActive} />
+              </div>
               <Button type="submit" className="w-full" disabled={creatingCampaign}>
                 {creatingCampaign ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar campanha"}
               </Button>
+            </form>
+
+            <div className="rounded-xl border bg-slate-50 p-4">
+              <p className="mb-3 text-sm font-medium text-slate-700">Live Preview (Modal no Dashboard)</p>
+              <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-100 p-3">
+                <div className="w-full max-w-md rounded-3xl border border-white/40 bg-white/70 p-5 shadow-2xl backdrop-blur-xl">
+                  <div className="space-y-5">
+                    <div className="text-center">
+                      <h3 className="text-lg font-semibold text-slate-800">Pesquisa de satisfação</h3>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {campaignName.trim() ? `Campanha: ${campaignName.trim()}` : "Como você avalia sua experiência hoje?"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="mb-3 text-center text-sm font-medium text-slate-700">Como você avalia sua experiência hoje?</p>
+                      <div className="grid grid-cols-5 gap-2">
+                        {["😡", "🙁", "😐", "🙂", "😍"].map((emoji) => (
+                          <div key={emoji} className="rounded-2xl border border-slate-200 bg-white/70 p-2 text-center text-3xl transition-all duration-300 hover:-translate-y-2 hover:drop-shadow-[0_0_14px_rgba(16,185,129,0.45)]">
+                            {emoji}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white/80 p-3 text-sm text-slate-400">
+                      Quer nos contar o motivo? (Opcional)
+                    </div>
+
+                    <div className="rounded-2xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 px-4 py-2 text-center text-sm font-semibold text-white shadow-lg">
+                      Enviar avaliação
+                    </div>
+
+                    <div className="text-center text-xs text-slate-500">
+                      Status ao criar: {campaignIsActive ? "Ativa" : "Inativa"}
+                      {campaignEndDate ? ` • Encerra em ${format(new Date(`${campaignEndDate}T00:00:00`), "dd/MM/yyyy")}` : ""}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </form>
+          </div>
 
           <div className="space-y-3">
             {loading ? (

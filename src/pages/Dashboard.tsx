@@ -426,11 +426,11 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="w-full min-w-0 overflow-x-hidden space-y-8 transition-all duration-300">
       {/* Overdue Alert Banner */}
       {showOverdueAlert && totalOverdueCount > 0 && (
         <div 
-          className="flex cursor-pointer items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 shadow-sm transition-colors hover:bg-red-100 animate-in slide-in-from-top-2"
+          className="flex flex-wrap cursor-pointer items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 shadow-sm transition-colors hover:bg-red-100 animate-in slide-in-from-top-2"
           onClick={handleAlertClick}
         >
           <div className="flex items-center gap-3">
@@ -463,7 +463,7 @@ export default function Dashboard() {
 
       {/* Subscription Expiring Banner */}
       {showSubAlert && subscription && (subscription.isExpiringSoon || (subscription.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 0)) && (
-        <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 shadow-sm animate-in slide-in-from-top-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 shadow-sm animate-in slide-in-from-top-2">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-amber-100 p-2">
               <Clock className="w-5 h-5 text-amber-600" />
@@ -481,7 +481,7 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link to="/plans">
               <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700 text-xs font-semibold">
                 Renovar
@@ -565,7 +565,7 @@ export default function Dashboard() {
       </div>
 
       {/* Balance Cards */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <Card className={projectedBalance >= 0 ? 'order-2 border-slate-200 bg-white' : 'order-2 border-red-200 bg-white'}>
           <CardContent className="p-7">
             <div className="flex items-center gap-4">
@@ -766,6 +766,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 

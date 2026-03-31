@@ -92,13 +92,13 @@ export default function SubscriptionCard() {
         {!isFree && subscription && (
           <div className="px-6 pb-5 space-y-4">
             {/* Days remaining */}
-            <div className="rounded-xl bg-white/5 backdrop-blur p-4 space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="w-full rounded-xl bg-white/5 backdrop-blur p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-slate-400" />
                   <span className="text-sm text-slate-300">Tempo restante</span>
                 </div>
-                <span className={`text-2xl font-bold tabular-nums ${statusColor}`}>
+                <span className={`text-2xl font-bold tabular-nums break-words ${statusColor}`}>
                   {isPending
                     ? "Assinatura Pendente"
                     : daysLeft !== null && daysLeft > 0
@@ -119,7 +119,7 @@ export default function SubscriptionCard() {
 
               {/* Expiry date */}
               {expiresFormatted && (
-                <div className="flex items-center gap-2 text-xs text-slate-400">
+                <div className="flex w-full flex-wrap items-center gap-2 text-xs text-slate-400">
                   <CalendarDays className="h-3.5 w-3.5" />
                   <span>
                     Próxima cobrança: {format(new Date(subscription!.expiresAt!), "dd/MM/yyyy", { locale: ptBR })}
@@ -128,7 +128,7 @@ export default function SubscriptionCard() {
               )}
 
               {!expiresFormatted && (
-                <div className="flex items-center gap-2 text-xs text-slate-400">
+                <div className="flex w-full flex-wrap items-center gap-2 text-xs text-slate-400">
                   <CalendarDays className="h-3.5 w-3.5" />
                   <span>Assinatura pendente</span>
                 </div>
