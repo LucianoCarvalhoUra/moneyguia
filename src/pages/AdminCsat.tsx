@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AlertTriangle, Loader2, Megaphone, MessageSquare, Star, Trash2 } from "lucide-react";
@@ -529,7 +529,13 @@ export default function AdminCsat() {
       </Card>
 
       <Dialog open={Boolean(deleteModalCampaign)} onOpenChange={(open) => !open && setDeleteModalCampaign(null)}>
-        <DialogContent className="max-w-md rounded-2xl border-0 bg-white/90 p-0 backdrop-blur-xl dark:bg-slate-900/90">
+        <DialogContent className="max-w-md rounded-3xl border border-white/40 bg-white/80 p-0 shadow-2xl shadow-violet-500/20 backdrop-blur-xl dark:bg-slate-900/90">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Excluir Campanha</DialogTitle>
+            <DialogDescription>
+              Confirmação para excluir campanha CSAT permanentemente.
+            </DialogDescription>
+          </DialogHeader>
           <div className="fixed inset-0 -z-10 bg-black/40 backdrop-blur-sm" />
           <div className="space-y-5 p-6">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-500/15 text-red-500">
@@ -556,7 +562,7 @@ export default function AdminCsat() {
               </Button>
               <Button
                 type="button"
-                className="flex-1 bg-red-600 text-white shadow-lg shadow-red-600/25 hover:bg-red-500 hover:shadow-red-500/35"
+                className="flex-1 bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 text-white shadow-lg shadow-violet-500/35 hover:brightness-110"
                 onClick={handleDeleteCampaign}
                 disabled={Boolean(deletingCampaignId)}
               >

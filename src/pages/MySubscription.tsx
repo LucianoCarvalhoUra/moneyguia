@@ -514,8 +514,8 @@ export default function MySubscription() {
       <AlertDialog open={deletePaymentModalOpen} onOpenChange={setDeletePaymentModalOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" />
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
               Excluir Registro de Pagamento?
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -527,7 +527,7 @@ export default function MySubscription() {
             <AlertDialogAction
               onClick={() => paymentToDelete && handleDeletePayment(paymentToDelete.id)}
               disabled={!paymentToDelete || Boolean(deletingPaymentId)}
-              className="bg-red-600 text-white shadow-[0_0_24px_rgba(239,68,68,0.45)] hover:bg-red-700"
+              className="bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-600 text-white shadow-lg shadow-violet-500/30 hover:brightness-110"
             >
               {deletingPaymentId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Sim, Excluir

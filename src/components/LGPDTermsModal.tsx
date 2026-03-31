@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Wallet, Shield, Check, Loader2 } from 'lucide-react';
+import { Wallet, Shield, ShieldCheck, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LGPDTermsModalProps {
@@ -71,7 +71,8 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <div className="w-[90vw] max-w-lg rounded-3xl border border-white/40 bg-white/80 shadow-2xl backdrop-blur-lg animate-in fade-in-0 zoom-in-95 duration-300">
+      <div className="relative w-[90vw] max-w-lg overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-2xl shadow-violet-500/20 backdrop-blur-lg animate-in fade-in-0 zoom-in-95 duration-300">
+        <ShieldCheck className="pointer-events-none absolute -bottom-8 -right-6 h-40 w-40 text-violet-400/15" />
         <div className="bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 p-8 text-center">
           <div className="mb-4 flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20">
