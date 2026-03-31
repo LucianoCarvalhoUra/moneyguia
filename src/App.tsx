@@ -3,8 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { FinanceProvider } from "@/contexts/FinanceContext";
 import { IncomeProvider } from "@/contexts/IncomeContext";
 import { GoalsProvider } from "@/contexts/GoalsContext";
@@ -26,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import MySubscription from "./pages/MySubscription";
 import Admin from "./pages/Admin";
+import AdminCsat from "@/pages/AdminCsat";
 import { APP_VERSION } from "@/config/version";
 
 const queryClient = new QueryClient();
@@ -84,11 +86,79 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [isCheckingRole, setIsCheckingRole] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const checkAdminRole = async () => {
+      if (!user?.id) {
+        if (mounted) {
+          setIsAdmin(false);
+          setIsCheckingRole(false);
+        }
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (mounted) {
+          setIsAdmin(Boolean(data));
+        }
+      } catch {
+        if (mounted) {
+          setIsAdmin(false);
+        }
+      } finally {
+        if (mounted) {
+          setIsCheckingRole(false);
+        }
+      }
+    };
+
+    checkAdminRole();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
+
+  if (isLoading || isCheckingRole) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-10">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+          Carregando permissões...
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Layout>{children}</Layout>;
+}
+
 const AppRoutes = () => (
   <Routes>
     <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
     <Route path="/login" element={<AuthRoute><Auth /></AuthRoute>} />
     <Route path="/" element={<LandingPage />} />
+    <Route path="/home" element={<LandingPage />} />
     <Route path="/planos" element={<Planos />} />
     <Route path="/plans" element={<Plans />} />
     <Route path="/checkout" element={<Checkout />} />
@@ -102,6 +172,7 @@ const AppRoutes = () => (
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="/subscription" element={<ProtectedRoute><MySubscription /></ProtectedRoute>} />
     <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+    <Route path="/admin/csat" element={<AdminRoute><AdminCsat /></AdminRoute>} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="*" element={<NotFound />} />
   </Routes>

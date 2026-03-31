@@ -104,6 +104,77 @@ export type Database = {
         }
         Relationships: []
       }
+      csat_campaigns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      csat_responses: {
+        Row: {
+          campaign_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          is_public: boolean
+          rating: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          campaign_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          rating: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          rating?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "csat_responses_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "csat_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           account_id: string | null

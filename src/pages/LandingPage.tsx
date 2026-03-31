@@ -1,10 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, ShieldCheck, TrendingUp, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck, TrendingUp, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import PublicHeader from "@/components/layout/PublicHeader";
 import PublicFooter from "@/components/layout/PublicFooter";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const features = [
   {
@@ -27,6 +28,8 @@ const features = [
 export default function LandingPage() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [testimonials, setTestimonials] = useState<Array<{ id: string; rating: number; comment: string | null }>>([]);
+  const [loadingTestimonials, setLoadingTestimonials] = useState(true);
 
   // Auto-login: redireciona usuário logado para o Dashboard
   useEffect(() => {
@@ -46,6 +49,28 @@ export default function LandingPage() {
         }, 100);
       }
     }
+  }, []);
+
+  useEffect(() => {
+    const loadTestimonials = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("csat_responses")
+          .select("id, rating, comment")
+          .eq("is_public", true)
+          .order("created_at", { ascending: false })
+          .limit(8);
+
+        if (error) throw error;
+        setTestimonials((data as Array<{ id: string; rating: number; comment: string | null }>) || []);
+      } catch {
+        setTestimonials([]);
+      } finally {
+        setLoadingTestimonials(false);
+      }
+    };
+
+    loadTestimonials();
   }, []);
   
   // Se estiver carregando ou usuário logado, não renderiza o conteúdo principal
@@ -159,6 +184,41 @@ export default function LandingPage() {
                 Um sistema moderno, com excelente legibilidade, pronto para apoiar sua estratégia financeira.
               </p>
             </div>
+          </div>
+        </section>
+
+        <section id="depoimentos" className="pb-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <p className="text-sm font-semibold uppercase tracking-widest text-[#059669]">Depoimentos</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#1e293b] md:text-4xl">
+                O que nossos usuários dizem
+              </h2>
+            </div>
+
+            {loadingTestimonials ? (
+              <p className="mt-8 text-center text-sm text-[#64748b]">Carregando depoimentos...</p>
+            ) : testimonials.length === 0 ? (
+              <p className="mt-8 text-center text-sm text-[#64748b]">Ainda não há depoimentos públicos.</p>
+            ) : (
+              <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {testimonials.map((testimonial) => (
+                  <article key={testimonial.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="mb-3 flex items-center gap-1 text-amber-500">
+                      {Array.from({ length: 5 }).map((_, index) => (
+                        <Star
+                          key={index}
+                          className={`h-4 w-4 ${index < testimonial.rating ? "fill-amber-400 text-amber-500" : "text-slate-300"}`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-sm leading-relaxed text-[#334155]">
+                      {testimonial.comment || "Usuário avaliou positivamente sua experiência no MoneyGuia."}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </main>
