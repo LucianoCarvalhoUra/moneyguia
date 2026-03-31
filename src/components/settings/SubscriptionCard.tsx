@@ -38,7 +38,6 @@ export default function SubscriptionCard() {
       ? 0
       : Math.min(Math.max((progresso / total) * 100, 0), 100);
 
-    console.log("[Barra] Início:", subscription?.startsAt, "Fim:", subscription?.expiresAt, "Percentual:", percentual);
     return percentual;
   })();
 
