@@ -472,7 +472,7 @@ export default function Dashboard() {
               <p className="font-bold text-amber-800">
                 {subscription.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 0
                   ? 'Sua assinatura expirou!'
-                  : `Sua assinatura expira em ${subscription.daysUntilExpiration} dia(s)`}
+                  : `Restam ${subscription.daysUntilExpiration} dias`}
               </p>
               <p className="text-xs text-amber-600">
                 {subscription.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 0
@@ -766,6 +766,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 

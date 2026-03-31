@@ -1,3 +1,5 @@
+// @ts-nocheck
+// @ts-ignore - Edge Function usa import remoto no runtime Deno
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -8,7 +10,7 @@ const corsHeaders = {
 
 const MASTER_EMAIL = "lucianocarvalhoura@gmail.com";
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -76,6 +78,8 @@ Deno.serve(async (req) => {
         current_plan_type: subsMap[p.user_id]?.subscription_plans?.plan_type || "free",
         current_plan_name: subsMap[p.user_id]?.subscription_plans?.name || "Gratuito",
         subscription_status: subsMap[p.user_id]?.status || null,
+        current_billing_cycle: subsMap[p.user_id]?.billing_cycle || null,
+        current_expires_at: subsMap[p.user_id]?.expires_at || null,
       }));
 
       return new Response(JSON.stringify({ users, plans }), {
@@ -84,12 +88,27 @@ Deno.serve(async (req) => {
     }
 
     if (action === "update_user_plan") {
-      const { user_id, plan_id } = body;
-      if (!user_id || !plan_id) {
-        return new Response(JSON.stringify({ error: "user_id e plan_id são obrigatórios" }), {
+      const { user_id, plan_id, billing_cycle } = body;
+      if (!user_id || !plan_id || !billing_cycle) {
+        return new Response(JSON.stringify({ error: "user_id, plan_id e billing_cycle são obrigatórios" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      if (!["monthly", "yearly"].includes(billing_cycle)) {
+        return new Response(JSON.stringify({ error: "billing_cycle inválido" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const now = new Date();
+      const expiresAt = new Date(now);
+      if (billing_cycle === "yearly") {
+        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      } else {
+        expiresAt.setMonth(expiresAt.getMonth() + 1);
       }
 
       // Upsert subscription
@@ -99,10 +118,10 @@ Deno.serve(async (req) => {
           {
             user_id,
             plan_id,
-            billing_cycle: "monthly",
+            billing_cycle,
             status: "active",
-            starts_at: new Date().toISOString(),
-            expires_at: null,
+            starts_at: now.toISOString(),
+            expires_at: expiresAt.toISOString(),
           },
           { onConflict: "user_id" }
         );

@@ -12,7 +12,7 @@ import { Loader2, Megaphone, MessageSquare, Star } from "lucide-react";
 type Campaign = {
   id: string;
   name: string;
-  end_date: string;
+  end_date?: string;
   is_active: boolean;
   created_at: string;
 };
@@ -46,23 +46,33 @@ export default function AdminCsat() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [campaignsResult, responsesResult] = await Promise.all([
-        supabase
-          .from("csat_campaigns")
-          .select("id, name, end_date, is_active, created_at")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("csat_responses")
-          .select("id, campaign_id, rating, comment, is_public, created_at")
-          .order("created_at", { ascending: false }),
-      ]);
+      const campaignsResult = await supabase
+        .from("csat_campaigns")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-      if (campaignsResult.error) throw campaignsResult.error;
-      if (responsesResult.error) throw responsesResult.error;
+      if (campaignsResult.error) {
+        console.error("[CSAT Error]", campaignsResult.error?.message, campaignsResult.error?.details);
+        setCampaigns([]);
+        toast.error(`Erro ao carregar campanhas CSAT: ${campaignsResult.error.message}`);
+      } else {
+        setCampaigns((campaignsResult.data as Campaign[]) || []);
+      }
 
-      setCampaigns((campaignsResult.data as Campaign[]) || []);
-      setResponses((responsesResult.data as ResponseItem[]) || []);
+      const responsesResult = await supabase
+        .from("csat_responses")
+        .select("id, campaign_id, rating, comment, is_public, created_at")
+        .order("created_at", { ascending: false });
+
+      if (responsesResult.error) {
+        console.error("[CSAT Error]", responsesResult.error?.message, responsesResult.error?.details);
+        setResponses([]);
+        toast.error(`Erro ao carregar respostas CSAT: ${responsesResult.error.message}`);
+      } else {
+        setResponses((responsesResult.data as ResponseItem[]) || []);
+      }
     } catch (error: any) {
+      console.error("[CSAT Error]", error?.message, error?.details);
       toast.error(`Erro ao carregar CSAT: ${error.message}`);
     } finally {
       setLoading(false);
@@ -87,14 +97,27 @@ export default function AdminCsat() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      const { error } = await supabase.from("csat_campaigns").insert({
+      if (!user?.id) {
+        throw new Error("Usuário autenticado não encontrado para created_by.");
+      }
+
+      // Envia apenas campos existentes na tabela csat_campaigns
+      const campaignData = {
         name: campaignName.trim(),
         end_date: campaignEndDate,
-        created_by: user?.id ?? null,
+        created_by: user.id,
         is_active: false,
-      });
+      };
 
-      if (error) throw error;
+      console.log("[CSAT] Dados sendo enviados:", campaignData);
+
+      try {
+        const { error } = await supabase.from("csat_campaigns").insert(campaignData);
+        if (error) throw error;
+      } catch (error: any) {
+        console.error("[CSAT Error]", error?.message, error?.details);
+        throw error;
+      }
 
       toast.success("Campanha CSAT criada com sucesso.");
       setCampaignName("");
@@ -213,7 +236,9 @@ export default function AdminCsat() {
                   <div>
                     <p className="font-medium">{campaign.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      Termina em {new Date(campaign.end_date + "T00:00:00").toLocaleDateString("pt-BR")}
+                      {campaign.end_date
+                        ? `Termina em ${new Date(campaign.end_date + "T00:00:00").toLocaleDateString("pt-BR")}`
+                        : "Sem data de término"}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">

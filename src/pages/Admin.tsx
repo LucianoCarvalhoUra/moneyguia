@@ -6,10 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Shield, Users, Search, Loader2, Crown, Check, Trash2 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface UserInfo {
   user_id: string;
@@ -19,6 +22,8 @@ interface UserInfo {
   current_plan_type: string;
   current_plan_name: string;
   subscription_status: string | null;
+  current_billing_cycle: string | null;
+  current_expires_at: string | null;
 }
 
 interface PlanOption {
@@ -42,6 +47,9 @@ export default function Admin() {
   const [search, setSearch] = useState("");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [selectedBillingCycle, setSelectedBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
   useEffect(() => {
     if (isAdmin) loadUsers();
@@ -63,18 +71,32 @@ export default function Admin() {
     }
   };
 
-  const handleChangePlan = async (userId: string, planId: string) => {
-    setUpdatingUserId(userId);
+  const paidPlans = plans.filter((p) => p.plan_type === "pro" || p.plan_type === "premium");
+
+  const selectedUser = users.find((u) => u.user_id === selectedUserId) || null;
+
+  const handleSaveSubscription = async () => {
+    if (!selectedUserId || !selectedPlanId || !selectedBillingCycle) {
+      toast.error("Selecione usuário, plano e período.");
+      return;
+    }
+
+    setUpdatingUserId(selectedUserId);
     try {
       const { data, error } = await supabase.functions.invoke("admin-users", {
-        body: { action: "update_user_plan", user_id: userId, plan_id: planId },
+        body: {
+          action: "update_user_plan",
+          user_id: selectedUserId,
+          plan_id: selectedPlanId,
+          billing_cycle: selectedBillingCycle,
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success("Plano atualizado com sucesso!");
+      toast.success("Licença atualizada com sucesso!");
       await loadUsers();
     } catch (err: any) {
-      toast.error("Erro ao atualizar plano: " + err.message);
+      toast.error("Erro ao atualizar licença: " + err.message);
     } finally {
       setUpdatingUserId(null);
     }
@@ -128,11 +150,78 @@ export default function Admin() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Gestão de Licenças</CardTitle>
+          <CardDescription>
+            Defina plano (PRO/PREMIUM) e período (mensal/anual). O vencimento será calculado automaticamente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <Label>Usuário</Label>
+            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um usuário" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((u) => (
+                  <SelectItem key={u.user_id} value={u.user_id}>
+                    {(u.name || "Sem nome") + " — " + u.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Plano</Label>
+            <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o plano" />
+              </SelectTrigger>
+              <SelectContent>
+                {paidPlans.map((plan) => (
+                  <SelectItem key={plan.id} value={plan.id}>
+                    {plan.plan_type.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Período</Label>
+            <Select value={selectedBillingCycle} onValueChange={(value) => setSelectedBillingCycle(value as "monthly" | "yearly")}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Mensal</SelectItem>
+                <SelectItem value="yearly">Anual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="md:col-span-2 flex items-center justify-between rounded-lg border p-3 text-sm">
+            <div>
+              <p className="font-medium">Cliente selecionado</p>
+              <p className="text-muted-foreground">
+                {selectedUser ? `${selectedUser.name || "Sem nome"} • ${selectedUser.email}` : "Nenhum cliente selecionado"}
+              </p>
+            </div>
+            <Button onClick={handleSaveSubscription} disabled={updatingUserId === selectedUserId || !selectedUserId || !selectedPlanId}>
+              {updatingUserId === selectedUserId ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />
             Usuários Cadastrados ({users.length})
           </CardTitle>
-          <CardDescription>Altere o plano de qualquer usuário</CardDescription>
+          <CardDescription>Visualize planos, ciclo e vencimento</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="relative">
@@ -177,31 +266,14 @@ export default function Admin() {
                   </div>
 
                   <div className="flex items-center gap-2 sm:min-w-[280px]">
-                    <Select
-                      value={plans.find((p) => p.plan_type === u.current_plan_type)?.id || ""}
-                      onValueChange={(planId) => handleChangePlan(u.user_id, planId)}
-                      disabled={updatingUserId === u.user_id}
-                    >
-                      <SelectTrigger className="w-full">
-                        {updatingUserId === u.user_id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <SelectValue placeholder="Alterar plano" />
-                        )}
-                      </SelectTrigger>
-                      <SelectContent>
-                        {plans.map((plan) => (
-                          <SelectItem key={plan.id} value={plan.id}>
-                            <div className="flex items-center gap-2">
-                              {plan.plan_type === u.current_plan_type && (
-                                <Check className="w-3 h-3 text-primary" />
-                              )}
-                              {plan.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="text-right text-xs text-muted-foreground min-w-[170px]">
+                      <p>
+                        {u.current_plan_type?.toUpperCase() || "FREE"} {u.current_billing_cycle === "yearly" ? "Anual" : u.current_billing_cycle === "monthly" ? "Mensal" : "-"}
+                      </p>
+                      <p>
+                        {u.current_expires_at ? `Expira em ${format(new Date(u.current_expires_at), "dd/MM/yyyy", { locale: ptBR })}` : "Sem vencimento"}
+                      </p>
+                    </div>
                     {u.user_id !== user?.id && (
                       <Button
                         variant="ghost"

@@ -13,34 +13,53 @@ export default function SubscriptionCard() {
   if (isLoading) return null;
 
   const isFree = plan.planType === "free";
+  const expiresDate = subscription?.expiresAt ? new Date(subscription.expiresAt) : null;
+  const startsDate = subscription?.startsAt ? new Date(subscription.startsAt) : null;
+  const hasValidExpiration = Boolean(expiresDate && !Number.isNaN(expiresDate.getTime()));
+  const diasRestantes = hasValidExpiration
+    ? Math.ceil((expiresDate!.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null;
   const isExpired = subscription?.status === "expired" || (subscription?.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 0);
+  const isPending = !hasValidExpiration && !isExpired;
   const isExpiringSoon = subscription?.isExpiringSoon ?? false;
-  const daysLeft = subscription?.daysUntilExpiration ?? null;
-  const isLifetime = daysLeft === null;
+  const daysLeft = diasRestantes;
 
   const expiresFormatted = subscription?.expiresAt
     ? format(new Date(subscription.expiresAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     : null;
 
   // Progress bar percentage (30 day cycle)
-  const progressPercent = daysLeft !== null && daysLeft > 0
-    ? Math.max(0, Math.min(100, (daysLeft / 30) * 100))
-    : 0;
+  const progressPercent = (() => {
+    if (!startsDate || !expiresDate) return 0;
+    const startMs = startsDate.getTime();
+    const endMs = expiresDate.getTime();
+    const nowMs = new Date().getTime();
+    const total = endMs - startMs;
+    if (!Number.isFinite(total) || total <= 0) return 0;
+    const elapsed = nowMs - startMs;
+    return Math.max(0, Math.min(100, (elapsed / total) * 100));
+  })();
 
   const statusColor = isExpired
     ? "text-destructive"
+    : isPending
+      ? "text-slate-300"
     : isExpiringSoon
       ? "text-amber-500"
       : "text-emerald-500";
 
   const statusBg = isExpired
     ? "bg-destructive/10"
+    : isPending
+      ? "bg-slate-500/10"
     : isExpiringSoon
       ? "bg-amber-500/10"
       : "bg-emerald-500/10";
 
   const barColor = isExpired
     ? "bg-destructive"
+    : isPending
+      ? "bg-slate-500"
     : isExpiringSoon
       ? "bg-amber-500"
       : "bg-emerald-500";
@@ -62,7 +81,7 @@ export default function SubscriptionCard() {
           <Badge
             className={`${statusBg} ${statusColor} border-0 font-semibold text-xs px-3 py-1`}
           >
-            {isExpired ? "Expirado" : isExpiringSoon ? "Expirando" : isFree ? "Ativo" : "Ativo"}
+            {isExpired ? "Expirado" : isPending ? "Pendente" : isExpiringSoon ? "Expirando" : isFree ? "Ativo" : "Ativo"}
           </Badge>
         </div>
 
@@ -77,8 +96,7 @@ export default function SubscriptionCard() {
                   <span className="text-sm text-slate-300">Tempo restante</span>
                 </div>
                 <span className={`text-2xl font-bold tabular-nums ${statusColor}`}>
-                  {isLifetime ? "Ilimitado" : daysLeft !== null && daysLeft > 0 ? daysLeft : 0}
-                  {!isLifetime && <span className="text-sm font-normal text-slate-400 ml-1">dias</span>}
+                  {isPending ? "Assinatura Pendente" : daysLeft !== null && daysLeft > 0 ? `Restam ${daysLeft} dias` : "Assinatura Expirada"}
                 </span>
               </div>
 
@@ -95,9 +113,16 @@ export default function SubscriptionCard() {
                 <div className="flex items-center gap-2 text-xs text-slate-400">
                   <CalendarDays className="h-3.5 w-3.5" />
                   <span>
-                    {isExpired ? "Expirou em " : "Expira em "}
-                    {expiresFormatted}
+                    {isExpired ? "Sua licença expirou em " : "Sua licença expira em "}
+                    {format(new Date(subscription!.expiresAt!), "dd/MM/yyyy", { locale: ptBR })}
                   </span>
+                </div>
+              )}
+
+              {!expiresFormatted && (
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  <span>Assinatura pendente</span>
                 </div>
               )}
             </div>
@@ -130,7 +155,7 @@ export default function SubscriptionCard() {
             {/* Billing cycle */}
             <div className="flex items-center gap-2 text-xs text-slate-400">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>Ciclo {subscription.billingCycle === "yearly" ? "anual" : "mensal"}</span>
+              <span>{plan.planType.toUpperCase()} {subscription.billingCycle === "yearly" ? "Anual" : "Mensal"}</span>
             </div>
           </div>
         )}

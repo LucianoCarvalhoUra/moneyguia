@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export type PlanType = "free" | "pro" | "premium";
 
 export interface SubscriptionInfo {
+  startsAt: string | null;
   expiresAt: string | null;
   billingCycle: string;
   status: string;
@@ -104,6 +105,8 @@ export function useUserPlan() {
         if (sub?.subscription_plans) {
           const sp = sub.subscription_plans as any;
 
+          console.log("[Assinatura] Expira em:", sub.expires_at);
+
           // Check if subscription has expired
           let daysUntilExpiration: number | null = null;
           let isExpiringSoon = false;
@@ -113,6 +116,7 @@ export function useUserPlan() {
           isExpiringSoon = daysUntilExpiration !== null && daysUntilExpiration <= 5 && daysUntilExpiration > 0;
 
           setSubscription({
+            startsAt: sub.starts_at ?? null,
             expiresAt: sub.expires_at,
             billingCycle: sub.billing_cycle,
             status: sub.status,

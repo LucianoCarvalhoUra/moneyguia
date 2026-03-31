@@ -71,17 +71,28 @@ export default function MySubscription() {
     subscription?.daysUntilExpiration !== undefined &&
     subscription.daysUntilExpiration <= 0;
   const isExpiringSoon = subscription?.isExpiringSoon ?? false;
-  const daysLeft = subscription?.daysUntilExpiration ?? null;
-  const isLifetime = daysLeft === null;
+  const expiresDate = subscription?.expiresAt ? new Date(subscription.expiresAt) : null;
+  const startsDate = subscription?.startsAt ? new Date(subscription.startsAt) : null;
+  const hasValidExpiration = Boolean(expiresDate && !Number.isNaN(expiresDate.getTime()));
+  const diasRestantes = hasValidExpiration
+    ? Math.ceil((expiresDate!.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const isPending = !hasValidExpiration;
 
   const expiresFormatted = subscription?.expiresAt
     ? format(new Date(subscription.expiresAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     : null;
 
-  const progressPercent =
-    daysLeft !== null && daysLeft > 0
-      ? Math.max(0, Math.min(100, (daysLeft / (subscription?.billingCycle === "yearly" ? 365 : 30)) * 100))
-      : 0;
+  const progressPercent = (() => {
+    if (!startsDate || !expiresDate) return 0;
+    const startMs = startsDate.getTime();
+    const endMs = expiresDate.getTime();
+    const nowMs = new Date().getTime();
+    const total = endMs - startMs;
+    if (!Number.isFinite(total) || total <= 0) return 0;
+    const elapsed = nowMs - startMs;
+    return Math.max(0, Math.min(100, (elapsed / total) * 100));
+  })();
 
   const barColor = isExpired
     ? "bg-red-500"
@@ -228,8 +239,7 @@ export default function MySubscription() {
                     <span className="text-sm text-slate-300">Tempo restante</span>
                   </div>
                   <span className={`text-3xl font-bold tabular-nums ${isExpired ? "text-red-400" : isExpiringSoon ? "text-amber-400" : "text-emerald-400"}`}>
-                    {isLifetime ? "Vitalício" : daysLeft !== null && daysLeft > 0 ? daysLeft : 0}
-                    {!isLifetime && <span className="text-sm font-normal text-slate-400 ml-1">dias</span>}
+                    {isPending ? "Assinatura Pendente" : diasRestantes !== null && diasRestantes > 0 ? `Restam ${diasRestantes} dias` : "Assinatura Expirada"}
                   </span>
                 </div>
 
@@ -249,7 +259,7 @@ export default function MySubscription() {
                   )}
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    <span>Ciclo {subscription.billingCycle === "yearly" ? "anual" : "mensal"}</span>
+                    <span>{plan.planType.toUpperCase()} {subscription.billingCycle === "yearly" ? "Anual" : "Mensal"}</span>
                   </div>
                 </div>
               </div>
