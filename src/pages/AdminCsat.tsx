@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Megaphone, MessageSquare, Star, Trash2 } from "lucide-react";
+import { AlertTriangle, Loader2, Megaphone, MessageSquare, Star, Trash2 } from "lucide-react";
 import { format, isValid, parseISO } from "date-fns";
 
 type Campaign = {
@@ -42,6 +43,7 @@ export default function AdminCsat() {
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [togglingCampaignId, setTogglingCampaignId] = useState<string | null>(null);
   const [deletingCampaignId, setDeletingCampaignId] = useState<string | null>(null);
+  const [deleteModalCampaign, setDeleteModalCampaign] = useState<Campaign | null>(null);
   const [togglingPublicId, setTogglingPublicId] = useState<string | null>(null);
 
   const campaignMap = useMemo(() => {
@@ -220,15 +222,17 @@ export default function AdminCsat() {
     }
   };
 
-  const handleDeleteCampaign = async (campaignId: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta campanha permanentemente?")) return;
-    
+  const handleDeleteCampaign = async () => {
+    if (!deleteModalCampaign?.id) return;
+
+    const campaignId = deleteModalCampaign.id;
     setDeletingCampaignId(campaignId);
     try {
       const { error } = await supabase.from("csat_campaigns").delete().eq("id", campaignId);
       if (error) throw error;
-      
-      toast.success("Campanha excluída com sucesso.");
+
+      toast.success("Campanha removida com sucesso!");
+      setDeleteModalCampaign(null);
       await loadData();
     } catch (error: any) {
       toast.error(`Erro ao excluir campanha: ${error.message}`);
@@ -409,7 +413,7 @@ export default function AdminCsat() {
                       variant="ghost"
                       size="icon"
                       className="text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteCampaign(campaign.id)}
+                      onClick={() => setDeleteModalCampaign(campaign)}
                       disabled={deletingCampaignId === campaign.id}
                     >
                       {deletingCampaignId === campaign.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -523,6 +527,52 @@ export default function AdminCsat() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={Boolean(deleteModalCampaign)} onOpenChange={(open) => !open && setDeleteModalCampaign(null)}>
+        <DialogContent className="max-w-md rounded-2xl border-0 bg-white/90 p-0 backdrop-blur-xl dark:bg-slate-900/90">
+          <div className="fixed inset-0 -z-10 bg-black/40 backdrop-blur-sm" />
+          <div className="space-y-5 p-6">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-500/15 text-red-500">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+
+            <div className="space-y-2 text-center">
+              <h3 className="text-xl font-semibold">Excluir Campanha?</h3>
+              <p className="text-sm text-muted-foreground">
+                Esta ação não pode ser desfeita. Todas as respostas e dados vinculados a esta campanha serão perdidos
+                permanentemente.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 border-slate-300 text-slate-600 hover:bg-slate-100"
+                onClick={() => setDeleteModalCampaign(null)}
+                disabled={Boolean(deletingCampaignId)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                className="flex-1 bg-red-600 text-white shadow-lg shadow-red-600/25 hover:bg-red-500 hover:shadow-red-500/35"
+                onClick={handleDeleteCampaign}
+                disabled={Boolean(deletingCampaignId)}
+              >
+                {deletingCampaignId ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  "Sim, Excluir"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
