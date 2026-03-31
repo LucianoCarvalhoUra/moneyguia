@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 export type SubscriptionPlan = 'free' | 'premium' | 'total';
 export type SubscriptionStatus = 'active' | 'trial' | 'past_due' | 'canceled';
 export type FeatureKey = 'ai_classification' | 'advanced_reports' | 'extra_control';
+const ADMIN_FALLBACK_EMAIL = 'lucianocarvalhoura@gmail.com';
 
 function getAuthErrorMessage(error: { message: string }): string {
   console.error('Auth error:', error);
@@ -40,6 +41,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isProfileLoading: boolean;
+  isRoleLoading: boolean;
+  isAdmin: boolean;
+  userRole: string | null;
   subscriptionPlan: SubscriptionPlan;
   subscriptionStatus: SubscriptionStatus;
   subscriptionEndDate: string | null;
@@ -68,12 +72,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [subscriptionPlan, setSubscriptionPlan] = useState<SubscriptionPlan>('free');
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('active');
   const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
+  const [isRoleLoading, setIsRoleLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const hasLoadedProfile = useRef(false);
   const isFetchingProfileRef = useRef(false);
   const loadedProfileUserIdRef = useRef<string | null>(null);
   const profileLoadedRef = useRef(false);
   const profileCreatedForUserRef = useRef<string | null>(null);
+  const loadedRoleUserIdRef = useRef<string | null>(null);
+  const isFetchingRoleRef = useRef(false);
 
   const getDefaultProfileState = useCallback(() => ({
     subscription_plan: 'free' as SubscriptionPlan,
@@ -104,7 +113,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profileLoadedRef.current = false;
     hasLoadedProfile.current = false;
     isFetchingProfileRef.current = false;
+    setUserRole(null);
+    setIsAdmin(false);
+    setIsRoleLoading(false);
+    loadedRoleUserIdRef.current = null;
+    isFetchingRoleRef.current = false;
   }, []);
+
+  const getRoleCacheKey = useCallback((userId: string) => `auth_role_cache:${userId}`, []);
+
+  const loadUserRole = useCallback(async (userId: string, email?: string | null, force = false) => {
+    if (!userId) return;
+    if (isFetchingRoleRef.current) return;
+    if (!force && loadedRoleUserIdRef.current === userId) return;
+
+    if ((email || '').toLowerCase() === ADMIN_FALLBACK_EMAIL) {
+      setUserRole('admin');
+      setIsAdmin(true);
+      setIsRoleLoading(false);
+      loadedRoleUserIdRef.current = userId;
+      localStorage.setItem(getRoleCacheKey(userId), 'admin');
+      console.log('[Sistema] Permissões carregadas com sucesso.');
+      return;
+    }
+
+    const cachedRole = localStorage.getItem(getRoleCacheKey(userId));
+    if (cachedRole && !force) {
+      setUserRole(cachedRole);
+      setIsAdmin(cachedRole === 'admin');
+      setIsRoleLoading(false);
+      loadedRoleUserIdRef.current = userId;
+      console.log('[Sistema] Permissões carregadas com sucesso.');
+      return;
+    }
+
+    isFetchingRoleRef.current = true;
+    setIsRoleLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      const resolvedRole = data?.role === 'admin' ? 'admin' : 'user';
+      setUserRole(resolvedRole);
+      setIsAdmin(resolvedRole === 'admin');
+      localStorage.setItem(getRoleCacheKey(userId), resolvedRole);
+      loadedRoleUserIdRef.current = userId;
+      console.log('[Sistema] Permissões carregadas com sucesso.');
+    } catch (error: any) {
+      if (error?.status === 500 || error?.code === '500') {
+        console.error('Erro de permissão no banco');
+        const permissionAlertKey = `permission_alert_shown:${userId}`;
+        if (!sessionStorage.getItem(permissionAlertKey)) {
+          sessionStorage.setItem(permissionAlertKey, 'true');
+          window.alert('Erro de permissão no banco');
+        }
+      }
+      setUserRole('user');
+      setIsAdmin(false);
+      localStorage.setItem(getRoleCacheKey(userId), 'user');
+      loadedRoleUserIdRef.current = userId;
+    } finally {
+      isFetchingRoleRef.current = false;
+      setIsRoleLoading(false);
+    }
+  }, [getRoleCacheKey]);
 
   const applyDefaultProfile = useCallback(() => {
     const defaults = getDefaultProfileState();
@@ -250,6 +327,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             loadProfileRef.current(authSession.user.id);
           }, 0);
         }
+        setTimeout(() => {
+          loadUserRole(authSession.user.id, authSession.user.email);
+        }, 0);
       }
 
       if (event === 'SIGNED_OUT') {
@@ -269,6 +349,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setIsProfileLoading(false);
         }
+        loadUserRole(existingSession.user.id, existingSession.user.email);
       } else {
         resetProfileState();
       }
@@ -279,7 +360,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [hydrateProfileFromCache, resetProfileState]); // stable with guarded refs
+  }, [hydrateProfileFromCache, resetProfileState, loadUserRole]); // stable with guarded refs
 
   useEffect(() => {
     let inactivityTimer: ReturnType<typeof setTimeout>;
@@ -420,6 +501,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: !!session,
       isLoading,
       isProfileLoading,
+      isRoleLoading,
+      isAdmin,
+      userRole,
       subscriptionPlan,
       subscriptionStatus,
       subscriptionEndDate,
@@ -438,6 +522,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       isLoading,
       isProfileLoading,
+      isRoleLoading,
+      isAdmin,
+      userRole,
       subscriptionPlan,
       subscriptionStatus,
       subscriptionEndDate,
