@@ -35,6 +35,8 @@ export default function AdminCsat() {
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [togglingCampaignId, setTogglingCampaignId] = useState<string | null>(null);
   const [togglingPublicId, setTogglingPublicId] = useState<string | null>(null);
+  const [skipResponsesFetch, setSkipResponsesFetch] = useState(false);
+  const [responsesUnavailableReason, setResponsesUnavailableReason] = useState<string | null>(null);
 
   const campaignMap = useMemo(() => {
     return campaigns.reduce<Record<string, string>>((acc, campaign) => {
@@ -64,24 +66,38 @@ export default function AdminCsat() {
         setCampaigns((campaignsResult.data as Campaign[]) || []);
       }
 
-      let responsesResult = await supabase
-        .from("csat_responses")
-        .select("id, campaign_id, rating, comment, is_public, created_at")
-        .order("created_at", { ascending: false });
-
-      if (responsesResult.error) {
-        console.warn("[CSAT] Falha ao ordenar respostas por created_at, tentando sem order...");
-        responsesResult = await supabase
+      if (!skipResponsesFetch) {
+        let responsesResult = await supabase
           .from("csat_responses")
-          .select("id, campaign_id, rating, comment, is_public, created_at");
-      }
+          .select("id, campaign_id, rating, comment, is_public, created_at")
+          .order("created_at", { ascending: false });
 
-      if (responsesResult.error) {
-        console.error("[CSAT Error]", responsesResult.error?.message, responsesResult.error?.details);
-        setResponses([]);
-        toast.error(`Erro ao carregar respostas CSAT: ${responsesResult.error.message}`);
-      } else {
-        setResponses((responsesResult.data as ResponseItem[]) || []);
+        const isColumnError = responsesResult.error?.message?.toLowerCase().includes("column")
+          || responsesResult.error?.message?.toLowerCase().includes("does not exist");
+
+        if (responsesResult.error && isColumnError) {
+          console.warn("[CSAT] Falha ao ordenar respostas por created_at, tentando sem order...");
+          responsesResult = await supabase
+            .from("csat_responses")
+            .select("id, campaign_id, rating, comment, is_public, created_at");
+        }
+
+        if (responsesResult.error) {
+          console.error("[CSAT Error]", responsesResult.error?.message, responsesResult.error?.details);
+          setResponses([]);
+
+          const errorMessage = responsesResult.error?.message || "Erro desconhecido";
+          if (errorMessage.toLowerCase().includes("infinite recursion")) {
+            setSkipResponsesFetch(true);
+            setResponsesUnavailableReason("Respostas indisponíveis temporariamente devido à política RLS (recursão em user_roles).");
+            toast.error("CSAT respostas indisponíveis: recursão de política detectada no banco.");
+          } else {
+            toast.error(`Erro ao carregar respostas CSAT: ${errorMessage}`);
+          }
+        } else {
+          setResponses((responsesResult.data as ResponseItem[]) || []);
+          setResponsesUnavailableReason(null);
+        }
       }
     } catch (error: any) {
       console.error("[CSAT Error]", error?.message, error?.details);
@@ -287,6 +303,11 @@ export default function AdminCsat() {
           <CardDescription>Visualize notas e comentários e publique os melhores depoimentos na Home.</CardDescription>
         </CardHeader>
         <CardContent>
+          {responsesUnavailableReason && (
+            <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {responsesUnavailableReason}
+            </div>
+          )}
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Carregando respostas...

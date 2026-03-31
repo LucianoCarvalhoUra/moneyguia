@@ -50,6 +50,13 @@ export default function Admin() {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [selectedStartsAt, setSelectedStartsAt] = useState<string>(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  });
 
   useEffect(() => {
     if (isAdmin) loadUsers();
@@ -76,10 +83,22 @@ export default function Admin() {
   const selectedUser = users.find((u) => u.user_id === selectedUserId) || null;
 
   const handleSaveSubscription = async () => {
-    if (!selectedUserId || !selectedPlanId || !selectedBillingCycle) {
-      toast.error("Selecione usuário, plano e período.");
+    if (!selectedUserId || !selectedPlanId || !selectedBillingCycle || !selectedStartsAt) {
+      toast.error("Selecione usuário, plano, período e data de início.");
       return;
     }
+
+    const startsAtDate = new Date(`${selectedStartsAt}T00:00:00`);
+    if (Number.isNaN(startsAtDate.getTime())) {
+      toast.error("Data de início inválida.");
+      return;
+    }
+
+    const expiresAtDate = new Date(startsAtDate);
+    expiresAtDate.setDate(expiresAtDate.getDate() + (selectedBillingCycle === "monthly" ? 30 : 365));
+
+    const startsAtIso = startsAtDate.toISOString();
+    const expiresAtIso = expiresAtDate.toISOString();
 
     setUpdatingUserId(selectedUserId);
     try {
@@ -89,6 +108,8 @@ export default function Admin() {
           user_id: selectedUserId,
           plan_id: selectedPlanId,
           billing_cycle: selectedBillingCycle,
+          starts_at: startsAtIso,
+          expires_at: expiresAtIso,
         },
       });
       if (error) throw error;
@@ -201,11 +222,33 @@ export default function Admin() {
             </Select>
           </div>
 
+          <div className="space-y-2">
+            <Label>Início da licença</Label>
+            <Input type="date" value={selectedStartsAt} onChange={(e) => setSelectedStartsAt(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Próxima cobrança</Label>
+            <Input
+              readOnly
+              value={(() => {
+                if (!selectedStartsAt) return "";
+                const base = new Date(`${selectedStartsAt}T00:00:00`);
+                if (Number.isNaN(base.getTime())) return "";
+                base.setDate(base.getDate() + (selectedBillingCycle === "monthly" ? 30 : 365));
+                return format(base, "dd/MM/yyyy", { locale: ptBR });
+              })()}
+            />
+          </div>
+
           <div className="md:col-span-2 flex items-center justify-between rounded-lg border p-3 text-sm">
             <div>
               <p className="font-medium">Cliente selecionado</p>
               <p className="text-muted-foreground">
                 {selectedUser ? `${selectedUser.name || "Sem nome"} • ${selectedUser.email}` : "Nenhum cliente selecionado"}
+              </p>
+              <p className="text-muted-foreground mt-1">
+                {selectedBillingCycle === "yearly" ? "Renovação Anual" : "Renovação Mensal"}
               </p>
             </div>
             <Button onClick={handleSaveSubscription} disabled={updatingUserId === selectedUserId || !selectedUserId || !selectedPlanId}>

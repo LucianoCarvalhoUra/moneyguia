@@ -116,8 +116,7 @@ export default function SubscriptionCard() {
                 <div className="flex items-center gap-2 text-xs text-slate-400">
                   <CalendarDays className="h-3.5 w-3.5" />
                   <span>
-                    {isExpired ? "Sua licença expirou em " : "Sua licença expira em "}
-                    {format(new Date(subscription!.expiresAt!), "dd/MM/yyyy", { locale: ptBR })}
+                    Próxima cobrança: {format(new Date(subscription!.expiresAt!), "dd/MM/yyyy", { locale: ptBR })}
                   </span>
                 </div>
               )}
@@ -158,7 +157,7 @@ export default function SubscriptionCard() {
             {/* Billing cycle */}
             <div className="flex items-center gap-2 text-xs text-slate-400">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>{plan.planType.toUpperCase()} {subscription.billingCycle === "yearly" ? "Anual" : "Mensal"}</span>
+              <span>{subscription.billingCycle === "yearly" ? "Renovação Anual" : "Renovação Mensal"}</span>
             </div>
           </div>
         )}

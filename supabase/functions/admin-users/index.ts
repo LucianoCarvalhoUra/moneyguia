@@ -88,9 +88,9 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "update_user_plan") {
-      const { user_id, plan_id, billing_cycle } = body;
-      if (!user_id || !plan_id || !billing_cycle) {
-        return new Response(JSON.stringify({ error: "user_id, plan_id e billing_cycle são obrigatórios" }), {
+      const { user_id, plan_id, billing_cycle, starts_at, expires_at } = body;
+      if (!user_id || !plan_id || !billing_cycle || !starts_at) {
+        return new Response(JSON.stringify({ error: "user_id, plan_id, billing_cycle e starts_at são obrigatórios" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -103,12 +103,29 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const now = new Date();
-      const expiresAt = new Date(now);
-      if (billing_cycle === "yearly") {
-        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-      } else {
-        expiresAt.setMonth(expiresAt.getMonth() + 1);
+      const startsAt = new Date(starts_at);
+      if (Number.isNaN(startsAt.getTime())) {
+        return new Response(JSON.stringify({ error: "starts_at inválido" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let computedExpiresAt = new Date(startsAt);
+      computedExpiresAt.setDate(computedExpiresAt.getDate() + (billing_cycle === "yearly" ? 365 : 30));
+
+      if (expires_at) {
+        const incomingExpiresAt = new Date(expires_at);
+        if (!Number.isNaN(incomingExpiresAt.getTime())) {
+          computedExpiresAt = incomingExpiresAt;
+        }
+      }
+
+      if (Number.isNaN(computedExpiresAt.getTime())) {
+        return new Response(JSON.stringify({ error: "expires_at inválido" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Upsert subscription
@@ -120,8 +137,8 @@ Deno.serve(async (req: Request) => {
             plan_id,
             billing_cycle,
             status: "active",
-            starts_at: now.toISOString(),
-            expires_at: expiresAt.toISOString(),
+            starts_at: startsAt.toISOString(),
+            expires_at: computedExpiresAt.toISOString(),
           },
           { onConflict: "user_id" }
         );
