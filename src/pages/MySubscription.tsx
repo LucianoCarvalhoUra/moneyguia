@@ -85,14 +85,17 @@ export default function MySubscription() {
 
   const progressPercent = (() => {
     if (!startsDate || !expiresDate) return 0;
-    const startMs = startsDate.getTime();
-    const endMs = expiresDate.getTime();
-    const nowMs = new Date().getTime();
-    const total = endMs - startMs;
-    if (!Number.isFinite(total) || total <= 0) return 0;
-    const elapsed = nowMs - startMs;
-    return Math.max(0, Math.min(100, (elapsed / total) * 100));
+    const total = new Date(expiresDate).getTime() - new Date(startsDate).getTime();
+    const progresso = new Date().getTime() - new Date(startsDate).getTime();
+    const percentual = !Number.isFinite(total) || total <= 0
+      ? 0
+      : Math.min(Math.max((progresso / total) * 100, 0), 100);
+
+    console.log("[Barra] Início:", subscription?.startsAt, "Fim:", subscription?.expiresAt, "Percentual:", percentual);
+    return percentual;
   })();
+
+  const remainingPercent = Math.min(Math.max(100 - progressPercent, 0), 100);
 
   const barColor = isExpired
     ? "bg-red-500"
@@ -246,7 +249,7 @@ export default function MySubscription() {
                 <div className="h-2.5 w-full rounded-full bg-white/10 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${barColor}`}
-                    style={{ width: `${progressPercent}%` }}
+                    style={{ width: `${remainingPercent}%` }}
                   />
                 </div>
 

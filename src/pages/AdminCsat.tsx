@@ -46,10 +46,15 @@ export default function AdminCsat() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const campaignsResult = await supabase
+      let campaignsResult = await supabase
         .from("csat_campaigns")
         .select("*")
         .order("created_at", { ascending: false });
+
+      if (campaignsResult.error) {
+        console.warn("[CSAT] Falha ao ordenar campanhas por created_at, tentando sem order...");
+        campaignsResult = await supabase.from("csat_campaigns").select("*");
+      }
 
       if (campaignsResult.error) {
         console.error("[CSAT Error]", campaignsResult.error?.message, campaignsResult.error?.details);
@@ -59,10 +64,17 @@ export default function AdminCsat() {
         setCampaigns((campaignsResult.data as Campaign[]) || []);
       }
 
-      const responsesResult = await supabase
+      let responsesResult = await supabase
         .from("csat_responses")
         .select("id, campaign_id, rating, comment, is_public, created_at")
         .order("created_at", { ascending: false });
+
+      if (responsesResult.error) {
+        console.warn("[CSAT] Falha ao ordenar respostas por created_at, tentando sem order...");
+        responsesResult = await supabase
+          .from("csat_responses")
+          .select("id, campaign_id, rating, comment, is_public, created_at");
+      }
 
       if (responsesResult.error) {
         console.error("[CSAT Error]", responsesResult.error?.message, responsesResult.error?.details);
