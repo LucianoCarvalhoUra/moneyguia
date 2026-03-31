@@ -93,13 +93,30 @@ export default function Dashboard() {
       }
 
       try {
+        const isPermissionError = (error: any) => {
+          const status = Number(error?.status);
+          const code = String(error?.code || "");
+          const message = String(error?.message || "").toLowerCase();
+          return status === 403 || code === "42501" || message.includes("permission denied");
+        };
+
         const activeCampaignResult = await supabase
           .from('csat_campaigns')
           .select('id, name')
           .eq('is_active', true)
           .maybeSingle();
 
-        if (activeCampaignResult.error || !activeCampaignResult.data) {
+        if (activeCampaignResult.error) {
+          console.error('[CSAT] Erro ao buscar campanha ativa:', activeCampaignResult.error);
+          if (isPermissionError(activeCampaignResult.error)) {
+            toast.error('[CSAT] Erro de permissão (403) ao buscar campanha ativa. Ajuste o RLS no Supabase.');
+          }
+          setShowCsatWidget(false);
+          return;
+        }
+
+        if (!activeCampaignResult.data) {
+          console.warn('[CSAT] Nenhuma campanha ativa encontrada no banco.');
           setShowCsatWidget(false);
           return;
         }
@@ -114,6 +131,15 @@ export default function Dashboard() {
           .eq('campaign_id', campaign.id)
           .eq('user_id', user.id)
           .maybeSingle();
+
+        if (existingResponseResult.error) {
+          console.error('[CSAT] Erro ao verificar resposta existente:', existingResponseResult.error);
+          if (isPermissionError(existingResponseResult.error)) {
+            toast.error('[CSAT] Erro de permissão (403) ao validar respostas. Ajuste o RLS no Supabase.');
+          }
+          setShowCsatWidget(false);
+          return;
+        }
 
         if (existingResponseResult.data || wasDismissed) {
           setShowCsatWidget(false);
@@ -740,6 +766,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 

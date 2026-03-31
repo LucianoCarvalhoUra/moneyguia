@@ -66,12 +66,19 @@ export function useUserPlan() {
     const fetchPlan = async () => {
       setIsLoading(true);
       try {
-        const { data: sub } = await supabase
+        const { data: sub, error } = await supabase
           .from("user_subscriptions")
           .select("*, subscription_plans(*)")
           .eq("user_id", user.id)
           .in("status", ["active", "trial"])
           .maybeSingle();
+
+        console.log("[Licença] Dados recebidos:", sub);
+
+        if (error) {
+          console.error("[Licença] Erro ao buscar assinatura:", error);
+          throw error;
+        }
 
         if (sub?.subscription_plans) {
           const sp = sub.subscription_plans as any;
@@ -84,8 +91,20 @@ export function useUserPlan() {
           if (sub.expires_at) {
             const now = new Date();
             const expires = new Date(sub.expires_at);
-            daysUntilExpiration = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-            isExpiringSoon = daysUntilExpiration <= 5 && daysUntilExpiration > 0;
+
+            const diffInDays = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            if (Number.isFinite(diffInDays)) {
+              daysUntilExpiration = diffInDays;
+              isExpiringSoon = diffInDays <= 5 && diffInDays > 0;
+            } else {
+              console.warn("[Licença] Cálculo de tempo restante inválido:", {
+                expires_at: sub.expires_at,
+                now: now.toISOString(),
+                diffInDays,
+              });
+              daysUntilExpiration = null;
+              isExpiringSoon = false;
+            }
           }
 
           setSubscription({
