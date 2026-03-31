@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Megaphone, MessageSquare, Star, Trash2 } from "lucide-react";
@@ -25,7 +26,7 @@ type ResponseItem = {
   comment: string | null;
   is_public: boolean;
   created_at: string;
-  csat_campaigns?: { name: string } | { name: string }[] | null;
+  csat_campaigns?: { name?: string } | { name?: string }[] | null;
 };
 
 export default function AdminCsat() {
@@ -33,8 +34,10 @@ export default function AdminCsat() {
   const [campaignEndDate, setCampaignEndDate] = useState("");
   const [campaignIsActive, setCampaignIsActive] = useState(false);
   const [campaignFilter, setCampaignFilter] = useState<"all" | "active" | "ended">("all");
+  const [responseCampaignFilter, setResponseCampaignFilter] = useState<string>("all");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [responses, setResponses] = useState<ResponseItem[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [togglingCampaignId, setTogglingCampaignId] = useState<string | null>(null);
@@ -67,17 +70,16 @@ export default function AdminCsat() {
     return campaigns;
   }, [campaigns, campaignFilter]);
 
-  const filteredCampaignIds = useMemo(() => new Set(filteredCampaigns.map((campaign) => campaign.id)), [filteredCampaigns]);
-
   const filteredResponses = useMemo(() => {
-    if (campaignFilter === "all") return responses;
-    return responses.filter((response) => filteredCampaignIds.has(response.campaign_id));
-  }, [responses, campaignFilter, filteredCampaignIds]);
+    if (responseCampaignFilter === "all") return responses;
+    return responses.filter((response) => response.campaign_id === responseCampaignFilter);
+  }, [responses, responseCampaignFilter]);
 
   const totalResponses = responses.length;
   const averageRating = totalResponses > 0
     ? responses.reduce((acc, response) => acc + Number(response.rating || 0), 0) / totalResponses
     : 0;
+  const participationRate = totalUsers > 0 ? (totalResponses / totalUsers) * 100 : 0;
 
   const formatCampaignEndDate = (endDate?: string) => {
     if (!endDate) return "Sem data de término";
@@ -105,7 +107,7 @@ export default function AdminCsat() {
 
       let responsesResult = await supabase
         .from("csat_responses")
-        .select("id, campaign_id, rating, comment, is_public, created_at, csat_campaigns(name)")
+        .select("*, csat_campaigns(*)")
         .order("created_at", { ascending: false });
 
       if (responsesResult.error) {
@@ -113,6 +115,15 @@ export default function AdminCsat() {
         toast.error(`Erro ao carregar respostas CSAT: ${responsesResult.error.message}`);
       } else {
         setResponses((responsesResult.data as ResponseItem[]) || []);
+      }
+
+      const usersResult = await supabase
+        .from("profiles")
+        .select("user_id", { count: "exact", head: true })
+        .not("user_id", "is", null);
+
+      if (!usersResult.error) {
+        setTotalUsers(usersResult.count ?? 0);
       }
       console.log('[Sistema] Permissões carregadas com sucesso.');
     } catch (error: any) {
@@ -420,7 +431,26 @@ export default function AdminCsat() {
           <CardDescription>Visualize notas e comentários e publique os melhores depoimentos na Home.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 grid gap-3 sm:grid-cols-2">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="w-full sm:max-w-xs">
+              <Label className="mb-2 block text-xs text-muted-foreground">Filtro de campanha (respostas)</Label>
+              <Select value={responseCampaignFilter} onValueChange={setResponseCampaignFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas as Campanhas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Campanhas</SelectItem>
+                  {campaigns.map((campaign) => (
+                    <SelectItem key={campaign.id} value={campaign.id}>
+                      {campaign.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="mb-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border p-4">
               <p className="text-xs text-muted-foreground">Total de Respostas</p>
               <p className="text-2xl font-bold">{totalResponses}</p>
@@ -430,6 +460,11 @@ export default function AdminCsat() {
               <p className="text-xs text-muted-foreground">Média de Satisfação</p>
               <p className="text-2xl font-bold">{averageRating.toFixed(1)} / 5</p>
               <p className="text-xs text-muted-foreground">Base global de avaliações</p>
+            </div>
+            <div className="rounded-xl border p-4">
+              <p className="text-xs text-muted-foreground">Participação</p>
+              <p className="text-2xl font-bold">{participationRate.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground">{totalResponses} respostas de {totalUsers} usuários</p>
             </div>
           </div>
 
