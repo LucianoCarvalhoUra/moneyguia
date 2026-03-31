@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { LayoutDashboard, PieChart, TrendingUp, BarChart3, Wallet, ArrowUpDown } from 'lucide-react';
+import { LayoutDashboard, PieChart, TrendingUp, BarChart3, Wallet, ArrowUpDown, CalendarDays } from 'lucide-react';
 
 export interface DashboardSettings {
   showEssential: boolean;
@@ -14,6 +14,7 @@ export interface DashboardSettings {
   showDailyFlow: boolean;
   showProjection: boolean;
   showComparison: boolean;
+  showUpcomingDue: boolean;
 }
 
 export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
@@ -26,6 +27,7 @@ export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
   showDailyFlow: true,
   showProjection: true,
   showComparison: true,
+  showUpcomingDue: true,
 };
 
 export default function DashboardCustomization() {
@@ -48,6 +50,7 @@ export default function DashboardCustomization() {
     { key: 'show503020', label: 'Regra 50/30/20', desc: 'Análise de distribuição ideal de renda', icon: PieChart },
     { key: 'showProjection', label: 'Projeção de Saldo', desc: 'Tendência para os próximos 3 meses', icon: TrendingUp },
     { key: 'showDailyFlow', label: 'Fluxo Diário', desc: 'Entradas e saídas por dia', icon: BarChart3 },
+    { key: 'showUpcomingDue', label: 'Exibir Próximos Vencimentos', desc: 'Mostra as 5 próximas despesas não pagas', icon: CalendarDays },
     { key: 'showComparison', label: 'Comparativo Mensal', desc: 'Gastos por categoria vs mês anterior', icon: ArrowUpDown },
     { key: 'showEssential', label: 'Despesas Essenciais', desc: 'Habitação, Saúde, Alimentação', icon: Wallet },
     { key: 'showSuperfluous', label: 'Despesas Supérfluas', desc: 'Lazer, Streaming, Compras', icon: Wallet },

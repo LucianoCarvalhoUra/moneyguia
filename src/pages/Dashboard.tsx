@@ -20,6 +20,7 @@ import BalanceProjectionChart from '@/components/dashboard/BalanceProjectionChar
 import { DEFAULT_DASHBOARD_SETTINGS, DashboardSettings } from '@/components/dashboard/DashboardCustomization';
 import ExpenseClassificationChart from '@/components/dashboard/ExpenseClassificationChart';
 import MonthlyComparisonChart from '@/components/dashboard/MonthlyComparisonChart';
+import UpcomingDueExpenses from '@/components/dashboard/UpcomingDueExpenses';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -597,6 +598,9 @@ export default function Dashboard() {
       </div>
 
       {/* Pending Expenses List */}
+      {settings.showUpcomingDue && <UpcomingDueExpenses />}
+
+      {/* Pending Expenses List */}
       <PendingExpensesList selectedMonth={selectedMonth} selectedYear={selectedYear} />
 
       {/* Recent Expenses */}
@@ -610,6 +614,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
