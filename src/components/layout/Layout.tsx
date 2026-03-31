@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import LGPDTermsModal from "@/components/LGPDTermsModal";
 import CsatSurvey from "@/components/csat/CsatSurvey";
 import { supabase } from "@/integrations/supabase/client";
+import { useLocation } from "react-router-dom";
 
 interface LayoutProps {
   children: ReactNode;
@@ -12,8 +13,10 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const isMobile = useIsMobile();
+  const location = useLocation();
   const [showLgpd, setShowLgpd] = useState(false);
   const [lgpdLoading, setLgpdLoading] = useState(true);
+  const shouldShowCsat = location.pathname === "/dashboard";
 
   const checkLgpdTerms = useCallback(async () => {
     try {
@@ -92,7 +95,7 @@ export default function Layout({ children }: LayoutProps) {
         <LGPDTermsModal onAccept={handleLgpdAccept} />
       )}
 
-      <CsatSurvey />
+      {shouldShowCsat && <CsatSurvey />}
     </>
   );
 }

@@ -28,24 +28,44 @@ export default function CsatSurvey() {
       if (!user?.id || isCheckingAdmin) return;
 
       if (isAdmin) {
+        setActiveCampaign(null);
         setOpen(false);
         return;
       }
 
-      console.log("[CSAT] Buscando campanhas ativas...");
       const { data, error } = await supabase
         .from("csat_campaigns")
         .select("*")
         .eq("is_active", true)
-        .maybeSingle();
+        .single();
 
       if (error) {
-        console.error("[CSAT] Erro ao buscar campanha ativa:", error);
+        const noActiveCampaign = error.code === "PGRST116";
+        if (!noActiveCampaign) {
+          toast.error("Erro ao carregar campanha de pesquisa.");
+        }
+        setActiveCampaign(null);
         setOpen(false);
         return;
       }
 
       if (!data) {
+        setActiveCampaign(null);
+        setOpen(false);
+        return;
+      }
+
+      const now = new Date();
+      const endDate = data.end_date ? new Date(`${data.end_date}T23:59:59`) : null;
+      const startDateRaw = (data as any).start_date ?? data.created_at;
+      const startDate = startDateRaw ? new Date(startDateRaw) : null;
+
+      const isWithinWindow =
+        Boolean(endDate && !Number.isNaN(endDate.getTime()) && now <= endDate) &&
+        (!startDate || !Number.isNaN(startDate.getTime()) ? now >= (startDate || now) : true);
+
+      if (!isWithinWindow) {
+        setActiveCampaign(null);
         setOpen(false);
         return;
       }
@@ -62,7 +82,8 @@ export default function CsatSurvey() {
         .maybeSingle();
 
       if (existingError) {
-        console.error("[CSAT] Erro ao validar resposta existente:", existingError);
+        toast.error("Erro ao validar status da pesquisa.");
+        setActiveCampaign(null);
         setOpen(false);
         return;
       }

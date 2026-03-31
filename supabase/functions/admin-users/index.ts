@@ -55,7 +55,7 @@ Deno.serve(async (req: Request) => {
       // Get all active subscriptions
       const { data: subs } = await supabase
         .from("user_subscriptions")
-        .select("user_id, plan_id, status, billing_cycle, expires_at, subscription_plans(plan_type, name)")
+        .select("user_id, plan_id, status, billing_cycle, starts_at, expires_at, created_at, subscription_plans(plan_type, name)")
         .in("status", ["active", "trial"]);
 
       // Get all plans
@@ -67,7 +67,17 @@ Deno.serve(async (req: Request) => {
 
       const subsMap: Record<string, any> = {};
       (subs || []).forEach((s: any) => {
-        subsMap[s.user_id] = s;
+        const current = subsMap[s.user_id];
+        if (!current) {
+          subsMap[s.user_id] = s;
+          return;
+        }
+
+        const currentCreatedAt = new Date(current.created_at || 0).getTime();
+        const nextCreatedAt = new Date(s.created_at || 0).getTime();
+        if (nextCreatedAt >= currentCreatedAt) {
+          subsMap[s.user_id] = s;
+        }
       });
 
       const users = (profiles || []).map((p: any) => ({
@@ -79,6 +89,7 @@ Deno.serve(async (req: Request) => {
         current_plan_name: subsMap[p.user_id]?.subscription_plans?.name || "Gratuito",
         subscription_status: subsMap[p.user_id]?.status || null,
         current_billing_cycle: subsMap[p.user_id]?.billing_cycle || null,
+        current_starts_at: subsMap[p.user_id]?.starts_at || null,
         current_expires_at: subsMap[p.user_id]?.expires_at || null,
       }));
 
@@ -112,7 +123,11 @@ Deno.serve(async (req: Request) => {
       }
 
       let computedExpiresAt = new Date(startsAt);
-      computedExpiresAt.setDate(computedExpiresAt.getDate() + (billing_cycle === "yearly" ? 365 : 30));
+      if (billing_cycle === "yearly") {
+        computedExpiresAt.setFullYear(computedExpiresAt.getFullYear() + 1);
+      } else {
+        computedExpiresAt.setMonth(computedExpiresAt.getMonth() + 1);
+      }
 
       if (expires_at) {
         const incomingExpiresAt = new Date(expires_at);
@@ -145,7 +160,24 @@ Deno.serve(async (req: Request) => {
 
       if (upsertError) throw upsertError;
 
-      return new Response(JSON.stringify({ success: true }), {
+      const { data: persistedSub, error: persistedSubError } = await supabase
+        .from("user_subscriptions")
+        .select("expires_at")
+        .eq("user_id", user_id)
+        .maybeSingle();
+
+      if (persistedSubError) throw persistedSubError;
+
+      if (!persistedSub?.expires_at) {
+        const { error: forceExpiryError } = await supabase
+          .from("user_subscriptions")
+          .update({ expires_at: computedExpiresAt.toISOString() })
+          .eq("user_id", user_id);
+
+        if (forceExpiryError) throw forceExpiryError;
+      }
+
+      return new Response(JSON.stringify({ success: true, expires_at: computedExpiresAt.toISOString() }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

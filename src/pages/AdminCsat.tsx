@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Megaphone, MessageSquare, Star, Trash2 } from "lucide-react";
+import { format, isValid, parseISO } from "date-fns";
 
 type Campaign = {
   id: string;
@@ -43,6 +44,15 @@ export default function AdminCsat() {
       return acc;
     }, {});
   }, [campaigns]);
+
+  const formatCampaignEndDate = (endDate?: string) => {
+    if (!endDate) return "Sem data de término";
+
+    const parsed = parseISO(endDate);
+    if (!isValid(parsed)) return "Sem data de término";
+
+    return `Termina em ${format(parsed, "dd/MM/yyyy")}`;
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -251,11 +261,7 @@ export default function AdminCsat() {
                 <div key={campaign.id} className="flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="font-medium">{campaign.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {campaign.end_date
-                        ? `Termina em ${new Date(campaign.end_date + "T00:00:00").toLocaleDateString("pt-BR")}`
-                        : "Sem data de término"}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{formatCampaignEndDate(campaign.end_date)}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant={campaign.is_active ? "default" : "secondary"}>

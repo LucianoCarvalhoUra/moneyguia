@@ -13,6 +13,24 @@ export interface SubscriptionInfo {
   isExpiringSoon: boolean;
 }
 
+const deriveExpiresAt = (
+  startsAt: string | null,
+  billingCycle: string | null,
+): string | null => {
+  if (!startsAt || !billingCycle) return null;
+
+  const base = new Date(startsAt);
+  if (Number.isNaN(base.getTime())) return null;
+
+  if (billingCycle === "yearly") {
+    base.setFullYear(base.getFullYear() + 1);
+  } else {
+    base.setMonth(base.getMonth() + 1);
+  }
+
+  return Number.isNaN(base.getTime()) ? null : base.toISOString();
+};
+
 export interface PlanLimits {
   planType: PlanType;
   planName: string;
@@ -50,14 +68,13 @@ const calculateDaysUntilExpiration = (expiresAt: string | null): number | null =
 
   const now = new Date();
   const expires = new Date(expiresAt);
+  if (Number.isNaN(expires.getTime())) {
+    return null;
+  }
+
   const diffInDays = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   if (!Number.isFinite(diffInDays)) {
-    console.warn("[Licença] Cálculo de tempo restante inválido:", {
-      expires_at: expiresAt,
-      now: now.toISOString(),
-      diffInDays,
-    });
     return null;
   }
 
@@ -78,7 +95,7 @@ export function useUserPlan() {
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!user?.id) {
       setPlan(FREE_DEFAULTS);
       setSubscription(null);
       setIsLoading(false);
@@ -93,32 +110,33 @@ export function useUserPlan() {
           .select("*, subscription_plans(*)")
           .eq("user_id", user.id)
           .in("status", ["active", "trial"])
+          .order("created_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
 
-        console.log("[Licença] Dados recebidos:", sub);
+        console.log("[Assinatura] Dados recuperados:", sub);
 
         if (error) {
-          console.error("[Licença] Erro ao buscar assinatura:", error);
           throw error;
         }
 
         if (sub?.subscription_plans) {
           const sp = sub.subscription_plans as any;
-
-          console.log("[Assinatura] Expira em:", sub.expires_at);
+          const resolvedExpiresAt =
+            sub.expires_at ?? deriveExpiresAt(sub.starts_at ?? null, sub.billing_cycle ?? null);
 
           // Check if subscription has expired
           let daysUntilExpiration: number | null = null;
           let isExpiringSoon = false;
-          const isExpired = sub.expires_at ? new Date(sub.expires_at) <= new Date() : false;
+          const isExpired = resolvedExpiresAt ? new Date(resolvedExpiresAt) <= new Date() : false;
 
-          daysUntilExpiration = calculateDaysUntilExpiration(sub.expires_at);
+          daysUntilExpiration = calculateDaysUntilExpiration(resolvedExpiresAt);
           isExpiringSoon = daysUntilExpiration !== null && daysUntilExpiration <= 5 && daysUntilExpiration > 0;
 
           setSubscription({
             startsAt: sub.starts_at ?? null,
-            expiresAt: sub.expires_at,
-            billingCycle: sub.billing_cycle,
+            expiresAt: resolvedExpiresAt,
+            billingCycle: sub.billing_cycle ?? "monthly",
             status: sub.status,
             daysUntilExpiration,
             isExpiringSoon,
@@ -156,7 +174,7 @@ export function useUserPlan() {
     };
 
     fetchPlan();
-  }, [user, refreshKey]);
+  }, [user?.id, refreshKey]);
 
   const canAccess = (feature: keyof Pick<PlanLimits, "hasAiClassification" | "hasAdvancedReports" | "hasExport" | "hasGoals" | "hasNotifications">) => {
     return plan[feature];

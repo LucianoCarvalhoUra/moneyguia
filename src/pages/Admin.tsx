@@ -23,6 +23,7 @@ interface UserInfo {
   current_plan_name: string;
   subscription_status: string | null;
   current_billing_cycle: string | null;
+  current_starts_at: string | null;
   current_expires_at: string | null;
 }
 
@@ -81,6 +82,7 @@ export default function Admin() {
   const paidPlans = plans.filter((p) => p.plan_type === "pro" || p.plan_type === "premium");
 
   const selectedUser = users.find((u) => u.user_id === selectedUserId) || null;
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId) || null;
 
   const handleSaveSubscription = async () => {
     if (!selectedUserId || !selectedPlanId || !selectedBillingCycle || !selectedStartsAt) {
@@ -95,7 +97,16 @@ export default function Admin() {
     }
 
     const expiresAtDate = new Date(startsAtDate);
-    expiresAtDate.setDate(expiresAtDate.getDate() + (selectedBillingCycle === "monthly" ? 30 : 365));
+    if (selectedBillingCycle === "yearly") {
+      expiresAtDate.setFullYear(expiresAtDate.getFullYear() + 1);
+    } else {
+      expiresAtDate.setMonth(expiresAtDate.getMonth() + 1);
+    }
+
+    if (Number.isNaN(expiresAtDate.getTime())) {
+      toast.error("Não foi possível calcular expires_at.");
+      return;
+    }
 
     const startsAtIso = startsAtDate.toISOString();
     const expiresAtIso = expiresAtDate.toISOString();
@@ -114,8 +125,27 @@ export default function Admin() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+
+      setUsers((current) =>
+        current.map((item) => {
+          if (item.user_id !== selectedUserId) return item;
+          return {
+            ...item,
+            current_plan_type: selectedPlan?.plan_type || item.current_plan_type,
+            current_plan_name: selectedPlan?.name || item.current_plan_name,
+            subscription_status: "active",
+            current_billing_cycle: selectedBillingCycle,
+            current_starts_at: startsAtIso,
+            current_expires_at: expiresAtIso,
+          };
+        })
+      );
+
+      if (selectedUserId === user?.id) {
+        window.dispatchEvent(new Event("user-plan-changed"));
+      }
+
       toast.success("Licença atualizada com sucesso!");
-      await loadUsers();
     } catch (err: any) {
       toast.error("Erro ao atualizar licença: " + err.message);
     } finally {
@@ -235,7 +265,11 @@ export default function Admin() {
                 if (!selectedStartsAt) return "";
                 const base = new Date(`${selectedStartsAt}T00:00:00`);
                 if (Number.isNaN(base.getTime())) return "";
-                base.setDate(base.getDate() + (selectedBillingCycle === "monthly" ? 30 : 365));
+                if (selectedBillingCycle === "yearly") {
+                  base.setFullYear(base.getFullYear() + 1);
+                } else {
+                  base.setMonth(base.getMonth() + 1);
+                }
                 return format(base, "dd/MM/yyyy", { locale: ptBR });
               })()}
             />
@@ -314,7 +348,32 @@ export default function Admin() {
                         {u.current_plan_type?.toUpperCase() || "FREE"} {u.current_billing_cycle === "yearly" ? "Anual" : u.current_billing_cycle === "monthly" ? "Mensal" : "-"}
                       </p>
                       <p>
-                        {u.current_expires_at ? `Vence em: ${format(new Date(u.current_expires_at), "dd/MM/yyyy", { locale: ptBR })}` : "Sem vencimento"}
+                        {(() => {
+                          const startsAt = u.current_starts_at ? new Date(u.current_starts_at) : null;
+                          const startsAtValid = Boolean(startsAt && !Number.isNaN(startsAt.getTime()));
+
+                          const expiresAtFromDb = u.current_expires_at ? new Date(u.current_expires_at) : null;
+                          const expiresAtFromDbValid = Boolean(expiresAtFromDb && !Number.isNaN(expiresAtFromDb.getTime()));
+
+                          if (expiresAtFromDbValid) {
+                            return `Vence em: ${format(expiresAtFromDb!, "dd/MM/yyyy", { locale: ptBR })}`;
+                          }
+
+                          if (startsAtValid && u.current_billing_cycle) {
+                            const derived = new Date(startsAt!);
+                            if (u.current_billing_cycle === "yearly") {
+                              derived.setFullYear(derived.getFullYear() + 1);
+                            } else if (u.current_billing_cycle === "monthly") {
+                              derived.setMonth(derived.getMonth() + 1);
+                            }
+
+                            if (!Number.isNaN(derived.getTime())) {
+                              return `Vence em: ${format(derived, "dd/MM/yyyy", { locale: ptBR })}`;
+                            }
+                          }
+
+                          return "Vence em: -";
+                        })()}
                       </p>
                     </div>
                     {u.user_id !== user?.id && (

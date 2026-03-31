@@ -13,26 +13,26 @@ export default function SubscriptionCard() {
   if (isLoading) return null;
 
   const isFree = plan.planType === "free";
-  const expiresDate = subscription?.expiresAt ? new Date(subscription.expiresAt) : null;
+  const expiryDate = subscription?.expiresAt ? new Date(subscription.expiresAt) : null;
   const startsDate = subscription?.startsAt ? new Date(subscription.startsAt) : null;
-  const hasValidExpiration = Boolean(expiresDate && !Number.isNaN(expiresDate.getTime()));
+  const hasValidExpiration = Boolean(expiryDate && !Number.isNaN(expiryDate.getTime()));
   const diasRestantes = hasValidExpiration
-    ? Math.ceil((expiresDate!.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    ? Math.ceil((expiryDate!.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
     : null;
   const isExpired = subscription?.status === "expired" || (subscription?.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 0);
   const isPending = !hasValidExpiration && !isExpired;
   const isExpiringSoon = subscription?.isExpiringSoon ?? false;
   const daysLeft = diasRestantes;
 
-  const expiresFormatted = subscription?.expiresAt
-    ? format(new Date(subscription.expiresAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+  const expiresFormatted = hasValidExpiration
+    ? format(expiryDate!, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     : null;
 
   // Progress bar percentage (30 day cycle)
   const progressPercent = (() => {
-    if (!startsDate || !expiresDate || Number.isNaN(expiresDate.getTime())) return 0;
+    if (!startsDate || !expiryDate || Number.isNaN(expiryDate.getTime())) return 0;
 
-    const total = new Date(expiresDate).getTime() - new Date(startsDate).getTime();
+    const total = new Date(expiryDate).getTime() - new Date(startsDate).getTime();
     const progresso = new Date().getTime() - new Date(startsDate).getTime();
     const percentual = !Number.isFinite(total) || total <= 0
       ? 0
@@ -99,7 +99,13 @@ export default function SubscriptionCard() {
                   <span className="text-sm text-slate-300">Tempo restante</span>
                 </div>
                 <span className={`text-2xl font-bold tabular-nums ${statusColor}`}>
-                  {isPending ? "Assinatura Pendente" : daysLeft !== null && daysLeft > 0 ? `Restam ${daysLeft} dias` : "Assinatura Expirada"}
+                  {isPending
+                    ? "Assinatura Pendente"
+                    : daysLeft !== null && daysLeft > 0
+                      ? `Restam ${daysLeft} dias`
+                      : expiresFormatted
+                        ? `Venceu em ${format(expiryDate!, "dd/MM/yyyy", { locale: ptBR })}`
+                        : "Assinatura Expirada"}
                 </span>
               </div>
 

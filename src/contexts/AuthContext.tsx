@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return subscriptionPlan === 'total';
       }
       if (feature === 'advanced_reports' || feature === 'extra_control') {
-        return subscriptionPlan === 'total';
+        return subscriptionPlan === 'premium' || subscriptionPlan === 'total';
       }
       return false;
     },
