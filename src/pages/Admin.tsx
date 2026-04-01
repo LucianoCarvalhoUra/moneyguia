@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { Shield, Users, Search, Loader2, Crown, Check, Trash2, AlertTriangle, Calendar, Info, Clock, Mail } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { format, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
