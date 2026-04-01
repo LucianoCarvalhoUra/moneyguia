@@ -520,7 +520,7 @@ export default function Admin() {
       </Card>
 
       <AlertDialog open={Boolean(deleteModalUser)} onOpenChange={(open) => !open && setDeleteModalUser(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl border border-white/40 bg-white/80 shadow-2xl shadow-violet-500/20 backdrop-blur-lg">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-foreground">
               <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -535,7 +535,7 @@ export default function Admin() {
             <AlertDialogAction
               onClick={() => deleteModalUser && handleDeleteUser(deleteModalUser.user_id)}
               disabled={!deleteModalUser || Boolean(deletingUserId)}
-              className="bg-gradient-to-r from-indigo-700 via-violet-700 to-cyan-700 text-white shadow-lg shadow-violet-500/30 hover:brightness-110"
+              className="bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 text-white shadow-lg shadow-violet-500/35 hover:brightness-110"
             >
               {deletingUserId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Excluir

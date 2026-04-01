@@ -126,11 +126,12 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
           </div>
 
           <div className="text-center mb-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              Termos de Uso e Política de Privacidade
-            </h3>
             <p className="text-sm text-slate-600">
-              Atualizamos nossos Termos de Uso e Política de Privacidade em conformidade com a LGPD.
+              Aceite os{' '}
+              <Link to="/terms" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-medium underline">Termos de Uso</Link>{' '}
+              e a{' '}
+              <Link to="/privacy" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-medium underline">Política de Privacidade (LGPD)</Link>{' '}
+              para continuar.
             </p>
           </div>
 

@@ -104,18 +104,10 @@ export default function CsatSurvey() {
 
       if (existingResponse) {
         localStorage.setItem(respondedKey(campaign.id), "true");
-        console.log("[CSAT Flow]", { campaign, userResponse: existingResponse, now: new Date() });
-        setOpen(false);
-        return;
-      }
+        
 
-      console.log("[CSAT Flow]", { campaign, userResponse: existingResponse, now: new Date() });
 
-      setActiveCampaign(campaign);
-      openTimer = setTimeout(() => {
-        setOpen(true);
-      }, OPEN_DELAY_MS);
-    };
+
 
     loadCampaign();
 
