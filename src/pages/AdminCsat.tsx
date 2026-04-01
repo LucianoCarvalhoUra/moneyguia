@@ -95,6 +95,8 @@ export default function AdminCsat() {
   const loadData = async () => {
     setLoading(true);
     try {
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+
       let campaignsResult = await supabase
         .from("csat_campaigns")
         .select("*")
@@ -104,7 +106,22 @@ export default function AdminCsat() {
         setCampaigns([]);
         toast.error(`Erro ao carregar campanhas CSAT: ${campaignsResult.error.message}`);
       } else {
-        setCampaigns((campaignsResult.data as Campaign[]) || []);
+        let rawCampaigns = (campaignsResult.data as Campaign[]) || [];
+
+        // Lógica de Expiração Automática
+        const expiredIds = rawCampaigns
+          .filter(c => c.is_active && c.end_date && c.end_date < todayStr)
+          .map(c => c.id);
+
+        if (expiredIds.length > 0) {
+          console.log('[CSAT] Desativando campanhas expiradas:', expiredIds);
+          await supabase.from("csat_campaigns").update({ is_active: false }).in("id", expiredIds);
+          rawCampaigns = rawCampaigns.map(c => 
+            expiredIds.includes(c.id) ? { ...c, is_active: false } : c
+          );
+        }
+
+        setCampaigns(rawCampaigns);
       }
 
       let responsesResult = await supabase
@@ -387,13 +404,18 @@ export default function AdminCsat() {
               <p className="text-sm text-muted-foreground">Nenhuma campanha cadastrada.</p>
             ) : (
               filteredCampaigns.map((campaign) => (
-                <div key={campaign.id} className="flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-center md:justify-between">
+                <div key={campaign.id} className="flex flex-col gap-3 rounded-2xl border border-white/20 bg-card/50 backdrop-blur-sm p-4 md:flex-row md:items-center md:justify-between shadow-sm transition-all hover:bg-card/80">
                   <div>
                     <p className="font-medium">{campaign.name}</p>
                     <p className="text-sm text-muted-foreground">{formatCampaignEndDate(campaign.end_date)}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge variant={campaign.is_active ? "default" : "secondary"}>
+                    {campaign.is_active && campaign.end_date === format(new Date(), "yyyy-MM-dd") && (
+                      <Badge className="bg-primary/10 text-primary border-primary/30 rounded-full font-bold text-[10px] animate-pulse">
+                        Expira Hoje
+                      </Badge>
+                    )}
+                    <Badge variant={campaign.is_active ? "default" : "secondary"} className="rounded-full">
                       {campaign.is_active ? "Ativa" : "Inativa"}
                     </Badge>
                     <Button

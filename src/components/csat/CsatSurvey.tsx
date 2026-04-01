@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Check, X } from "lucide-react";
+import { format } from "date-fns";
 
 const CLOSE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const OPEN_DELAY_MS = 5000;
@@ -48,10 +49,13 @@ export default function CsatSurvey() {
         return;
       }
 
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+
       const { data, error } = await supabase
         .from("csat_campaigns")
         .select("id, name")
         .eq("is_active", true)
+        .gte("end_date", todayStr) // Filtro rigoroso: Ativa e data de término válida
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
