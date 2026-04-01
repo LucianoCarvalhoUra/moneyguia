@@ -90,16 +90,9 @@ export default function Admin() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      // A. Query Unificada (Supabase Join)
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          id, user_id, name, email, created_at, lgpd_accepted_at,
-          user_subscriptions(
-            status, expires_at, billing_cycle, starts_at,
-            subscription_plans(name, plan_type)
-          )
-        `)
+        .select('*, user_subscriptions(expires_at, status)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -112,8 +105,8 @@ export default function Admin() {
           email: p.email,
           created_at: p.created_at,
           lgpd_accepted_at: p.lgpd_accepted_at,
-          current_plan_type: sub?.subscription_plans?.plan_type || 'free',
-          current_plan_name: sub?.subscription_plans?.name || 'Essencial',
+          current_plan_type: 'free',
+          current_plan_name: 'Essencial',
           subscription_status: sub?.status || null,
           current_billing_cycle: sub?.billing_cycle || null,
           current_starts_at: sub?.starts_at || null,
@@ -139,13 +132,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          id, user_id, name, email, created_at, lgpd_accepted_at,
-          user_subscriptions(
-            status, expires_at, billing_cycle, starts_at,
-            subscription_plans(name, plan_type)
-          )
-        `)
+        .select('*, user_subscriptions(expires_at, status)')
         .eq('user_id', user.user_id)
         .maybeSingle();
 
@@ -538,30 +525,30 @@ export default function Admin() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground truncate">{u.email}</p>
-                    
-                    {/* B. Lógica de Apresentação Coluna LGPD */}
                     <div className="mt-2 flex flex-wrap gap-4 text-xs">
                       <div className="flex items-center gap-1.5">
                         <span className="text-muted-foreground font-medium">LGPD:</span>
-                        {lgpdAccepted ? (
+                        {u.lgpd_accepted_at ? (
                           <div className="flex items-center gap-1 text-primary font-semibold">
                             <Check className="h-3.5 w-3.5" />
-                            {format(new Date(u.lgpd_accepted_at!), "dd/MM/yyyy HH:mm")}
+                            {format(new Date(u.lgpd_accepted_at), "dd/MM/yyyy HH:mm")}
                           </div>
                         ) : (
-                          <span className="text-slate-400">Pendente</span>
+                          <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-0">Pendente</Badge>
                         )}
                       </div>
 
-                      {/* B. Lógica de Apresentação Coluna Renovação */}
                       <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground font-medium">Renovação:</span>
+                        <span className="text-muted-foreground font-medium">Vencimento:</span>
                         {!u.current_expires_at ? (
                           <span className="text-slate-400">Sem Assinatura</span>
-                        ) : isBefore(new Date(u.current_expires_at), startOfDay(new Date())) ? (
-                          <span className="text-red-500/80 font-bold">Expirado ({format(new Date(u.current_expires_at), "dd/MM/yyyy")})</span>
                         ) : (
-                          <span className="text-foreground font-medium">{format(new Date(u.current_expires_at), "dd/MM/yyyy")}</span>
+                          <span className={cn(
+                            "font-medium",
+                            isBefore(new Date(u.current_expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground"
+                          )}>
+                            {format(new Date(u.current_expires_at), "dd/MM/yyyy")}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -627,39 +614,39 @@ export default function Admin() {
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-white/50 p-4 border border-white/60">
-                <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-primary" /> Segurança e LGPD
+              <div className="rounded-2xl bg-white/50 p-5 border border-white/60 space-y-4">
+                <h4 className="text-sm font-bold flex items-center gap-2 border-b pb-2">
+                  <Shield className="h-4 w-4 text-primary" /> Conformidade e Assinatura
                 </h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status do Aceite:</span>
-                    <Badge variant={userDetails.lgpd_accepted_at ? "default" : "secondary"}>
-                      {userDetails.lgpd_accepted_at ? "Aceito" : "Pendente"}
-                    </Badge>
+                
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Status LGPD:</span>
+                    <div className="flex items-center gap-1.5">
+                      {userDetails.lgpd_accepted_at && <Check className="h-4 w-4 text-primary" />}
+                      <Badge variant={userDetails.lgpd_accepted_at ? "default" : "secondary"}>
+                        {userDetails.lgpd_accepted_at ? "Aceito" : "Pendente"}
+                      </Badge>
+                    </div>
                   </div>
+
                   {userDetails.lgpd_accepted_at && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Data e Hora:</span>
-                      <span className="font-medium text-primary">{format(new Date(userDetails.lgpd_accepted_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                      <span className="text-muted-foreground">Aceito em:</span>
+                      <span className="font-medium">{format(new Date(userDetails.lgpd_accepted_at), "dd/MM/yyyy HH:mm")}</span>
                     </div>
                   )}
-                </div>
-              </div>
 
-              <div className="rounded-2xl bg-white/50 p-4 border border-white/60">
-                <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-amber-500" /> Assinatura
-                </h4>
-                <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Plano Atual:</span>
-                    <span className="font-bold">{userDetails.current_plan_name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Próximo Vencimento:</span>
-                    <span className={cn("font-medium", !userDetails.current_expires_at ? "text-slate-400" : isBefore(new Date(userDetails.current_expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground")}>
-                      {userDetails.current_expires_at ? format(new Date(userDetails.current_expires_at), "dd/MM/yyyy") : "Sem assinatura"}
+                    <span className="text-muted-foreground">Expiração:</span>
+                    <span className={cn(
+                      "font-bold",
+                      !userDetails.current_expires_at ? "text-slate-400" : isBefore(new Date(userDetails.current_expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground"
+                    )}>
+                      {userDetails.current_expires_at 
+                        ? format(new Date(userDetails.current_expires_at), "dd/MM/yyyy") 
+                        : "Sem assinatura"
+                      }
                     </span>
                   </div>
                 </div>
