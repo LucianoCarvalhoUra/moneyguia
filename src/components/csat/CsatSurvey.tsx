@@ -108,10 +108,8 @@ export default function CsatSurvey() {
         return;
       }
 
-      openTimer = setTimeout(() => {
-        setActiveCampaign(campaign);
-        setOpen(true);
-      }, OPEN_DELAY_MS);
+      setActiveCampaign(campaign);
+      openTimer = setTimeout(() => setOpen(true), OPEN_DELAY_MS);
     };
 
     loadCampaign();
@@ -168,29 +166,28 @@ export default function CsatSurvey() {
   return (
     open ? (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px]">
-        <div className="relative w-full max-w-xl rounded-3xl border border-white/40 bg-white/70 p-6 shadow-2xl backdrop-blur-xl animate-in fade-in-0 slide-in-from-bottom-4 duration-300 sm:p-7">
-          <button
-            type="button"
-            className="absolute right-4 top-4 rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
-            onClick={() => {
-              handleCloseWithSnooze();
-              setOpen(false);
-            }}
-            aria-label="Fechar pesquisa"
-          >
-            <X className="h-4 w-4" />
-          </button>
+        <div className="relative w-full max-w-xl rounded-3xl border border-white/40 bg-white/70 shadow-2xl backdrop-blur-xl animate-in fade-in-0 slide-in-from-bottom-4 duration-300 overflow-hidden">
+          <div className="relative bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 p-8 text-center">
+            <button
+              type="button"
+              className="absolute right-4 top-4 rounded-full p-1.5 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+              onClick={() => {
+                handleCloseWithSnooze();
+                setOpen(false);
+              }}
+              aria-label="Fechar pesquisa"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <h2 className="text-xl font-semibold text-white">Pesquisa de satisfação</h2>
+            <p className="mt-1 text-sm text-white/80">
+              {activeCampaign?.name
+                ? `Campanha: ${activeCampaign.name}`
+                : "Como você avalia sua experiência hoje?"}
+            </p>
+          </div>
 
-          <div className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-xl font-semibold text-slate-800">Pesquisa de satisfação</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                {activeCampaign?.name
-                  ? `Campanha: ${activeCampaign.name}`
-                  : "Como você avalia sua experiência hoje?"}
-              </p>
-            </div>
-
+          <div className="p-6 sm:p-7 space-y-6">
             <div>
               <p className="mb-3 text-center text-sm font-medium text-slate-700">Como você avalia sua experiência hoje?</p>
               <div className="grid grid-cols-5 gap-2 sm:gap-3">
