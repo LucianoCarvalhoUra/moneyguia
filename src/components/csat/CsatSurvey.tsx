@@ -166,7 +166,7 @@ export default function CsatSurvey() {
   return (
     open ? (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px]">
-        <div className="relative w-full max-w-xl rounded-3xl border border-white/40 bg-white/70 p-6 shadow-2xl backdrop-blur-xl animate-in fade-in-0 slide-in-from-bottom-4 duration-300 sm:p-7">
+        <div className="relative w-full max-w-xl rounded-3xl border border-white/40 bg-white/70 p-0 shadow-2xl backdrop-blur-xl animate-in fade-in-0 slide-in-from-bottom-4 duration-300 overflow-hidden">
           <button
             type="button"
             className="absolute right-4 top-4 rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
