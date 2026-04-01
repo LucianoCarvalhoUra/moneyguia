@@ -25,7 +25,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Shield, Users, Search, Loader2, Crown, Check, Trash2, AlertTriangle, Calendar, Info, Clock, Mail } from "lucide-react";
+import { Shield, Users, Search, Loader2, Crown, Check, Trash2, AlertTriangle, Info, Mail } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -92,7 +92,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, user_subscriptions(expires_at, status)')
+        .select('*, user_subscriptions(*)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -127,24 +127,37 @@ export default function Admin() {
 
   // C. Modal de Detalhes com Re-fetch e Limpeza de Estado
   const handleOpenDetails = async (user: UserInfo) => {
-    setSelectedUserDetails(user);
     setIsFetchingDetails(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, user_subscriptions(expires_at, status)')
+        .select('*, user_subscriptions(*)')
         .eq('user_id', user.user_id)
         .maybeSingle();
 
       if (data && !error) {
         const sub = (data as any).user_subscriptions?.[0];
-        setSelectedUserDetails({
-          ...user,
+        const fullUserDetails: UserInfo = {
+          user_id: data.user_id || data.id,
+          name: data.name || "Sem nome",
+          email: data.email,
+          created_at: data.created_at,
           lgpd_accepted_at: data.lgpd_accepted_at,
+          current_plan_type: user.current_plan_type,
+          current_plan_name: user.current_plan_name,
+          subscription_status: sub?.status || null,
+          current_billing_cycle: sub?.billing_cycle || null,
+          current_starts_at: sub?.starts_at || null,
           current_expires_at: sub?.expires_at || null,
-          subscription_status: sub?.status || null
-        });
+        };
+        setSelectedUserDetails(fullUserDetails);
+      } else {
+        // Se houver erro na query, usa os dados que já temos
+        setSelectedUserDetails(user);
       }
+    } catch (err) {
+      console.error("Erro ao buscar detalhes do usuário:", err);
+      setSelectedUserDetails(user);
     } finally {
       setIsFetchingDetails(false);
     }
@@ -506,12 +519,6 @@ export default function Admin() {
             <div className="space-y-3">
               {sortedUsers.map((u) => (
                 (() => {
-                  const lgpdAccepted = Boolean(u.lgpd_accepted_at);
-                  const lgpdDate = u.lgpd_accepted_at ? new Date(u.lgpd_accepted_at) : null;
-                  const lgpdDateLabel = lgpdDate && !Number.isNaN(lgpdDate.getTime())
-                    ? format(lgpdDate, "dd/MM/yyyy", { locale: ptBR })
-                    : null;
-
                   return (
                 <div key={u.user_id} className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border bg-card/50 hover:bg-card hover:shadow-md transition-all cursor-pointer" onClick={() => handleOpenDetails(u)}>
                   <div className="flex-1 min-w-0">
