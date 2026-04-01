@@ -1,37 +1,55 @@
-import { ArrowLeft, FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ScrollText } from "lucide-react";
 
 export default function TermsOfUse() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-slate-100/60 p-4 md:p-8">
-      <div className="mx-auto w-full max-w-4xl space-y-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate(-1)}
-          className="rounded-2xl border-white/50 bg-white/70 backdrop-blur"
+    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate(-1)} 
+          className="mb-8 hover:bg-white/50"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
 
-        <div className="rounded-3xl border border-white/40 bg-white/80 p-6 shadow-2xl shadow-violet-500/10 backdrop-blur-lg md:p-8">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="rounded-2xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 p-2.5 text-white">
-              <FileText className="h-5 w-5" />
+        <div className="rounded-3xl border border-white/40 bg-white/70 p-8 shadow-2xl backdrop-blur-lg">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-3 rounded-2xl bg-emerald-100 text-emerald-600">
+              <ScrollText className="h-6 w-6" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">Termos de Uso - MoneyGuia</h1>
+            <h1 className="text-3xl font-bold text-slate-900">Termos de Uso</h1>
           </div>
 
-          <div className="space-y-4 text-sm leading-7 text-slate-700 md:text-base">
-            <p><strong>1. Aceitação:</strong> Ao acessar o MoneyGuia, você concorda com estes termos.</p>
-            <p><strong>2. Serviço:</strong> A plataforma é uma ferramenta de auxílio à organização financeira. Não garantimos resultados financeiros, pois as decisões são de inteira responsabilidade do usuário.</p>
-            <p><strong>3. Idade:</strong> O MoneyGuia é livre para todas as idades. Menores de 16 anos declaram estar assistidos por seus responsáveis legais.</p>
-            <p><strong>4. Propriedade Intelectual:</strong> Todo o design e código são de propriedade exclusiva do MoneyGuia.</p>
-            <p><strong>5. Cancelamento:</strong> Você pode excluir sua conta a qualquer momento nas configurações.</p>
+          <div className="space-y-8 text-slate-600 leading-relaxed">
+            <section>
+              <h2 className="text-xl font-semibold text-slate-800 mb-3">1. Aceitação</h2>
+              <p>Ao acessar o MoneyGuia, você concorda com estes termos.</p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-slate-800 mb-3">2. Serviço</h2>
+              <p>A plataforma é uma ferramenta de auxílio à organização financeira. Não garantimos resultados financeiros, pois as decisões são de inteira responsabilidade do usuário.</p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-slate-800 mb-3">3. Idade</h2>
+              <p>O MoneyGuia é livre para todas as idades. Menores de 16 anos declaram estar assistidos por seus responsáveis legais.</p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-slate-800 mb-3">4. Propriedade Intelectual</h2>
+              <p>Todo o design e código são de propriedade exclusiva do MoneyGuia.</p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-slate-800 mb-3">5. Cancelamento</h2>
+              <p>Você pode excluir sua conta a qualquer momento nas configurações.</p>
+            </section>
           </div>
         </div>
       </div>
