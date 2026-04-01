@@ -104,10 +104,15 @@ export default function CsatSurvey() {
 
       if (existingResponse) {
         localStorage.setItem(respondedKey(campaign.id), "true");
-        
+        setOpen(false);
+        return;
+      }
 
-
-
+      openTimer = setTimeout(() => {
+        setActiveCampaign(campaign);
+        setOpen(true);
+      }, OPEN_DELAY_MS);
+    };
 
     loadCampaign();
 
