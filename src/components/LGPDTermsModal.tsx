@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Wallet, Shield, ShieldCheck, Check, Loader2 } from 'lucide-react';
+import { Wallet, Shield, ShieldCheck, Check, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LGPDTermsModalProps {
@@ -86,12 +86,20 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
 
   return (
     <AlertDialog open>
-      <AlertDialogContent className="z-[9999] p-0 overflow-hidden rounded-3xl border border-white/40 bg-white/80 shadow-2xl shadow-violet-500/20 backdrop-blur-lg max-w-lg w-[90vw] animate-in fade-in-0 zoom-in-95 duration-300">
+      <AlertDialogContent className="z-[9999] p-0 overflow-hidden rounded-3xl border border-white/40 bg-white/70 shadow-2xl backdrop-blur-xl max-w-lg w-[90vw] animate-in fade-in-0 zoom-in-95 duration-300">
         <AlertDialogHeader><AlertDialogTitle className="sr-only">Termos LGPD</AlertDialogTitle></AlertDialogHeader>
 
         <AlertDialogDescription asChild>
           <div className="text-slate-900">
-            <div className="bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 p-8 text-center">
+            <div className="relative bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 p-8 text-center">
+              <button
+                type="button"
+                className="absolute right-4 top-4 rounded-full p-1.5 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                onClick={handleDeclineNow}
+                aria-label="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </button>
               <div className="mb-4 flex justify-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20">
                   <Shield className="w-10 h-10 text-white" />
@@ -100,7 +108,7 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
               <h2 className="text-2xl font-bold text-white mb-2">
                 Atualização de Privacidade
               </h2>
-              <p className="text-emerald-100 text-sm">
+              <p className="text-white/80 text-sm">
                 Precisamos da sua confirmação sobre os novos termos
               </p>
             </div>
