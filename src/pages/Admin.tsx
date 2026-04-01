@@ -17,11 +17,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Shield, Users, Search, Loader2, Crown, Check, Trash2, AlertTriangle } from "lucide-react";
+import { Shield, Users, Search, Loader2, Crown, Check, Trash2, AlertTriangle, Calendar, Info, Clock, Mail } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface UserInfo {
@@ -65,6 +72,8 @@ export default function Admin() {
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [userSort, setUserSort] = useState<"recent" | "expires_soon">("recent");
   const [deleteModalUser, setDeleteModalUser] = useState<UserInfo | null>(null);
+  const [userDetails, setSelectedUserDetails] = useState<UserInfo | null>(null);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [selectedStartsAt, setSelectedStartsAt] = useState<string>(() => {
     const now = new Date();
     const y = now.getFullYear();
@@ -80,16 +89,76 @@ export default function Admin() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-users", {
-        body: { action: "list_users" },
-      });
+      // A. Query Unificada (Supabase Join)
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id, user_id, name, email, created_at, lgpd_accepted_at,
+          user_subscriptions(
+            status, expires_at, billing_cycle, starts_at,
+            subscription_plans(name, plan_type)
+          )
+        `)
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      setUsers(data.users || []);
-      setPlans(data.plans || []);
+
+      const formattedUsers: UserInfo[] = (data as any[]).map(p => {
+        const sub = p.user_subscriptions?.[0];
+        return {
+          user_id: p.user_id || p.id,
+          name: p.name || "Sem nome",
+          email: p.email,
+          created_at: p.created_at,
+          lgpd_accepted_at: p.lgpd_accepted_at,
+          current_plan_type: sub?.subscription_plans?.plan_type || 'free',
+          current_plan_name: sub?.subscription_plans?.name || 'Essencial',
+          subscription_status: sub?.status || null,
+          current_billing_cycle: sub?.billing_cycle || null,
+          current_starts_at: sub?.starts_at || null,
+          current_expires_at: sub?.expires_at || null,
+        };
+      });
+
+      setUsers(formattedUsers);
+
+      const { data: plansData } = await supabase.from('subscription_plans').select('*');
+      setPlans(plansData || []);
     } catch (err: any) {
       toast.error("Erro ao carregar usuários: " + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // C. Modal de Detalhes com Re-fetch e Limpeza de Estado
+  const handleOpenDetails = async (user: UserInfo) => {
+    setSelectedUserDetails(user);
+    setIsFetchingDetails(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id, user_id, name, email, created_at, lgpd_accepted_at,
+          user_subscriptions(
+            status, expires_at, billing_cycle, starts_at,
+            subscription_plans(name, plan_type)
+          )
+        `)
+        .eq('user_id', user.user_id)
+        .maybeSingle();
+
+      if (data && !error) {
+        const sub = (data as any).user_subscriptions?.[0];
+        setSelectedUserDetails({
+          ...user,
+          lgpd_accepted_at: data.lgpd_accepted_at,
+          current_expires_at: sub?.expires_at || null,
+          subscription_status: sub?.status || null
+        });
+      }
+    } finally {
+      setIsFetchingDetails(false);
     }
   };
 
@@ -456,10 +525,7 @@ export default function Admin() {
                     : null;
 
                   return (
-                <div
-                  key={u.user_id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border bg-card"
-                >
+                <div key={u.user_id} className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border bg-card/50 hover:bg-card hover:shadow-md transition-all cursor-pointer" onClick={() => handleOpenDetails(u)}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium truncate">{u.name || "Sem nome"}</p>
@@ -471,21 +537,36 @@ export default function Admin() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground truncate">{u.email}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge className={planBadgeColors[u.current_plan_type] || "bg-slate-100 text-slate-700"}>
-                        {u.current_plan_name}
-                      </Badge>
-                      <Badge className={lgpdAccepted ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-600"}>
-                        {lgpdAccepted ? <Check className="mr-1 h-3 w-3" /> : <Shield className="mr-1 h-3 w-3" />}
-                        {lgpdAccepted ? "LGPD OK" : "Pendente"}
-                      </Badge>
+                    
+                    {/* B. Lógica de Apresentação Coluna LGPD */}
+                    <div className="mt-2 flex flex-wrap gap-4 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground font-medium">LGPD:</span>
+                        {lgpdAccepted ? (
+                          <div className="flex items-center gap-1 text-primary font-semibold">
+                            <Check className="h-3.5 w-3.5" />
+                            {format(new Date(u.lgpd_accepted_at!), "dd/MM/yyyy HH:mm")}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">Pendente</span>
+                        )}
+                      </div>
+
+                      {/* B. Lógica de Apresentação Coluna Renovação */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground font-medium">Renovação:</span>
+                        {!u.current_expires_at ? (
+                          <span className="text-slate-400">Sem Assinatura</span>
+                        ) : isBefore(new Date(u.current_expires_at), startOfDay(new Date())) ? (
+                          <span className="text-red-500/80 font-bold">Expirado ({format(new Date(u.current_expires_at), "dd/MM/yyyy")})</span>
+                        ) : (
+                          <span className="text-foreground font-medium">{format(new Date(u.current_expires_at), "dd/MM/yyyy")}</span>
+                        )}
+                      </div>
                     </div>
-                    {lgpdAccepted && lgpdDateLabel && (
-                      <p className="mt-1 text-xs text-violet-700">LGPD aceito em: {lgpdDateLabel}</p>
-                    )}
                   </div>
 
-                  <div className="flex items-center gap-2 sm:min-w-[280px]">
+                  <div className="flex items-center gap-2 sm:min-w-[120px] justify-end" onClick={e => e.stopPropagation()}>
                     <div className="text-right text-xs text-muted-foreground min-w-[170px]">
                       <p>
                         {u.current_plan_type?.toUpperCase() || "FREE"} {u.current_billing_cycle === "yearly" ? "Anual" : u.current_billing_cycle === "monthly" ? "Mensal" : "-"}
@@ -518,6 +599,74 @@ export default function Admin() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Detalhes do Usuário */}
+      <Dialog open={!!userDetails} onOpenChange={(open) => !open && setSelectedUserDetails(null)}>
+        <DialogContent className="max-w-lg rounded-3xl border border-white/40 bg-white/80 shadow-2xl backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-primary" />
+              Detalhes do Cliente
+            </DialogTitle>
+            <DialogDescription>Dados completos de conformidade e faturamento.</DialogDescription>
+          </DialogHeader>
+          
+          {isFetchingDetails ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+          ) : userDetails && (
+            <div className="space-y-6 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground uppercase">Nome</Label>
+                  <p className="font-semibold flex items-center gap-2"><Users className="h-4 w-4 text-slate-400" /> {userDetails.name}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground uppercase">Email</Label>
+                  <p className="font-semibold flex items-center gap-2"><Mail className="h-4 w-4 text-slate-400" /> {userDetails.email}</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white/50 p-4 border border-white/60">
+                <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" /> Segurança e LGPD
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Status do Aceite:</span>
+                    <Badge variant={userDetails.lgpd_accepted_at ? "default" : "secondary"}>
+                      {userDetails.lgpd_accepted_at ? "Aceito" : "Pendente"}
+                    </Badge>
+                  </div>
+                  {userDetails.lgpd_accepted_at && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Data e Hora:</span>
+                      <span className="font-medium text-primary">{format(new Date(userDetails.lgpd_accepted_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white/50 p-4 border border-white/60">
+                <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-amber-500" /> Assinatura
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Plano Atual:</span>
+                    <span className="font-bold">{userDetails.current_plan_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Próximo Vencimento:</span>
+                    <span className={cn("font-medium", !userDetails.current_expires_at ? "text-slate-400" : isBefore(new Date(userDetails.current_expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground")}>
+                      {userDetails.current_expires_at ? format(new Date(userDetails.current_expires_at), "dd/MM/yyyy") : "Sem assinatura"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={Boolean(deleteModalUser)} onOpenChange={(open) => !open && setDeleteModalUser(null)}>
         <AlertDialogContent className="rounded-3xl border border-white/40 bg-white/80 shadow-2xl shadow-violet-500/20 backdrop-blur-lg">
