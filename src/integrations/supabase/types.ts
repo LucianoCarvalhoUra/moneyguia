@@ -106,63 +106,66 @@ export type Database = {
       }
       csat_campaigns: {
         Row: {
-          created_at: string
+          created_at: string | null
           created_by: string | null
-          end_date: string
+          custom_title: string | null
+          end_date: string | null
           id: string
-          is_active: boolean
+          is_active: boolean | null
           name: string
-          updated_at: string
+          start_date: string | null
+          theme_color: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           created_by?: string | null
-          end_date: string
+          custom_title?: string | null
+          end_date?: string | null
           id?: string
-          is_active?: boolean
+          is_active?: boolean | null
           name: string
-          updated_at?: string
+          start_date?: string | null
+          theme_color?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           created_by?: string | null
-          end_date?: string
+          custom_title?: string | null
+          end_date?: string | null
           id?: string
-          is_active?: boolean
+          is_active?: boolean | null
           name?: string
-          updated_at?: string
+          start_date?: string | null
+          theme_color?: string | null
         }
         Relationships: []
       }
       csat_responses: {
         Row: {
-          campaign_id: string
+          campaign_id: string | null
           comment: string | null
-          created_at: string
+          created_at: string | null
           id: string
-          is_public: boolean
-          rating: number
-          updated_at: string
+          is_public: boolean | null
+          rating: number | null
           user_id: string | null
         }
         Insert: {
-          campaign_id: string
+          campaign_id?: string | null
           comment?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
-          is_public?: boolean
-          rating: number
-          updated_at?: string
+          is_public?: boolean | null
+          rating?: number | null
           user_id?: string | null
         }
         Update: {
-          campaign_id?: string
+          campaign_id?: string | null
           comment?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
-          is_public?: boolean
-          rating?: number
-          updated_at?: string
+          is_public?: boolean | null
+          rating?: number | null
           user_id?: string | null
         }
         Relationships: [
@@ -636,26 +639,38 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accepted_terms: boolean | null
           created_at: string
           email: string | null
           id: string
+          lgpd_accepted_at: string | null
           name: string | null
+          terms_accepted_at: string | null
+          terms_version: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          accepted_terms?: boolean | null
           created_at?: string
           email?: string | null
           id?: string
+          lgpd_accepted_at?: string | null
           name?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          accepted_terms?: boolean | null
           created_at?: string
           email?: string | null
           id?: string
+          lgpd_accepted_at?: string | null
           name?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -859,6 +874,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_is_admin: { Args: never; Returns: boolean }
       delete_user_account: { Args: never; Returns: undefined }
       get_user_plan: {
         Args: { p_user_id: string }
@@ -871,6 +887,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: never; Returns: boolean }
+      is_admin_check: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
