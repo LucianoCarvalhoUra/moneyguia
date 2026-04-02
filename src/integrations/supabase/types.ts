@@ -867,6 +867,13 @@ export type Database = {
             referencedRelation: "subscription_plans"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }

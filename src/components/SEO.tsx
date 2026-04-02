@@ -38,7 +38,7 @@ export default function SEO({
       content: string
     ) => {
       let element = document.querySelector(
-        `${selector}="${selectorValue}"]`
+        `[${selector}="${selectorValue}"]`
       ) as HTMLMetaElement;
 
       if (!element) {
