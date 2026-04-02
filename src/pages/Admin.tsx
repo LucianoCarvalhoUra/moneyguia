@@ -185,34 +185,34 @@ export default function Admin() {
       return;
     }
 
+    const now = new Date();
     const startsAtDate = new Date(`${selectedStartsAt}T00:00:00`);
+    
+    // Se a data selecionada for hoje, usamos o timestamp exato atual para capturar o "Momento da Aprovação"
+    const isToday = startsAtDate.toDateString() === now.toDateString();
+    const effectiveStart = isToday ? now : startsAtDate;
+
     if (Number.isNaN(startsAtDate.getTime())) {
       toast.error("Data de início inválida.");
       return;
     }
 
-    const expiresAtDate = new Date(startsAtDate);
+    const expiresAtDate = new Date(effectiveStart);
     if (selectedBillingCycle === "yearly") {
       expiresAtDate.setFullYear(expiresAtDate.getFullYear() + 1);
     } else {
       expiresAtDate.setMonth(expiresAtDate.getMonth() + 1);
     }
 
-    if (Number.isNaN(expiresAtDate.getTime())) {
-      toast.error("Não foi possível calcular expires_at.");
-      return;
-    }
-
-    const startsAtIso = startsAtDate.toISOString();
-    const expiresAtIso = expiresAtDate.toISOString();
-
     const payload = {
       user_id: selectedUserId,
       plan_id: selectedPlanId,
       billing_cycle: selectedBillingCycle,
-      starts_at: startsAtIso,
-      expires_at: expiresAtIso,
-      status: 'active'
+      starts_at: effectiveStart.toISOString(),
+      expires_at: expiresAtDate.toISOString(),
+      status: 'active',
+      // Sobrescrevemos o created_at da assinatura para o momento da aprovação manual
+      created_at: now.toISOString()
     };
 
     // Log de Payload solicitado para depuração de Foreign Key
@@ -536,6 +536,10 @@ export default function Admin() {
                     </div>
                     <p className="text-sm text-muted-foreground truncate">{u.email}</p>
                     <div className="mt-2 flex flex-wrap gap-4 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground font-medium">Membro desde:</span>
+                      <span className="text-foreground">{format(new Date(u.created_at), "dd/MM/yyyy")}</span>
+                    </div>
                       <div className="flex items-center gap-1.5">
                         <span className="text-muted-foreground font-medium">LGPD:</span>
                         {u.lgpd_accepted_at ? (
