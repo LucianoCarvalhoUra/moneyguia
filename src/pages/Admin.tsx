@@ -96,14 +96,11 @@ export default function Admin() {
         .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at, subscription_plans(name, plan_type))')
         .order('created_at', { ascending: false });
 
-      // Logs de verificação solicitados
+      if (error) throw error;
+
+      // Log de Depuração solicitado
       console.log('Query executada para Admin:', data);
       console.log('Total de usuários retornados:', data?.length);
-
-      if (error) {
-        console.error('Erro retornado pelo Supabase:', error);
-        throw error;
-      }
 
       const formattedUsers: UserInfo[] = (data as any[]).map(p => {
         // user_subscriptions can be an object (one-to-one) or array
@@ -138,25 +135,25 @@ export default function Admin() {
   };
 
   // C. Modal de Detalhes com Re-fetch e Limpeza de Estado
-  const handleOpenDetails = async (user: UserInfo) => {
+  const handleOpenDetails = async (targetUser: UserInfo) => {
     setIsFetchingDetails(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at)')
-        .eq('user_id', user.user_id)
+        .eq('user_id', targetUser.user_id)
         .maybeSingle();
 
       if (data && !error) {
         const sub = (data as any).user_subscriptions?.[0];
         const fullUserDetails: UserInfo = {
-          user_id: data.user_id || data.id,
+          user_id: data.id,
           name: data.name || "Sem nome",
           email: data.email,
           created_at: data.created_at,
           lgpd_accepted_at: data.lgpd_accepted_at,
-          current_plan_type: user.current_plan_type,
-          current_plan_name: user.current_plan_name,
+          current_plan_type: targetUser.current_plan_type,
+          current_plan_name: targetUser.current_plan_name,
           subscription_status: sub?.status || null,
           current_billing_cycle: sub?.billing_cycle || null,
           current_starts_at: sub?.starts_at || null,
@@ -164,12 +161,11 @@ export default function Admin() {
         };
         setSelectedUserDetails(fullUserDetails);
       } else {
-        // Se houver erro na query, usa os dados que já temos
-        setSelectedUserDetails(user);
+        setSelectedUserDetails(targetUser);
       }
     } catch (err) {
       console.error("Erro ao buscar detalhes do usuário:", err);
-      setSelectedUserDetails(user);
+      setSelectedUserDetails(targetUser);
     } finally {
       setIsFetchingDetails(false);
     }
@@ -269,11 +265,13 @@ export default function Admin() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const filteredUsers = users.filter(
-    (u) =>
-      u.name?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  // Melhoria na busca: Garante que null/undefined não quebrem o filtro
+  const filteredUsers = users.filter((u) => {
+    const searchLower = search.toLowerCase();
+    const nameMatch = (u.name || "").toLowerCase().includes(searchLower);
+    const emailMatch = (u.email || "").toLowerCase().includes(searchLower);
+    return nameMatch || emailMatch;
+  });
 
   const resolveExpiresAt = (u: UserInfo): Date | null => {
     const expiresFromSub = u.user_subscriptions?.[0]?.expires_at;
