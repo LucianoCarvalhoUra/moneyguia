@@ -93,7 +93,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at, subscription_plans(name, plan_type))')
+        .select('*, user_subscriptions(created_at, expires_at, status, billing_cycle, starts_at, subscription_plans(name, plan_type))')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -140,12 +140,14 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at)')
+        .select('*, user_subscriptions(created_at, expires_at, status, billing_cycle, starts_at)')
         .eq('user_id', targetUser.user_id)
         .maybeSingle();
 
       if (data && !error) {
-        const sub = (data as any).user_subscriptions?.[0];
+        const rawSubs = (data as any).user_subscriptions;
+        const subs = Array.isArray(rawSubs) ? rawSubs : rawSubs ? [rawSubs] : [];
+        const sub = subs[0];
         const fullUserDetails: UserInfo = {
           user_id: data.id,
           name: data.name || "Sem nome",
@@ -158,6 +160,7 @@ export default function Admin() {
           current_billing_cycle: sub?.billing_cycle || null,
           current_starts_at: sub?.starts_at || null,
           current_expires_at: sub?.expires_at || null,
+          user_subscriptions: subs,
         };
         setSelectedUserDetails(fullUserDetails);
       } else {
@@ -629,16 +632,29 @@ export default function Admin() {
                   )}
 
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Expiração:</span>
-                    <span className={cn(
-                      "font-bold",
-                      !userDetails.current_expires_at ? "text-slate-400" : isBefore(new Date(userDetails.current_expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground"
-                    )}>
-                      {userDetails.current_expires_at 
-                        ? format(new Date(userDetails.current_expires_at), "dd/MM/yyyy") 
-                        : "Sem assinatura"
-                      }
-                    </span>
+                    <span className="text-muted-foreground">Data da Assinatura:</span>
+                    {(() => {
+                      const subs = Array.isArray(userDetails.user_subscriptions) ? userDetails.user_subscriptions : [];
+                      const sub = subs[0];
+                      return (
+                        <span className={cn("font-medium", !sub && "text-slate-400")}>
+                          {sub?.created_at ? format(new Date(sub.created_at), "dd/MM/yyyy") : "Nenhuma assinatura ativa"}
+                        </span>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Data da Renovação:</span>
+                    {(() => {
+                      const subs = Array.isArray(userDetails.user_subscriptions) ? userDetails.user_subscriptions : [];
+                      const sub = subs[0];
+                      return (
+                        <span className={cn("font-bold", !sub ? "text-slate-400 font-medium" : "text-foreground")}>
+                          {sub?.expires_at ? format(new Date(sub.expires_at), "dd/MM/yyyy") : "Nenhuma assinatura ativa"}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
