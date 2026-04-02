@@ -10,7 +10,8 @@ ON public.profiles
 FOR SELECT 
 TO authenticated 
 USING (
-  public.has_role(auth.uid(), 'admin') = TRUE
+  public.has_role(auth.uid(), 'admin') = TRUE OR
+  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
 );
 
 -- Criar política para admins atualizarem todos os perfis (gestão de licenças)
@@ -20,10 +21,12 @@ ON public.profiles
 FOR UPDATE 
 TO authenticated 
 USING (
-  public.has_role(auth.uid(), 'admin') = TRUE
+  public.has_role(auth.uid(), 'admin') = TRUE OR
+  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
 )
 WITH CHECK (
-  public.has_role(auth.uid(), 'admin') = TRUE
+  public.has_role(auth.uid(), 'admin') = TRUE OR
+  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
 );
 
 -- Criar política para admins verem todas as assinaturas
@@ -33,7 +36,8 @@ ON public.user_subscriptions
 FOR SELECT 
 TO authenticated 
 USING (
-  public.has_role(auth.uid(), 'admin') = TRUE
+  public.has_role(auth.uid(), 'admin') = TRUE OR
+  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
 );
 
 -- Criar política para admins atualizarem todas as assinaturas
@@ -43,8 +47,10 @@ ON public.user_subscriptions
 FOR ALL 
 TO authenticated 
 USING (
-  public.has_role(auth.uid(), 'admin') = TRUE
+  public.has_role(auth.uid(), 'admin') = TRUE OR
+  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
 )
 WITH CHECK (
-  public.has_role(auth.uid(), 'admin') = TRUE
+  public.has_role(auth.uid(), 'admin') = TRUE OR
+  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
 );
