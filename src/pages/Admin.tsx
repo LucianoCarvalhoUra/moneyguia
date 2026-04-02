@@ -196,35 +196,22 @@ export default function Admin() {
     const startsAtIso = startsAtDate.toISOString();
     const expiresAtIso = expiresAtDate.toISOString();
 
+    const payload = {
+      user_id: selectedUserId,
+      plan_id: selectedPlanId,
+      billing_cycle: selectedBillingCycle,
+      starts_at: startsAtIso,
+      expires_at: expiresAtIso,
+      status: 'active'
+    };
+
     setUpdatingUserId(selectedUserId);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-users", {
-        body: {
-          action: "update_user_plan",
-          user_id: selectedUserId,
-          plan_id: selectedPlanId,
-          billing_cycle: selectedBillingCycle,
-          starts_at: startsAtIso,
-          expires_at: expiresAtIso,
-        },
-      });
+      console.log('💾 Tentando salvar assinatura para ID:', selectedUserId, payload);
+      const { data, error } = await supabase.from('user_subscriptions').upsert(payload, { onConflict: 'user_id' });
+      console.log('✅ Resposta do Servidor após Save:', { data, error });
+      
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      setUsers((current) =>
-        current.map((item) => {
-          if (item.user_id !== selectedUserId) return item;
-          return {
-            ...item,
-            current_plan_type: selectedPlan?.plan_type || item.current_plan_type,
-            current_plan_name: selectedPlan?.name || item.current_plan_name,
-            subscription_status: "active",
-            current_billing_cycle: selectedBillingCycle,
-            current_starts_at: startsAtIso,
-            current_expires_at: expiresAtIso,
-          };
-        })
-      );
 
       if (selectedUserId === user?.id) {
         window.dispatchEvent(new Event("user-plan-changed"));
