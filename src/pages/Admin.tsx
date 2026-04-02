@@ -93,25 +93,28 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at, subscription_plans(name))')
+        .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at, subscription_plans(name, plan_type))')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       const formattedUsers: UserInfo[] = (data as any[]).map(p => {
-        const sub = p.user_subscriptions?.[0];
+        // Get the most recent active/trial subscription
+        const subs = p.user_subscriptions || [];
+        const activeSub = subs.find((s: any) => s.status === 'active' || s.status === 'trial') || subs[0] || null;
         return {
           user_id: p.user_id || p.id,
           name: p.name || "Sem nome",
           email: p.email,
           created_at: p.created_at,
           lgpd_accepted_at: p.lgpd_accepted_at,
-          current_plan_type: 'free',
-          current_plan_name: 'Essencial',
-          subscription_status: sub?.status || null,
-          current_billing_cycle: sub?.billing_cycle || null,
-          current_starts_at: sub?.starts_at || null,
-          current_expires_at: sub?.expires_at || null,
+          current_plan_type: activeSub?.subscription_plans?.plan_type || 'free',
+          current_plan_name: activeSub?.subscription_plans?.name || 'Essencial',
+          subscription_status: activeSub?.status || null,
+          current_billing_cycle: activeSub?.billing_cycle || null,
+          current_starts_at: activeSub?.starts_at || null,
+          current_expires_at: activeSub?.expires_at || null,
+          user_subscriptions: subs,
         };
       });
 
