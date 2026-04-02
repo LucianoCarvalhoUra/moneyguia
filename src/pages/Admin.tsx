@@ -99,8 +99,9 @@ export default function Admin() {
       if (error) throw error;
 
       const formattedUsers: UserInfo[] = (data as any[]).map(p => {
-        // Get the most recent active/trial subscription
-        const subs = p.user_subscriptions || [];
+        // user_subscriptions can be an object (one-to-one) or array
+        const rawSubs = p.user_subscriptions;
+        const subs = Array.isArray(rawSubs) ? rawSubs : rawSubs ? [rawSubs] : [];
         const activeSub = subs.find((s: any) => s.status === 'active' || s.status === 'trial') || subs[0] || null;
         return {
           user_id: p.user_id || p.id,
