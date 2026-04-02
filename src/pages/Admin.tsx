@@ -93,7 +93,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at)')
+        .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at, subscription_plans(name))')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -265,7 +265,8 @@ export default function Admin() {
   );
 
   const resolveExpiresAt = (u: UserInfo): Date | null => {
-    const expiresFromDb = u.current_expires_at ? new Date(u.current_expires_at) : null;
+    const expiresFromSub = u.user_subscriptions?.[0]?.expires_at;
+    const expiresFromDb = expiresFromSub ? new Date(expiresFromSub) : (u.current_expires_at ? new Date(u.current_expires_at) : null);
     if (!expiresFromDb || Number.isNaN(expiresFromDb.getTime())) {
       return null;
     }
@@ -538,15 +539,15 @@ export default function Admin() {
 
                       <div className="flex items-center gap-1.5">
                         <span className="text-muted-foreground font-medium">Vencimento:</span>
-                        {!u.current_expires_at ? (
-                          <span className="text-slate-400">Sem Assinatura</span>
-                        ) : (
+                        {u.user_subscriptions?.[0]?.expires_at ? (
                           <span className={cn(
                             "font-medium",
-                            isBefore(new Date(u.current_expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground"
+                            isBefore(new Date(u.user_subscriptions[0].expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground"
                           )}>
-                            {format(new Date(u.current_expires_at), "dd/MM/yyyy")}
+                            {format(new Date(u.user_subscriptions[0].expires_at), "dd/MM/yyyy")}
                           </span>
+                        ) : (
+                          <span className="text-slate-400">Sem Assinatura</span>
                         )}
                       </div>
                     </div>
@@ -555,7 +556,7 @@ export default function Admin() {
                   <div className="flex items-center gap-2 sm:min-w-[120px] justify-end" onClick={e => e.stopPropagation()}>
                     <div className="text-right text-xs text-muted-foreground min-w-[170px]">
                       <p>
-                        {u.current_plan_type?.toUpperCase() || "FREE"} {u.current_billing_cycle === "yearly" ? "Anual" : u.current_billing_cycle === "monthly" ? "Mensal" : "-"}
+                        {u.user_subscriptions?.[0]?.subscription_plans?.name || u.current_plan_type?.toUpperCase() || "Gratuito"} {u.user_subscriptions?.[0]?.billing_cycle === "yearly" ? "Anual" : u.user_subscriptions?.[0]?.billing_cycle === "monthly" ? "Mensal" : "-"}
                       </p>
                       <p className={getExpirationMeta(u).className}>
                         {getExpirationMeta(u).label}
