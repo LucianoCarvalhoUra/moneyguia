@@ -509,9 +509,9 @@ export default function Admin() {
             <p className="text-center text-muted-foreground py-8">Nenhum usuário encontrado</p>
           ) : (
             <div className="space-y-3">
-              {sortedUsers.map((u) => (
-                (() => {
-                  return (
+              {sortedUsers.map((u) => {
+                console.log('🔍 User na Tabela:', JSON.stringify(u, null, 2));
+                return (
                 <div key={u.user_id} className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border bg-card/50 hover:bg-card hover:shadow-md transition-all cursor-pointer" onClick={() => handleOpenDetails(u)}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -580,8 +580,8 @@ export default function Admin() {
                   </div>
                 </div>
                   );
-                })()
-              ))}
+                })
+              })
             </div>
           )}
         </CardContent>
