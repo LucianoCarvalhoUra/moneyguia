@@ -542,12 +542,12 @@ export default function Admin() {
 
                       <div className="flex items-center gap-1.5">
                         <span className="text-muted-foreground font-medium">Vencimento:</span>
-                        {u.user_subscriptions?.[0]?.expires_at ? (
+                        {u.current_expires_at ? (
                           <span className={cn(
                             "font-medium",
-                            isBefore(new Date(u.user_subscriptions[0].expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground"
+                            isBefore(new Date(u.current_expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground"
                           )}>
-                            {format(new Date(u.user_subscriptions[0].expires_at), "dd/MM/yyyy")}
+                            {format(new Date(u.current_expires_at), "dd/MM/yyyy")}
                           </span>
                         ) : (
                           <span className="text-slate-400">Sem Assinatura</span>
@@ -559,7 +559,7 @@ export default function Admin() {
                   <div className="flex items-center gap-2 sm:min-w-[120px] justify-end" onClick={e => e.stopPropagation()}>
                     <div className="text-right text-xs text-muted-foreground min-w-[170px]">
                       <p>
-                        {u.user_subscriptions?.[0]?.subscription_plans?.name || u.current_plan_type?.toUpperCase() || "Gratuito"} {u.user_subscriptions?.[0]?.billing_cycle === "yearly" ? "Anual" : u.user_subscriptions?.[0]?.billing_cycle === "monthly" ? "Mensal" : "-"}
+                        {u.current_plan_name || "Gratuito"} {u.current_billing_cycle === "yearly" ? "Anual" : u.current_billing_cycle === "monthly" ? "Mensal" : "-"}
                       </p>
                       <p className={getExpirationMeta(u).className}>
                         {getExpirationMeta(u).label}
