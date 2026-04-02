@@ -91,6 +91,7 @@ export default function Admin() {
   const loadUsers = async () => {
     setLoading(true);
     try {
+      // Query limpa para retornar todos os usuários sem filtros de ID
       const { data, error } = await supabase
         .from('profiles')
         .select('*, user_subscriptions(created_at, expires_at, status, billing_cycle, starts_at, subscription_plans(name, plan_type))')
@@ -98,8 +99,6 @@ export default function Admin() {
 
       if (error) throw error;
 
-      // Log de Depuração solicitado
-      console.log('Query executada para Admin:', data);
       console.log('Total de usuários retornados:', data?.length);
 
       const formattedUsers: UserInfo[] = (data as any[]).map(p => {
@@ -141,7 +140,7 @@ export default function Admin() {
       const { data, error } = await supabase
         .from('profiles')
         .select('*, user_subscriptions(created_at, expires_at, status, billing_cycle, starts_at)')
-        .eq('user_id', targetUser.user_id)
+        .eq('id', targetUser.user_id) // Uso correto da chave primária do perfil
         .maybeSingle();
 
       if (data && !error) {
