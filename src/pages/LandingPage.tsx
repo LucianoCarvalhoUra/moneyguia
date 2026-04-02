@@ -6,6 +6,7 @@ import PublicHeader from "@/components/layout/PublicHeader";
 import PublicFooter from "@/components/layout/PublicFooter";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { LandingPageSEO } from "@/components/SEO";
 
 const features = [
   {
@@ -88,6 +89,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-[#1e293b]">
+      <LandingPageSEO />
       <PublicHeader />
 
       <main>
@@ -119,7 +121,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" role="img" aria-label="Dashboard do MoneyGuia mostrando gráfico de gastos e métricas financeiras">
               <div className="grid gap-4">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
                   <p className="text-sm font-medium text-[#64748b]">Crescimento projetado</p>
@@ -127,12 +129,12 @@ export default function LandingPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="rounded-xl border border-slate-200 bg-white p-4">
-                    <ShieldCheck className="h-5 w-5 text-amber-500" />
+                    <ShieldCheck className="h-5 w-5 text-amber-500" aria-hidden="true" />
                     <p className="mt-3 text-sm font-semibold text-[#1e293b]">Segurança ativa</p>
                     <p className="text-xs text-[#64748b]">Proteção multicamada para seus dados.</p>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-white p-4">
-                    <TrendingUp className="h-5 w-5 text-[#059669]" />
+                    <TrendingUp className="h-5 w-5 text-[#059669]" aria-hidden="true" />
                     <p className="mt-3 text-sm font-semibold text-[#1e293b]">Metas em alta</p>
                     <p className="text-xs text-[#64748b]">Evolução monitorada em tempo real.</p>
                   </div>

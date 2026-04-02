@@ -3,12 +3,18 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ScrollText } from "lucide-react";
 import PublicHeader from "@/components/layout/PublicHeader";
 import PublicFooter from "@/components/layout/PublicFooter";
+import SEO from "@/components/SEO";
 
 export default function TermsOfUse() {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      <SEO
+        title="Termos de Uso | MoneyGuia"
+        description="Termos de uso da plataforma MoneyGuia. Conheça as regras de utilização, direitos e responsabilidades."
+        canonicalUrl="https://www.moneyguia.com.br/terms"
+      />
       <PublicHeader />
 
       <main className="flex-1 py-10 px-4 sm:px-6 lg:px-8">

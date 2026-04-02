@@ -21,4 +21,4 @@ Disallow: /goals
 Disallow: /accounts
 Disallow: /checkout
 
-Sitemap: https://keepmoney.lovable.app/sitemap.xml
+Sitemap: https://www.moneyguia.com.br/sitemap.xml

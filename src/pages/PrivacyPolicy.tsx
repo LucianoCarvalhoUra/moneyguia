@@ -3,12 +3,18 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import PublicHeader from "@/components/layout/PublicHeader";
 import PublicFooter from "@/components/layout/PublicFooter";
+import SEO from "@/components/SEO";
 
 export default function PrivacyPolicy() {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      <SEO
+        title="Política de Privacidade | MoneyGuia - LGPD"
+        description="Política de Privacidade do MoneyGuia em conformidade com a LGPD. Saiba como coletamos, usamos e protegemos seus dados pessoais."
+        canonicalUrl="https://www.moneyguia.com.br/privacy"
+      />
       <PublicHeader />
 
       <main className="flex-1 py-10 px-4 sm:px-6 lg:px-8">

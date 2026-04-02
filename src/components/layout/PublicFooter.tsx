@@ -88,9 +88,24 @@ export default function PublicFooter() {
         </div>
 
         <div className="mt-12 border-t border-slate-200 pt-8">
-          <p className="text-center text-sm text-slate-500">
-            © {new Date().getFullYear()} MoneyGuia. Todos os direitos reservados.
-          </p>
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+            <p className="text-sm text-slate-500">
+              © {new Date().getFullYear()} MoneyGuia. Todos os direitos reservados.
+            </p>
+            <nav className="flex items-center gap-4 text-sm text-slate-500">
+              <Link to="/terms" className="hover:text-emerald-600 transition-colors">
+                Termos de Uso
+              </Link>
+              <span className="text-slate-300">|</span>
+              <Link to="/privacy" className="hover:text-emerald-600 transition-colors">
+                Política de Privacidade
+              </Link>
+              <span className="text-slate-300">|</span>
+              <a href="/sitemap.xml" className="hover:text-emerald-600 transition-colors">
+                Sitemap
+              </a>
+            </nav>
+          </div>
         </div>
       </div>
     </footer>
