@@ -96,10 +96,14 @@ export default function Admin() {
         .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at, subscription_plans(name, plan_type))')
         .order('created_at', { ascending: false });
 
-      console.log('🔍 Total de usuários retornados:', data?.length);
-      console.log('📋 Dados brutos retornados:', data);
+      // Logs de verificação solicitados
+      console.log('Query executada para Admin:', data);
+      console.log('Total de usuários retornados:', data?.length);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro retornado pelo Supabase:', error);
+        throw error;
+      }
 
       const formattedUsers: UserInfo[] = (data as any[]).map(p => {
         // user_subscriptions can be an object (one-to-one) or array
