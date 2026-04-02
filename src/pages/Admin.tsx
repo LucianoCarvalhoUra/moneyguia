@@ -614,6 +614,7 @@ export default function Admin() {
                 </h4>
                 
                 <div className="space-y-3 text-sm">
+                  {/* ... outros campos de status ... */}
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Status LGPD:</span>
                     <div className="flex items-center gap-1.5">
