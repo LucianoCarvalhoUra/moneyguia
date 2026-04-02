@@ -108,7 +108,7 @@ export default function Admin() {
         const subs = Array.isArray(rawSubs) ? rawSubs : rawSubs ? [rawSubs] : [];
         const activeSub = subs.find((s: any) => s.status === 'active' || s.status === 'trial') || subs[0] || null;
         return {
-          user_id: p.user_id || p.id,
+          user_id: p.id, // Garante o uso do ID primário do perfil (UUID)
           name: p.name || "Sem nome",
           email: p.email,
           created_at: p.created_at,
@@ -212,11 +212,12 @@ export default function Admin() {
       status: 'active'
     };
 
+    // Log de Payload solicitado para depuração de Foreign Key
+    console.log('Dados sendo enviados para o banco:', payload);
+
     setUpdatingUserId(selectedUserId);
     try {
-      console.log('💾 Tentando salvar assinatura para ID:', selectedUserId, payload);
       const { data, error } = await supabase.from('user_subscriptions').upsert(payload, { onConflict: 'user_id' });
-      console.log('✅ Resposta do Servidor após Save:', { data, error });
       
       if (error) throw error;
 
@@ -471,7 +472,7 @@ export default function Admin() {
             </div>
 
             <div className="mt-4 flex justify-end">
-              <Button onClick={handleSaveSubscription} disabled={updatingUserId === selectedUserId || !selectedUserId || !selectedPlanId}>
+              <Button onClick={handleSaveSubscription} disabled={updatingUserId === selectedUserId || !selectedUserId || selectedUserId === "" || !selectedPlanId}>
                 {updatingUserId === selectedUserId ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
               </Button>
             </div>
