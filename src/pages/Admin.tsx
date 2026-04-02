@@ -44,6 +44,7 @@ interface UserInfo {
   current_billing_cycle: string | null;
   current_starts_at: string | null;
   current_expires_at: string | null;
+  user_subscriptions?: any[];
 }
 
 interface PlanOption {
@@ -92,7 +93,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, user_subscriptions(*)')
+        .select('*, user_subscriptions(expires_at, status)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -131,7 +132,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, user_subscriptions(*)')
+        .select('*, user_subscriptions(expires_at, status)')
         .eq('user_id', user.user_id)
         .maybeSingle();
 
