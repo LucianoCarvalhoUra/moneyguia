@@ -544,20 +544,6 @@ export default function Admin() {
                           <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-0">Pendente</Badge>
                         )}
                       </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground font-medium">Vencimento:</span>
-                        {u.current_expires_at ? (
-                          <span className={cn(
-                            "font-medium",
-                            isBefore(new Date(u.current_expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground"
-                          )}>
-                            {format(new Date(u.current_expires_at), "dd/MM/yyyy")}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">Sem Assinatura</span>
-                        )}
-                      </div>
                     </div>
                   </div>
 
