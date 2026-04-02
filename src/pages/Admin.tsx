@@ -96,6 +96,9 @@ export default function Admin() {
         .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at, subscription_plans(name, plan_type))')
         .order('created_at', { ascending: false });
 
+      console.log('🔍 Total de usuários retornados:', data?.length);
+      console.log('📋 Dados brutos retornados:', data);
+
       if (error) throw error;
 
       const formattedUsers: UserInfo[] = (data as any[]).map(p => {
