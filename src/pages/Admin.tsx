@@ -93,7 +93,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, user_subscriptions(expires_at, status)')
+        .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -132,7 +132,7 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, user_subscriptions(expires_at, status)')
+        .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at)')
         .eq('user_id', user.user_id)
         .maybeSingle();
 
@@ -229,6 +229,9 @@ export default function Admin() {
       if (selectedUserId === user?.id) {
         window.dispatchEvent(new Event("user-plan-changed"));
       }
+
+      // Recarrega os dados do banco para garantir sincronização
+      await loadUsers();
 
       toast.success("Licença atualizada com sucesso!");
     } catch (err: any) {
