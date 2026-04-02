@@ -93,25 +93,28 @@ export default function Admin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at, subscription_plans(name))')
+        .select('*, user_subscriptions(expires_at, status, billing_cycle, starts_at, subscription_plans(name, plan_type))')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       const formattedUsers: UserInfo[] = (data as any[]).map(p => {
-        const sub = p.user_subscriptions?.[0];
+        // Get the most recent active/trial subscription
+        const subs = p.user_subscriptions || [];
+        const activeSub = subs.find((s: any) => s.status === 'active' || s.status === 'trial') || subs[0] || null;
         return {
           user_id: p.user_id || p.id,
           name: p.name || "Sem nome",
           email: p.email,
           created_at: p.created_at,
           lgpd_accepted_at: p.lgpd_accepted_at,
-          current_plan_type: 'free',
-          current_plan_name: 'Essencial',
-          subscription_status: sub?.status || null,
-          current_billing_cycle: sub?.billing_cycle || null,
-          current_starts_at: sub?.starts_at || null,
-          current_expires_at: sub?.expires_at || null,
+          current_plan_type: activeSub?.subscription_plans?.plan_type || 'free',
+          current_plan_name: activeSub?.subscription_plans?.name || 'Essencial',
+          subscription_status: activeSub?.status || null,
+          current_billing_cycle: activeSub?.billing_cycle || null,
+          current_starts_at: activeSub?.starts_at || null,
+          current_expires_at: activeSub?.expires_at || null,
+          user_subscriptions: subs,
         };
       });
 
@@ -509,9 +512,7 @@ export default function Admin() {
             <p className="text-center text-muted-foreground py-8">Nenhum usuário encontrado</p>
           ) : (
             <div className="space-y-3">
-              {sortedUsers.map((u) => {
-                console.log('🔍 User na Tabela:', JSON.stringify(u, null, 2));
-                return (
+              {sortedUsers.map((u) => (
                 <div key={u.user_id} className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border bg-card/50 hover:bg-card hover:shadow-md transition-all cursor-pointer" onClick={() => handleOpenDetails(u)}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -539,12 +540,12 @@ export default function Admin() {
 
                       <div className="flex items-center gap-1.5">
                         <span className="text-muted-foreground font-medium">Vencimento:</span>
-                        {u.user_subscriptions?.[0]?.expires_at ? (
+                        {u.current_expires_at ? (
                           <span className={cn(
                             "font-medium",
-                            isBefore(new Date(u.user_subscriptions[0].expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground"
+                            isBefore(new Date(u.current_expires_at), startOfDay(new Date())) ? "text-red-500" : "text-foreground"
                           )}>
-                            {format(new Date(u.user_subscriptions[0].expires_at), "dd/MM/yyyy")}
+                            {format(new Date(u.current_expires_at), "dd/MM/yyyy")}
                           </span>
                         ) : (
                           <span className="text-slate-400">Sem Assinatura</span>
@@ -556,7 +557,7 @@ export default function Admin() {
                   <div className="flex items-center gap-2 sm:min-w-[120px] justify-end" onClick={e => e.stopPropagation()}>
                     <div className="text-right text-xs text-muted-foreground min-w-[170px]">
                       <p>
-                        {u.user_subscriptions?.[0]?.subscription_plans?.name || u.current_plan_type?.toUpperCase() || "Gratuito"} {u.user_subscriptions?.[0]?.billing_cycle === "yearly" ? "Anual" : u.user_subscriptions?.[0]?.billing_cycle === "monthly" ? "Mensal" : "-"}
+                        {u.current_plan_name || "Gratuito"} {u.current_billing_cycle === "yearly" ? "Anual" : u.current_billing_cycle === "monthly" ? "Mensal" : "-"}
                       </p>
                       <p className={getExpirationMeta(u).className}>
                         {getExpirationMeta(u).label}
@@ -579,9 +580,7 @@ export default function Admin() {
                     )}
                   </div>
                 </div>
-                  );
-                })
-              })
+              ))}
             </div>
           )}
         </CardContent>
