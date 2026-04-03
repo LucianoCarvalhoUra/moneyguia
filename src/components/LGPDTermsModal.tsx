@@ -47,19 +47,14 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
 
       const acceptedAt = new Date().toISOString();
 
-      const { error: upsertError } = await (supabase.from('profiles') as any).upsert(
-        {
-          id: userId,
-          user_id: userId,
-          email: user.email || '',
-          name: user.user_metadata?.name || '',
+      const { error: upsertError } = await (supabase.from('profiles') as any)
+        .update({
           accepted_terms: true,
           terms_accepted_at: acceptedAt,
           terms_version: '1.0',
           lgpd_accepted_at: acceptedAt,
-        },
-        { onConflict: 'user_id' },
-      );
+        })
+        .eq('user_id', userId);
 
       if (upsertError) {
         setError(`Erro ao salvar: ${upsertError.message}`);
