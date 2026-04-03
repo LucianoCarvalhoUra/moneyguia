@@ -89,7 +89,7 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
               <button
                 type="button"
                 className="absolute right-3 top-3 sm:right-4 sm:top-4 rounded-full p-1.5 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
-                onClick={handleDeclineNow}
+                onClick={() => onAccept()}
                 aria-label="Fechar"
               >
                 <X className="h-4 w-4" />
