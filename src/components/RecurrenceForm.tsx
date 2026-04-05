@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import { Check, AlertTriangle } from "lucide-react";
 
 interface RecurrenceFormData {
@@ -18,6 +19,7 @@ interface RecurrenceFormData {
 }
 
 export default function RecurrenceForm() {
+  const { user } = useAuth();
   const { register, handleSubmit, formState: { errors }, reset, control } = useForm<RecurrenceFormData>({
     defaultValues: {
       type: "expense",
@@ -28,10 +30,15 @@ export default function RecurrenceForm() {
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (data: RecurrenceFormData) => {
+    if (!user) {
+      toast.error("Você precisa estar logado para salvar recorrências.");
+      return;
+    }
+
     setLoading(true);
     try {
       const payload: any = {
-        description: data.description,
+        user_id: user.id,
         amount: data.amount,
         recurrence_type: data.recurrence_type,
         start_date: new Date(data.start_date).toISOString(),
@@ -50,9 +57,11 @@ export default function RecurrenceForm() {
         reset();
       } else {
         const table = data.type === "income" ? "incomes" : "expenses";
-        const insertData = data.type === "income" 
-          ? { ...payload, title: data.description, is_received: false } 
-          : { ...payload, is_paid: false };
+        
+        // Mapeamento correto de colunas: title para incomes, description para expenses
+        const insertData = data.type === "income"
+          ? { ...payload, title: data.description, is_received: false }
+          : { ...payload, description: data.description, is_paid: false };
 
         // Usando Type Assertion para contornar erro de tabela 'recurrences' inexistente
         // e salvar diretamente em incomes ou expenses conforme a lógica do banco
