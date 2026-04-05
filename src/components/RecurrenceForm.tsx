@@ -54,6 +54,8 @@ export default function RecurrenceForm() {
           ? { ...payload, title: data.description, is_received: false } 
           : { ...payload, is_paid: false };
 
+        // Usando Type Assertion para contornar erro de tabela 'recurrences' inexistente
+        // e salvar diretamente em incomes ou expenses conforme a lógica do banco
         const { data: dbData, error } = await (supabase.from(table) as any)
           .insert([insertData])
           .select();

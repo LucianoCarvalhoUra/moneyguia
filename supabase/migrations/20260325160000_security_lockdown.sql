@@ -4,43 +4,12 @@
 -- =====================================================
 
 -- =====================================================
--- 1. PROTEÇÃO DA TABELA user_roles
+-- 1. REMOÇÃO DE DEPENDÊNCIA DA TABELA user_roles
 -- =====================================================
 
--- Habilitar RLS
-ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
-
--- Política: Apenas leitura para usuários autenticados
-DROP POLICY IF EXISTS "Enable read for authenticated" ON public.user_roles;
-CREATE POLICY "Enable read for authenticated"
-ON public.user_roles
-FOR SELECT
-TO authenticated
-USING (true);
-
--- Política: INSERT bloqueado para frontend (apenas service_role pode inserir)
-DROP POLICY IF EXISTS "Enable insert for service role only" ON public.user_roles;
-CREATE POLICY "Enable insert for service role only"
-ON public.user_roles
-FOR INSERT
-TO service_role
-WITH CHECK (true);
-
--- Política: UPDATE bloqueado para frontend (apenas service_role pode atualizar)
-DROP POLICY IF EXISTS "Enable update for service role only" ON public.user_roles;
-CREATE POLICY "Enable update for service role only"
-ON public.user_roles
-FOR UPDATE
-TO service_role
-USING (true);
-
--- Política: DELETE bloqueado para frontend
-DROP POLICY IF EXISTS "Enable delete for service role only" ON public.user_roles;
-CREATE POLICY "Enable delete for service role only"
-ON public.user_roles
-FOR DELETE
-TO service_role
-USING (true);
+-- A tabela user_roles não é mais utilizada para permissões.
+-- Toda a lógica agora reside em profiles.is_admin.
+DROP TABLE IF EXISTS public.user_roles CASCADE;
 
 -- =====================================================
 -- 2. REFATORAR has_role COM SECURITY DEFINER
@@ -53,35 +22,20 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  user_role TEXT;
-  role_hierarchy JSONB;
-  user_level INT;
-  required_level INT;
+  is_admin_user BOOLEAN;
 BEGIN
-  -- Definir hierarquia de roles (ordem crescente de privilégios)
-  role_hierarchy := '{
-    "viewer": 1,
-    "user": 2,
-    "manager": 3,
-    "admin": 4
-  }'::JSONB;
-  
-  -- Buscar role do usuário
-  SELECT ur.role INTO user_role
-  FROM public.user_roles ur
-  WHERE ur.user_id = check_user_id;
-  
-  -- Se usuário não tem role, retornar false
-  IF user_role IS NULL THEN
-    RETURN FALSE;
+  -- Busca o status de admin diretamente no perfil
+  SELECT p.is_admin INTO is_admin_user
+  FROM public.profiles p
+  WHERE p.id = check_user_id;
+
+  -- Se for Super Admin, tem todas as roles
+  IF COALESCE(is_admin_user, FALSE) THEN
+    RETURN TRUE;
   END IF;
-  
-  -- Obter níveis de privilégio
-  user_level := (role_hierarchy ->> user_role)::INT;
-  required_level := (role_hierarchy ->> required_role)::INT;
-  
-  -- Comparar níveis (usuário precisa ter nível >= ao requerido)
-  RETURN COALESCE(user_level, 0) >= COALESCE(required_level, 0);
+
+  -- Usuário comum só tem acesso a permissão 'user' ou 'viewer'
+  RETURN required_role IN ('user', 'viewer');
 EXCEPTION WHEN OTHERS THEN
   -- Em caso de erro, retorna false por segurança
   RETURN FALSE;
@@ -165,10 +119,10 @@ DECLARE
   is_admin BOOLEAN;
 BEGIN
   SELECT EXISTS(
-    SELECT 1 FROM public.user_roles
-    WHERE user_id = check_user_id AND role = 'admin'
+    SELECT 1 FROM public.profiles
+    WHERE id = check_user_id AND is_admin = true
   ) INTO is_admin;
-  
+
   RETURN COALESCE(is_admin, FALSE);
 EXCEPTION WHEN OTHERS THEN
   RETURN FALSE;

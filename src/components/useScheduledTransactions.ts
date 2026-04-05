@@ -14,7 +14,7 @@ export function useScheduledTransactions() {
       const { data: profile } = (await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single()) as any;
 
       const today = new Date().toISOString().split('T')[0];
