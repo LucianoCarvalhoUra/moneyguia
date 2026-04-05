@@ -58,10 +58,21 @@ export default function RecurrenceForm() {
       } else {
         const table = data.type === "income" ? "incomes" : "expenses";
         
-        // Mapeamento correto de colunas: title para incomes, description para expenses
+        // Mapeamento correto de colunas e inclusão de datas obrigatórias do banco
         const insertData = data.type === "income"
-          ? { ...payload, title: data.description, is_received: false }
-          : { ...payload, description: data.description, is_paid: false };
+          ? { 
+              ...payload, 
+              title: data.description, 
+              is_received: false,
+              receive_date: data.start_date 
+            }
+          : { 
+              ...payload, 
+              description: data.description, 
+              is_paid: false,
+              due_date: data.start_date,
+              expense_date: data.start_date
+            };
 
         // Usando Type Assertion para contornar erro de tabela 'recurrences' inexistente
         // e salvar diretamente em incomes ou expenses conforme a lógica do banco
