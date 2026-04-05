@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Check, AlertTriangle } from "lucide-react";
 
 interface RecurrenceFormData {
+  type: "income" | "expense";
   description: string;
   amount: number;
   recurrence_type: "daily" | "weekly" | "monthly" | "yearly";
@@ -17,16 +18,27 @@ interface RecurrenceFormData {
 }
 
 export default function RecurrenceForm() {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<RecurrenceFormData>();
+  const { register, handleSubmit, formState: { errors }, reset, control } = useForm<RecurrenceFormData>({
+    defaultValues: {
+      type: "expense",
+      recurrence_type: "monthly",
+      only_visual: false
+    }
+  });
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (data: RecurrenceFormData) => {
     setLoading(true);
     try {
-      const payload = {
-        ...data,
+      const payload: any = {
+        description: data.description,
+        amount: data.amount,
+        recurrence_type: data.recurrence_type,
         start_date: new Date(data.start_date).toISOString(),
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        is_scheduled: true,
+        scheduled_date: data.start_date,
+        is_recurring: true
       };
 
       // If "apenas visual" is checked, just show a confirmation instead of saving
@@ -37,9 +49,13 @@ export default function RecurrenceForm() {
         console.log("Recurrence data (visual only):", payload);
         reset();
       } else {
-        const { data: dbData, error } = await supabase
-          .from('recurrences')
-          .insert([payload])
+        const table = data.type === "income" ? "incomes" : "expenses";
+        const insertData = data.type === "income" 
+          ? { ...payload, title: data.description, is_received: false } 
+          : { ...payload, is_paid: false };
+
+        const { data: dbData, error } = await (supabase.from(table) as any)
+          .insert([insertData])
           .select();
 
         if (error) {
@@ -60,6 +76,30 @@ export default function RecurrenceForm() {
   return (
     <div className="space-y-4">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <Label htmlFor="type">Tipo de Transação</Label>
+            <Controller
+              name="type"
+              control={control}
+              render={({ field }) => (
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value}
+                >
+                  <SelectTrigger id="type">
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="expense">Despesa</SelectItem>
+                    <SelectItem value="income">Receita</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="description">Descrição</Label>
@@ -91,21 +131,26 @@ export default function RecurrenceForm() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="recurrence_type">Tipo de Recorrência</Label>
-            <Select 
-              id="recurrence_type"
-              defaultValue="monthly"
-              {...register("recurrence_type")}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Diário</SelectItem>
-                <SelectItem value="weekly">Semanal</SelectItem>
-                <SelectItem value="monthly">Mensal</SelectItem>
-                <SelectItem value="yearly">Anual</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="recurrence_type"
+              control={control}
+              render={({ field }) => (
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value}
+                >
+                  <SelectTrigger id="recurrence_type">
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Diário</SelectItem>
+                    <SelectItem value="weekly">Semanal</SelectItem>
+                    <SelectItem value="monthly">Mensal</SelectItem>
+                    <SelectItem value="yearly">Anual</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <div>
