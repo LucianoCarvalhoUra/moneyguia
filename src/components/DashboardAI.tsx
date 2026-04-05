@@ -1,10 +1,10 @@
-﻿﻿import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Send, X, Bot, User, Search, TrendingDown, Calendar, Loader2 } from 'lucide-react';
 import { useFinancialData } from '@/hooks/useFinancialData';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -351,3 +351,4 @@ export function DashboardAI() {
     </>
   );
 }
+
