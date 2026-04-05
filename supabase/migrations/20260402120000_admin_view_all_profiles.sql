@@ -11,7 +11,7 @@ FOR SELECT
 TO authenticated 
 USING (
   public.has_role(auth.uid(), 'admin') = TRUE OR
-  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
+  (SELECT is_admin FROM public.profiles WHERE id = auth.uid()) = TRUE
 );
 
 -- Criar política para admins atualizarem todos os perfis (gestão de licenças)
@@ -22,11 +22,11 @@ FOR UPDATE
 TO authenticated 
 USING (
   public.has_role(auth.uid(), 'admin') = TRUE OR
-  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
+  (SELECT is_admin FROM public.profiles WHERE id = auth.uid()) = TRUE
 )
 WITH CHECK (
   public.has_role(auth.uid(), 'admin') = TRUE OR
-  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
+  (SELECT is_admin FROM public.profiles WHERE id = auth.uid()) = TRUE
 );
 
 -- Criar política para admins verem todas as assinaturas
@@ -37,7 +37,7 @@ FOR SELECT
 TO authenticated 
 USING (
   public.has_role(auth.uid(), 'admin') = TRUE OR
-  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
+  (SELECT is_admin FROM public.profiles WHERE id = auth.uid()) = TRUE
 );
 
 -- Criar política para admins atualizarem todas as assinaturas
@@ -48,9 +48,9 @@ FOR ALL
 TO authenticated 
 USING (
   public.has_role(auth.uid(), 'admin') = TRUE OR
-  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
+  (SELECT is_admin FROM public.profiles WHERE id = auth.uid()) = TRUE
 )
 WITH CHECK (
   public.has_role(auth.uid(), 'admin') = TRUE OR
-  (auth.jwt() ->> 'email') = 'lucianocarvalhoura@gmail.com'
+  (SELECT is_admin FROM public.profiles WHERE id = auth.uid()) = TRUE
 );
