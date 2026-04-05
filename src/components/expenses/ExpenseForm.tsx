@@ -459,9 +459,48 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           return;
         }
 
-        const { error } = await supabase.from('expenses').update(payload).eq('id', expense.id);
-        if (error) throw error;
-        toast.success('Despesa atualizada!');
+        // If user is converting a non-recurring expense to recurring with installments > 1,
+        // generate the future installments
+        if (isRecurring && parseInt(installments) > 1) {
+          const newRecurrenceId = crypto.randomUUID();
+          const limit = parseInt(installments);
+          const [y, m, d] = dueDate.split('-').map(Number);
+          const startDate = new Date(y, m - 1, d, 12);
+
+          // Update the current expense as installment 1
+          const { error: updateError } = await supabase.from('expenses').update({
+            ...payload,
+            recurrence_id: newRecurrenceId,
+            current_installment: 1,
+            installments: limit,
+          }).eq('id', expense.id);
+          if (updateError) throw updateError;
+
+          // Create future installments (2 onwards)
+          const futureExpenses = [];
+          for (let i = 1; i < limit; i++) {
+            const nextDueDate = addMonths(startDate, i);
+            const nextDueDateStr = format(nextDueDate, 'yyyy-MM-dd');
+            futureExpenses.push({
+              ...payload,
+              due_date: nextDueDateStr,
+              expense_date: nextDueDateStr,
+              is_paid: false,
+              recurrence_id: newRecurrenceId,
+              current_installment: i + 1,
+              installments: limit,
+            });
+          }
+          const { error: insertError } = await supabase.from('expenses').insert(futureExpenses);
+          if (insertError) throw insertError;
+          toast.success(`${limit} despesas criadas!`, {
+            description: `A despesa "${description}" foi parcelada em ${limit} vezes.`,
+          });
+        } else {
+          const { error } = await supabase.from('expenses').update(payload).eq('id', expense.id);
+          if (error) throw error;
+          toast.success('Despesa atualizada!');
+        }
       } else {
         if (isRecurring && parseInt(installments) > 1) {
            const newRecurrenceId = crypto.randomUUID();

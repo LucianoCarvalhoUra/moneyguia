@@ -47,19 +47,14 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
 
       const acceptedAt = new Date().toISOString();
 
-      const { error: upsertError } = await (supabase.from('profiles') as any).upsert(
-        {
-          id: userId,
-          user_id: userId,
-          email: user.email || '',
-          name: user.user_metadata?.name || '',
+      const { error: upsertError } = await (supabase.from('profiles') as any)
+        .update({
           accepted_terms: true,
           terms_accepted_at: acceptedAt,
           terms_version: '1.0',
           lgpd_accepted_at: acceptedAt,
-        },
-        { onConflict: 'user_id' },
-      );
+        })
+        .eq('user_id', userId);
 
       if (upsertError) {
         setError(`Erro ao salvar: ${upsertError.message}`);
@@ -94,7 +89,7 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
               <button
                 type="button"
                 className="absolute right-3 top-3 sm:right-4 sm:top-4 rounded-full p-1.5 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
-                onClick={handleDeclineNow}
+                onClick={() => onAccept()}
                 aria-label="Fechar"
               >
                 <X className="h-4 w-4" />
@@ -178,22 +173,12 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
           </div>
         </AlertDialogDescription>
 
-        <AlertDialogFooter className="px-5 pb-5 pt-0 sm:px-8 sm:pb-6 flex flex-col gap-2.5 sm:flex-row sm:gap-3 shrink-0">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleDeclineNow}
-            disabled={isSubmitting}
-            className="h-11 sm:h-12 rounded-2xl border-slate-300 bg-transparent text-slate-600 hover:bg-slate-100 flex-1 text-sm"
-          >
-            Não aceito agora
-          </Button>
-
+        <AlertDialogFooter className="px-5 pb-5 pt-0 sm:px-8 sm:pb-6 shrink-0">
           <Button
             onClick={handleAcceptTerms}
             disabled={!acceptedTerms || isSubmitting}
             className={cn(
-              'h-11 sm:h-12 rounded-2xl text-sm sm:text-base font-semibold transition-all flex-1',
+              'h-11 sm:h-12 rounded-2xl text-sm sm:text-base font-semibold transition-all w-full',
               acceptedTerms && !isSubmitting
                 ? 'bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 text-white shadow-lg hover:brightness-110'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed',

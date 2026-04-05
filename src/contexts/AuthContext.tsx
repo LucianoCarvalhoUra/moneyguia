@@ -287,15 +287,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.id, loadProfile]);
 
   const createProfileIfNotExists = useCallback(async (authUser: User) => {
-    await supabase.from('profiles').upsert(
+    const { data: existingProfile, error: existingProfileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', authUser.id)
+      .maybeSingle();
+
+    if (existingProfileError) {
+      throw existingProfileError;
+    }
+
+    if (existingProfile) {
+      return;
+    }
+
+    const { error: insertError } = await supabase.from('profiles').insert(
       {
         id: authUser.id,
         user_id: authUser.id,
         name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuario',
         email: authUser.email,
       } as any,
-      { onConflict: 'user_id', ignoreDuplicates: true },
     );
+
+    if (insertError) {
+      throw insertError;
+    }
   }, []);
 
   // Use refs to avoid re-subscribing to auth on every callback change
