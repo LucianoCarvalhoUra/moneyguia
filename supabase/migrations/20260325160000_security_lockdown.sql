@@ -82,6 +82,14 @@ FOR SELECT
 TO authenticated
 USING (id = auth.uid());
 
+-- Permitir que administradores vejam todos os perfis
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
+CREATE POLICY "Admins can view all profiles"
+ON public.profiles
+FOR SELECT
+TO authenticated
+USING (public.is_admin(auth.uid()));
+
 DROP POLICY IF EXISTS "Authenticated users can update own profile" ON public.profiles;
 CREATE POLICY "Authenticated users can update own profile"
 ON public.profiles

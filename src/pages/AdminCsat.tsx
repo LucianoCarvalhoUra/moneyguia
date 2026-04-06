@@ -141,8 +141,8 @@ export default function AdminCsat() {
 
       const usersResult = await supabase
         .from("profiles")
-        .select("user_id", { count: "exact", head: true })
-        .not("user_id", "is", null);
+        .select("id", { count: "exact", head: true })
+        .not("id", "is", null);
 
       if (!usersResult.error) {
         setTotalUsers(usersResult.count ?? 0);
