@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { User, Shield, Loader2, Bell, Bot, Sparkles } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { User, Shield, Loader2, Bell, Bot, Sparkles, CalendarClock } from 'lucide-react';
 import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
 import DashboardCustomization from '@/components/dashboard/DashboardCustomization';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
@@ -38,6 +39,7 @@ export default function Settings() {
   const [alertType, setAlertType] = useState('expenses');
   const [isClassifying, setIsClassifying] = useState(false);
   const canUseAiClassification = hasFeatureAccess('ai_classification');
+  const [autoLiquidation, setAutoLiquidation] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -93,14 +95,15 @@ export default function Settings() {
   const loadProfile = async () => {
     if (!user?.id) return;
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('name, email')
+    const { data } = await (supabase
+      .from('profiles') as any)
+      .select('name, email, auto_liquidation')
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (data) {
       setProfile(data);
+      setAutoLiquidation(data.auto_liquidation || false);
     } else {
       setProfile({
         name: user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário',
@@ -108,6 +111,20 @@ export default function Settings() {
       });
     }
     setIsLoading(false);
+  };
+
+  const handleAutoLiquidationChange = async (checked: boolean) => {
+    setAutoLiquidation(checked);
+    if (!user?.id) return;
+    const { error } = await (supabase.from('profiles') as any)
+      .update({ auto_liquidation: checked })
+      .eq('user_id', user.id);
+    if (error) {
+      toast.error('Erro ao salvar preferência');
+      setAutoLiquidation(!checked);
+    } else {
+      toast.success(checked ? 'Baixa automática ativada' : 'Baixa automática desativada');
+    }
   };
 
   const saveAlertSettings = (enabled: boolean, days: string, type: string) => {
