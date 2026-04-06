@@ -54,7 +54,7 @@ export default function LGPDTermsModal({ onAccept }: LGPDTermsModalProps) {
           terms_version: '1.0',
           lgpd_accepted_at: acceptedAt,
         })
-        .eq('user_id', userId);
+        .eq('id', userId);
 
       if (upsertError) {
         setError(`Erro ao salvar: ${upsertError.message}`);
