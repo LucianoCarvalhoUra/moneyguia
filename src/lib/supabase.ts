@@ -6,14 +6,19 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Validação rigorosa para evitar o crash do SDK sem contexto
 if (!supabaseUrl || !supabaseAnonKey) {
-  const missingError = 'Erro crítico: VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY não encontradas no arquivo .env.';
+  const missingError = 
+    '⚠️ ERRO DE CONFIGURAÇÃO:\n' +
+    'VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY não encontradas no arquivo .env.\n\n' +
+    'COMO CORRIGIR:\n' +
+    '1. Crie um arquivo .env na raiz do projeto.\n' +
+    '2. Adicione as chaves VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.\n' +
+    '3. PARE o terminal (Ctrl+C) e rode "npm run dev" novamente.';
+    
   console.error(missingError);
-  // Lançamos um erro amigável para interromper a execução com uma mensagem clara
-  if (import.meta.env.DEV) {
-    throw new Error(missingError);
-  }
 }
 
-// Se as variáveis estiverem vazias, usamos strings vazias apenas para satisfazer o tipo, 
-// mas o erro acima já terá alertado o desenvolvedor.
-export const supabase = createClient<Database>(supabaseUrl || '', supabaseAnonKey || '');
+// Usamos placeholders para evitar que o SDK dispare "supabaseKey is required" antes do console.error aparecer
+export const supabase = createClient<Database>(
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder'
+);
