@@ -415,6 +415,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       toast.error('Preencha os campos obrigatórios');
       return;
     }
+    if (isScheduled && scheduledDate && dueDate && scheduledDate > dueDate) {
+      toast.error('A data de agendamento não pode ser posterior ao vencimento.');
+      return;
+    }
     setShowErrors(false);
 
     setIsSubmitting(true);
