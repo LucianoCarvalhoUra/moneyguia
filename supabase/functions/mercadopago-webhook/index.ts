@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-function verifySignature(req: Request, dataId: string): boolean {
+async function verifySignature(req: Request, dataId: string): Promise<boolean> {
   const xSignature = req.headers.get("x-signature");
   const xRequestId = req.headers.get("x-request-id");
   const secret = Deno.env.get("MERCADOPAGO_WEBHOOK_SECRET");

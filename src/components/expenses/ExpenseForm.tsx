@@ -71,6 +71,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [observation, setObservation] = useState('');
   const [showErrors, setShowErrors] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -124,6 +126,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setLaunchDate(dataToLoad.expenseDate ? formatToInput(dataToLoad.expenseDate) : today);
         setExcludeFromCalculations((dataToLoad as any).excludeFromCalculations || false);
         setObservation((dataToLoad as any).observation || '');
+        setIsScheduled((dataToLoad as any).is_scheduled || false);
+        setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
       } else {
         // Reset
         setDescription('');
@@ -142,6 +146,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setExcludeFromCalculations(false);
         setObservation('');
         setShowErrors(false);
+        setIsScheduled(false);
+        setScheduledDate('');
       }
     }
   }, [open, expense, initialData]);
@@ -409,6 +415,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       toast.error('Preencha os campos obrigatórios');
       return;
     }
+    if (isScheduled && scheduledDate && dueDate && scheduledDate > dueDate) {
+      toast.error('A data de agendamento não pode ser posterior ao vencimento.');
+      return;
+    }
     setShowErrors(false);
 
     setIsSubmitting(true);
@@ -449,6 +459,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         user_id: authUser?.id,
         exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
         observation: observation || null,
+        is_scheduled: isScheduled,
+        scheduled_date: isScheduled && scheduledDate ? scheduledDate : null,
       };
 
       if (expense) {
@@ -705,21 +717,51 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
           </div>
 
-          {/* Bottom: Visual control + Actions */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-border/40">
-            <div className={cn("flex items-center space-x-2", !canUseExtraControl && "opacity-40")}>
+          {/* Toggles: Agendamento + Controle Visual */}
+          <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
+            {/* Agendamento */}
+            <div className="flex items-center gap-3">
+              <Switch id="expense-scheduling" checked={isScheduled} onCheckedChange={setIsScheduled} />
+              <Label htmlFor="expense-scheduling" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                <CalendarClock className="h-4 w-4 text-primary" />
+                Agendar esta despesa
+              </Label>
+            </div>
+            {isScheduled && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-14">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento</Label>
+                <Input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={e => setScheduledDate(e.target.value)}
+                  max={dueDate || undefined}
+                  className="h-10 rounded-xl border-border/60 bg-muted/30"
+                />
+                {scheduledDate && dueDate && scheduledDate > dueDate && (
+                  <p className="text-xs text-destructive">A data de agendamento não pode ser posterior ao vencimento.</p>
+                )}
+              </div>
+            )}
+
+            {/* Separador */}
+            <div className="border-t border-border/40" />
+
+            {/* Apenas controle visual */}
+            <div className={cn("flex items-center gap-3", !canUseExtraControl && "opacity-40")}>
               <Switch id="visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl} />
-              <Label htmlFor="visual-control" className="text-xs font-normal text-muted-foreground cursor-pointer flex items-center gap-1">
-                {!canUseExtraControl && <Lock className="w-3 h-3" />}
+              <Label htmlFor="visual-control" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                {!canUseExtraControl && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
                 Apenas controle visual
               </Label>
             </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl h-9 px-5 text-sm">Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[110px] h-9 bg-primary hover:bg-primary/90 shadow-sm">
-                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
-              </Button>
-            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl h-9 px-5 text-sm">Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[110px] h-9 bg-primary hover:bg-primary/90 shadow-sm">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+            </Button>
           </div>
         </form>
       </DialogContent>
