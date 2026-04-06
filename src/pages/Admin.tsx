@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../lib/supabase";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ interface UserInfo {
   name: string;
   email: string;
   created_at: string;
+  is_admin: boolean;
   lgpd_accepted_at: string | null;
   current_plan_type: string;
   current_plan_name: string;
@@ -111,6 +112,7 @@ export default function Admin() {
           name: p.name || "Sem nome",
           email: p.email,
           created_at: p.created_at,
+          is_admin: p.is_admin || false,
           lgpd_accepted_at: p.lgpd_accepted_at,
           current_plan_type: activeSub?.subscription_plans?.plan_type || 'free',
           current_plan_name: activeSub?.subscription_plans?.name || 'Essencial',
@@ -137,11 +139,11 @@ export default function Admin() {
   const handleOpenDetails = async (targetUser: UserInfo) => {
     setIsFetchingDetails(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = (await supabase
         .from('profiles')
         .select('*, user_subscriptions(created_at, expires_at, status, billing_cycle, starts_at)')
         .eq('id', targetUser.user_id) // Uso correto da chave primária do perfil
-        .maybeSingle();
+        .maybeSingle()) as any;
 
       if (data && !error) {
         const rawSubs = (data as any).user_subscriptions;
@@ -152,6 +154,7 @@ export default function Admin() {
           name: data.name || "Sem nome",
           email: data.email,
           created_at: data.created_at,
+          is_admin: data.is_admin || false,
           lgpd_accepted_at: data.lgpd_accepted_at,
           current_plan_type: targetUser.current_plan_type,
           current_plan_name: targetUser.current_plan_name,
@@ -526,7 +529,7 @@ export default function Admin() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium truncate">{u.name || "Sem nome"}</p>
-                      {u.user_id === user?.id && (
+                      {u.is_admin && (
                         <Badge variant="outline" className="text-xs border-primary text-primary">
                           <Crown className="w-3 h-3 mr-1" />
                           Admin

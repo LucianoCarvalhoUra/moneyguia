@@ -7,10 +7,12 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
 import { AlertTriangle, Loader2, Megaphone, MessageSquare, Star, Trash2 } from "lucide-react";
 import { format, isValid, parseISO } from "date-fns";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { Navigate } from "react-router-dom";
 
 type Campaign = {
   id: string;
@@ -31,6 +33,7 @@ type ResponseItem = {
 };
 
 export default function AdminCsat() {
+  const { isAdmin, isCheckingAdmin } = useIsAdmin();
   const [campaignName, setCampaignName] = useState("");
   const [campaignEndDate, setCampaignEndDate] = useState("");
   const [campaignIsActive, setCampaignIsActive] = useState(false);
@@ -278,6 +281,18 @@ export default function AdminCsat() {
       setTogglingPublicId(null);
     }
   };
+
+  if (isCheckingAdmin) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="space-y-6">
