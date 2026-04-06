@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [formOpen, setFormOpen] = useState(false);
   const { subscription, plan } = useUserPlan();
   useAuth();
+  useScheduledTransactions();
   const [showSubAlert, setShowSubAlert] = useState(true);
   const now = new Date();
   const getInitialPeriod = () => {
