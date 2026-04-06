@@ -23,6 +23,7 @@ import MonthlyComparisonChart from '@/components/dashboard/MonthlyComparisonChar
 import UpcomingDueExpenses from '@/components/dashboard/UpcomingDueExpenses';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { useAuth } from '@/contexts/AuthContext';
+import { useScheduledTransactions } from '@/components/useScheduledTransactions';
 
 export default function Dashboard() {
   const navigate = useNavigate();
