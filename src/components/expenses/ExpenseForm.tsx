@@ -713,6 +713,32 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
           </div>
 
+          {/* Row 5: Agendamento */}
+          <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
+            <div className="flex items-center gap-3">
+              <Switch id="expense-scheduling" checked={isScheduled} onCheckedChange={setIsScheduled} />
+              <Label htmlFor="expense-scheduling" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                <CalendarClock className="h-4 w-4 text-primary" />
+                Agendar esta despesa
+              </Label>
+            </div>
+            {isScheduled && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento</Label>
+                <Input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={e => setScheduledDate(e.target.value)}
+                  max={dueDate || undefined}
+                  className="h-10 rounded-xl border-border/60 bg-muted/30"
+                />
+                {scheduledDate && dueDate && scheduledDate > dueDate && (
+                  <p className="text-xs text-destructive">A data de agendamento não pode ser posterior ao vencimento.</p>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Bottom: Visual control + Actions */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-border/40">
             <div className={cn("flex items-center space-x-2", !canUseExtraControl && "opacity-40")}>

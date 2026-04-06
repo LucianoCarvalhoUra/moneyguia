@@ -611,7 +611,32 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
           </div>
 
-          {/* Bottom: Visual control + Actions */}
+          {/* Row 5: Agendamento */}
+          <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
+            <div className="flex items-center gap-3">
+              <Switch id="income-scheduling" checked={isScheduled} onCheckedChange={setIsScheduled} />
+              <Label htmlFor="income-scheduling" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                <CalendarClock className="h-4 w-4 text-primary" />
+                Agendar esta receita
+              </Label>
+            </div>
+            {isScheduled && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento</Label>
+                <Input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={e => setScheduledDate(e.target.value)}
+                  max={receiveDate || undefined}
+                  className="h-10 rounded-xl border-border/60 bg-muted/30"
+                />
+                {scheduledDate && receiveDate && scheduledDate > receiveDate && (
+                  <p className="text-xs text-destructive">A data de agendamento não pode ser posterior ao recebimento.</p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-border/40">
             <div className={cn("flex items-center space-x-2", !canUseExtraControl && "opacity-40")}>
               <Switch id="income-visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl} />
