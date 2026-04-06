@@ -1,774 +1,283 @@
-﻿﻿import { useState, useEffect } from 'react';
-import { useIncome } from '@/contexts/IncomeContext';
-import { useFinance } from '@/contexts/FinanceContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { CategoryIcon } from '@/components/CategoryIcon';
-import { cn } from '@/lib/utils';
-import { Income } from '@/types/income';
-import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock } from 'lucide-react';
-import { CalculatorPopover } from '@/components/ui/calculator-popover';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { getPlanLimit, getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
+﻿﻿import { useState, useEffect } from "react";
+import { useForm, Controller, UseFormReturn } from "react-hook-form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import { supabase } from "../../lib/supabase"; // Assuming relative path
+import { useAuth } from "@/contexts/AuthContext";
+import { useIncome } from "@/contexts/IncomeContext";
+import { Income } from "@/types/income";
+import { SchedulingFields } from "../SchedulingFields"; // Import the scheduling fields component
 
 interface IncomeFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   income?: Income | null;
-  initialData?: Partial<Income> | null;
+  initialData?: Income | null;
+}
+
+interface IncomeFormData {
+  title: string;
+  amount: number;
+  receiveDate: string; // Actual receive date
+  categoryId: string;
+  subcategoryId?: string;
+  isReceived: boolean;
+  excludeFromCalculations: boolean;
+  // Recurrence fields
+  is_recurring: boolean;
+  recurrence_type?: "daily" | "weekly" | "monthly" | "yearly";
+  start_date?: string; // The first occurrence date for recurring items
+  // Scheduling fields
+  is_scheduled: boolean;
+  scheduled_date?: string; // The date the transaction is scheduled to appear
 }
 
 export default function IncomeForm({ open, onOpenChange, income, initialData }: IncomeFormProps) {
-  const navigate = useNavigate();
-  const { hasFeatureAccess, subscriptionPlan, user } = useAuth();
-  const { accounts } = useFinance();
-  const { refreshData, incomeCategories, incomeSubcategories, removeIncome, addIncome, updateIncome, addIncomeCategory, addIncomeSubcategory } = useIncome();
-  const canUseExtraControl = hasFeatureAccess('extra_control');
-  const recurrencePlanLimit = getPlanLimit(subscriptionPlan as string);
-  const ADD_CATEGORY_OPTION = '__add_new_income_category__';
-  const ADD_SUBCATEGORY_OPTION = '__add_new_income_subcategory__';
-  
-  // --- State ---
-  const [description, setDescription] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [subcategoryId, setSubcategoryId] = useState('');
-  const [receiveDate, setReceiveDate] = useState('');
-  const [amount, setAmount] = useState('');
-  const [isReceived, setIsReceived] = useState(false);
-  const [accountId, setAccountId] = useState('');
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
-  const [deleteScopeDialogOpen, setDeleteScopeDialogOpen] = useState(false);
-  const [pendingData, setPendingData] = useState<any>(null);
-  const [recurrenceUsage, setRecurrenceUsage] = useState(0);
-  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
-  const [newSubcategoryName, setNewSubcategoryName] = useState('');
-  const [observation, setObservation] = useState('');
-  const [showErrors, setShowErrors] = useState(false);
-  const [shakeKey, setShakeKey] = useState(0);
-  const [isScheduled, setIsScheduled] = useState(false);
-  const [scheduledDate, setScheduledDate] = useState('');
+  const { user } = useAuth();
+  const { incomeCategories, incomeSubcategories, addIncome, updateIncome, refreshData } = useIncome();
+  const { register, handleSubmit, reset, control, watch, setValue, formState: { errors } } = useForm<IncomeFormData>({
+    defaultValues: {
+      isReceived: false,
+      excludeFromCalculations: false,
+      is_recurring: false,
+      recurrence_type: 'monthly', // Default for recurrence
+      start_date: new Date().toISOString().split('T')[0], // Default to today
+      is_scheduled: false,
+      scheduled_date: new Date().toISOString().split('T')[0], // Default to today
+    }
+  });
+  const [loading, setLoading] = useState(false);
 
-  // --- Helpers ---
-  const formatToInput = (dateVal: any) => {
-    if (!dateVal) return "";
-    if (dateVal instanceof Date) return format(dateVal, 'yyyy-MM-dd');
-    const str = String(dateVal);
-    return str.includes('T') ? str.split('T')[0] : str;
-  };
+  const isRecurring = watch("is_recurring");
+  const isScheduled = watch("is_scheduled");
+  const receiveDate = watch("receiveDate"); // Use this as baseDate for scheduling validation
 
-  const safeSubcategories = incomeSubcategories || [];
-
-  const getTodayString = () => {
-    const now = new Date();
-    return format(now, 'yyyy-MM-dd');
-  };
-
-  const formatCurrencyInput = (value: string) => {
-    const numericValue = value.replace(/\D/g, '');
-    if (!numericValue) return '';
-    const floatValue = Number(numericValue) / 100;
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(floatValue);
-  };
-
-  // --- Initialization ---
   useEffect(() => {
     if (open) {
-      const today = getTodayString();
-      const dataToLoad = income || initialData;
-      
-      if (dataToLoad) {
-        setDescription(dataToLoad.title || '');
-        
-        const catId = dataToLoad.categoryId || (dataToLoad as any).category_id || '';
-        const subCatId = dataToLoad.subcategoryId || (dataToLoad as any).subcategory_id || '';
-        console.log('[IncomeForm] Loading data:', { catId, subCatId, raw_subcategoryId: dataToLoad.subcategoryId, raw_subcategory_id: (dataToLoad as any).subcategory_id });
-        setCategoryId(catId);
-        setSubcategoryId(subCatId);
-        
-        setReceiveDate(dataToLoad.receiveDate ? formatToInput(dataToLoad.receiveDate) : today);
-        setAmount(dataToLoad.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) : '');
-        setIsReceived(dataToLoad.isReceived || false);
-        setAccountId(dataToLoad.accountId || (dataToLoad as any).account_id || '');
-        setIsRecurring(dataToLoad.isRecurring || false);
-        setExcludeFromCalculations((dataToLoad as any).excludeFromCalculations || (dataToLoad as any).exclude_from_calculations || false);
-        setObservation((dataToLoad as any).description || '');
-        setIsScheduled((dataToLoad as any).is_scheduled || false);
-        setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
-      } else {
-        // Reset
-        setDescription('');
-        setCategoryId('');
-        setSubcategoryId('');
-        setReceiveDate(today);
-        setAmount('');
-        setIsReceived(false);
-        setAccountId('');
-        setIsRecurring(false);
-        setExcludeFromCalculations(false);
-        setObservation('');
-        setShowErrors(false);
-        setIsScheduled(false);
-        setScheduledDate('');
-      }
-    }
-  }, [open, income, initialData]);
-
-  useEffect(() => {
-    if (!open || !user?.id) return;
-    if (income) return;
-
-    const loadQuota = async () => {
-      try {
-        const quota = await getRecurrenceQuotaStatus(user.id, subscriptionPlan as string);
-        setRecurrenceUsage(quota.used);
-      } catch {
-        setRecurrenceUsage(0);
-      }
-    };
-
-    loadQuota();
-  }, [open, income, user?.id, subscriptionPlan]);
-
-  const renumberIncomeInstallments = async (recurrenceId: string) => {
-    try {
-      const { data: remaining } = await supabase
-        .from('incomes')
-        .select('id, receive_date')
-        .eq('recurrence_id', recurrenceId)
-        .order('receive_date', { ascending: true });
-
-      if (!remaining || remaining.length === 0) return;
-
-      const total = remaining.length;
-      for (let i = 0; i < remaining.length; i++) {
-        await supabase.from('incomes').update({
-          current_installment: i + 1,
-          installments: total,
-        }).eq('id', remaining[i].id);
-      }
-    } catch (err) {
-      console.error('Erro ao renumerar parcelas:', err);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!income) return;
-    
-    if (income.isRecurring && (income.recurrenceId || (income as any).recurrence_id)) {
-      setDeleteScopeDialogOpen(true);
-      return;
-    }
-    
-    if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
-    
-    setIsSubmitting(true);
-    try {
-      await removeIncome(income.id);
-      await refreshData();
-      toast.success('Receita Excluída', {
-        description: 'A receita foi removida dos seus registros.',
-      });
-      onOpenChange(false);
-    } catch (error: any) {
-      toast.error('Erro ao Excluir', {
-        description: error.message,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleRecurrenceDelete = async (scope: 'single' | 'future' | 'all') => {
-    if (!income) return;
-    
-    setIsSubmitting(true);
-    try {
-      const recurrenceId = income.recurrenceId || (income as any).recurrence_id;
-      const originalReceiveDate = income.receiveDate instanceof Date 
-        ? format(income.receiveDate, 'yyyy-MM-dd')
-        : String(income.receiveDate).split('T')[0];
-
-      if (scope === 'single') {
-        await removeIncome(income.id);
-      } else if (scope === 'future') {
-        const { error } = await supabase.from('incomes')
-          .delete()
-          .eq('recurrence_id', recurrenceId)
-          .gte('receive_date', originalReceiveDate);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('incomes')
-          .delete()
-          .eq('recurrence_id', recurrenceId);
-        if (error) throw error;
-      }
-
-      if (scope !== 'all' && recurrenceId) {
-        await renumberIncomeInstallments(recurrenceId);
-      }
-
-      await refreshData();
-      const successMessage = scope === 'single' ? 'Receita excluída!' : 'Receitas excluídas com sucesso!';
-      const descriptionMessage = scope === 'single'
-        ? 'Apenas a receita selecionada foi removida.'
-        : 'As receitas recorrentes foram removidas conforme sua seleção.';
-      toast.success(successMessage, {
-        description: descriptionMessage,
-      });
-      onOpenChange(false);
-    } catch (error: any) {
-      toast.error('Erro ao Excluir', {
-        description: error.message,
-      });
-    } finally {
-      setIsSubmitting(false);
-      setDeleteScopeDialogOpen(false);
-    }
-  };
-
-  const handleCategorySelectChange = (value: string) => {
-    if (value === ADD_CATEGORY_OPTION) {
-      setCategoryDialogOpen(true);
-      return;
-    }
-    setCategoryId(value);
-    setSubcategoryId('');
-  };
-
-  const handleSubcategorySelectChange = (value: string) => {
-    if (value === ADD_SUBCATEGORY_OPTION) {
-      if (!categoryId) {
-        toast.error('Ação Necessária', {
-          description: 'Selecione uma categoria principal primeiro.',
+      if (income) {
+        reset({
+          ...income,
+          receiveDate: income.receiveDate ? new Date(income.receiveDate).toISOString().split('T')[0] : '',
+          // Map existing recurrence/scheduling data if available
+          is_recurring: income.is_recurring || false,
+          recurrence_type: income.recurrence_type || 'monthly',
+          start_date: income.scheduled_date ? new Date(income.scheduled_date).toISOString().split('T')[0] : (income.receiveDate ? new Date(income.receiveDate).toISOString().split('T')[0] : ''),
+          is_scheduled: income.is_scheduled || false,
+          scheduled_date: income.scheduled_date ? new Date(income.scheduled_date).toISOString().split('T')[0] : '',
         });
-        return;
+      } else if (initialData) {
+        reset({
+          ...initialData,
+          receiveDate: initialData.receiveDate ? new Date(initialData.receiveDate).toISOString().split('T')[0] : '',
+          // For duplication, ensure recurrence/scheduling fields are reset or copied as needed
+          is_recurring: false, // Duplicated items usually start as single
+          recurrence_type: 'monthly',
+          start_date: initialData.receiveDate ? new Date(initialData.receiveDate).toISOString().split('T')[0] : '',
+          is_scheduled: false,
+          scheduled_date: initialData.receiveDate ? new Date(initialData.receiveDate).toISOString().split('T')[0] : '',
+        });
+      } else {
+        reset({
+          title: '',
+          amount: 0,
+          receiveDate: new Date().toISOString().split('T')[0],
+          categoryId: '',
+          subcategoryId: '',
+          isReceived: false,
+          excludeFromCalculations: false,
+          is_recurring: false,
+          recurrence_type: 'monthly',
+          start_date: new Date().toISOString().split('T')[0],
+          is_scheduled: false,
+          scheduled_date: new Date().toISOString().split('T')[0],
+        });
       }
-      setSubcategoryDialogOpen(true);
+    }
+  }, [open, income, initialData, reset]);
+
+  const onSubmit = async (data: IncomeFormData) => {
+    if (!user) {
+      toast.error("Você precisa estar logado para salvar receitas.");
       return;
     }
-    setSubcategoryId(value);
-  };
-
-  const handleCreateCategory = async () => {
-    const name = newCategoryName.trim();
-    if (!name) {
-      toast.error('Campo Obrigatório', {
-        description: 'Por favor, informe o nome da nova categoria.',
-      });
-      return;
-    }
-
-    const created = await addIncomeCategory({
-      name,
-      icon: 'Tag',
-      color: 'emerald-500',
-      isDefault: false,
-    });
-
-    if (created) {
-      setCategoryId(created.id);
-      setSubcategoryId('');
-      setNewCategoryName('');
-      setCategoryDialogOpen(false);
-      toast.success('Categoria Criada', {
-        description: 'A nova categoria já está disponível para uso.',
-      });
-    }
-  };
-
-  const handleCreateSubcategory = async () => {
-    const name = newSubcategoryName.trim();
-    if (!name) {
-      toast.error('Campo Obrigatório', {
-        description: 'Por favor, informe o nome da nova subcategoria.',
-      });
-      return;
-    }
-    if (!categoryId) {
-      toast.error('Ação Necessária', {
-        description: 'Selecione uma categoria antes de criar subcategoria.',
-      });
-      return;
-    }
-
-    const created = await addIncomeSubcategory({
-      name,
-      categoryId,
-    });
-
-    if (created) {
-      setSubcategoryId(created.id);
-      setNewSubcategoryName('');
-      setSubcategoryDialogOpen(false);
-      toast.success('Subcategoria Criada', {
-        description: 'A nova subcategoria já está disponível para uso.',
-      });
-    }
-  };
-
-  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
-    if (!income || !pendingData) return;
-    
-    setIsSubmitting(true);
+    setLoading(true);
     try {
-      // Use original receive_date as anchor for future scope
-      const originalReceiveDate = income.receiveDate instanceof Date 
-        ? format(income.receiveDate, 'yyyy-MM-dd')
-        : String(income.receiveDate).split('T')[0];
-
-      // 1. Atualiza a receita atual
-      const { error: singleError } = await supabase.from('incomes').update(pendingData).eq('id', income.id);
-      if (singleError) throw singleError;
-
-      if (scope !== 'single') {
-        const recurrenceId = income.recurrenceId || (income as any).recurrence_id;
-        
-        if (!recurrenceId) {
-          toast.error('Erro de Recorrência', {
-            description: 'Não foi possível identificar a série de recorrência para atualizar.',
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        
-        // Remove date fields from batch to preserve individual dates
-        const { receive_date, ...batchData } = pendingData;
-        let query = supabase.from('incomes').update(batchData).eq('recurrence_id', recurrenceId).neq('id', income.id);
-
-        if (scope === 'future') {
-          // Use ORIGINAL date as anchor
-          query = query.gte('receive_date', originalReceiveDate);
-        }
-
-        const { error } = await query;
-        if (error) throw error;
-      }
-
-      await refreshData();
-      toast.success('Receitas Atualizadas', {
-        description: 'As alterações foram aplicadas à série de recorrência.',
-      });
-      onOpenChange(false);
-    } catch (error: any) {
-      console.error('[BatchUpdate] Error:', error);
-      toast.error('Erro ao Atualizar', {
-        description: error.message,
-      });
-    } finally {
-      setIsSubmitting(false);
-      setScopeDialogOpen(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-
-    const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
-    if (!description || !categoryId || !receiveDate || numericAmount <= 0) {
-      setShowErrors(true);
-      setShakeKey(k => k + 1);
-      toast.error('Campos Incompletos', {
-        description: 'Por favor, preencha todos os campos obrigatórios (*).',
-      });
-      return;
-    }
-    if (isScheduled && scheduledDate && receiveDate && scheduledDate > receiveDate) {
-      toast.error('A data de agendamento não pode ser posterior ao recebimento.');
-      return;
-    }
-    setShowErrors(false);
-
-    setIsSubmitting(true);
-    try {
-      if (!income && isRecurring && user?.id) {
-        const quota = await getRecurrenceQuotaStatus(user.id, subscriptionPlan as string);
-        setRecurrenceUsage(quota.used);
-
-        if (quota.exceededByNewRecurring) {
-          toast.error('Limite de Recorrências Atingido', {
-            description: `Seu plano atual permite apenas ${quota.limit} lançamentos recorrentes. Faça o upgrade para liberar mais!`,
-            action: {
-              label: 'Ver planos',
-              onClick: () => navigate('/plans'),
-            },
-          });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      const payload = {
-        title: description,
-        amount: numericAmount,
-        receive_date: receiveDate,
-        category_id: categoryId,
-        subcategory_id: subcategoryId || null,
-        is_received: isReceived,
-        is_recurring: isRecurring,
-        account_id: accountId || null,
-        exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
-        description: observation || null,
-        is_scheduled: isScheduled,
-        scheduled_date: isScheduled && scheduledDate ? scheduledDate : null,
+      const incomePayload: Partial<Income> = {
+        user_id: user.id,
+        title: data.title,
+        amount: data.amount,
+        receive_date: data.receiveDate, // Actual receive date
+        category_id: data.categoryId,
+        subcategory_id: data.subcategoryId || null,
+        is_received: data.isReceived,
+        exclude_from_calculations: data.excludeFromCalculations,
+        // Recurrence fields
+        is_recurring: data.is_recurring,
+        recurrence_type: data.is_recurring ? data.recurrence_type : null,
+        // Scheduling fields
+        is_scheduled: data.is_scheduled || data.is_recurring, // If recurring, it's also scheduled
+        scheduled_date: null, // Default to null, then set based on conditions
       };
 
-      if (income) {
-        if (income.isRecurring) {
-          setPendingData(payload);
-          setScopeDialogOpen(true);
-          setIsSubmitting(false);
-          return;
-        }
-
-        await updateIncome(income.id, {
-          title: description,
-          amount: numericAmount,
-          receiveDate: new Date(receiveDate + 'T12:00:00'),
-          categoryId,
-          subcategoryId: subcategoryId || undefined,
-          description: observation || undefined,
-          isReceived,
-          isRecurring,
-          accountId: accountId || undefined,
-          excludeFromCalculations: canUseExtraControl ? excludeFromCalculations : false,
-        });
+      // Determine scheduled_date logic
+      if (data.is_recurring && data.start_date) {
+        incomePayload.scheduled_date = data.start_date;
+      } else if (data.is_scheduled && data.scheduled_date) {
+        incomePayload.scheduled_date = data.scheduled_date;
       } else {
-        await addIncome({
-          title: description,
-          amount: numericAmount,
-          receiveDate: new Date(receiveDate + 'T12:00:00'),
-          categoryId,
-          subcategoryId: subcategoryId || undefined,
-          description: observation || undefined,
-          isReceived,
-          isRecurring,
-          accountId: accountId || undefined,
-          excludeFromCalculations: canUseExtraControl ? excludeFromCalculations : false,
-        });
+        incomePayload.scheduled_date = null; // Not scheduled or recurring, so no specific scheduled_date
       }
 
-      await refreshData();
-      const successTitle = income ? 'Receita Atualizada' : 'Receita Salva';
-      const successDescription = income
-        ? 'Sua receita foi atualizada com sucesso.'
-        : 'Sua nova receita foi registrada com sucesso.';
-      toast.success(successTitle, { description: successDescription });
+      if (income) {
+        await updateIncome(income.id, incomePayload);
+        toast.success("Receita atualizada com sucesso!");
+      } else {
+        await addIncome(incomePayload as Income); // Cast to Income as addIncome expects full Income object
+        toast.success("Receita adicionada com sucesso!");
+      }
+      refreshData();
       onOpenChange(false);
-    } catch (error: any) {
-      console.error(error);
-      toast.error('Erro ao Salvar', {
-        description: error.message,
-      });
+    } catch (err: any) {
+      toast.error("Erro ao salvar receita: " + err.message);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  const filteredSubcategories = safeSubcategories.filter(s => s.categoryId === categoryId);
+  const filteredSubcategories = incomeSubcategories.filter(sub => sub.categoryId === watch("categoryId"));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
-        {/* Header */}
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-6 py-4 bg-gradient-to-r from-primary/5 to-transparent">
-          <div>
-            <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
-              {income ? 'Editar Receita' : 'Nova Receita'}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-              {income 
-                ? `Cadastrada em ${format(new Date(income.createdAt), 'dd/MM/yyyy HH:mm')}${(income as any).installments && (income as any).installments > 1 ? ` • Parcela ${(income as any).currentInstallment || '?'}/${(income as any).installments}` : ''}`
-                : 'Preencha os detalhes da transação'}
-            </DialogDescription>
-          </div>
-          {income && (
-            <Button type="button" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-lg" onClick={handleDelete}>
-              <Trash2 className="w-4 h-4 mr-1" /> Excluir
-            </Button>
-          )}
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{income ? "Editar Receita" : "Nova Receita"}</DialogTitle>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-80px)]">
-          {/* Row 1: Descrição + Valor */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div key={`desc-${shakeKey}`} className={cn("sm:col-span-2 space-y-1.5", showErrors && !description && "animate-shake")}>
-              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !description ? "text-destructive" : "text-muted-foreground")}>Descrição *</Label>
-              <Input value={description} onChange={e => setDescription(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !description && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Salário Mensal" />
-              {showErrors && !description && <span className="text-xs text-destructive">Campo obrigatório</span>}
-            </div>
-            <div key={`amt-${shakeKey}`} className={cn("space-y-1.5", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "animate-shake")}>
-              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 ? "text-destructive" : "text-muted-foreground")}>Valor *</Label>
-              <div className="flex items-center gap-1">
-                <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card text-right font-semibold transition-colors", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "border-destructive ring-1 ring-destructive/30")} placeholder="R$ 0,00" />
-                <CalculatorPopover currentValue={amount} onConfirm={(val) => setAmount(formatCurrencyInput(val))} />
-              </div>
-              {showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && <span className="text-xs text-destructive">Campo obrigatório</span>}
-            </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="title" className="text-right">Título</Label>
+            <Input id="title" {...register("title", { required: "Título é obrigatório" })} className="col-span-3" />
+            {errors.title && <p className="col-span-4 text-right text-sm text-red-600">{errors.title.message}</p>}
           </div>
-
-          {/* Row 2: Categoria + Subcategoria + Data */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
-              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
-              <Select value={categoryId} onValueChange={handleCategorySelectChange}>
-                <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ADD_CATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-primary">+ Nova categoria</SelectItem>
-                  {incomeCategories.map(c => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-${c.color}`} /> {c.name}</div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {showErrors && !categoryId && <span className="text-xs text-destructive">Campo obrigatório</span>}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
-              <Select key={`subcat-${categoryId}-${subcategoryId}`} value={subcategoryId} onValueChange={handleSubcategorySelectChange} disabled={!categoryId}>
-                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ADD_SUBCATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-primary">+ Nova subcategoria</SelectItem>
-                  {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div key={`date-${shakeKey}`} className={cn("space-y-1.5", showErrors && !receiveDate && "animate-shake")}>
-              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !receiveDate ? "text-destructive" : "text-muted-foreground")}>Data de Recebimento *</Label>
-              <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
-              {showErrors && !receiveDate && <span className="text-xs text-destructive">Campo obrigatório</span>}
-            </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="amount" className="text-right">Valor</Label>
+            <Input id="amount" type="number" step="0.01" {...register("amount", { required: "Valor é obrigatório", valueAsNumber: true })} className="col-span-3" />
+            {errors.amount && <p className="col-span-4 text-right text-sm text-red-600">{errors.amount.message}</p>}
           </div>
-
-          {/* Row 3: Banco + Status + Recorrência */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Banco</Label>
-              <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
-                <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="receiveDate" className="text-right">Data</Label>
+            <Input id="receiveDate" type="date" {...register("receiveDate", { required: "Data é obrigatória" })} className="col-span-3" />
+            {errors.receiveDate && <p className="col-span-4 text-right text-sm text-red-600">{errors.receiveDate.message}</p>}
           </div>
-
-          {/* Row 4: Status + Recorrência + Observação */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
-              <button type="button" onClick={() => setIsReceived(!isReceived)} className={cn(
-                "flex items-center justify-center gap-2 w-full h-10 rounded-xl border text-sm font-semibold transition-all",
-                isReceived ? "bg-primary/10 border-primary/30 text-primary" : "bg-muted/30 border-border/60 text-muted-foreground"
-              )}>
-                <span className={cn("w-2 h-2 rounded-full", isReceived ? "bg-primary" : "bg-muted-foreground/40")} />
-                {isReceived ? 'Recebido' : 'Pendente'}
-              </button>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recorrência</Label>
-              <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={cn(
-                "flex items-center justify-center gap-2 w-full h-10 rounded-xl border text-sm font-semibold transition-all",
-                isRecurring ? "bg-primary/10 border-primary/30 text-primary" : "bg-muted/30 border-border/60 text-muted-foreground"
-              )}>
-                <span className={cn("w-2 h-2 rounded-full", isRecurring ? "bg-primary" : "bg-muted-foreground/40")} />
-                {isRecurring ? 'Sim' : 'Não'}
-              </button>
-              {!income && recurrencePlanLimit.limit === 2 && (
-                <p className="text-[10px] text-muted-foreground">{recurrenceUsage}/2 recorrências</p>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="categoryId" className="text-right">Categoria</Label>
+            <Controller
+              name="categoryId"
+              control={control}
+              rules={{ required: "Categoria é obrigatória" }}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value} >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {incomeCategories.map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observação</Label>
-              <textarea
-                value={observation}
-                onChange={e => setObservation(e.target.value)}
-                className="flex w-full rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors focus:bg-card resize-none"
-                placeholder="Anotações opcionais..."
-                rows={2}
-              />
-            </div>
+            />
+            {errors.categoryId && <p className="col-span-4 text-right text-sm text-red-600">{errors.categoryId.message}</p>}
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="subcategoryId" className="text-right">Subcategoria</Label>
+            <Controller
+              name="subcategoryId"
+              control={control}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value} disabled={filteredSubcategories.length === 0}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione uma subcategoria (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredSubcategories.map(sub => (
+                      <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
-          {/* Toggles: Agendamento + Controle Visual */}
-          <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
-            {/* Agendamento */}
-            <div className="flex items-center gap-3">
-              <Switch id="income-scheduling" checked={isScheduled} onCheckedChange={setIsScheduled} />
-              <Label htmlFor="income-scheduling" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                <CalendarClock className="h-4 w-4 text-primary" />
-                Agendar esta receita
-              </Label>
+          <div className="flex items-center space-x-2 col-span-4 justify-end">
+            <Checkbox id="isReceived" {...register("isReceived")} />
+            <Label htmlFor="isReceived">Recebido</Label>
+          </div>
+          <div className="flex items-center space-x-2 col-span-4 justify-end">
+            <Checkbox id="excludeFromCalculations" {...register("excludeFromCalculations")} />
+            <Label htmlFor="excludeFromCalculations">Apenas controle visual (não contabilizar)</Label>
+          </div>
+
+          {/* Recurrence Fields */}
+          <div className="space-y-4 p-4 border rounded-xl bg-slate-50/50 mt-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_recurring"
+                checked={isRecurring}
+                onCheckedChange={(checked) => setValue("is_recurring", checked)}
+              />
+              <Label htmlFor="is_recurring">Transação Recorrente</Label>
             </div>
-            {isScheduled && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-14">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento</Label>
-                <Input
-                  type="date"
-                  value={scheduledDate}
-                  onChange={e => setScheduledDate(e.target.value)}
-                  max={receiveDate || undefined}
-                  className="h-10 rounded-xl border-border/60 bg-muted/30"
-                />
-                {scheduledDate && receiveDate && scheduledDate > receiveDate && (
-                  <p className="text-xs text-destructive">A data de agendamento não pode ser posterior ao recebimento.</p>
-                )}
+
+            {isRecurring && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="recurrence_type" className="text-right">Frequência</Label>
+                  <Controller
+                    name="recurrence_type"
+                    control={control}
+                    rules={{ required: isRecurring ? "Frequência é obrigatória" : false }}
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value} >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Selecione a frequência" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Diário</SelectItem>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="monthly">Mensal</SelectItem>
+                          <SelectItem value="yearly">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.recurrence_type && <p className="col-span-4 text-right text-sm text-red-600">{errors.recurrence_type.message}</p>}
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="start_date" className="text-right">Início da Recorrência</Label>
+                  <Input id="start_date" type="date" {...register("start_date", { required: isRecurring ? "Data de início é obrigatória" : false })} className="col-span-3" />
+                  {errors.start_date && <p className="col-span-4 text-right text-sm text-red-600">{errors.start_date.message}</p>}
+                </div>
               </div>
             )}
-
-            {/* Separador */}
-            <div className="border-t border-border/40" />
-
-            {/* Apenas controle visual */}
-            <div className={cn("flex items-center gap-3", !canUseExtraControl && "opacity-40")}>
-              <Switch id="income-visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl} />
-              <Label htmlFor="income-visual-control" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                {!canUseExtraControl && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
-                Apenas controle visual
-              </Label>
-            </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl h-9 px-5 text-sm">Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[110px] h-9 bg-primary hover:bg-primary/90 shadow-sm">
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+          {/* Scheduling Fields */}
+          <SchedulingFields form={control as UseFormReturn<any>} baseDateFieldName="receiveDate" />
+
+          <DialogFooter>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Salvando..." : "Salvar Receita"}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
-
-      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-        <DialogContent className="sm:max-w-sm rounded-2xl border-0 bg-card shadow-xl">
-          <DialogHeader>
-            <DialogTitle>Nova categoria</DialogTitle>
-            <DialogDescription>Digite o nome da categoria para receitas.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="new-income-category">Nome</Label>
-            <Input id="new-income-category" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Ex: Comissões" className="rounded-xl" />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" className="rounded-xl" onClick={() => setCategoryDialogOpen(false)}>Cancelar</Button>
-            <Button type="button" className="rounded-xl" onClick={handleCreateCategory}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={subcategoryDialogOpen} onOpenChange={setSubcategoryDialogOpen}>
-        <DialogContent className="sm:max-w-sm rounded-2xl border-0 bg-card shadow-xl">
-          <DialogHeader>
-            <DialogTitle>Nova subcategoria</DialogTitle>
-            <DialogDescription>Digite o nome da subcategoria para a categoria selecionada.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="new-income-subcategory">Nome</Label>
-            <Input id="new-income-subcategory" value={newSubcategoryName} onChange={(e) => setNewSubcategoryName(e.target.value)} placeholder="Ex: Cliente recorrente" className="rounded-xl" />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" className="rounded-xl" onClick={() => setSubcategoryDialogOpen(false)}>Cancelar</Button>
-            <Button type="button" className="rounded-xl" onClick={handleCreateSubcategory}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={scopeDialogOpen} onOpenChange={setScopeDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Atualizar Recorrência</AlertDialogTitle>
-            <AlertDialogDescription>Esta é uma receita recorrente. Como deseja aplicar as alterações?</AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex flex-col gap-2 py-4">
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('single')}>
-              <Calendar className="w-4 h-4 mr-3 text-muted-foreground" />
-              <div className="text-left">
-                <div className="font-medium">Apenas esta</div>
-                <div className="text-xs text-muted-foreground">Alterar somente a receita atual</div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('future')}>
-              <CalendarClock className="w-4 h-4 mr-3 text-muted-foreground" />
-              <div className="text-left">
-                <div className="font-medium">Esta e próximas</div>
-                <div className="text-xs text-muted-foreground">Alterar desta data em diante</div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
-              <CalendarDays className="w-4 h-4 mr-3 text-muted-foreground" />
-              <div className="text-left">
-                <div className="font-medium">Todas</div>
-                <div className="text-xs text-muted-foreground">Alterar toda a série</div>
-              </div>
-            </Button>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={deleteScopeDialogOpen} onOpenChange={setDeleteScopeDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Recorrência</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta é uma receita recorrente. Como deseja excluir?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex flex-col gap-2 py-4">
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('single')}>
-              <Calendar className="w-4 h-4 mr-3 text-muted-foreground" />
-              <div className="text-left">
-                <div className="font-medium">Apenas esta</div>
-                <div className="text-xs text-muted-foreground">Excluir somente a receita atual</div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('future')}>
-              <CalendarClock className="w-4 h-4 mr-3 text-destructive" />
-              <div className="text-left">
-                <div className="font-medium">Esta e próximas</div>
-                <div className="text-xs text-muted-foreground">Excluir desta data em diante</div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceDelete('all')}>
-              <CalendarDays className="w-4 h-4 mr-3 text-destructive" />
-              <div className="text-left">
-                <div className="font-medium">Todas</div>
-                <div className="text-xs text-muted-foreground">Excluir toda a série</div>
-              </div>
-            </Button>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Dialog>
   );
 }
