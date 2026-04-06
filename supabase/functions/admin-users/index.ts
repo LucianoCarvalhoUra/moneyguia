@@ -8,8 +8,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MASTER_EMAIL = "admin@moneyguia.com.br";
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -34,7 +32,15 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: { user: caller }, error: authError } = await anonClient.auth.getUser();
-    if (authError || !caller || caller.email?.toLowerCase() !== MASTER_EMAIL) {
+
+    // Verifica se o usuário é admin consultando a tabela profiles
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', caller?.id)
+      .single();
+
+    if (authError || !caller || !profile?.is_admin) {
       return new Response(JSON.stringify({ error: "Acesso negado" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -197,7 +203,7 @@ Deno.serve(async (req: Request) => {
         "notification_settings", "expenses", "incomes", "subcategories",
         "income_subcategories", "categories", "income_categories",
         "credit_cards", "bank_accounts", "goal_contributions", "goals",
-        "user_subscriptions", "payments", "user_roles", "profiles",
+        "user_subscriptions", "payments", "profiles",
       ];
       for (const table of tables) {
         await supabase.from(table).delete().eq("user_id", user_id);

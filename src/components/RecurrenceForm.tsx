@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Check, AlertTriangle } from "lucide-react";
 
