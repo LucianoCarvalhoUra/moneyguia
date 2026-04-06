@@ -304,6 +304,28 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* Auto-liquidation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarClock className="w-5 h-5 text-primary" />
+            Agendamentos
+          </CardTitle>
+          <CardDescription>Configure o comportamento dos agendamentos</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+            <div className="space-y-0.5">
+              <Label className="text-base">Baixa Automática</Label>
+              <p className="text-sm text-muted-foreground">
+                Quando ativada, despesas e receitas agendadas serão efetivadas automaticamente na data do agendamento. Caso contrário, a efetivação será manual.
+              </p>
+            </div>
+            <Switch checked={autoLiquidation} onCheckedChange={handleAutoLiquidationChange} />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Security */}
       <Card>
         <CardHeader>
