@@ -40,7 +40,7 @@ interface IncomeFormData {
 export default function IncomeForm({ open, onOpenChange, income, initialData }: IncomeFormProps) {
   const { user } = useAuth();
   const { incomeCategories, incomeSubcategories, addIncome, updateIncome, refreshData } = useIncome();
-  const { register, handleSubmit, reset, control, watch, setValue, formState: { errors } } = useForm<IncomeFormData>({
+  const form = useForm<IncomeFormData>({
     defaultValues: {
       isReceived: false,
       excludeFromCalculations: false,
@@ -51,6 +51,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       scheduled_date: new Date().toISOString().split('T')[0], // Default to today
     }
   });
+  const { register, handleSubmit, reset, control, watch, setValue, formState: { errors } } = form;
   const [loading, setLoading] = useState(false);
 
   const isRecurring = watch("is_recurring");
@@ -64,11 +65,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           ...income,
           receiveDate: income.receiveDate ? new Date(income.receiveDate).toISOString().split('T')[0] : '',
           // Map existing recurrence/scheduling data if available
-          is_recurring: income.is_recurring || false,
-          recurrence_type: income.recurrence_type || 'monthly',
-          start_date: income.scheduled_date ? new Date(income.scheduled_date).toISOString().split('T')[0] : (income.receiveDate ? new Date(income.receiveDate).toISOString().split('T')[0] : ''),
-          is_scheduled: income.is_scheduled || false,
-          scheduled_date: income.scheduled_date ? new Date(income.scheduled_date).toISOString().split('T')[0] : '',
+          is_recurring: (income as any).isRecurring || false,
+          recurrence_type: (income as any).recurrenceType || 'monthly',
+          start_date: (income as any).scheduledDate ? new Date((income as any).scheduledDate).toISOString().split('T')[0] : (income.receiveDate ? new Date(income.receiveDate).toISOString().split('T')[0] : ''),
+          is_scheduled: (income as any).isScheduled || false,
+          scheduled_date: (income as any).scheduledDate ? new Date((income as any).scheduledDate).toISOString().split('T')[0] : '',
         });
       } else if (initialData) {
         reset({
@@ -107,30 +108,30 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     }
     setLoading(true);
     try {
-      const incomePayload: Partial<Income> = {
-        user_id: user.id,
+      const incomePayload: any = {
+        userId: user.id,
         title: data.title,
         amount: data.amount,
-        receive_date: data.receiveDate, // Actual receive date
-        category_id: data.categoryId,
-        subcategory_id: data.subcategoryId || null,
-        is_received: data.isReceived,
-        exclude_from_calculations: data.excludeFromCalculations,
+        receiveDate: data.receiveDate as any, // Actual receive date
+        categoryId: data.categoryId,
+        subcategoryId: data.subcategoryId || null,
+        isReceived: data.isReceived,
+        excludeFromCalculations: data.excludeFromCalculations,
         // Recurrence fields
-        is_recurring: data.is_recurring,
-        recurrence_type: data.is_recurring ? data.recurrence_type : null,
+        isRecurring: data.is_recurring,
+        recurrenceType: data.is_recurring ? data.recurrence_type : null,
         // Scheduling fields
-        is_scheduled: data.is_scheduled || data.is_recurring, // If recurring, it's also scheduled
-        scheduled_date: null, // Default to null, then set based on conditions
+        isScheduled: data.is_scheduled || data.is_recurring, // If recurring, it's also scheduled
+        scheduledDate: null as any, // Default to null, then set based on conditions
       };
 
       // Determine scheduled_date logic
       if (data.is_recurring && data.start_date) {
-        incomePayload.scheduled_date = data.start_date;
+        incomePayload.scheduledDate = data.start_date as any;
       } else if (data.is_scheduled && data.scheduled_date) {
-        incomePayload.scheduled_date = data.scheduled_date;
+        incomePayload.scheduledDate = data.scheduled_date as any;
       } else {
-        incomePayload.scheduled_date = null; // Not scheduled or recurring, so no specific scheduled_date
+        incomePayload.scheduledDate = null as any; // Not scheduled or recurring, so no specific scheduled_date
       }
 
       if (income) {
@@ -229,7 +230,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
               <Checkbox
                 id="is_recurring"
                 checked={isRecurring}
-                onCheckedChange={(checked) => setValue("is_recurring", checked)}
+                onCheckedChange={(checked) => setValue("is_recurring", !!checked)}
               />
               <Label htmlFor="is_recurring">Transação Recorrente</Label>
             </div>
@@ -269,7 +270,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           {/* Scheduling Fields */}
-          <SchedulingFields form={control as UseFormReturn<any>} baseDateFieldName="receiveDate" />
+          <SchedulingFields form={form} baseDateFieldName="receiveDate" />
 
           <DialogFooter>
             <Button type="submit" disabled={loading}>
