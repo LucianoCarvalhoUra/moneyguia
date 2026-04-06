@@ -71,6 +71,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [observation, setObservation] = useState('');
   const [showErrors, setShowErrors] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -124,6 +126,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setLaunchDate(dataToLoad.expenseDate ? formatToInput(dataToLoad.expenseDate) : today);
         setExcludeFromCalculations((dataToLoad as any).excludeFromCalculations || false);
         setObservation((dataToLoad as any).observation || '');
+        setIsScheduled((dataToLoad as any).is_scheduled || false);
+        setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
       } else {
         // Reset
         setDescription('');
@@ -142,6 +146,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setExcludeFromCalculations(false);
         setObservation('');
         setShowErrors(false);
+        setIsScheduled(false);
+        setScheduledDate('');
       }
     }
   }, [open, expense, initialData]);
@@ -449,6 +455,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         user_id: authUser?.id,
         exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
         observation: observation || null,
+        is_scheduled: isScheduled,
+        scheduled_date: isScheduled && scheduledDate ? scheduledDate : null,
       };
 
       if (expense) {

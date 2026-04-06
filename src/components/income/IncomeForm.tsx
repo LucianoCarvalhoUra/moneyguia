@@ -68,6 +68,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [observation, setObservation] = useState('');
   const [showErrors, setShowErrors] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -116,6 +118,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setIsRecurring(dataToLoad.isRecurring || false);
         setExcludeFromCalculations((dataToLoad as any).excludeFromCalculations || (dataToLoad as any).exclude_from_calculations || false);
         setObservation((dataToLoad as any).description || '');
+        setIsScheduled((dataToLoad as any).is_scheduled || false);
+        setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
       } else {
         // Reset
         setDescription('');
@@ -129,6 +133,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setExcludeFromCalculations(false);
         setObservation('');
         setShowErrors(false);
+        setIsScheduled(false);
+        setScheduledDate('');
       }
     }
   }, [open, income, initialData]);
@@ -425,6 +431,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         account_id: accountId || null,
         exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
         description: observation || null,
+        is_scheduled: isScheduled,
+        scheduled_date: isScheduled && scheduledDate ? scheduledDate : null,
       };
 
       if (income) {
