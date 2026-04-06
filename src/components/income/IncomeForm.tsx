@@ -656,11 +656,10 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl h-9 px-5 text-sm">Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[110px] h-9 bg-primary hover:bg-primary/90 shadow-sm">
-                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
-              </Button>
-            </div>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl h-9 px-5 text-sm">Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[110px] h-9 bg-primary hover:bg-primary/90 shadow-sm">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+            </Button>
           </div>
         </form>
       </DialogContent>
