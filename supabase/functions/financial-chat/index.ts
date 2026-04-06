@@ -346,7 +346,7 @@ async function executeToolCall(
 
     return JSON.stringify({ success: false, error: "Tool desconhecida" });
   } catch (e) {
-    return JSON.stringify({ success: false, error: e.message || "Erro ao executar ação" });
+    return JSON.stringify({ success: false, error: (e as Error).message || "Erro ao executar ação" });
   }
 }
 
