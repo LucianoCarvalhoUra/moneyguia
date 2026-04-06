@@ -399,6 +399,10 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       });
       return;
     }
+    if (isScheduled && scheduledDate && receiveDate && scheduledDate > receiveDate) {
+      toast.error('A data de agendamento não pode ser posterior ao recebimento.');
+      return;
+    }
     setShowErrors(false);
 
     setIsSubmitting(true);
