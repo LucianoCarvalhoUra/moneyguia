@@ -89,14 +89,13 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const { isAdmin, isCheckingAdmin } = useIsAdmin();
-  const hasAdminFallback = user?.email === "lucianocarvalhoura@gmail.com";
 
   if (isLoading || isCheckingAdmin) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground shadow-sm">
           Carregando permissões...
         </div>
       </div>
@@ -107,7 +106,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
 
-  if (!isAdmin && !hasAdminFallback) {
+  if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -134,7 +133,7 @@ const AppRoutes = () => (
     <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="/subscription" element={<ProtectedRoute><MySubscription /></ProtectedRoute>} />
-    <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+    <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
     <Route path="/admin/csat" element={<AdminRoute><AdminCsat /></AdminRoute>} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="*" element={<NotFound />} />

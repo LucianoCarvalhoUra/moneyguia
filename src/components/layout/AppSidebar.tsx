@@ -14,52 +14,19 @@ import {
   Wallet,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { cn } from "@/lib/utils";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-  SidebarHeader,
-  useSidebar,
-} from "@/components/ui/sidebar";
-
-const navItems = [
-  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/goals", label: "Metas", icon: Target },
-  { path: "/expenses", label: "Despesas", icon: Receipt },
-  { path: "/incomes", label: "Receitas", icon: TrendingUp },
-  { path: "/accounts", label: "Contas", icon: CreditCard },
-  { path: "/reconciliation", label: "Cartão", icon: FileCheck },
-  { path: "/reports", label: "Relatórios", icon: FileText },
-];
-
-const bottomItems = [
-  { path: "/subscription", label: "Assinatura", icon: Sparkles },
-  { path: "/settings", label: "Configurações", icon: Settings },
-];
-
+...
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { user, logout } = useAuth();
   const { plan } = useUserPlan();
-  const { userRole } = useIsAdmin();
-  const hasAdminAccess = userRole === "admin" || user?.email === "lucianocarvalhoura@gmail.com";
+  const { isAdmin, isCheckingAdmin } = useIsAdmin();
 
-  useEffect(() => {
-    console.log("[Auth] Meu cargo atual:", userRole);
-  }, [userRole]);
-
-  const allBottomItems = hasAdminAccess
+  const allBottomItems = !isCheckingAdmin && isAdmin
     ? [
         ...bottomItems,
         { path: "/admin", label: "Admin", icon: Shield },
