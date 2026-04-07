@@ -14,7 +14,6 @@ import {
   Wallet,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -52,14 +51,9 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { user, logout } = useAuth();
   const { plan } = useUserPlan();
-  const { userRole } = useIsAdmin();
-  const hasAdminAccess = userRole === "admin" || user?.email === "lucianocarvalhoura@gmail.com";
+  const { isAdmin, isCheckingAdmin } = useIsAdmin();
 
-  useEffect(() => {
-    console.log("[Auth] Meu cargo atual:", userRole);
-  }, [userRole]);
-
-  const allBottomItems = hasAdminAccess
+  const allBottomItems = !isCheckingAdmin && isAdmin
     ? [
         ...bottomItems,
         { path: "/admin", label: "Admin", icon: Shield },
