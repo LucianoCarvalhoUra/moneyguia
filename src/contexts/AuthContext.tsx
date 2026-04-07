@@ -127,16 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isFetchingRoleRef.current) return;
     if (!force && loadedRoleUserIdRef.current === userId) return;
 
-    if ((email || '').toLowerCase() === ADMIN_FALLBACK_EMAIL) {
-      setUserRole('admin');
-      setIsAdmin(true);
-      setIsRoleLoading(false);
-      loadedRoleUserIdRef.current = userId;
-      localStorage.setItem(getRoleCacheKey(userId), 'admin');
-      console.log('[Sistema] Permissões carregadas com sucesso.');
-      return;
-    }
-
+    // Sempre consultar a tabela user_roles - sem fallback por email
     const cachedRole = localStorage.getItem(getRoleCacheKey(userId));
     if (cachedRole && !force) {
       setUserRole(cachedRole);
