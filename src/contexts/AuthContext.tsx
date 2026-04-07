@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 export type SubscriptionPlan = 'free' | 'premium' | 'total';
 export type SubscriptionStatus = 'active' | 'trial' | 'past_due' | 'canceled';
 export type FeatureKey = 'ai_classification' | 'advanced_reports' | 'extra_control';
-const ADMIN_FALLBACK_EMAIL = 'admin@moneyguia.com.br';
+// Role é determinado exclusivamente pela tabela user_roles
 
 function getAuthErrorMessage(error: { message: string }): string {
   console.error('Auth error:', error);
