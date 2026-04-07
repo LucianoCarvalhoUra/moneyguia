@@ -336,7 +336,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, 0);
         }
         setTimeout(() => {
-          loadUserRole(authSession.user.id, authSession.user.email);
+          // Forçar recarregamento do role no login para evitar cache stale
+          loadUserRole(authSession.user.id, authSession.user.email, event === 'SIGNED_IN');
         }, 0);
       }
 
