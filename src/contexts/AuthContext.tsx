@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 export type SubscriptionPlan = 'free' | 'premium' | 'total';
 export type SubscriptionStatus = 'active' | 'trial' | 'past_due' | 'canceled';
 export type FeatureKey = 'ai_classification' | 'advanced_reports' | 'extra_control';
-const ADMIN_FALLBACK_EMAIL = 'admin@moneyguia.com.br';
+// Role é determinado exclusivamente pela tabela user_roles
 
 function getAuthErrorMessage(error: { message: string }): string {
   console.error('Auth error:', error);
@@ -127,16 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isFetchingRoleRef.current) return;
     if (!force && loadedRoleUserIdRef.current === userId) return;
 
-    if ((email || '').toLowerCase() === ADMIN_FALLBACK_EMAIL) {
-      setUserRole('admin');
-      setIsAdmin(true);
-      setIsRoleLoading(false);
-      loadedRoleUserIdRef.current = userId;
-      localStorage.setItem(getRoleCacheKey(userId), 'admin');
-      console.log('[Sistema] Permissões carregadas com sucesso.');
-      return;
-    }
-
+    // Sempre consultar a tabela user_roles - sem fallback por email
     const cachedRole = localStorage.getItem(getRoleCacheKey(userId));
     if (cachedRole && !force) {
       setUserRole(cachedRole);
@@ -345,7 +336,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, 0);
         }
         setTimeout(() => {
-          loadUserRole(authSession.user.id, authSession.user.email);
+          // Forçar recarregamento do role no login para evitar cache stale
+          loadUserRole(authSession.user.id, authSession.user.email, event === 'SIGNED_IN');
         }, 0);
       }
 
