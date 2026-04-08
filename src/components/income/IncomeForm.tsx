@@ -153,7 +153,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
         <DialogHeader>
           <DialogTitle>{income ? "Editar Receita" : "Nova Receita"}</DialogTitle>
         </DialogHeader>
