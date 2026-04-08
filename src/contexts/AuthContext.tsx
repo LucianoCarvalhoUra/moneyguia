@@ -428,7 +428,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const resetTimer = () => {
       clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(handleLogoutOnInactivity, 15 * 60 * 1000);
+      // Define o tempo de inatividade para 30 minutos conforme solicitado
+      inactivityTimer = setTimeout(handleLogoutOnInactivity, 30 * 60 * 1000);
     };
 
     const activityEvents: (keyof WindowEventMap)[] = ['mousemove', 'keydown', 'scroll', 'click'];

@@ -7,9 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Plus, Ticket, Trash2, Shield, Info } from "lucide-react";
+import { Loader2, Plus, Ticket, Trash2, Shield, Info, AlertTriangle } from "lucide-react";
 
 interface Coupon {
   id: string;
@@ -27,6 +37,8 @@ export default function AdminCoupons() {
   const [loading, setLoading] = useState(true);
   const [newCode, setNewCode] = useState("");
   const [newDiscount, setNewDiscount] = useState("");
+  const [couponToDelete, setCouponToDelete] = useState<Coupon | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   console.log('Dados do usuário logado na Admin de Cupons:', user);
 
@@ -63,11 +75,21 @@ export default function AdminCoupons() {
     setCoupons(prev => prev.map(c => c.id === id ? { ...c, is_active: active } : c));
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Excluir cupom permanentemente?")) return;
-    await supabase.from("coupons").delete().eq("id", id);
-    setCoupons(prev => prev.filter(c => c.id !== id));
-    toast.success("Cupom removido");
+  const confirmDelete = async () => {
+    if (!couponToDelete) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("coupons").delete().eq("id", couponToDelete.id);
+      if (error) throw error;
+      
+      setCoupons(prev => prev.filter(c => c.id !== couponToDelete.id));
+      toast.success("Cupom removido");
+    } catch (error: any) {
+      toast.error("Erro ao excluir: " + error.message);
+    } finally {
+      setIsDeleting(false);
+      setCouponToDelete(null);
+    }
   };
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>;
@@ -135,7 +157,7 @@ export default function AdminCoupons() {
                     <Switch checked={c.is_active} onCheckedChange={(val) => handleToggle(c.id, val)} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(c.id)}>
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setCouponToDelete(c)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </TableCell>
@@ -152,6 +174,31 @@ export default function AdminCoupons() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={Boolean(couponToDelete)} onOpenChange={(open) => !open && setCouponToDelete(null)}>
+        <AlertDialogContent className="rounded-3xl border border-white/40 bg-white/80 shadow-2xl backdrop-blur-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground font-bold">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Excluir Cupom?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O código <span className="font-mono font-bold text-foreground">[{couponToDelete?.code}]</span> deixará de funcionar imediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting} className="hover:bg-transparent">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20"
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
