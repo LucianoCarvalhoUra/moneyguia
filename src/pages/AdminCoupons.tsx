@@ -19,10 +19,13 @@ interface Coupon {
 }
 
 export default function AdminCoupons() {
+  const { user } = useAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCode, setNewCode] = useState("");
   const [newDiscount, setNewDiscount] = useState("");
+
+  console.log('Dados do usuário logado na Admin de Cupons:', user);
 
   useEffect(() => {
     fetchCoupons();

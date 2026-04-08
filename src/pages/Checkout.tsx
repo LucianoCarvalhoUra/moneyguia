@@ -760,6 +760,8 @@ export default function Checkout() {
               <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <h2 className="mb-6 text-xl font-bold">Escolha a forma de pagamento</h2>
                 
+                {(() => { console.log('Renderizando campo de cupom no Checkout...'); return null; })()}
+                
                 {/* Bloco de Cupom Forçado no Fluxo Principal */}
                 <div className="mb-8 p-4 rounded-xl border border-dashed border-primary/30 bg-primary/5">
                   <Label className="text-sm font-semibold mb-2 block">Possui um cupom de desconto?</Label>
