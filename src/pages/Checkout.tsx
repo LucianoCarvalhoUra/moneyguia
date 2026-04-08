@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { ArrowLeft, Wallet, Copy, Check, QrCode, Clock, Loader2, RefreshCw, CreditCard, User, Lock, Mail } from "lucide-react";
+import { ArrowLeft, Wallet, Copy, Check, QrCode, Clock, Loader2, RefreshCw, CreditCard, User, Lock, Mail, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,6 +133,9 @@ export default function Checkout() {
   const [copied, setCopied] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pixData, setPixData] = useState<PixData | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [discount, setDiscount] = useState(0);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
   const pollRef = useRef<number | null>(null);
 
@@ -245,6 +248,28 @@ export default function Checkout() {
       : plan.price_monthly
     : 0;
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode) return;
+    setIsValidatingCoupon(true);
+    const { data, error } = await supabase
+      .from("coupons" as any)
+      .select("*")
+      .eq("code", couponCode.toUpperCase())
+      .eq("is_active", true)
+      .maybeSingle();
+
+    const coupon = data as any;
+    if (coupon && !error) {
+      setDiscount(coupon.discount_percentage);
+      toast.success(`Cupom aplicado! ${coupon.discount_percentage}% de desconto.`);
+    } else {
+      setDiscount(0);
+      toast.error("Cupom inválido ou expirado.");
+    }
+    setIsValidatingCoupon(false);
+  };
+
+  const finalPrice = price * (1 - discount / 100);
   const isFreePlan = price === 0;
   const priceLabel = cycle === "yearly" ? "anual" : "mensal";
   
@@ -432,7 +457,7 @@ export default function Checkout() {
         body: {
           planId: plan!.id,
           billingCycle: cycle,
-          amount: price,
+          amount: finalPrice,
           fullName: form.fullName,
           cpf: form.cpf,
           email: form.email,
@@ -827,7 +852,7 @@ export default function Checkout() {
               <CardPaymentForm
                 planId={plan!.id}
                 billingCycle={cycle}
-                amount={price}
+                amount={finalPrice}
                 fullName={form.fullName}
                 cpf={form.cpf}
                 email={form.email}
@@ -982,11 +1007,37 @@ export default function Checkout() {
                     <span className="text-muted-foreground">Ciclo</span>
                     <span className="font-medium capitalize">{priceLabel}</span>
                   </div>
+                  <div className="pt-2">
+                    <Label className="text-xs uppercase text-muted-foreground">Possui um cupom?</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input 
+                        className="h-8 text-xs font-mono" 
+                        placeholder="CÓDIGO" 
+                        value={couponCode} 
+                        onChange={e => setCouponCode(e.target.value)} 
+                      />
+                      <Button 
+                        size="sm" 
+                        className="h-8" 
+                        variant="outline" 
+                        onClick={handleApplyCoupon} 
+                        disabled={isValidatingCoupon}
+                      >
+                        {isValidatingCoupon ? <Loader2 className="w-3 h-3 animate-spin" /> : "Aplicar"}
+                      </Button>
+                    </div>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-sm text-emerald-600 font-medium">
+                      <span>Desconto ({discount}%)</span>
+                      <span>- R$ {((price * discount) / 100).toFixed(2).replace(".", ",")}</span>
+                    </div>
+                  )}
                   <div className="border-t border-border pt-3">
                     <div className="flex justify-between">
                       <span className="font-semibold">Total</span>
                       <span className="text-xl font-extrabold text-primary">
-                        R$ {price.toFixed(2).replace(".", ",")}
+                        R$ {finalPrice.toFixed(2).replace(".", ",")}
                       </span>
                     </div>
                   </div>

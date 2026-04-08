@@ -27,6 +27,8 @@ import ResetPassword from "./pages/ResetPassword";
 import MySubscription from "./pages/MySubscription";
 import Admin from "./pages/Admin";
 import AdminCsat from "@/pages/AdminCsat";
+import AdminPrices from "./pages/AdminPrices";
+import AdminCoupons from "./pages/AdminCoupons";
 import TermsOfUse from "./pages/TermsOfUse";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { APP_VERSION } from "@/config/version";

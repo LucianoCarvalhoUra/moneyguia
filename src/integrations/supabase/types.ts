@@ -893,6 +893,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      },
+      coupons: {
+        Row: {
+          id: string
+          code: string
+          discount_percentage: number
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          discount_percentage: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          discount_percentage?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
