@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type SubscriptionPlan = 'free' | 'premium' | 'total';
 export type SubscriptionStatus = 'active' | 'trial' | 'past_due' | 'canceled';
-export type FeatureKey = 'ai_classification' | 'advanced_reports' | 'extra_control';
+export type FeatureKey = 'ai_classification' | 'advanced_reports' | 'extra_control' | 'visual_edit';
 // Role é determinado exclusivamente pela tabela user_roles
 
 function getAuthErrorMessage(error: { message: string }): string {
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasFeatureAccess = useCallback(
     (feature: FeatureKey) => {
-      if (feature === 'ai_classification') {
+      if (feature === 'ai_classification' || feature === 'visual_edit') {
         return subscriptionPlan === 'total';
       }
       if (feature === 'advanced_reports' || feature === 'extra_control') {
@@ -371,6 +371,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, [hydrateProfileFromCache, resetProfileState, loadUserRole]); // stable with guarded refs
+
+  // Listener para atualizações forçadas do plano vindas do Admin
+  useEffect(() => {
+    const handlePlanChange = () => {
+      if (user?.id) {
+        loadProfile(user.id, true); // force=true ignora o cache local
+      }
+    };
+
+    window.addEventListener("user-plan-changed", handlePlanChange);
+    return () => window.removeEventListener("user-plan-changed", handlePlanChange);
+  }, [user?.id, loadProfile]);
 
   // Forçar atualização do perfil ao navegar por rotas principais
   // Isso garante que mudanças feitas pelo Admin reflitam imediatamente

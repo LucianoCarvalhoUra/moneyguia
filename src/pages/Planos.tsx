@@ -48,6 +48,9 @@ export default function Planos() {
     if (reason === "upgrade_required" && feature === "extra_control") {
       return "Controle Extra exige o plano Controle Total.";
     }
+    if (reason === "upgrade_required" && feature === "visual_edit") {
+      return "Edição Visual e Interativa exige o plano Controle Total.";
+    }
     return null;
   }, [reason, feature]);
 
@@ -116,6 +119,7 @@ export default function Planos() {
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Controle de receitas e despesas</li>
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Dashboard basico</li>
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Metas financeiras</li>
+                  <li className="flex items-start gap-2 text-slate-400/60"><Lock className="mt-0.5 h-3.5 w-3.5" />Edição Visual de Despesas</li>
                 </ul>
                 <div className="block">
                   <Button className="w-full bg-slate-900 text-white hover:bg-slate-800" onClick={() => handleSubscribe('essencial')}>Assinar Agora</Button>
@@ -139,6 +143,7 @@ export default function Planos() {
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Tudo do Essencial</li>
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Relatórios avançados</li>
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Metas financeiras</li>
+                  <li className="flex items-start gap-2 text-slate-400/60"><Lock className="mt-0.5 h-3.5 w-3.5" />Edição Visual de Despesas</li>
                 </ul>
                 <div className="block">
                   <Button className="w-full bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => handleSubscribe('premium')}>Assinar Agora</Button>
@@ -160,6 +165,7 @@ export default function Planos() {
                 <ul className="mb-6 space-y-3 text-sm text-slate-600">
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Tudo do Pro</li>
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Classificação com IA</li>
+                  <li className="flex items-start gap-2 font-medium text-emerald-700"><Check className="mt-0.5 h-4 w-4" />Edição Visual e Interativa</li>
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Exportação de relatórios</li>
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Controle completo e ilimitado</li>
                 </ul>
