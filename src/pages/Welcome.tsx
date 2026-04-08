@@ -17,6 +17,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { WelcomeSEO } from "@/components/SEO";
 
 const features = [
   {
@@ -86,6 +87,7 @@ const plans = [
 export default function Welcome() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+      <WelcomeSEO />
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">

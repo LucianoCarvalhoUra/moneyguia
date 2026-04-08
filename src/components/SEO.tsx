@@ -77,6 +77,23 @@ export default function SEO({
       "content",
       noIndex ? "noindex, nofollow" : "index, follow"
     );
+
+    // JSON-LD support for SoftwareApplication
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "MoneyGuia",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+    };
+
+    let script = document.querySelector('script[type="application/ld+json"]') as HTMLScriptElement;
+    if (!script) {
+      script = document.createElement("script");
+      script.setAttribute("type", "application/ld+json");
+      document.head.appendChild(script);
+    }
+    script.text = JSON.stringify(jsonLd);
   }, [title, description, canonicalUrl, ogImage, ogType, noIndex]);
 
   return null;
@@ -89,6 +106,38 @@ export function LandingPageSEO() {
       title="MoneyGuia | Controle Financeiro Inteligente com IA"
       description="Organize suas finanças em minutos com o MoneyGuia. Controle gastos, cartões e investimentos em uma plataforma inteligente com IA. Comece seu teste grátis agora!"
       canonicalUrl="https://www.moneyguia.com.br/"
+    />
+  );
+}
+
+export function AuthSEO() {
+  return (
+    <SEO
+      title="Entrar | MoneyGuia"
+      description="Acesse sua conta no MoneyGuia e gerencie suas finanças."
+      canonicalUrl="https://www.moneyguia.com.br/auth"
+      noIndex={true}
+    />
+  );
+}
+
+export function WelcomeSEO() {
+  return (
+    <SEO
+      title="Bem-vindo | MoneyGuia"
+      description="Conheça o MoneyGuia e comece a organizar sua vida financeira agora mesmo."
+      canonicalUrl="https://www.moneyguia.com.br/welcome"
+    />
+  );
+}
+
+export function ReconciliationSEO() {
+  return (
+    <SEO
+      title="Conciliação de Fatura | MoneyGuia"
+      description="Concilie suas faturas de cartão de crédito com facilidade e precisão."
+      canonicalUrl="https://www.moneyguia.com.br/reconciliation"
+      noIndex={true}
     />
   );
 }

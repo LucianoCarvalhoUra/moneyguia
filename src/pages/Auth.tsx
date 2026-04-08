@@ -9,6 +9,7 @@ import { Wallet, ArrowLeft, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { OtpCodeInput } from '@/components/auth/OtpCodeInput';
+import { AuthSEO } from '@/components/SEO';
 
 interface PasswordStrength {
   score: number;
@@ -223,6 +224,7 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <AuthSEO />
       {/* Link para voltar à Home - canto superior esquerdo */}
       <Link 
         to="/" 
