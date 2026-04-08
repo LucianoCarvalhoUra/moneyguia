@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import PublicHeader from "@/components/layout/PublicHeader";
 import PublicFooter from "@/components/layout/PublicFooter";
+import { PlansSEO } from "@/components/SEO";
 
 const monthlyPlans = {
   essencial: "R$ 0",
@@ -79,6 +80,7 @@ export default function Planos() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+      <PlansSEO />
       <PublicHeader />
       
       <main>

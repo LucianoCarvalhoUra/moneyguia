@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { getUserFriendlyError } from '@/lib/errorMapper';
+import { ReconciliationSEO } from '@/components/SEO';
 
 const MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -204,6 +205,7 @@ export default function InvoiceReconciliation() {
 
   return (
     <div className="space-y-6">
+      <ReconciliationSEO />
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Fechamento de Fatura</h1>
