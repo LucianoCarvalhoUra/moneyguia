@@ -318,12 +318,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, authSession) => {
       if (!mounted) return;
+      
+      console.log(`[Supabase Auth] Evento detectado: ${event}`);
+
       const nextUser = authSession?.user ?? null;
       setSession((prev) => (prev?.access_token === authSession?.access_token ? prev : authSession));
       setUser((prev) => (prev?.id === nextUser?.id ? prev : nextUser));
-      setIsLoading(false);
 
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && authSession?.user) {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && authSession?.user) {
+        console.log(`[Supabase Auth] Sincronizando perfil para o evento: ${event}`);
         hydrateProfileFromCache(authSession.user.id);
         if (profileCreatedForUserRef.current !== authSession.user.id) {
           profileCreatedForUserRef.current = authSession.user.id;
@@ -343,23 +346,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (event === 'SIGNED_OUT') {
+        console.log('[Supabase Auth] Sessão encerrada pelo usuário.');
         profileCreatedForUserRef.current = null;
         resetProfileState();
       }
+      
+      setIsLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+    // Inicialização da sessão com tentativa de Refresh Silencioso
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
-      setSession(existingSession);
-      setUser(existingSession?.user ?? null);
-      if (existingSession?.user) {
-        hydrateProfileFromCache(existingSession.user.id);
-        if (!hasLoadedProfile.current || loadedProfileUserIdRef.current !== existingSession.user.id) {
-          loadProfileRef.current(existingSession.user.id);
+
+      let currentSession = session;
+
+      // Debug de Sessão: Se não houver sessão ativa, tenta um refresh silencioso
+      if (!currentSession) {
+        console.log('[Supabase Auth] Sessão não encontrada no estado inicial. Tentando refresh silencioso...');
+        const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+        if (refreshedSession) {
+          console.log('[Supabase Auth] Sessão recuperada com sucesso via Refresh Token.');
+          currentSession = refreshedSession;
+        }
+      }
+
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+
+      if (currentSession?.user) {
+        hydrateProfileFromCache(currentSession.user.id);
+        if (!hasLoadedProfile.current || loadedProfileUserIdRef.current !== currentSession.user.id) {
+          loadProfileRef.current(currentSession.user.id);
         } else {
           setIsProfileLoading(false);
         }
-        loadUserRole(existingSession.user.id, existingSession.user.email);
+        loadUserRole(currentSession.user.id, currentSession.user.email);
       } else {
         resetProfileState();
       }
