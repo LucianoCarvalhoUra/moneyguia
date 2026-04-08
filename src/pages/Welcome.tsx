@@ -51,8 +51,8 @@ const plans = [
     highlight: false,
     items: [
       "Funcoes essenciais",
-      "Controle de receitas e despesas",
-      "Limite de lancamentos mensais",
+      "Gestão manual de transações",
+      "Dashboard básico",
       "Sem classificacao com IA",
     ],
   },
@@ -61,7 +61,7 @@ const plans = [
     price: "R$ 29/m",
     subtitle: "Para acelerar sua organizacao",
     cta: "Assinar Pro",
-    highlight: true,
+    highlight: false,
     items: [
       "Tudo do plano Basico",
       "Classificacao com IA",
@@ -74,12 +74,13 @@ const plans = [
     price: "R$ 59/m",
     subtitle: "Para compartilhar e escalar controle",
     cta: "Assinar Premium",
-    highlight: false,
+    highlight: true,
     items: [
       "Tudo do plano Pro",
+      "Edição Visual e Interativa",
       "Exportacao de relatorios",
       "Multiplos usuarios",
-      "Acompanhamento colaborativo",
+      "Automação completa e IA",
     ],
   },
 ];
@@ -206,7 +207,7 @@ export default function Welcome() {
               >
                 {plan.highlight && (
                   <Badge className="absolute -top-3 left-6 bg-emerald-600 text-white hover:bg-emerald-600">
-                    Mais Popular
+                    Melhor Custo-Benefício
                   </Badge>
                 )}
                 <CardHeader>

@@ -116,7 +116,7 @@ export default function Planos() {
               </CardHeader>
               <CardContent>
                 <ul className="mb-6 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Controle de receitas e despesas</li>
+                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Gestão manual via formulário padrão</li>
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Dashboard basico</li>
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Metas financeiras</li>
                   <li className="flex items-start gap-2 text-slate-400/60"><Lock className="mt-0.5 h-3.5 w-3.5" />Edição Visual de Despesas</li>
@@ -127,8 +127,7 @@ export default function Planos() {
               </CardContent>
             </Card>
 
-            <Card className="relative border-2 border-emerald-500 bg-white shadow-xl shadow-emerald-200/60">
-              <Badge className="absolute -top-3 left-6 bg-emerald-600 text-white hover:bg-emerald-600">Mais Popular</Badge>
+            <Card className="border border-slate-200 bg-white shadow-lg shadow-slate-200/60">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-emerald-600" />
@@ -151,7 +150,8 @@ export default function Planos() {
               </CardContent>
             </Card>
 
-            <Card className="border border-slate-200 bg-white shadow-lg shadow-slate-200/60">
+            <Card className="relative border-2 border-emerald-500 bg-white shadow-xl shadow-emerald-200/60">
+              <Badge className="absolute -top-3 left-6 bg-emerald-600 text-white hover:bg-emerald-600">Melhor Custo-Benefício</Badge>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-slate-700" />
@@ -167,7 +167,7 @@ export default function Planos() {
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Classificação com IA</li>
                   <li className="flex items-start gap-2 font-medium text-emerald-700"><Check className="mt-0.5 h-4 w-4" />Edição Visual e Interativa</li>
                   <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Exportação de relatórios</li>
-                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Controle completo e ilimitado</li>
+                  <li className="flex items-start gap-2 font-medium text-emerald-700"><Check className="mt-0.5 h-4 w-4" />Automação completa e IA</li>
                 </ul>
                 <div className="block">
                   <Button className="w-full bg-slate-900 text-white hover:bg-slate-800" onClick={() => handleSubscribe('total')}>Assinar Agora</Button>
