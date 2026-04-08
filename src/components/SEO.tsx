@@ -82,13 +82,20 @@ export default function SEO({
       noIndex ? "noindex, nofollow" : "index, follow"
     );
 
-    // JSON-LD support for SoftwareApplication
+    // JSON-LD support for WebApplication
     const jsonLd = {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
+      "@type": "WebApplication",
       "name": "MoneyGuia",
+      "url": "https://www.moneyguia.com.br",
+      "description": "Controle de orçamento pessoal inteligente com lançamentos por IA e edição visual.",
       "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Web",
+      "operatingSystem": "All",
+      "offers": {
+        "@type": "Offer",
+        "price": "0.00",
+        "priceCurrency": "BRL"
+      }
     };
 
     let script = document.querySelector('script[type="application/ld+json"]') as HTMLScriptElement;
