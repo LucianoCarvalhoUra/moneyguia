@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+﻿﻿import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
@@ -368,7 +368,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link to="/plans">
+            <Link to="/planos">
               <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700 text-xs font-semibold">
                 Renovar
                 <ArrowRight className="ml-1 h-3.5 w-3.5" />
@@ -616,12 +616,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-

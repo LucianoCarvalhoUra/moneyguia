@@ -328,7 +328,7 @@ export default function MySubscription() {
 
           {/* CTA */}
           <div className="px-6 pb-6">
-            <Link to="/plans">
+            <Link to="/planos">
               <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11 text-sm">
                 {isFree ? "Fazer Upgrade" : isExpired || isExpiringSoon ? "Renovar Assinatura" : "Alterar Plano"}
                 <ArrowRight className="ml-2 h-4 w-4" />

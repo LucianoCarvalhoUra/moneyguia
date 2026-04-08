@@ -443,7 +443,7 @@ export default function Auth() {
                   Para criar uma conta,{' '}
                   <button
                     type="button"
-                    onClick={() => navigate('/plans')}
+                    onClick={() => navigate('/planos')}
                     className="text-emerald-600 font-semibold hover:text-emerald-700 transition-colors"
                   >
                     escolha um plano

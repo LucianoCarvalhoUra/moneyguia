@@ -107,7 +107,7 @@ export default function LandingPage() {
                 O controle orçamentário que aprende com seus hábitos e automatiza sua gestão financeira.
               </p>
               <div className="flex flex-col gap-4 sm:flex-row items-start sm:items-center">
-                <Link to="/plans">
+                <Link to="/planos">
                   <Button 
                     className="bg-emerald-500 hover:bg-emerald-600 px-8 py-4 text-lg font-bold text-white rounded-full shadow-lg shadow-emerald-200 hover:shadow-xl hover:scale-105 transition-all duration-200"
                   >

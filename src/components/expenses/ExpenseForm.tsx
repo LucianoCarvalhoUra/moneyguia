@@ -438,7 +438,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             description: `Seu plano atual permite apenas ${quota.limit} lançamentos recorrentes. Faça o upgrade para liberar mais!`,
             action: {
               label: 'Ver planos',
-              onClick: () => navigate('/plans'),
+              onClick: () => navigate('/planos'),
             },
           });
           setIsSubmitting(false);

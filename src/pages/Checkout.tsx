@@ -184,7 +184,7 @@ export default function Checkout() {
 
   useEffect(() => {
     if (!planId) {
-      navigate("/plans");
+      navigate("/planos");
       return;
     }
 
@@ -199,7 +199,7 @@ export default function Checkout() {
         setPlan(data);
       } else {
         toast.error("Plano não encontrado");
-        navigate("/plans");
+        navigate("/planos");
       }
       setLoading(false);
     };
@@ -564,7 +564,7 @@ export default function Checkout() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-4xl items-center gap-4 px-4">
-          <button onClick={() => navigate("/plans")} className="text-muted-foreground hover:text-foreground">
+          <button onClick={() => navigate("/planos")} className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
