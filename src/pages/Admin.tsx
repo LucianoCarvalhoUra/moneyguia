@@ -224,7 +224,10 @@ export default function Admin() {
     try {
       const { data, error } = await supabase.from('user_subscriptions').upsert(payload, { onConflict: 'user_id' });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro detalhado ao salvar plano:', error);
+        throw error;
+      }
 
       if (selectedUserId === user?.id) {
         window.dispatchEvent(new Event("user-plan-changed"));

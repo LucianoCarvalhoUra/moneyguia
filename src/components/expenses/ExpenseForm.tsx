@@ -347,11 +347,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         : String(expense.dueDate).split('T')[0];
 
       // 1. Atualiza a despesa atual (Logs de depuração para despesa única)
-      console.log('[RecurrenceUpdate] Atualizando registro principal:', { id: expense.id, data: pendingData });
+      console.log('Dados enviados (Recorrência Single):', pendingData);
       const { error: singleError } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
       
       if (singleError) {
-        console.error('[RecurrenceUpdate] Erro Supabase (Single):', singleError);
+        console.error('Erro Supabase:', singleError);
         throw singleError;
       }
 
@@ -383,6 +383,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         
         // Remove date fields, is_paid and user_id from batch to preserve individual state
         const { due_date, expense_date, is_paid, user_id, current_installment, ...batchData } = pendingData;
+        console.log('Dados enviados (Batch Update):', batchData);
         let query = supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId).neq('id', expense.id);
 
         if (scope === 'future') {
@@ -448,9 +449,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       const finalExpenseDate = isPaid ? paymentDate : launchDate;
 
       // Sanitização: Garantir tipos numéricos e chaves snake_case
-      const payload: any = {
+      const payload = {
         description,
-        amount: numericAmount,
+        amount: Number(numericAmount), // Garante Float
         due_date: dueDate,
         expense_date: finalExpenseDate,
         category_id: categoryId,
@@ -468,7 +469,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       };
 
       if (expense) {
-        console.log('Dados enviados para UPDATE:', payload);
+        console.log('Dados enviados (Update):', payload);
         
         if (expense.isRecurring) {
           setPendingData(payload);
@@ -520,7 +521,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         } else {
           const { error } = await supabase.from('expenses').update(payload).eq('id', expense.id);
           if (error) {
-            console.error('Erro Supabase (Update Individual):', error);
+            console.error('Erro Supabase:', error);
             throw error;
           }
           toast.success('Despesa atualizada!');
@@ -529,7 +530,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         // Para INSERT, incluímos o user_id explicitamente
         const authUser = (await supabase.auth.getUser()).data.user;
         const insertPayload = { ...payload, user_id: authUser?.id };
-        console.log('Dados enviados para INSERT:', insertPayload);
+        console.log('Dados enviados (Insert):', insertPayload);
 
         if (isRecurring && parseInt(installments) > 1) {
            const newRecurrenceId = crypto.randomUUID();
@@ -554,7 +555,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
            }
            const { error } = await supabase.from('expenses').insert(newExpenses);
            if (error) {
-             console.error('Erro Supabase (Insert Parcelas):', error);
+             console.error('Erro Supabase:', error);
              throw error;
            }
            toast.success(`${limit} despesas criadas!`, {

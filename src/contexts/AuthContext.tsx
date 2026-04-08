@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -76,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const hasLoadedProfile = useRef(false);
   const isFetchingProfileRef = useRef(false);
   const loadedProfileUserIdRef = useRef<string | null>(null);
@@ -370,6 +371,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, [hydrateProfileFromCache, resetProfileState, loadUserRole]); // stable with guarded refs
+
+  // Forçar atualização do perfil ao navegar por rotas principais
+  // Isso garante que mudanças feitas pelo Admin reflitam imediatamente
+  useEffect(() => {
+    if (user?.id && ['/dashboard', '/subscription', '/plans'].includes(location.pathname)) {
+      loadProfile(user.id, true); // force=true ignora o cache
+    }
+  }, [location.pathname, user?.id, loadProfile]);
 
   useEffect(() => {
     let inactivityTimer: ReturnType<typeof setTimeout>;
