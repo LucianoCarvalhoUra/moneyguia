@@ -65,13 +65,40 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Inicializar estado diretamente do cache para evitar flicker
+  const getInitialSubscriptionState = () => {
+    try {
+      const userId = localStorage.getItem('auth_user_id');
+      if (userId) {
+        const raw = localStorage.getItem(`auth_profile_cache:${userId}`);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          return {
+            plan: (cached.subscription_plan || 'free') as SubscriptionPlan,
+            status: (cached.subscription_status || 'active') as SubscriptionStatus,
+            endDate: cached.subscription_end_date || null
+          };
+        }
+      }
+    } catch {
+      // ignore cache errors
+    }
+    return {
+      plan: 'free' as SubscriptionPlan,
+      status: 'active' as SubscriptionStatus,
+      endDate: null
+    };
+  };
+
+  const initialState = getInitialSubscriptionState();
+
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
-  const [subscriptionPlan, setSubscriptionPlan] = useState<SubscriptionPlan>('free');
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('active');
-  const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<SubscriptionPlan>(initialState.plan);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>(initialState.status);
+  const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(initialState.endDate);
   const [isRoleLoading, setIsRoleLoading] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);

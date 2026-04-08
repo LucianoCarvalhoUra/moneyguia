@@ -746,14 +746,14 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             {/* Separador */}
             <div className="border-t border-border/40" />
 
-            {/* Apenas controle visual */}
-            <div className={cn("flex items-center gap-3", !canUseExtraControl && "opacity-40")}>
-              <Switch id="visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl} />
-              <Label htmlFor="visual-control" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                {!canUseExtraControl && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
-                Apenas controle visual
-              </Label>
-            </div>
+             {/* Apenas controle visual */}
+             <div className={cn("flex items-center gap-3", !canUseExtraControl && "opacity-40")}>
+               <Switch id="visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl && !expense} />
+               <Label htmlFor="visual-control" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                 {!canUseExtraControl && !expense && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                 Apenas controle visual
+               </Label>
+             </div>
           </div>
 
           {/* Actions */}
