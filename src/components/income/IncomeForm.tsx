@@ -1,294 +1,410 @@
-﻿﻿import { useState, useEffect } from "react";
-import { useForm, Controller, UseFormReturn } from "react-hook-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
-import { useIncome } from "@/contexts/IncomeContext";
-import { Income } from "@/types/income";
-import { SchedulingFields } from "../SchedulingFields"; // Import the scheduling fields component
+﻿﻿import { useState, useEffect } from 'react';
+import { useFinance } from '@/contexts/FinanceContext';
+import { useIncome } from '@/contexts/IncomeContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { CategoryIcon } from '@/components/CategoryIcon';
+import { cn } from '@/lib/utils';
+import { Income } from '@/types/income';
+import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock, Wallet } from 'lucide-react';
+import { CalculatorPopover } from '@/components/ui/calculator-popover';
+import { toast } from 'sonner';
+import { addMonths, format } from 'date-fns';
+import { getPlanLimit, getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
 
 interface IncomeFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   income?: Income | null;
-  initialData?: Income | null;
-}
-
-interface IncomeFormData {
-  title: string;
-  amount: number;
-  receiveDate: string; // Actual receive date
-  categoryId: string;
-  subcategoryId?: string;
-  isReceived: boolean;
-  excludeFromCalculations: boolean;
-  // Recurrence fields
-  is_recurring: boolean;
-  recurrence_type?: "daily" | "weekly" | "monthly" | "yearly";
-  start_date?: string; // The first occurrence date for recurring items
-  // Scheduling fields
-  is_scheduled: boolean;
-  scheduled_date?: string; // The date the transaction is scheduled to appear
+  initialData?: Partial<Income> | null;
 }
 
 export default function IncomeForm({ open, onOpenChange, income, initialData }: IncomeFormProps) {
-  const { user } = useAuth();
-  const { incomeCategories, incomeSubcategories, addIncome, updateIncome, refreshData } = useIncome();
-  const form = useForm<IncomeFormData>({
-    defaultValues: {
-      isReceived: false,
-      excludeFromCalculations: false,
-      is_recurring: false,
-      recurrence_type: 'monthly', // Default for recurrence
-      start_date: new Date().toISOString().split('T')[0], // Default to today
-      is_scheduled: false,
-      scheduled_date: new Date().toISOString().split('T')[0], // Default to today
-    }
-  });
-  const { register, handleSubmit, reset, control, watch, setValue, formState: { errors } } = form;
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { hasFeatureAccess, subscriptionPlan, user } = useAuth();
+  const { accounts } = useFinance();
+  const { refreshData, incomeCategories, incomeSubcategories, removeIncome, addIncomeCategory, addIncomeSubcategory } = useIncome();
+  const canUseExtraControl = hasFeatureAccess('extra_control');
+  const recurrencePlanLimit = getPlanLimit(subscriptionPlan as string);
+  const ADD_CATEGORY_OPTION = '__add_new_income_category__';
+  const ADD_SUBCATEGORY_OPTION = '__add_new_income_subcategory__';
+  
+  // --- State ---
+  const [title, setTitle] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [subcategoryId, setSubcategoryId] = useState('');
+  const [receiveDate, setReceiveDate] = useState('');
+  const [amount, setAmount] = useState('');
+  const [accountId, setAccountId] = useState('');
+  const [isReceived, setIsReceived] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [installments, setInstallments] = useState('1');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
+  const [recurrenceUsage, setRecurrenceUsage] = useState(0);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState('');
+  const [description, setDescription] = useState(''); // Usado para observações
+  const [showErrors, setShowErrors] = useState(false);
+  const [shakeKey, setShakeKey] = useState(0);
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
 
-  const isRecurring = watch("is_recurring");
-  const isScheduled = watch("is_scheduled");
-  const receiveDate = watch("receiveDate"); // Use this as baseDate for scheduling validation
+  // --- Helpers ---
+  const formatToInput = (dateVal: any) => {
+    if (!dateVal) return "";
+    if (dateVal instanceof Date) return format(dateVal, 'yyyy-MM-dd');
+    const str = String(dateVal);
+    return str.includes('T') ? str.split('T')[0] : str;
+  };
 
+  const getTodayString = () => format(new Date(), 'yyyy-MM-dd');
+
+  const formatCurrencyInput = (value: string) => {
+    const numericValue = value.replace(/\D/g, '');
+    if (!numericValue) return '';
+    const floatValue = Number(numericValue) / 100;
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(floatValue);
+  };
+
+  // --- Initialization ---
   useEffect(() => {
     if (open) {
-      if (income) {
-        reset({
-          ...income,
-          receiveDate: income.receiveDate ? new Date(income.receiveDate).toISOString().split('T')[0] : '',
-          // Map existing recurrence/scheduling data if available
-          is_recurring: (income as any).isRecurring || false,
-          recurrence_type: (income as any).recurrenceType || 'monthly',
-          start_date: (income as any).scheduledDate ? new Date((income as any).scheduledDate).toISOString().split('T')[0] : (income.receiveDate ? new Date(income.receiveDate).toISOString().split('T')[0] : ''),
-          is_scheduled: (income as any).isScheduled || false,
-          scheduled_date: (income as any).scheduledDate ? new Date((income as any).scheduledDate).toISOString().split('T')[0] : '',
-        });
-      } else if (initialData) {
-        reset({
-          ...initialData,
-          receiveDate: initialData.receiveDate ? new Date(initialData.receiveDate).toISOString().split('T')[0] : '',
-          // For duplication, ensure recurrence/scheduling fields are reset or copied as needed
-          is_recurring: false, // Duplicated items usually start as single
-          recurrence_type: 'monthly',
-          start_date: initialData.receiveDate ? new Date(initialData.receiveDate).toISOString().split('T')[0] : '',
-          is_scheduled: false,
-          scheduled_date: initialData.receiveDate ? new Date(initialData.receiveDate).toISOString().split('T')[0] : '',
-        });
+      const today = getTodayString();
+      const dataToLoad = income || initialData;
+      
+      if (dataToLoad) {
+        setTitle(dataToLoad.title || '');
+        setCategoryId(dataToLoad.categoryId || (dataToLoad as any).category_id || '');
+        setSubcategoryId(dataToLoad.subcategoryId || (dataToLoad as any).subcategory_id || '');
+        setReceiveDate(dataToLoad.receiveDate ? formatToInput(dataToLoad.receiveDate) : (dataToLoad as any).receive_date ? formatToInput((dataToLoad as any).receive_date) : today);
+        setAmount(dataToLoad.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) : '');
+        setAccountId(dataToLoad.accountId || (dataToLoad as any).account_id || '');
+        setIsReceived(dataToLoad.isReceived || (dataToLoad as any).is_received || false);
+        setIsRecurring(dataToLoad.isRecurring || false);
+        setInstallments(dataToLoad.installments?.toString() || '1');
+        setExcludeFromCalculations((dataToLoad as any).exclude_from_calculations || false);
+        setDescription(dataToLoad.description || '');
+        setIsScheduled((dataToLoad as any).is_scheduled || false);
+        setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
       } else {
-        reset({
-          title: '',
-          amount: 0,
-          receiveDate: new Date().toISOString().split('T')[0],
-          categoryId: '',
-          subcategoryId: '',
-          isReceived: false,
-          excludeFromCalculations: false,
-          is_recurring: false,
-          recurrence_type: 'monthly',
-          start_date: new Date().toISOString().split('T')[0],
-          is_scheduled: false,
-          scheduled_date: new Date().toISOString().split('T')[0],
-        });
+        setTitle('');
+        setCategoryId('');
+        setSubcategoryId('');
+        setReceiveDate(today);
+        setAmount('');
+        setAccountId('');
+        setIsReceived(false);
+        setIsRecurring(false);
+        setInstallments('1');
+        setExcludeFromCalculations(false);
+        setDescription('');
+        setShowErrors(false);
+        setIsScheduled(false);
+        setScheduledDate('');
       }
     }
-  }, [open, income, initialData, reset]);
+  }, [open, income, initialData]);
 
-  const onSubmit = async (data: IncomeFormData) => {
-    if (!user) {
-      toast.error("Você precisa estar logado para salvar receitas.");
-      return;
-    }
-    setLoading(true);
+  useEffect(() => {
+    if (!open || !user?.id) return;
+    if (income) return;
+    const loadQuota = async () => {
+      try {
+        const quota = await getRecurrenceQuotaStatus(user.id, subscriptionPlan as string);
+        setRecurrenceUsage(quota.used);
+      } catch {
+        setRecurrenceUsage(0);
+      }
+    };
+    loadQuota();
+  }, [open, income, user?.id, subscriptionPlan]);
+
+  // --- Handlers ---
+  const handleDelete = async () => {
+    if (!income) return;
+    if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
+    setIsSubmitting(true);
     try {
-      const incomePayload: any = {
-        userId: user.id,
-        title: data.title,
-        amount: data.amount,
-        receiveDate: data.receiveDate as any, // Actual receive date
-        categoryId: data.categoryId,
-        subcategoryId: data.subcategoryId || null,
-        isReceived: data.isReceived,
-        excludeFromCalculations: data.excludeFromCalculations,
-        // Recurrence fields
-        isRecurring: data.is_recurring,
-        recurrenceType: data.is_recurring ? data.recurrence_type : null,
-        // Scheduling fields
-        isScheduled: data.is_scheduled || data.is_recurring, // If recurring, it's also scheduled
-        scheduledDate: null as any, // Default to null, then set based on conditions
-      };
-
-      // Determine scheduled_date logic
-      if (data.is_recurring && data.start_date) {
-        incomePayload.scheduledDate = data.start_date as any;
-      } else if (data.is_scheduled && data.scheduled_date) {
-        incomePayload.scheduledDate = data.scheduled_date as any;
-      } else {
-        incomePayload.scheduledDate = null as any; // Not scheduled or recurring, so no specific scheduled_date
-      }
-
-      if (income) {
-        await updateIncome(income.id, incomePayload);
-        toast.success("Receita atualizada com sucesso!");
-      } else {
-        await addIncome(incomePayload as Income); // Cast to Income as addIncome expects full Income object
-        toast.success("Receita adicionada com sucesso!");
-      }
-      refreshData();
+      await removeIncome(income.id);
+      toast.success('Receita excluída!');
       onOpenChange(false);
-    } catch (err: any) {
-      toast.error("Erro ao salvar receita: " + err.message);
+    } catch (error: any) {
+      toast.error('Erro ao excluir: ' + error.message);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const filteredSubcategories = incomeSubcategories.filter(sub => sub.categoryId === watch("categoryId"));
+  const handleCategorySelectChange = (value: string) => {
+    if (value === ADD_CATEGORY_OPTION) {
+      setCategoryDialogOpen(true);
+      return;
+    }
+    setCategoryId(value);
+    setSubcategoryId('');
+  };
+
+  const handleCreateCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return toast.error('Informe o nome da categoria.');
+    const created = await addIncomeCategory({ name, icon: 'Banknote', color: 'emerald-500', isDefault: false });
+    if (created) {
+      setCategoryId(created.id);
+      setSubcategoryId('');
+      setNewCategoryName('');
+      setCategoryDialogOpen(false);
+      toast.success('Categoria cadastrada!');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    const numericAmount = parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    if (!title || !categoryId || !receiveDate || numericAmount <= 0) {
+      setShowErrors(true);
+      setShakeKey(k => k + 1);
+      toast.error('Preencha os campos obrigatórios');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        title,
+        amount: numericAmount,
+        receive_date: receiveDate,
+        category_id: categoryId,
+        subcategory_id: subcategoryId || null,
+        account_id: accountId || null,
+        is_received: isReceived,
+        is_recurring: isRecurring,
+        installments: isRecurring ? parseInt(installments) : null,
+        user_id: user?.id,
+        exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
+        description: description || null, // Observação
+        is_scheduled: isScheduled,
+        scheduled_date: isScheduled ? scheduledDate : null,
+      };
+
+      if (income) {
+        const { error } = await supabase.from('incomes').update(payload).eq('id', income.id);
+        if (error) throw error;
+        toast.success('Receita atualizada!');
+      } else {
+        if (isRecurring && parseInt(installments) > 1) {
+          const newRecurrenceId = crypto.randomUUID();
+          const newIncomes = [];
+          const limit = parseInt(installments);
+          const [y, m, d] = receiveDate.split('-').map(Number);
+          const startDate = new Date(y, m - 1, d, 12);
+
+          for (let i = 0; i < limit; i++) {
+            const nextDate = addMonths(startDate, i);
+            newIncomes.push({
+              ...payload,
+              receive_date: format(nextDate, 'yyyy-MM-dd'),
+              is_received: i === 0 ? isReceived : false,
+              recurrence_id: newRecurrenceId,
+              current_installment: i + 1,
+              installments: limit,
+            });
+          }
+          const { error } = await supabase.from('incomes').insert(newIncomes);
+          if (error) throw error;
+          toast.success(`${limit} receitas parceladas criadas!`);
+        } else {
+          const { error } = await supabase.from('incomes').insert([payload]);
+          if (error) throw error;
+          toast.success('Receita salva!');
+        }
+      }
+
+      await refreshData();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error(error);
+      toast.error('Erro ao salvar: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const filteredSubcategories = incomeSubcategories.filter(s => s.categoryId === categoryId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-6 py-4 bg-gradient-to-r from-primary/5 to-transparent">
+        {/* Header - Identidade Verde */}
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-6 py-4 bg-gradient-to-r from-emerald-500/5 to-transparent">
           <div>
             <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
-              {income ? "Editar Receita" : "Nova Receita"}
+              {income ? 'Editar Receita' : 'Nova Receita'}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-              {income
-                ? `Cadastrada em ${format(new Date(income.createdAt), 'dd/MM/yyyy HH:mm')}`
-                : 'Preencha os detalhes da transação'}
+              {income 
+                ? `Cadastrada em ${format(new Date(income.createdAt), 'dd/MM/yyyy HH:mm')}${income.installments && income.installments > 1 ? ` • Parcela ${income.currentInstallment || 1}/${income.installments}` : ''}`
+                : 'Preencha os detalhes do seu ganho'}
             </DialogDescription>
           </div>
+          {income && (
+            <Button type="button" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-lg" onClick={handleDelete}>
+              <Trash2 className="w-4 h-4 mr-1" /> Excluir
+            </Button>
+          )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-80px)]">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="title" className="text-right">Título</Label>
-            <Input id="title" {...register("title", { required: "Título é obrigatório" })} className="col-span-3" />
-            {errors.title && <p className="col-span-4 text-right text-sm text-red-600">{errors.title.message}</p>}
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="amount" className="text-right">Valor</Label>
-            <Input id="amount" type="number" step="0.01" {...register("amount", { required: "Valor é obrigatório", valueAsNumber: true })} className="col-span-3" />
-            {errors.amount && <p className="col-span-4 text-right text-sm text-red-600">{errors.amount.message}</p>}
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="receiveDate" className="text-right">Data</Label>
-            <Input id="receiveDate" type="date" {...register("receiveDate", { required: "Data é obrigatória" })} className="col-span-3" />
-            {errors.receiveDate && <p className="col-span-4 text-right text-sm text-red-600">{errors.receiveDate.message}</p>}
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="categoryId" className="text-right">Categoria</Label>
-            <Controller
-              name="categoryId"
-              control={control}
-              rules={{ required: "Categoria é obrigatória" }}
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value} >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {incomeCategories.map(cat => (
-                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.categoryId && <p className="col-span-4 text-right text-sm text-red-600">{errors.categoryId.message}</p>}
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="subcategoryId" className="text-right">Subcategoria</Label>
-            <Controller
-              name="subcategoryId"
-              control={control}
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value} disabled={filteredSubcategories.length === 0}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione uma subcategoria (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredSubcategories.map(sub => (
-                      <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
-
-          <div className="flex items-center space-x-2 col-span-4 justify-end">
-            <Checkbox id="isReceived" {...register("isReceived")} />
-            <Label htmlFor="isReceived">Recebido</Label>
-          </div>
-          <div className="flex items-center space-x-2 col-span-4 justify-end">
-            <Checkbox id="excludeFromCalculations" {...register("excludeFromCalculations")} />
-            <Label htmlFor="excludeFromCalculations">Apenas controle visual (não contabilizar)</Label>
-          </div>
-
-          {/* Recurrence Fields */}
-          <div className="space-y-4 p-4 border rounded-xl bg-slate-50/50 mt-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="is_recurring"
-                checked={isRecurring}
-                onCheckedChange={(checked) => setValue("is_recurring", !!checked)}
-              />
-              <Label htmlFor="is_recurring">Transação Recorrente</Label>
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-80px)]">
+          {/* Row 1: Descrição + Valor */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div key={`title-${shakeKey}`} className={cn("sm:col-span-2 space-y-1.5", showErrors && !title && "animate-shake")}>
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !title ? "text-destructive" : "text-muted-foreground")}>Descrição *</Label>
+              <Input value={title} onChange={e => setTitle(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !title && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Salário" />
+              {showErrors && !title && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
+            <div key={`amt-${shakeKey}`} className={cn("space-y-1.5", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "animate-shake")}>
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 ? "text-destructive" : "text-muted-foreground")}>Valor *</Label>
+              <div className="flex items-center gap-1">
+                <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card text-right font-semibold transition-colors text-emerald-600", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "border-destructive ring-1 ring-destructive/30")} placeholder="R$ 0,00" />
+                <CalculatorPopover currentValue={amount} onConfirm={(val) => setAmount(formatCurrencyInput(val))} />
+              </div>
+              {showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && <span className="text-xs text-destructive">Campo obrigatório</span>}
+            </div>
+          </div>
 
-            {isRecurring && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="recurrence_type" className="text-right">Frequência</Label>
-                  <Controller
-                    name="recurrence_type"
-                    control={control}
-                    rules={{ required: isRecurring ? "Frequência é obrigatória" : false }}
-                    render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value} >
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Selecione a frequência" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="daily">Diário</SelectItem>
-                          <SelectItem value="weekly">Semanal</SelectItem>
-                          <SelectItem value="monthly">Mensal</SelectItem>
-                          <SelectItem value="yearly">Anual</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  {errors.recurrence_type && <p className="col-span-4 text-right text-sm text-red-600">{errors.recurrence_type.message}</p>}
-                </div>
+          {/* Row 2: Categoria + Subcategoria + Recebimento */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
+              <Select value={categoryId} onValueChange={handleCategorySelectChange}>
+                <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ADD_CATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-emerald-600">+ Nova categoria</SelectItem>
+                  {incomeCategories.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-emerald-500`} /> {c.name}</div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
+              <Select value={subcategoryId} onValueChange={setSubcategoryId} disabled={!categoryId}>
+                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
+                <SelectContent>
+                  {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div key={`due-${shakeKey}`} className={cn("space-y-1.5", showErrors && !receiveDate && "animate-shake")}>
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !receiveDate ? "text-destructive" : "text-muted-foreground")}>Data de Recebimento *</Label>
+              <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
+            </div>
+          </div>
 
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="start_date" className="text-right">Início da Recorrência</Label>
-                  <Input id="start_date" type="date" {...register("start_date", { required: isRecurring ? "Data de início é obrigatória" : false })} className="col-span-3" />
-                  {errors.start_date && <p className="col-span-4 text-right text-sm text-red-600">{errors.start_date.message}</p>}
-                </div>
+          {/* Row 3: Conta + Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Conta de Destino</Label>
+              <Select value={accountId} onValueChange={setAccountId}>
+                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Selecione a conta (Opcional)" /></SelectTrigger>
+                <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
+              <button type="button" onClick={() => setIsReceived(!isReceived)} className={cn(
+                "flex items-center justify-center gap-2 w-full h-10 rounded-xl border text-sm font-semibold transition-all",
+                isReceived ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600" : "bg-muted/30 border-border/60 text-muted-foreground"
+              )}>
+                <span className={cn("w-2 h-2 rounded-full", isReceived ? "bg-emerald-500" : "bg-muted-foreground/40")} />
+                {isReceived ? 'Recebido' : 'Pendente'}
+              </button>
+            </div>
+          </div>
+
+          {/* Row 4: Recorrência + Observação */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recorrência</Label>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={cn(
+                  "flex items-center justify-center gap-2 h-10 rounded-xl border text-sm font-semibold transition-all flex-1",
+                  isRecurring ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600" : "bg-muted/30 border-border/60 text-muted-foreground"
+                )}>
+                  <span className={cn("w-2 h-2 rounded-full", isRecurring ? "bg-emerald-500" : "bg-muted-foreground/40")} />
+                  {isRecurring ? 'Sim' : 'Não'}
+                </button>
+                {isRecurring && <Input type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="h-10 w-20 text-center rounded-xl border-border/60 bg-muted/30" />}
+              </div>
+            </div>
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observação</Label>
+              <textarea value={description} onChange={e => setDescription(e.target.value)} className="flex w-full rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm focus:bg-card resize-none" placeholder="Anotações opcionais..." rows={2} />
+            </div>
+          </div>
+
+          {/* Toggles: Agendamento + Controle Visual */}
+          <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
+            <div className={cn("flex items-center gap-3", isReceived && "opacity-40 pointer-events-none")}>
+              <Switch id="income-scheduling" checked={isScheduled} onCheckedChange={setIsScheduled} disabled={isReceived} />
+              <Label htmlFor="income-scheduling" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                <CalendarClock className="h-4 w-4 text-emerald-600" />
+                Agendar esta receita
+              </Label>
+            </div>
+            {isScheduled && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-14">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento (Baixa Automática)</Label>
+                <Input type="date" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} max={receiveDate || undefined} className="h-10 rounded-xl border-border/60 bg-muted/30" />
               </div>
             )}
+            <div className="border-t border-border/40" />
+            <div className={cn("flex items-center gap-3", !canUseExtraControl && "opacity-40")}>
+              <Switch id="visual-control-income" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl && !income} />
+              <Label htmlFor="visual-control-income" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                {!canUseExtraControl && !income && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                Apenas controle visual (não contabilizar)
+              </Label>
+            </div>
           </div>
 
-          {/* Scheduling Fields */}
-          <SchedulingFields form={form} baseDateFieldName="receiveDate" />
-
-          <DialogFooter>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Salvando..." : "Salvar Receita"}
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl h-9 px-5 text-sm">Cancelar</Button>
+            <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[110px] h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
+
+      {/* Modal Nova Categoria */}
+      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+        <DialogContent className="sm:max-w-sm rounded-2xl border-0 bg-card shadow-xl">
+          <DialogHeader><DialogTitle>Nova categoria de receita</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label>Nome</Label>
+            <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Ex: Investimentos" className="rounded-xl" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" className="rounded-xl" onClick={() => setCategoryDialogOpen(false)}>Cancelar</Button>
+            <Button type="button" className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleCreateCategory}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
