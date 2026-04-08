@@ -76,11 +76,11 @@ const plans = [
     cta: "Assinar Premium",
     highlight: true,
     items: [
-      "Tudo do plano Pro",
-      "Edição Visual e Interativa",
-      "Exportacao de relatorios",
-      "Multiplos usuarios",
-      "Automação completa e IA",
+      "🪄 Lançamentos por Voz ou Texto (IA)",
+      "🖱️ Edição Visual Inteligente",
+      "🔄 Automação de Recorrências",
+      "📊 Inteligência Preditiva",
+      "Tudo do plano Pro e muito mais",
     ],
   },
 ];

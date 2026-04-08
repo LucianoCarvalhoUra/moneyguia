@@ -162,12 +162,12 @@ export default function Planos() {
                 <p className="text-sm text-slate-500">{periodLabel}</p>
               </CardHeader>
               <CardContent>
-                <ul className="mb-6 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Tudo do Pro</li>
-                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Classificação com IA</li>
-                  <li className="flex items-start gap-2 font-medium text-emerald-700"><Check className="mt-0.5 h-4 w-4" />Edição Visual e Interativa</li>
-                  <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />Exportação de relatórios</li>
-                  <li className="flex items-start gap-2 font-medium text-emerald-700"><Check className="mt-0.5 h-4 w-4" />Automação completa e IA</li>
+                <ul className="mb-6 space-y-4 text-sm text-slate-600">
+                  <li className="flex items-start gap-2"><Check className="mt-1 h-4 w-4 text-emerald-600 shrink-0" /><span>🪄 <strong>Lançamentos por Voz ou Texto (IA):</strong> "Não preencha formulários. Apenas diga: 'Gastei 50 reais no posto hoje' e a IA faz o resto por você."</span></li>
+                  <li className="flex items-start gap-2"><Check className="mt-1 h-4 w-4 text-emerald-600 shrink-0" /><span>🖱️ <strong>Edição Visual Inteligente:</strong> "Clique, altere e salve direto na tela. A forma mais rápida de organizar seus gastos sem abrir janelas extras."</span></li>
+                  <li className="flex items-start gap-2"><Check className="mt-1 h-4 w-4 text-emerald-600 shrink-0" /><span>🔄 <strong>Automação de Recorrências:</strong> "Cadastre uma vez e esqueça. Ideal para aluguel, assinaturas e contas fixas."</span></li>
+                  <li className="flex items-start gap-2"><Check className="mt-1 h-4 w-4 text-emerald-600 shrink-0" /><span>📊 <strong>Inteligência Preditiva:</strong> "A IA analisa seus hábitos e avisa se você vai estourar o orçamento antes mesmo de acontecer."</span></li>
+                  <li className="flex items-start gap-2"><Check className="mt-1 h-4 w-4 text-emerald-600 shrink-0" /><span>Tudo do plano Pro e controle total ilimitado</span></li>
                 </ul>
                 <div className="block">
                   <Button className="w-full bg-slate-900 text-white hover:bg-slate-800" onClick={() => handleSubscribe('total')}>Assinar Agora</Button>
