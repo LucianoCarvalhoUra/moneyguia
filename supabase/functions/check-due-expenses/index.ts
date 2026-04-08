@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     }
 
     if (!notificationSettings || notificationSettings.length === 0) {
-      console.log("No users with notifications enabled");
+      ("No users with notifications enabled");
       return new Response(
         JSON.stringify({ message: "No users with notifications enabled", processed: 0 }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -74,13 +74,13 @@ Deno.serve(async (req) => {
     for (const settings of notificationSettings as NotificationSettings[]) {
       // Skip if send_once_only and already sent today
       if (settings.send_once_only && settings.last_notification_date === todayStr) {
-        console.log(`Skipping user ${settings.user_id} - already notified today`);
+        (`Skipping user ${settings.user_id} - already notified today`);
         continue;
       }
 
       // Skip if no notification email configured
       if (!settings.notification_email) {
-        console.log(`Skipping user ${settings.user_id} - no email configured`);
+        (`Skipping user ${settings.user_id} - no email configured`);
         continue;
       }
 
@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
       }
 
       if (!dueExpenses || dueExpenses.length === 0) {
-        console.log(`No due expenses for user ${settings.user_id}`);
+        (`No due expenses for user ${settings.user_id}`);
         continue;
       }
 
@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
 
         if (emailResponse.ok) {
           totalEmailsSent++;
-          console.log(`Email sent to ${settings.notification_email}`);
+          (`Email sent to ${settings.notification_email}`);
 
           // Update last notification date
           await supabase
@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Check-due-expenses completed. Emails sent: ${totalEmailsSent}`);
+    (`Check-due-expenses completed. Emails sent: ${totalEmailsSent}`);
     return new Response(
       JSON.stringify({ 
         message: "Check completed successfully", 

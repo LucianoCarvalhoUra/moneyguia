@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    console.log("Webhook received:", JSON.stringify(body));
+    ("Webhook received:", JSON.stringify(body));
 
     // Mercado Pago sends different notification types
     if (body.type !== "payment" && body.action !== "payment.updated") {
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
       }
     );
     const mpPayment = await mpResponse.json();
-    console.log("MP payment status:", mpPayment.status);
+    ("MP payment status:", mpPayment.status);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
       if (subError) {
         console.error("Subscription activation error:", subError);
       } else {
-        console.log("Subscription activated for user:", payment.user_id);
+        ("Subscription activated for user:", payment.user_id);
       }
     }
 

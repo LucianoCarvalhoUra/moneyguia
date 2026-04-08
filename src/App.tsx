@@ -90,10 +90,9 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const { isAdmin, isCheckingAdmin } = useIsAdmin();
+  const { isAuthenticated, isLoading, isAdmin, isRoleLoading } = useAuth();
 
-  if (isLoading || isCheckingAdmin) {
+  if (isLoading || isRoleLoading) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
         <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground shadow-sm">

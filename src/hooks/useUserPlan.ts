@@ -114,7 +114,7 @@ export function useUserPlan() {
           .limit(1)
           .maybeSingle();
 
-        console.log("[Assinatura] Dados recuperados:", sub);
+        ("[Assinatura] Dados recuperados:", sub);
 
         if (error) {
           throw error;

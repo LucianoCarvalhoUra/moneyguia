@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     if (expiredError) {
       console.error("Error expiring subscriptions:", expiredError);
     } else if (expired && expired.length > 0) {
-      console.log(`Expired ${expired.length} subscriptions`);
+      (`Expired ${expired.length} subscriptions`);
 
       // Get free plan ID to assign
       const { data: freePlan } = await supabase
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       .not("expires_at", "is", null);
 
     if (expiringSoon && expiringSoon.length > 0) {
-      console.log(`${expiringSoon.length} subscriptions expiring soon`);
+      (`${expiringSoon.length} subscriptions expiring soon`);
 
       for (const sub of expiringSoon) {
         // Get user email from profiles
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
                 `,
               },
             });
-            console.log(`Reminder sent to ${profile.email}`);
+            (`Reminder sent to ${profile.email}`);
           } catch (emailErr) {
             console.error(`Failed to send reminder to ${profile.email}:`, emailErr);
           }

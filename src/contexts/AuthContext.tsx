@@ -405,14 +405,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("user-plan-changed", handlePlanChange);
   }, [user?.id, loadProfile]);
 
-  // Forçar atualização do perfil ao navegar por rotas principais
-  // Isso garante que mudanças feitas pelo Admin reflitam imediatamente
-  useEffect(() => {
-    if (user?.id && ['/dashboard', '/subscription', '/plans'].includes(location.pathname)) {
-      loadProfile(user.id, true); // force=true ignora o cache
-    }
-  }, [location.pathname, user?.id, loadProfile]);
-
   useEffect(() => {
     let inactivityTimer: ReturnType<typeof setTimeout>;
 
