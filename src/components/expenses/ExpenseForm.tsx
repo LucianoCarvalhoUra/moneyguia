@@ -346,9 +346,14 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         ? format(expense.dueDate, 'yyyy-MM-dd')
         : String(expense.dueDate).split('T')[0];
 
-      // 1. Atualiza a despesa atual
+      // 1. Atualiza a despesa atual (Logs de depuração para despesa única)
+      console.log('[RecurrenceUpdate] Atualizando registro principal:', { id: expense.id, data: pendingData });
       const { error: singleError } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
-      if (singleError) throw singleError;
+      
+      if (singleError) {
+        console.error('[RecurrenceUpdate] Erro Supabase (Single):', singleError);
+        throw singleError;
+      }
 
       if (scope !== 'single') {
         let recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
@@ -440,10 +445,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         }
       }
 
-      const authUser = (await supabase.auth.getUser()).data.user;
       const finalExpenseDate = isPaid ? paymentDate : launchDate;
 
-      const payload = {
+      // Sanitização: Garantir tipos numéricos e chaves snake_case
+      const payload: any = {
         description,
         amount: numericAmount,
         due_date: dueDate,
@@ -456,7 +461,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         is_paid: isPaid,
         is_recurring: isRecurring,
         installments: isRecurring ? parseInt(installments) : null,
-        user_id: authUser?.id,
         exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
         observation: observation || null,
         is_scheduled: isScheduled,
@@ -464,6 +468,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       };
 
       if (expense) {
+        console.log('Dados enviados para UPDATE:', payload);
+        
         if (expense.isRecurring) {
           setPendingData(payload);
           setScopeDialogOpen(true);
@@ -504,16 +510,27 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             });
           }
           const { error: insertError } = await supabase.from('expenses').insert(futureExpenses);
-          if (insertError) throw insertError;
+          if (insertError) {
+            console.error('Erro Supabase (Insert Parcelas):', insertError);
+            throw insertError;
+          }
           toast.success(`${limit} despesas criadas!`, {
             description: `A despesa "${description}" foi parcelada em ${limit} vezes.`,
           });
         } else {
           const { error } = await supabase.from('expenses').update(payload).eq('id', expense.id);
-          if (error) throw error;
+          if (error) {
+            console.error('Erro Supabase (Update Individual):', error);
+            throw error;
+          }
           toast.success('Despesa atualizada!');
         }
       } else {
+        // Para INSERT, incluímos o user_id explicitamente
+        const authUser = (await supabase.auth.getUser()).data.user;
+        const insertPayload = { ...payload, user_id: authUser?.id };
+        console.log('Dados enviados para INSERT:', insertPayload);
+
         if (isRecurring && parseInt(installments) > 1) {
            const newRecurrenceId = crypto.randomUUID();
            const newExpenses = [];
@@ -536,13 +553,19 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
              });
            }
            const { error } = await supabase.from('expenses').insert(newExpenses);
-           if (error) throw error;
+           if (error) {
+             console.error('Erro Supabase (Insert Parcelas):', error);
+             throw error;
+           }
            toast.success(`${limit} despesas criadas!`, {
              description: `A despesa "${description}" foi parcelada em ${limit} vezes.`,
            });
         } else {
-           const { error } = await supabase.from('expenses').insert([payload]);
-           if (error) throw error;
+           const { error } = await supabase.from('expenses').insert([insertPayload]);
+           if (error) {
+             console.error('Erro Supabase (Insert Individual):', error);
+             throw error;
+           }
            toast.success('Despesa salva!');
         }
       }
