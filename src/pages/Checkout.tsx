@@ -759,6 +759,30 @@ export default function Checkout() {
             {step === "method" && (
               <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <h2 className="mb-6 text-xl font-bold">Escolha a forma de pagamento</h2>
+                
+                {/* Bloco de Cupom Forçado no Fluxo Principal */}
+                <div className="mb-8 p-4 rounded-xl border border-dashed border-primary/30 bg-primary/5">
+                  <Label className="text-sm font-semibold mb-2 block">Possui um cupom de desconto?</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      className="bg-background" 
+                      placeholder="Digite seu código aqui" 
+                      value={couponCode} 
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCouponCode(e.target.value.toUpperCase())} 
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={handleApplyCoupon} 
+                      disabled={isValidatingCoupon || !couponCode}
+                    >
+                      {isValidatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                    </Button>
+                  </div>
+                  {discount > 0 && (
+                    <p className="mt-2 text-xs text-emerald-600 font-bold">✓ Desconto de {discount}% aplicado com sucesso!</p>
+                  )}
+                </div>
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   <button
                     onClick={handleSelectPix}

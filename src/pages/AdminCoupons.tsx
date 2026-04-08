@@ -19,26 +19,14 @@ interface Coupon {
 }
 
 export default function AdminCoupons() {
-  const { user, isLoading: authLoading } = useAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCode, setNewCode] = useState("");
   const [newDiscount, setNewDiscount] = useState("");
 
-  // E-mail autorizado para testes de administração conforme solicitado
-  const ADMIN_EMAIL = "admin@moneyguia.com.br";
-
   useEffect(() => {
-    if (user?.email === ADMIN_EMAIL) {
-      fetchCoupons();
-    }
-  }, [user]);
-
-  if (authLoading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>;
-
-  if (user?.email !== ADMIN_EMAIL) {
-    return <Navigate to="/dashboard" replace />;
-  }
+    fetchCoupons();
+  }, []);
 
   const fetchCoupons = async () => {
     const { data } = await supabase.from("coupons").select("*").order("created_at", { ascending: false });
