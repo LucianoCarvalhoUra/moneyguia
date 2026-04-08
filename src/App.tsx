@@ -1,4 +1,4 @@
-﻿import { Toaster } from "@/components/ui/toaster";
+﻿﻿import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -21,7 +21,6 @@ import Settings from "./pages/Settings";
 import Goals from "./pages/Goals";
 import LandingPage from "./pages/LandingPage";
 import Planos from "./pages/Planos";
-import Plans from "./pages/Plans";
 import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
@@ -120,7 +119,7 @@ const AppRoutes = () => (
     <Route path="/" element={<LandingPage />} />
     <Route path="/home" element={<LandingPage />} />
     <Route path="/planos" element={<Planos />} />
-    <Route path="/plans" element={<Plans />} />
+    <Route path="/plans" element={<Navigate to="/planos" replace />} />
     <Route path="/terms" element={<TermsOfUse />} />
     <Route path="/privacy" element={<PrivacyPolicy />} />
     <Route path="/checkout" element={<Checkout />} />
