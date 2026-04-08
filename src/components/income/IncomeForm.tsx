@@ -1,6 +1,7 @@
 ﻿﻿import { useState, useEffect } from "react";
 import { useForm, Controller, UseFormReturn } from "react-hook-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -154,10 +155,20 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
-        <DialogHeader>
-          <DialogTitle>{income ? "Editar Receita" : "Nova Receita"}</DialogTitle>
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-6 py-4 bg-gradient-to-r from-primary/5 to-transparent">
+          <div>
+            <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
+              {income ? "Editar Receita" : "Nova Receita"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              {income
+                ? `Cadastrada em ${format(new Date(income.createdAt), 'dd/MM/yyyy HH:mm')}`
+                : 'Preencha os detalhes da transação'}
+            </DialogDescription>
+          </div>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
+
+        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-80px)]">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="title" className="text-right">Título</Label>
             <Input id="title" {...register("title", { required: "Título é obrigatório" })} className="col-span-3" />
