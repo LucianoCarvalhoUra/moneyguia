@@ -196,7 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [getProfileCacheKey]);
 
-  const loadProfile = useCallback(async (userId: string, force = false) => {
+  const loadProfile = useCallback(async (userId: string, force = false): Promise<void> => {
     if (!userId) return;
     if (isFetchingProfileRef.current) return;
     if (!force && profileLoadedRef.current && loadedProfileUserIdRef.current === userId) return;
@@ -314,7 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   createProfileRef.current = createProfileIfNotExists;
 
   useEffect(() => {
-    let mounted = true;
+    let mounted = true; // Flag para evitar atualizações de estado em componente desmontado
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, authSession) => {
       if (!mounted) return;
@@ -329,21 +329,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log(`[Supabase Auth] Sincronizando perfil para o evento: ${event}`);
         hydrateProfileFromCache(authSession.user.id);
         if (profileCreatedForUserRef.current !== authSession.user.id) {
+          // Não precisa de await aqui, pode rodar em background
           profileCreatedForUserRef.current = authSession.user.id;
-          setTimeout(() => {
-            createProfileRef.current(authSession.user).catch(() => undefined);
-          }, 0);
+          createProfileRef.current(authSession.user).catch(() => undefined);
         }
         if (!hasLoadedProfile.current || loadedProfileUserIdRef.current !== authSession.user.id) {
-          setTimeout(() => {
-            loadProfileRef.current(authSession.user.id);
-          }, 0);
+          // Não precisa de await aqui, loadProfile já gerencia seu próprio loading state
+          loadProfileRef.current(authSession.user.id);
         }
-        setTimeout(() => {
-          // Forçar recarregamento do role no login para evitar cache stale
-          loadUserRole(authSession.user.id, authSession.user.email, event === 'SIGNED_IN');
-        }, 0);
+        // Forçar recarregamento do role no login para evitar cache stale
+        // loadUserRole já gerencia seu próprio loading state
+        loadUserRole(authSession.user.id, authSession.user.email, event === 'SIGNED_IN');
       }
+      // Removido setIsLoading(false) daqui. Ele deve ser chamado apenas na inicialização
+      // para evitar flashes de carregamento em eventos de token_refreshed.
 
       if (event === 'SIGNED_OUT') {
         console.log('[Supabase Auth] Sessão encerrada pelo usuário.');
@@ -351,10 +350,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resetProfileState();
       }
       
-      setIsLoading(false);
     });
 
-    // Inicialização da sessão com tentativa de Refresh Silencioso
+    // Lógica de inicialização da sessão (executada apenas uma vez no carregamento da aplicação)
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
 
@@ -374,13 +372,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(currentSession?.user ?? null);
 
       if (currentSession?.user) {
+        // Hidratar do cache primeiro para renderização rápida
         hydrateProfileFromCache(currentSession.user.id);
         if (!hasLoadedProfile.current || loadedProfileUserIdRef.current !== currentSession.user.id) {
-          loadProfileRef.current(currentSession.user.id);
-        } else {
+          // Aguardar o carregamento do perfil e do role antes de finalizar o loading geral
+          await Promise.all([loadProfileRef.current(currentSession.user.id), loadUserRole(currentSession.user.id, currentSession.user.email)]);
+        } else { // Se já carregou, apenas garante que o estado de loading do perfil está false
           setIsProfileLoading(false);
         }
-        loadUserRole(currentSession.user.id, currentSession.user.email);
       } else {
         resetProfileState();
       }

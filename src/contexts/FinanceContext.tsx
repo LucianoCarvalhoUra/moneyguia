@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+﻿﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { BankAccount, CreditCard, Expense, Category, Subcategory, DEFAULT_CATEGORIES, PaymentMethod } from '@/types/finance';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -81,7 +81,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           .from('expenses')
           .select('*')
           .eq('user_id', user.id)
-          .order('expense_date', { ascending: false }),
+          .order('due_date', { ascending: false }), // Ordenar por due_date para consistência
       ]);
 
       if (accountsRes.data) {
@@ -701,9 +701,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return subcategories.filter((s) => s.categoryId === categoryId);
   };
 
-  const refreshData = async () => {
-    await fetchData();
-  };
+  const refreshData = useCallback(async () => {
+    await fetchData(true); // Força o refresh dos dados
+  }, [fetchData]);
 
   return (
     <FinanceContext.Provider
@@ -749,7 +749,3 @@ export function useFinance() {
   }
   return context;
 }
-
-
-
-

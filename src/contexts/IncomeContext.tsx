@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+﻿﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Income, IncomeCategory, IncomeSubcategory, DEFAULT_INCOME_CATEGORIES } from '@/types/income';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,7 +57,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         supabase.from('incomes').select('*').eq('user_id', user.id).order('receive_date', { ascending: false }),
       ]);
 
-      if (categoriesRes.data && categoriesRes.data.length > 0) {
+      if (categoriesRes.data && categoriesRes.data.length > 0) { // Verifica se há categorias personalizadas
         const loadedCategories = categoriesRes.data.map(c => {
           // Check if this category needs migration
           const mapping = INCOME_CATEGORY_MAPPING[c.name];
@@ -84,7 +84,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         });
         setIncomeCategories(loadedCategories.sort((a, b) => a.name.localeCompare(b.name)));
       } else {
-        // Initialize with default income categories
+        // Inicializa com categorias padrão se não houver nenhuma
         const defaultCats = DEFAULT_INCOME_CATEGORIES.map(cat => {
           const mapping = INCOME_CATEGORY_MAPPING[cat.name];
           return {
@@ -501,9 +501,9 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     return incomeSubcategories.find((s) => s.id === id);
   };
 
-  const refreshData = async () => {
-    await fetchData();
-  };
+  const refreshData = useCallback(async () => {
+    await fetchData(true); // Força o refresh dos dados
+  }, [fetchData]);
 
   return (
     <IncomeContext.Provider
@@ -542,6 +542,3 @@ export function useIncome() {
   }
   return context;
 }
-
-
-
