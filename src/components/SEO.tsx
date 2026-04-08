@@ -10,9 +10,9 @@ interface SEOProps {
 }
 
 const defaultConfig = {
-  title: "MoneyGuia | Controle Financeiro Inteligente com IA",
+  title: "MoneyGuia - Controle de Orçamento Pessoal",
   description:
-    "Organize suas finanças em minutos com o MoneyGuia. Controle gastos, cartões e investimentos em uma plataforma inteligente com IA. Comece seu teste grátis agora!",
+    "Organize suas finanças com inteligência. O MoneyGuia oferece controle de despesas, lançamentos por IA e gestão de orçamento de forma simples e visual.",
   canonicalUrl: "https://www.moneyguia.com.br/",
   ogImage: "https://www.moneyguia.com.br/og-image.png",
   ogType: "website",
@@ -56,6 +56,10 @@ export default function SEO({
     updateMetaTag("property", "og:description", "content", description);
     updateMetaTag("property", "og:type", "content", ogType);
     updateMetaTag("property", "og:image", "content", ogImage);
+    updateMetaTag("name", "twitter:card", "content", "summary_large_image");
+    updateMetaTag("name", "twitter:title", "content", title);
+    updateMetaTag("name", "twitter:description", "content", description);
+    updateMetaTag("name", "twitter:image", "content", ogImage);
 
     // Update canonical link
     let canonicalLink = document.querySelector(
@@ -103,8 +107,8 @@ export default function SEO({
 export function LandingPageSEO() {
   return (
     <SEO
-      title="MoneyGuia | Controle Financeiro Inteligente com IA"
-      description="Organize suas finanças em minutos com o MoneyGuia. Controle gastos, cartões e investimentos em uma plataforma inteligente com IA. Comece seu teste grátis agora!"
+      title="MoneyGuia - Controle de Orçamento Pessoal"
+      description="Organize suas finanças com inteligência. O MoneyGuia oferece controle de despesas, lançamentos por IA e gestão de orçamento de forma simples e visual."
       canonicalUrl="https://www.moneyguia.com.br/"
     />
   );
