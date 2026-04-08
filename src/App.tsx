@@ -1,4 +1,4 @@
-﻿﻿import { Toaster } from "@/components/ui/toaster";
+﻿﻿﻿﻿import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -136,6 +136,7 @@ const AppRoutes = () => (
     <Route path="/subscription" element={<ProtectedRoute><MySubscription /></ProtectedRoute>} />
     <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
     <Route path="/admin/csat" element={<AdminRoute><AdminCsat /></AdminRoute>} />
+    <Route path="/admin/coupons" element={<AdminCoupons />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="*" element={<NotFound />} />
   </Routes>

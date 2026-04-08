@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,18 +19,32 @@ interface Coupon {
 }
 
 export default function AdminCoupons() {
+  const { user, isLoading: authLoading } = useAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCode, setNewCode] = useState("");
   const [newDiscount, setNewDiscount] = useState("");
+
+  // E-mail autorizado para testes de administração conforme solicitado
+  const ADMIN_EMAIL = "admin@moneyguia.com.br";
+
+  useEffect(() => {
+    if (user?.email === ADMIN_EMAIL) {
+      fetchCoupons();
+    }
+  }, [user]);
+
+  if (authLoading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>;
+
+  if (user?.email !== ADMIN_EMAIL) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const fetchCoupons = async () => {
     const { data } = await supabase.from("coupons").select("*").order("created_at", { ascending: false });
     setCoupons(data || []);
     setLoading(false);
   };
-
-  useEffect(() => { fetchCoupons(); }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,10 +90,10 @@ export default function AdminCoupons() {
         <CardContent>
           <form onSubmit={handleCreate} className="flex gap-4">
             <div className="flex-1">
-              <Input placeholder="CÓDIGO" value={newCode} onChange={e => setNewCode(e.target.value)} />
+              <Input placeholder="CÓDIGO" value={newCode} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCode(e.target.value)} />
             </div>
             <div className="w-32">
-              <Input type="number" placeholder="%" value={newDiscount} onChange={e => setNewDiscount(e.target.value)} />
+              <Input type="number" placeholder="%" value={newDiscount} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewDiscount(e.target.value)} />
             </div>
             <Button type="submit"><Plus className="w-4 h-4 mr-1" /> Criar</Button>
           </form>

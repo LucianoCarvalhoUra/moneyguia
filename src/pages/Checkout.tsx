@@ -1014,7 +1014,7 @@ export default function Checkout() {
                         className="h-8 text-xs font-mono" 
                         placeholder="CÓDIGO" 
                         value={couponCode} 
-                        onChange={e => setCouponCode(e.target.value)} 
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCouponCode(e.target.value)} 
                       />
                       <Button 
                         size="sm" 
