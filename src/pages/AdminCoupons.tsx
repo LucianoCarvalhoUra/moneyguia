@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Plus, Ticket, Trash2 } from "lucide-react";
+import { Loader2, Plus, Ticket, Trash2, Shield, Info } from "lucide-react";
 
 interface Coupon {
   id: string;
@@ -20,6 +21,8 @@ interface Coupon {
 
 export default function AdminCoupons() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCode, setNewCode] = useState("");
@@ -70,13 +73,34 @@ export default function AdminCoupons() {
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto p-6">
-      <div className="flex items-center gap-2">
-        <Ticket className="w-6 h-6 text-emerald-600" />
-        <h1 className="text-2xl font-bold">Gestão de Cupons</h1>
+    <div className="space-y-6 max-w-4xl">
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Shield className="w-6 h-6 text-primary" />
+              Painel Administrativo
+            </h1>
+            <p className="text-muted-foreground">Gestão de estratégias promocionais</p>
+          </div>
+        </div>
+
+        <Tabs value={location.pathname} className="w-full" onValueChange={(v) => navigate(v)}>
+          <TabsList className="bg-muted/50 p-1">
+            <TabsTrigger value="/admin" className="gap-2">
+              <Shield className="w-4 h-4" /> Gestão de Licenças
+            </TabsTrigger>
+            <TabsTrigger value="/admin/coupons" className="gap-2">
+              <Ticket className="w-4 h-4" /> Gestão de Cupons
+            </TabsTrigger>
+            <TabsTrigger value="/admin/csat" className="gap-2">
+              <Info className="w-4 h-4" /> Pesquisas CSAT
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
-      <Card>
+      <Card className="rounded-3xl border border-white/40 bg-white/70 shadow-2xl backdrop-blur-lg overflow-hidden">
         <CardHeader><CardTitle>Novo Cupom</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={handleCreate} className="flex gap-4">
@@ -91,7 +115,7 @@ export default function AdminCoupons() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-3xl border border-white/40 bg-white/70 shadow-2xl backdrop-blur-lg overflow-hidden">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

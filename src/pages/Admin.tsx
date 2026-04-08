@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, useAuth as useAuthContext } from "@/contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,9 +24,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Shield, Users, Search, Loader2, Crown, Check, Trash2, AlertTriangle, Info, Mail } from "lucide-react";
-import { Navigate } from "react-router-dom";
+import { Shield, Users, Search, Loader2, Crown, Check, Trash2, AlertTriangle, Info, Mail, Ticket, ArrowRight } from "lucide-react";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format, isBefore, startOfDay } from "date-fns";
@@ -64,6 +65,8 @@ const planBadgeColors: Record<string, string> = {
 export default function Admin() {
   const { user } = useAuth();
   const { isAdmin, isCheckingAdmin } = useIsAdmin();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [plans, setPlans] = useState<PlanOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -353,12 +356,61 @@ export default function Admin() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Shield className="w-6 h-6 text-primary" />
-          Painel Administrativo
-        </h1>
-        <p className="text-muted-foreground">Gerencie os usuários e planos do sistema</p>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Shield className="w-6 h-6 text-primary" />
+              Painel Administrativo
+            </h1>
+            <p className="text-muted-foreground">Controle central de licenças e cupons</p>
+          </div>
+        </div>
+
+        <Tabs value={location.pathname} className="w-full" onValueChange={(v) => navigate(v)}>
+          <TabsList className="bg-muted/50 p-1">
+            <TabsTrigger value="/admin" className="gap-2">
+              <Shield className="w-4 h-4" /> Gestão de Licenças
+            </TabsTrigger>
+            <TabsTrigger value="/admin/coupons" className="gap-2">
+              <Ticket className="w-4 h-4" /> Gestão de Cupons
+            </TabsTrigger>
+            <TabsTrigger value="/admin/csat" className="gap-2">
+              <Info className="w-4 h-4" /> Pesquisas CSAT
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="rounded-3xl border border-white/40 bg-white/70 shadow-2xl backdrop-blur-lg group cursor-pointer hover:bg-white/90 transition-all" onClick={() => navigate('/admin/coupons')}>
+          <CardContent className="p-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-emerald-100 text-emerald-600">
+                <Ticket className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Gerenciar Cupons</h3>
+                <p className="text-sm text-muted-foreground">Crie códigos de desconto</p>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border border-white/40 bg-white/70 shadow-2xl backdrop-blur-lg group">
+          <CardContent className="p-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-blue-100 text-blue-600">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">{users.length} Usuários</h3>
+                <p className="text-sm text-muted-foreground">Total cadastrados</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

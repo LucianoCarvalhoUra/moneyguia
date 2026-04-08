@@ -137,13 +137,7 @@ const AppRoutes = () => (
     <Route path="/subscription" element={<ProtectedRoute><MySubscription /></ProtectedRoute>} />
     <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
     <Route path="/admin/csat" element={<AdminRoute><AdminCsat /></AdminRoute>} />
-    <Route 
-      path="/admin/coupons" 
-      element={(() => {
-        console.log('Rota /admin/coupons acessada');
-        return <Layout><AdminCoupons /></Layout>;
-      })()} 
-    />
+    <Route path="/admin/coupons" element={<AdminRoute><AdminCoupons /></AdminRoute>} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
