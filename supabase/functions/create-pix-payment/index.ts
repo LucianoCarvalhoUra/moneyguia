@@ -41,6 +41,10 @@ Deno.serve(async (req) => {
 
     const { planId, billingCycle, amount, fullName, cpf, email } = await req.json();
 
+    // ✅ Arredondamento rigoroso e valor mínimo garantido
+    const cleanAmount = Math.round(Number(amount) * 100) / 100;
+    const finalAmount = Math.max(cleanAmount, 0.01);
+
     if (!planId || !amount || !fullName || !cpf || !email) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
@@ -65,7 +69,7 @@ Deno.serve(async (req) => {
         "X-Idempotency-Key": `${userId}-${planId}-${Date.now()}`,
       },
       body: JSON.stringify({
-         transaction_amount: Math.round(Number(amount) * 100) / 100,
+         transaction_amount: finalAmount,
         description: `Assinatura MoneyGuia - ${billingCycle === "yearly" ? "Anual" : "Mensal"}`,
         payment_method_id: "pix",
         payer: {
@@ -103,7 +107,7 @@ Deno.serve(async (req) => {
       user_id: userId,
       plan_id: planId,
       billing_cycle: billingCycle || "monthly",
-       amount: Math.round(Number(amount) * 100) / 100,
+       amount: finalAmount,
       status: "pending",
       mp_payment_id: String(mpData.id),
       mp_qr_code: pointOfInteraction?.qr_code || null,
