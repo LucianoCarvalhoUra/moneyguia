@@ -33,7 +33,13 @@ import TermsOfUse from "./pages/TermsOfUse";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { APP_VERSION } from "@/config/version";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function ProtectedRoute({
   children,
@@ -42,7 +48,7 @@ function ProtectedRoute({
   children: React.ReactNode;
   requiredFeature?: "ai_classification" | "advanced_reports" | "extra_control";
 }) {
-  const { isAuthenticated, isLoading, isSubscriptionValid, hasFeatureAccess } = useAuth();
+  const { isAuthenticated, isLoading, subscriptionStatus, hasFeatureAccess } = useAuth();
 
   if (isLoading) {
     return (
@@ -58,8 +64,9 @@ function ProtectedRoute({
     return <Navigate to="/auth" replace />;
   }
 
-  if (!isSubscriptionValid) {
-    return <Navigate to="/planos?reason=expired" replace />;
+  // SEMPRE verificar se tem assinatura ativa, inclusive para usuários novos
+  if (subscriptionStatus !== 'active') {
+    return <Navigate to="/precos" replace />;
   }
 
   if (requiredFeature && !hasFeatureAccess(requiredFeature)) {
