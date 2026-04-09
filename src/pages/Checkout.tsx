@@ -60,7 +60,6 @@ const checkoutSchema = z.object({
   fullName: z.string().trim().min(3, "Nome completo é obrigatório").max(100),
   cpf: z.string().trim().min(11, "CPF inválido").max(14),
   email: z.string().trim().email("E-mail inválido").max(255),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   phone: z.string().trim().min(10, "Telefone inválido").max(20),
   street: z.string().trim().min(3, "Endereço é obrigatório").max(200),
   number: z.string().trim().min(1, "Número é obrigatório").max(10),
@@ -402,50 +401,8 @@ export default function Checkout() {
       return;
     }
     
-    // Se não tem usuário logado, cria a conta primeiro (para planos pagos)
-    if (!user) {
-      // Validação extra para senhas
-      if (!form.password || form.password.length < 6) {
-        setErrors({ password: "Senha deve ter pelo menos 6 caracteres" });
-        return;
-      }
-      if (form.password !== form.confirmPassword) {
-        setErrors({ confirmPassword: "As senhas não coincidem" });
-        return;
-      }
-
-      setSubmitting(true);
-      try {
-        const result = await register(form.fullName, form.email, form.password);
-        
-        if (result.success) {
-          // Salvar dados do checkout pendentes
-          localStorage.setItem("checkout_pending_form", JSON.stringify(form));
-          localStorage.setItem("checkout_pending_plan", planId || "");
-          localStorage.setItem("checkout_pending_cycle", cycle);
-          
-          toast.success("Conta criada! Continue com o pagamento.");
-          setStep("method");
-        } else {
-          // Verificar se é erro de email já existente
-          if (result.error?.includes("já está") || result.error?.includes("already")) {
-            toast.error("Este e-mail já possui conta. Por favor, faça login para continuar a assinatura.");
-            localStorage.setItem("checkout_pending_form", JSON.stringify(form));
-            localStorage.setItem("checkout_pending_plan", planId || "");
-            localStorage.setItem("checkout_pending_cycle", cycle);
-            navigate("/auth?returnTo=checkout");
-          } else {
-            toast.error(result.error || "Erro ao criar conta");
-          }
-        }
-      } catch (err: any) {
-        toast.error(err.message || "Erro ao criar conta");
-      } finally {
-        setSubmitting(false);
-      }
-      return;
-    }
-    
+    // ✅ NÃO cria conta antes do pagamento. A conta é criada APÓS confirmação do pagamento
+    // O e-mail é enviado para o Mercado Pago, a conta será criada no webhook ou na página de sucesso
     setStep("method");
   };
 
@@ -653,47 +610,7 @@ export default function Checkout() {
                     {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email}</p>}
                   </div>
                   
-                  {/* Campos de senha para novos usuários */}
-                  {!user && (
-                    <>
-                      <div className="sm:col-span-2">
-                        <Label htmlFor="password">Senha <span className="text-red-500">*</span></Label>
-                        <Input id="password" type="password" autoComplete="new-password" value={form.password} onChange={(e) => handleChange("password", e.target.value)} placeholder="Mínimo 6 caracteres" />
-                        {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password}</p>}
-                        
-                        {/* Password strength indicator */}
-                        {form.password.length > 0 && (
-                          <div className="mt-3 space-y-2">
-                            <div className="flex justify-between text-xs">
-                              <span className="text-muted-foreground">Força da senha</span>
-                              <span className={cn(
-                                "font-medium",
-                                passwordStrength.score >= 4 ? "text-green-500" : passwordStrength.score >= 3 ? "text-yellow-500" : "text-destructive"
-                              )}>
-                                {passwordStrength.label}
-                              </span>
-                            </div>
-                            <div className="h-2 bg-muted rounded-full overflow-hidden">
-                              <div className={cn("h-full transition-all duration-300", passwordStrength.color)} style={{ width: `${(passwordStrength.score / 5) * 100}%` }} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-1 mt-2">
-                              {passwordRequirements.map((req) => (
-                                <div key={req.key} className={cn("text-xs flex items-center gap-1", passwordStrength.checks[req.key as keyof typeof passwordStrength.checks] ? "text-green-500" : "text-muted-foreground")}>
-                                  <Check className="h-3 w-3" />
-                                  {req.label}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="sm:col-span-2">
-                        <Label htmlFor="confirmPassword">Confirmar senha <span className="text-red-500">*</span></Label>
-                        <Input id="confirmPassword" type="password" autoComplete="new-password" value={form.confirmPassword} onChange={(e) => handleChange("confirmPassword", e.target.value)} placeholder="Repita sua senha" />
-                        {errors.confirmPassword && <p className="mt-1 text-xs text-destructive">{errors.confirmPassword}</p>}
-                      </div>
-                    </>
-                  )}
+                  {/* ✅ Campos de senha REMOVIDOS do formulário inicial. A senha é definida APÓS pagamento aprovado */}
                 </div>
 
                 {/* Only show address for paid plans */}

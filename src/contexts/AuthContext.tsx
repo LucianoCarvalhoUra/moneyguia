@@ -334,18 +334,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && authSession?.user) {
         console.log(`[Supabase Auth] Sincronizando perfil para o evento: ${event}`);
         hydrateProfileFromCache(authSession.user.id);
-        if (profileCreatedForUserRef.current !== authSession.user.id) {
-          // Não precisa de await aqui, pode rodar em background
+        
+        // ✅ Fix: Evitar loop infinito - verificar se já está carregando antes
+        if (profileCreatedForUserRef.current !== authSession.user.id && !isFetchingProfileRef.current) {
           profileCreatedForUserRef.current = authSession.user.id;
           createProfileRef.current(authSession.user).catch(() => undefined);
         }
-        if (!hasLoadedProfile.current || loadedProfileUserIdRef.current !== authSession.user.id) {
-          // Não precisa de await aqui, loadProfile já gerencia seu próprio loading state
+        
+        if (!hasLoadedProfile.current && loadedProfileUserIdRef.current !== authSession.user.id && !isFetchingProfileRef.current) {
           loadProfileRef.current(authSession.user.id);
         }
-        // Forçar recarregamento do role no login para evitar cache stale
-        // loadUserRole já gerencia seu próprio loading state
-        loadUserRole(authSession.user.id, authSession.user.email, event === 'SIGNED_IN');
+        
+        if (!isFetchingRoleRef.current && loadedRoleUserIdRef.current !== authSession.user.id) {
+          loadUserRole(authSession.user.id, authSession.user.email, event === 'SIGNED_IN');
+        }
       }
       // Removido setIsLoading(false) daqui. Ele deve ser chamado apenas na inicialização
       // para evitar flashes de carregamento em eventos de token_refreshed.
