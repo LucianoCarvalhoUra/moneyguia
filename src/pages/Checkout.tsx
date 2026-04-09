@@ -364,31 +364,38 @@ export default function Checkout() {
     setPaymentMethod("pix");
     setSubmitting(true);
     try {
-      // ✅ Usa Publishable Key (anon key) para invocar a função
-      const { data, error } = await supabase.functions.invoke("create-pix-payment", {
-        body: {
-          planId: plan!.id,
-          billingCycle: cycle,
-          amount: finalPrice,
-          fullName: form.fullName,
-          cpf: form.cpf,
-          email: form.email,
-        },
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-      });
+      // ✅ Chamada direta via fetch (evita wrapper do cliente Supabase)
+      const response = await fetch(
+        "https://uuirvevhvjvnubihnstz.supabase.co/functions/v1/create-pix-payment",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            planId: plan!.id,
+            billingCycle: cycle,
+            amount: finalPrice,
+            fullName: form.fullName,
+            cpf: form.cpf,
+            email: form.email,
+          }),
+        }
+      );
 
-      // Logs completos para debug
-      console.log("✅ RESPOSTA COMPLETA DA FUNÇÃO create-pix-payment:", JSON.stringify(data, null, 2));
-      console.log("❌ ERRO RETORNADO:", JSON.stringify(error, null, 2));
+      const data = await response.json();
+      console.log("✅ Status HTTP:", response.status);
+      console.log("✅ Resposta completa:", JSON.stringify(data, null, 2));
       
-      if (error) {
-        console.error("ERRO NA CHAMADA DA FUNÇÃO:", error);
-        throw new Error(error.message);
+      if (!response.ok) {
+        console.error("❌ Erro HTTP na resposta:", data);
+        throw new Error(data.error || `Erro ${response.status}`);
       }
+      
       if (data?.error) {
-        console.error("ERRO DENTRO DO DATA:", data.error, data.details);
+        console.error("❌ Erro retornado pela função:", data.error, data.details);
         throw new Error(data.error);
       }
 
