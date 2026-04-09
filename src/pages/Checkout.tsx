@@ -364,7 +364,7 @@ export default function Checkout() {
     setPaymentMethod("pix");
     setSubmitting(true);
     try {
-      // ✅ Corrigido: Passa token anonimo automaticamente quando usuário não está logado
+      // ✅ Usa Publishable Key (anon key) para invocar a função
       const { data, error } = await supabase.functions.invoke("create-pix-payment", {
         body: {
           planId: plan!.id,
@@ -375,9 +375,8 @@ export default function Checkout() {
           email: form.email,
         },
         headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token 
-            ?? import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        }
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
       });
 
       // Logs completos para debug
