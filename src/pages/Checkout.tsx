@@ -364,14 +364,16 @@ export default function Checkout() {
     setPaymentMethod("pix");
     setSubmitting(true);
     try {
-      // ✅ Chamada direta via fetch (evita wrapper do cliente Supabase)
+      // ✅ Usa token do usuário logado se existir, senão continua anônimo
+      const { data: { session } } = await supabase.auth.getSession();
+
       const response = await fetch(
         "https://uuirvevhvjvnubihnstz.supabase.co/functions/v1/create-pix-payment",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "Authorization": `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
