@@ -13,37 +13,26 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Tornamos a autenticação opcional para permitir checkout antes de criar a conta
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let userId = null;
+
+    if (authHeader?.startsWith("Bearer ")) {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData } = await supabase.auth.getClaims(token);
+      userId = claimsData?.claims?.sub || null;
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = claimsData.claims.sub;
-    const userEmail = claimsData.claims.email;
 
     const { planId, billingCycle, amount, fullName, cpf, email } = await req.json();
 
-    // ✅ Arredondamento rigoroso e valor mínimo garantido
-    const cleanAmount = Math.round(Number(amount) * 100) / 100;
-    const finalAmount = Math.max(cleanAmount, 0.01);
+    // CORREÇÃO: Força o valor para 2 casas decimais (ex: 0.15)
+    const finalAmount = Number(parseFloat(String(amount)).toFixed(2));
 
     if (!planId || !amount || !fullName || !cpf || !email) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -64,12 +53,12 @@ Deno.serve(async (req) => {
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
       headers: {
+        "Authorization": `Bearer ${mpAccessToken}`,
         "Content-Type": "application/json",
-        Authorization: `Bearer ${mpAccessToken}`,
-        "X-Idempotency-Key": `${userId}-${planId}-${Date.now()}`,
+        "X-Idempotency-Key": `${userId || email}-${planId}-${Date.now()}`
       },
       body: JSON.stringify({
-         transaction_amount: finalAmount,
+        transaction_amount: finalAmount,
         description: `Assinatura MoneyGuia - ${billingCycle === "yearly" ? "Anual" : "Mensal"}`,
         payment_method_id: "pix",
         payer: {
@@ -107,7 +96,7 @@ Deno.serve(async (req) => {
       user_id: userId,
       plan_id: planId,
       billing_cycle: billingCycle || "monthly",
-       amount: finalAmount,
+      amount: finalAmount,
       status: "pending",
       mp_payment_id: String(mpData.id),
       mp_qr_code: pointOfInteraction?.qr_code || null,

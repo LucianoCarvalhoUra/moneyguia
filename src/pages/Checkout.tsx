@@ -351,58 +351,12 @@ export default function Checkout() {
   const handleGoToMethod = async () => {
     if (!validateForm()) return;
     
-    // Se é plano FREE, pular para confirmação direta
+    // Se é plano FREE, pular para confirmação
     if (isFreePlan) {
-      if (!user) {
-        // Validação extra para senhas
-        if (!form.password || form.password.length < 6) {
-          setErrors({ password: "Senha deve ter pelo menos 6 caracteres" });
-          return;
-        }
-        if (form.password !== form.confirmPassword) {
-          setErrors({ confirmPassword: "As senhas não coincidem" });
-          return;
-        }
-
-        setSubmitting(true);
-        try {
-          const result = await register(form.fullName, form.email, form.password);
-          
-          if (result.success) {
-            // Salvar dados do checkout pendentes
-            localStorage.setItem("checkout_pending_form", JSON.stringify(form));
-            localStorage.setItem("checkout_pending_plan", planId || "");
-            localStorage.setItem("checkout_pending_cycle", cycle);
-            
-            toast.success("Conta criada com sucesso! Bem-vindo ao MoneyGuia.");
-            setStep("confirmation");
-          } else {
-            // Verificar se é erro de email já existente
-            if (result.error?.includes("já está") || result.error?.includes("already")) {
-              toast.error("Este e-mail já possui conta. Por favor, faça login para continuar.");
-              localStorage.setItem("checkout_pending_form", JSON.stringify(form));
-              localStorage.setItem("checkout_pending_plan", planId || "");
-              localStorage.setItem("checkout_pending_cycle", cycle);
-              navigate("/auth?returnTo=checkout");
-            } else {
-              toast.error(result.error || "Erro ao criar conta");
-            }
-          }
-        } catch (err: any) {
-          toast.error(err.message || "Erro ao criar conta");
-        } finally {
-          setSubmitting(false);
-        }
-        return;
-      }
-      
-      // Usuário logado com plano free
       setStep("confirmation");
       return;
     }
     
-    // ✅ NÃO cria conta antes do pagamento. A conta é criada APÓS confirmação do pagamento
-    // O e-mail é enviado para o Mercado Pago, a conta será criada no webhook ou na página de sucesso
     setStep("method");
   };
 

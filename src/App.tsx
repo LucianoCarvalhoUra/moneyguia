@@ -48,7 +48,7 @@ function ProtectedRoute({
   children: React.ReactNode;
   requiredFeature?: "ai_classification" | "advanced_reports" | "extra_control";
 }) {
-  const { isAuthenticated, isLoading, subscriptionStatus, hasFeatureAccess } = useAuth();
+  const { isAuthenticated, isLoading, subscriptionPlan, subscriptionStatus, hasFeatureAccess } = useAuth();
 
   if (isLoading) {
     return (
@@ -64,8 +64,8 @@ function ProtectedRoute({
     return <Navigate to="/auth" replace />;
   }
 
-  // SEMPRE verificar se tem assinatura ativa, inclusive para usuários novos
-  if (subscriptionStatus !== 'active') {
+  // Bloqueia acesso se não tiver plano pago ativo (Premium ou Total)
+  if (subscriptionPlan === 'free' || subscriptionStatus !== 'active') {
     return <Navigate to="/precos" replace />;
   }
 
