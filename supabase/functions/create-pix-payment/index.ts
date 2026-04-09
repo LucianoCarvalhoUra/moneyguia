@@ -1,157 +1,119 @@
-// ✅ Função Pública - Não verifica JWT (configurado em supabase/config.toml verify_jwt = false)
 // @ts-nocheck
+// v3 - public endpoint, sem JWT
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 Deno.serve(async (req) => {
-  console.log("=== FUNÇÃO create-pix-payment INICIADA ===");
-  
+  console.log("=== INICIANDO create-pix-payment ===");
+
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    console.log("✅ Handler iniciado:", req.method, new URL(req.url).pathname);
-    
-    if (req.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
-    }
-    
-    console.log("✅ Passou CORS check");
-    // Parse seguro do body com log
-    let body;
-    try {
-      body = await req.json();
-      console.log("✅ Body recebido:", JSON.stringify(body, null, 2));
-    } catch (e) {
-      console.error("❌ Erro ao parsear body:", e.message);
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), { 
-        status: 400, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      });
-    }
-
-    // Tornamos a autenticação opcional para permitir checkout antes de criar a conta
-    const authHeader = req.headers.get("Authorization");
-    let userId = null;
-
-    if (authHeader?.startsWith("Bearer ")) {
-      console.log("✅ Autenticação detectada, validando token...");
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: authHeader } } }
-      );
-
-      const token = authHeader.replace("Bearer ", "");
-      const { data: claimsData } = await supabase.auth.getClaims(token);
-      userId = claimsData?.claims?.sub || null;
-      console.log("✅ User ID identificado:", userId);
-    } else {
-      console.log("ℹ️ Requisição sem autenticação (checkout anônimo)");
-    }
+    const body = await req.json();
+    console.log("Body recebido:", JSON.stringify(body));
 
     const { planId, billingCycle, amount, fullName, cpf, email } = body;
 
-    // CORREÇÃO: Força o valor para 2 casas decimais (ex: 0.15)
-    const finalAmount = Number(parseFloat(String(amount)).toFixed(2));
-
     if (!planId || !amount || !fullName || !cpf || !email) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing required fields" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    const finalAmount = Number(parseFloat(String(amount)).toFixed(2));
+    console.log("Valor final:", finalAmount);
 
     const mpAccessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+    console.log("Token MP presente:", !!mpAccessToken);
+
     if (!mpAccessToken) {
-      return new Response(JSON.stringify({ error: "Payment gateway not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Payment gateway not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Create payment in Mercado Pago
+    const mpPayload = {
+      transaction_amount: finalAmount,
+      description: `Assinatura MoneyGuia - ${billingCycle === "yearly" ? "Anual" : "Mensal"}`,
+      payment_method_id: "pix",
+      payer: {
+        email: email,
+        first_name: fullName.split(" ")[0],
+        last_name: fullName.split(" ").slice(1).join(" ") || fullName,
+        identification: {
+          type: "CPF",
+          number: cpf.replace(/\D/g, ""),
+        },
+      },
+    };
+
+    console.log("Payload MP:", JSON.stringify(mpPayload));
+
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${mpAccessToken}`,
         "Content-Type": "application/json",
-        "X-Idempotency-Key": `${userId || email}-${planId}-${Date.now()}`
+        "X-Idempotency-Key": `${email}-${planId}-${Date.now()}`,
       },
-      body: JSON.stringify({
-        transaction_amount: finalAmount,
-        description: `Assinatura MoneyGuia - ${billingCycle === "yearly" ? "Anual" : "Mensal"}`,
-        payment_method_id: "pix",
-        payer: {
-          email: email,
-          first_name: fullName.split(" ")[0],
-          last_name: fullName.split(" ").slice(1).join(" ") || fullName,
-          identification: {
-            type: "CPF",
-            number: cpf.replace(/\D/g, ""),
-          },
-        },
-        notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercadopago-webhook`,
-      }),
+      body: JSON.stringify(mpPayload),
     });
 
     const mpData = await mpResponse.json();
+    console.log("MP status:", mpResponse.status);
+    console.log("MP resposta:", JSON.stringify(mpData));
 
     if (!mpResponse.ok) {
-      console.error("Mercado Pago error:", JSON.stringify(mpData));
       return new Response(
-        JSON.stringify({ error: "Erro ao gerar pagamento PIX", details: mpData.message }),
+        JSON.stringify({ error: "Erro ao gerar PIX", details: mpData }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const pointOfInteraction = mpData.point_of_interaction?.transaction_data;
+    const txData = mpData.point_of_interaction?.transaction_data;
 
-    // Save payment record
+    // Salva no banco
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { error: insertError } = await serviceClient.from("payments").insert({
-      user_id: userId,
+    await serviceClient.from("payments").insert({
       plan_id: planId,
       billing_cycle: billingCycle || "monthly",
       amount: finalAmount,
       status: "pending",
       mp_payment_id: String(mpData.id),
-      mp_qr_code: pointOfInteraction?.qr_code || null,
-      mp_qr_code_base64: pointOfInteraction?.qr_code_base64 || null,
-      mp_ticket_url: pointOfInteraction?.ticket_url || null,
+      mp_qr_code: txData?.qr_code || null,
+      mp_qr_code_base64: txData?.qr_code_base64 || null,
+      mp_ticket_url: txData?.ticket_url || null,
     });
-
-    if (insertError) {
-      console.error("Insert error:", insertError);
-    }
 
     return new Response(
       JSON.stringify({
         paymentId: mpData.id,
-        qrCode: pointOfInteraction?.qr_code || null,
-        qrCodeBase64: pointOfInteraction?.qr_code_base64 || null,
-        ticketUrl: pointOfInteraction?.ticket_url || null,
+        qrCode: txData?.qr_code || null,
+        qrCodeBase64: txData?.qr_code_base64 || null,
+        ticketUrl: txData?.ticket_url || null,
         status: mpData.status,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
   } catch (err) {
-    console.error("=== ERRO FATAL NA FUNÇÃO ===", err.message, err.stack);
+    console.error("=== ERRO FATAL ===", err.message);
     return new Response(
-      JSON.stringify({ 
-        error: "Internal server error", 
-        detail: err.message 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      JSON.stringify({ error: "Internal server error", detail: err.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
