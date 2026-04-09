@@ -1,3 +1,4 @@
+// ✅ Função Pública - Não verifica JWT (configurado em supabase/config.toml verify_jwt = false)
 // @ts-nocheck
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
