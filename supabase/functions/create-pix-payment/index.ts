@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -64,7 +65,7 @@ Deno.serve(async (req) => {
         "X-Idempotency-Key": `${userId}-${planId}-${Date.now()}`,
       },
       body: JSON.stringify({
-        transaction_amount: Number(amount),
+         transaction_amount: Math.round(Number(amount) * 100) / 100,
         description: `Assinatura MoneyGuia - ${billingCycle === "yearly" ? "Anual" : "Mensal"}`,
         payment_method_id: "pix",
         payer: {
@@ -102,7 +103,7 @@ Deno.serve(async (req) => {
       user_id: userId,
       plan_id: planId,
       billing_cycle: billingCycle || "monthly",
-      amount: Number(amount),
+       amount: Math.round(Number(amount) * 100) / 100,
       status: "pending",
       mp_payment_id: String(mpData.id),
       mp_qr_code: pointOfInteraction?.qr_code || null,
