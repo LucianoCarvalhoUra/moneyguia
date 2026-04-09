@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -73,7 +74,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    ("Webhook received:", JSON.stringify(body));
+    console.log("✅ Webhook received:", JSON.stringify(body));
 
     // Mercado Pago sends different notification types
     if (body.type !== "payment" && body.action !== "payment.updated") {
@@ -109,7 +110,7 @@ Deno.serve(async (req) => {
       }
     );
     const mpPayment = await mpResponse.json();
-    ("MP payment status:", mpPayment.status);
+    console.log("✅ MP payment status:", mpPayment.status);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -158,7 +159,7 @@ Deno.serve(async (req) => {
       if (subError) {
         console.error("Subscription activation error:", subError);
       } else {
-        ("Subscription activated for user:", payment.user_id);
+        console.log("✅ Subscription activated for user:", payment.user_id);
       }
     }
 

@@ -375,8 +375,18 @@ export default function Checkout() {
         },
       });
 
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
+      // Logs completos para debug
+      console.log("✅ RESPOSTA COMPLETA DA FUNÇÃO create-pix-payment:", JSON.stringify(data, null, 2));
+      console.log("❌ ERRO RETORNADO:", JSON.stringify(error, null, 2));
+      
+      if (error) {
+        console.error("ERRO NA CHAMADA DA FUNÇÃO:", error);
+        throw new Error(error.message);
+      }
+      if (data?.error) {
+        console.error("ERRO DENTRO DO DATA:", data.error, data.details);
+        throw new Error(data.error);
+      }
 
       setPixData(data);
       setStep("payment");

@@ -8,16 +8,34 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+  console.log("✅ Handler iniciado:", req.method, new URL(req.url).pathname);
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  
+  console.log("✅ Passou CORS check");
 
   try {
+    // Parse seguro do body com log
+    let body;
+    try {
+      body = await req.json();
+      console.log("✅ Body recebido:", JSON.stringify(body, null, 2));
+    } catch (e) {
+      console.error("❌ Erro ao parsear body:", e.message);
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), { 
+        status: 400, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
+    }
+
     // Tornamos a autenticação opcional para permitir checkout antes de criar a conta
     const authHeader = req.headers.get("Authorization");
     let userId = null;
 
     if (authHeader?.startsWith("Bearer ")) {
+      console.log("✅ Autenticação detectada, validando token...");
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -27,9 +45,12 @@ Deno.serve(async (req) => {
       const token = authHeader.replace("Bearer ", "");
       const { data: claimsData } = await supabase.auth.getClaims(token);
       userId = claimsData?.claims?.sub || null;
+      console.log("✅ User ID identificado:", userId);
+    } else {
+      console.log("ℹ️ Requisição sem autenticação (checkout anônimo)");
     }
 
-    const { planId, billingCycle, amount, fullName, cpf, email } = await req.json();
+    const { planId, billingCycle, amount, fullName, cpf, email } = body;
 
     // CORREÇÃO: Força o valor para 2 casas decimais (ex: 0.15)
     const finalAmount = Number(parseFloat(String(amount)).toFixed(2));
