@@ -46,10 +46,20 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
   const [incomeSubcategories, setIncomeSubcategories] = useState<IncomeSubcategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (force = false) => {
     if (!user) return;
+
+    // Se os dados já foram carregados e não há um 'force' refresh, não busca novamente.
+    // Isso mantém a navegação instantânea entre as telas de Receitas e Dashboard.
+    if (!force && incomes.length > 0 && incomeCategories.length > 0 && incomeSubcategories.length > 0) {
+      return;
+    }
     
-    setIsLoading(true);
+    // Evita flicker de carregamento se já houver dados carregados
+    const hasData = incomes.length > 0 || incomeCategories.length > 0;
+    if (!hasData || force) {
+      setIsLoading(true);
+    }
     try {
       const [categoriesRes, subcategoriesRes, incomesRes] = await Promise.all([
         supabase.from('income_categories').select('*').eq('user_id', user.id),
@@ -152,7 +162,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, incomes.length, incomeCategories.length, incomeSubcategories.length]);
 
   useEffect(() => {
     if (isAuthenticated && user) {

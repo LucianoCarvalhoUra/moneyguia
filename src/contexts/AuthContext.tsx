@@ -140,7 +140,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     isFetchingRoleRef.current = true;
-    setIsRoleLoading(true);
+    // Só ativa o estado de carregamento se ainda não tivermos a role OU se for um refresh forçado
+    if (!userRole || force) {
+      setIsRoleLoading(true);
+    }
     try {
       const { data, error } = await supabase
         .from('user_roles')
@@ -173,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isFetchingRoleRef.current = false;
       setIsRoleLoading(false);
     }
-  }, [getRoleCacheKey]);
+  }, [getRoleCacheKey, userRole]);
 
   const applyDefaultProfile = useCallback(() => {
     const defaults = getDefaultProfileState();
@@ -202,7 +205,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!force && profileLoadedRef.current && loadedProfileUserIdRef.current === userId) return;
 
     isFetchingProfileRef.current = true;
-    setIsProfileLoading(true);
+    // Carregamento silencioso se já houver dados de plano
+    if (subscriptionPlan === 'free' && !profileLoadedRef.current || force) {
+      setIsProfileLoading(true);
+    }
 
     try {
       const { data, error } = await supabase
@@ -271,7 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isFetchingProfileRef.current = false;
       setIsProfileLoading(false);
     }
-  }, [applyDefaultProfile, getProfileCacheKey]);
+  }, [applyDefaultProfile, getProfileCacheKey, subscriptionPlan]);
 
   const refreshProfile = useCallback(async () => {
     if (!user?.id) return;

@@ -66,10 +66,20 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (force = false) => {
     if (!user) return;
+
+    // Se os dados já foram carregados e não há um 'force' refresh, não busca novamente.
+    // Isso evita o efeito de "carregando" ao navegar entre páginas que usam os mesmos dados.
+    if (!force && expenses.length > 0 && accounts.length > 0 && cards.length > 0 && categories.length > 0 && subcategories.length > 0) {
+      return;
+    }
     
-    setIsLoading(true);
+    // Só exibe o carregamento se a lista estiver vazia ou for um refresh forçado
+    const hasData = expenses.length > 0 || accounts.length > 0 || cards.length > 0;
+    if (!hasData || force) {
+      setIsLoading(true);
+    }
     try {
       // Fetch all data in parallel
       const [accountsRes, cardsRes, categoriesRes, subcategoriesRes, expensesRes] = await Promise.all([
@@ -204,7 +214,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, expenses.length, accounts.length, cards.length, categories.length, subcategories.length]);
 
   useEffect(() => {
     if (isAuthenticated && user) {
