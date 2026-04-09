@@ -9,15 +9,16 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  console.log("✅ Handler iniciado:", req.method, new URL(req.url).pathname);
+  console.log("=== FUNÇÃO create-pix-payment INICIADA ===");
   
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-  
-  console.log("✅ Passou CORS check");
-
   try {
+    console.log("✅ Handler iniciado:", req.method, new URL(req.url).pathname);
+    
+    if (req.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
+    
+    console.log("✅ Passou CORS check");
     // Parse seguro do body com log
     let body;
     try {
@@ -141,10 +142,16 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("=== ERRO FATAL NA FUNÇÃO ===", err.message, err.stack);
+    return new Response(
+      JSON.stringify({ 
+        error: "Internal server error", 
+        detail: err.message 
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
+    );
   }
 });
