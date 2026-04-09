@@ -1,6 +1,5 @@
 // @ts-nocheck
-// v3 - public endpoint, sem JWT
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// v4 - sem imports externos
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +8,7 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  console.log("=== INICIANDO create-pix-payment ===");
+  console.log("=== v4 INICIANDO ===");
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -17,7 +16,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    console.log("Body recebido:", JSON.stringify(body));
+    console.log("Body:", JSON.stringify(body));
 
     const { planId, billingCycle, amount, fullName, cpf, email } = body;
 
@@ -29,34 +28,17 @@ Deno.serve(async (req) => {
     }
 
     const finalAmount = Number(parseFloat(String(amount)).toFixed(2));
-    console.log("Valor final:", finalAmount);
-
     const mpAccessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
-    console.log("Token MP presente:", !!mpAccessToken);
+
+    console.log("Token presente:", !!mpAccessToken);
+    console.log("Valor:", finalAmount);
 
     if (!mpAccessToken) {
       return new Response(
-        JSON.stringify({ error: "Payment gateway not configured" }),
+        JSON.stringify({ error: "MERCADOPAGO_ACCESS_TOKEN não configurado" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const mpPayload = {
-      transaction_amount: finalAmount,
-      description: `Assinatura MoneyGuia - ${billingCycle === "yearly" ? "Anual" : "Mensal"}`,
-      payment_method_id: "pix",
-      payer: {
-        email: email,
-        first_name: fullName.split(" ")[0],
-        last_name: fullName.split(" ").slice(1).join(" ") || fullName,
-        identification: {
-          type: "CPF",
-          number: cpf.replace(/\D/g, ""),
-        },
-      },
-    };
-
-    console.log("Payload MP:", JSON.stringify(mpPayload));
 
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
@@ -65,7 +47,20 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
         "X-Idempotency-Key": `${email}-${planId}-${Date.now()}`,
       },
-      body: JSON.stringify(mpPayload),
+      body: JSON.stringify({
+        transaction_amount: finalAmount,
+        description: `Assinatura MoneyGuia - ${billingCycle === "yearly" ? "Anual" : "Mensal"}`,
+        payment_method_id: "pix",
+        payer: {
+          email: email,
+          first_name: fullName.split(" ")[0],
+          last_name: fullName.split(" ").slice(1).join(" ") || fullName,
+          identification: {
+            type: "CPF",
+            number: cpf.replace(/\D/g, ""),
+          },
+        },
+      }),
     });
 
     const mpData = await mpResponse.json();
@@ -74,29 +69,12 @@ Deno.serve(async (req) => {
 
     if (!mpResponse.ok) {
       return new Response(
-        JSON.stringify({ error: "Erro ao gerar PIX", details: mpData }),
+        JSON.stringify({ error: "Erro MP", details: mpData }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const txData = mpData.point_of_interaction?.transaction_data;
-
-    // Salva no banco
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    await serviceClient.from("payments").insert({
-      plan_id: planId,
-      billing_cycle: billingCycle || "monthly",
-      amount: finalAmount,
-      status: "pending",
-      mp_payment_id: String(mpData.id),
-      mp_qr_code: txData?.qr_code || null,
-      mp_qr_code_base64: txData?.qr_code_base64 || null,
-      mp_ticket_url: txData?.ticket_url || null,
-    });
 
     return new Response(
       JSON.stringify({
@@ -110,9 +88,9 @@ Deno.serve(async (req) => {
     );
 
   } catch (err) {
-    console.error("=== ERRO FATAL ===", err.message);
+    console.error("ERRO FATAL:", err.message);
     return new Response(
-      JSON.stringify({ error: "Internal server error", detail: err.message }),
+      JSON.stringify({ error: err.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
