@@ -463,6 +463,26 @@ export default function Checkout() {
       const result = await register(accountForm.name, form.email, accountForm.password);
       
       if (result.success) {
+        if (pixData?.paymentId && pixData?.lookupToken && result.userId && planId) {
+          const { error: claimError, data: claimData } = await supabase.functions.invoke("claim-pix-payment", {
+            body: {
+              paymentId: pixData.paymentId,
+              lookupToken: pixData.lookupToken,
+              planId,
+              billingCycle: cycle,
+              userId: result.userId,
+            },
+          });
+
+          if (claimError) {
+            throw new Error(claimError.message || "Erro ao vincular pagamento à conta");
+          }
+
+          if (claimData?.error) {
+            throw new Error(claimData.error);
+          }
+        }
+
         // Salvar dados do checkout pendentes para o webhook processar
         localStorage.setItem("checkout_completed_data", JSON.stringify({
           planId,
