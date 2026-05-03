@@ -81,6 +81,7 @@ interface Plan {
 
 interface PixData {
   paymentId: string;
+  lookupToken?: string | null;
   qrCode: string | null;
   qrCodeBase64: string | null;
   ticketUrl: string | null;
@@ -215,11 +216,12 @@ export default function Checkout() {
 
     const checkStatus = async () => {
       try {
-        const { data, error } = await supabase
-          .from("payments")
-          .select("status")
-          .eq("mp_payment_id", pixData.paymentId)
-          .single();
+        const { data, error } = await supabase.functions.invoke("pix-payment-status", {
+          body: {
+            paymentId: pixData.paymentId,
+            lookupToken: pixData.lookupToken,
+          },
+        });
 
         if (!error && data?.status === "approved") {
           // Se não tem usuário logado, vai para criação de conta
@@ -364,38 +366,21 @@ export default function Checkout() {
     setPaymentMethod("pix");
     setSubmitting(true);
     try {
-      // ✅ Usa token do usuário logado se existir, senão continua anônimo
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke("create-pix-payment", {
+        body: {
+          planId: plan!.id,
+          billingCycle: cycle,
+          amount: finalPrice,
+          fullName: form.fullName,
+          cpf: form.cpf,
+          email: form.email,
+        },
+      });
 
-      const response = await fetch(
-        "https://uuirvevhvjvnubihnstz.supabase.co/functions/v1/create-pix-payment",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            planId: plan!.id,
-            billingCycle: cycle,
-            amount: finalPrice,
-            fullName: form.fullName,
-            cpf: form.cpf,
-            email: form.email,
-          }),
-        }
-      );
-
-      const data = await response.json();
-      console.log("✅ Status HTTP:", response.status);
-      console.log("✅ Resposta completa:", JSON.stringify(data, null, 2));
-      
-      if (!response.ok) {
-        console.error("❌ Erro HTTP na resposta:", data);
-        throw new Error(data.error || `Erro ${response.status}`);
+      if (error) {
+        throw new Error(error.message || "Erro ao gerar PIX");
       }
-      
+
       if (data?.error) {
         console.error("❌ Erro retornado pela função:", data.error, data.details);
         throw new Error(data.error);
@@ -426,11 +411,14 @@ export default function Checkout() {
   const handleCheckPayment = async () => {
     setCheckingPayment(true);
     try {
-      const { data } = await supabase
-        .from("payments")
-        .select("status")
-        .eq("mp_payment_id", pixData?.paymentId || "")
-        .single();
+      const { data, error } = await supabase.functions.invoke("pix-payment-status", {
+        body: {
+          paymentId: pixData?.paymentId || "",
+          lookupToken: pixData?.lookupToken,
+        },
+      });
+
+      if (error) throw error;
 
       if (data?.status === "approved") {
         // Se não tem usuário logado, vai para criação de conta
