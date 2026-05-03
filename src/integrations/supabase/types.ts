@@ -77,6 +77,30 @@ export type Database = {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          discount_percentage: number
+          id: string
+          is_active: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_percentage: number
+          id?: string
+          is_active?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_percentage?: number
+          id?: string
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
       credit_cards: {
         Row: {
           brand: string
@@ -225,7 +249,7 @@ export type Database = {
           scheduled_date?: string | null
           subcategory_id?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           account_id?: string | null
@@ -893,30 +917,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      },
-      coupons: {
-        Row: {
-          id: string
-          code: string
-          discount_percentage: number
-          is_active: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          code: string
-          discount_percentage: number
-          is_active?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          code?: string
-          discount_percentage?: number
-          is_active?: boolean
-          created_at?: string
-        }
-        Relationships: []
       }
     }
     Views: {
