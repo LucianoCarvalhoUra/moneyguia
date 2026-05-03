@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { error: insertError } = await serviceClient.from("payments").insert({
+    const { data: insertedPayment, error: insertError } = await serviceClient.from("payments").insert({
       user_id: userId,
       plan_id: planId,
       billing_cycle: billingCycle || "monthly",
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
       status: mpData.status,
       mp_payment_id: String(mpData.id),
       payer_email: email,
-    });
+    }).select("payment_lookup_token").single();
 
     if (insertError) {
       console.error("Erro ao inserir payment:", insertError);
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         paymentId: mpData.id,
-        lookupToken: insertError ? null : undefined,
+        lookupToken: insertedPayment?.payment_lookup_token ?? null,
         qrCode: txData?.qr_code || null,
         qrCodeBase64: txData?.qr_code_base64 || null,
         ticketUrl: txData?.ticket_url || null,
