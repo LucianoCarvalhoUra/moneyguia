@@ -364,6 +364,14 @@ export default function Checkout() {
 
   const handleSelectPix = async () => {
     setPaymentMethod("pix");
+
+    // Guard: ensure required fields are filled before calling the edge function
+    if (!form.fullName?.trim() || !form.cpf?.trim() || !form.email?.trim()) {
+      toast.error("Preencha seus dados antes de continuar.");
+      setStep("info");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-pix-payment", {
