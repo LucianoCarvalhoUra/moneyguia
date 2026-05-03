@@ -107,6 +107,10 @@ Deno.serve(async (req) => {
 
     if (insertError) {
       console.error("Erro ao inserir payment:", insertError);
+      return new Response(
+        JSON.stringify({ error: "Erro ao registrar pagamento" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const txData = mpData.point_of_interaction?.transaction_data;
