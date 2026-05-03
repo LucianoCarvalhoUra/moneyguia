@@ -630,10 +630,12 @@ export type Database = {
           mp_qr_code: string | null
           mp_qr_code_base64: string | null
           mp_ticket_url: string | null
+          payer_email: string | null
+          payment_lookup_token: string
           plan_id: string
           status: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           amount: number
@@ -644,10 +646,12 @@ export type Database = {
           mp_qr_code?: string | null
           mp_qr_code_base64?: string | null
           mp_ticket_url?: string | null
+          payer_email?: string | null
+          payment_lookup_token?: string
           plan_id: string
           status?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -658,10 +662,12 @@ export type Database = {
           mp_qr_code?: string | null
           mp_qr_code_base64?: string | null
           mp_ticket_url?: string | null
+          payer_email?: string | null
+          payment_lookup_token?: string
           plan_id?: string
           status?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
