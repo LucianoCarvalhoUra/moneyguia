@@ -1,5 +1,5 @@
 // @ts-nocheck
-// v5 - persist payment + notification_url + JWT validation
+// v6 - guest checkout support + secure payment lookup token
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -10,38 +10,28 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  console.log("=== create-pix-payment v5 ===");
+  console.log("=== create-pix-payment v6 ===");
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Validate JWT
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabase = createClient(
-      supabaseUrl,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    let userId: string | null = null;
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (authHeader?.startsWith("Bearer ")) {
+      const supabase = createClient(
+        supabaseUrl,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData } = await supabase.auth.getClaims(token);
+      userId = typeof claimsData?.claims?.sub === "string" ? claimsData.claims.sub : null;
     }
-    const userId = claimsData.claims.sub;
 
     const body = await req.json();
     const { planId, billingCycle, amount, fullName, cpf, email } = body;
@@ -105,17 +95,22 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { error: insertError } = await serviceClient.from("payments").insert({
+    const { data: insertedPayment, error: insertError } = await serviceClient.from("payments").insert({
       user_id: userId,
       plan_id: planId,
       billing_cycle: billingCycle || "monthly",
       amount: finalAmount,
       status: mpData.status,
       mp_payment_id: String(mpData.id),
-    });
+      payer_email: email,
+    }).select("payment_lookup_token").single();
 
     if (insertError) {
       console.error("Erro ao inserir payment:", insertError);
+      return new Response(
+        JSON.stringify({ error: "Erro ao registrar pagamento" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const txData = mpData.point_of_interaction?.transaction_data;
@@ -123,6 +118,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         paymentId: mpData.id,
+        lookupToken: insertedPayment?.payment_lookup_token ?? null,
         qrCode: txData?.qr_code || null,
         qrCodeBase64: txData?.qr_code_base64 || null,
         ticketUrl: txData?.ticket_url || null,

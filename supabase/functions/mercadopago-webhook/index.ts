@@ -132,8 +132,8 @@ Deno.serve(async (req) => {
       console.error("Update payment error:", updateError);
     }
 
-    // If payment approved, activate subscription
-    if (mpPayment.status === "approved" && payment) {
+    // If payment approved and already linked to a user, activate subscription
+    if (mpPayment.status === "approved" && payment?.user_id) {
       const now = new Date();
       const expiresAt = new Date(now);
       if (payment.billing_cycle === "yearly") {
@@ -161,6 +161,8 @@ Deno.serve(async (req) => {
       } else {
         console.log("✅ Subscription activated for user:", payment.user_id);
       }
+    } else if (mpPayment.status === "approved" && payment && !payment.user_id) {
+      console.log("ℹ️ Approved payment waiting for account linking:", paymentId);
     }
 
     return new Response(JSON.stringify({ ok: true }), {
