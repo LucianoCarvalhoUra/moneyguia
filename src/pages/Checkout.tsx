@@ -285,6 +285,7 @@ export default function Checkout() {
         });
 
         if (!error && data?.status === "approved") {
+          localStorage.removeItem("checkout_pending_pix");
           // Se não tem usuário logado, vai para criação de conta
           if (!user) {
             setAccountForm(prev => ({ ...prev, name: form.fullName }));
