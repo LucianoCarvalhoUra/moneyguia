@@ -408,6 +408,11 @@ export default function Checkout() {
       }
 
       setPixData(data);
+      // Persist so user can resume after refresh / closing tab
+      try {
+        localStorage.setItem("checkout_pending_pix", JSON.stringify(data));
+        localStorage.setItem("checkout_pending_form", JSON.stringify({ ...form, password: "", confirmPassword: "" }));
+      } catch {}
       setStep("payment");
     } catch (err: any) {
       toast.error("Erro ao gerar PIX: " + (err.message || "Tente novamente"));
