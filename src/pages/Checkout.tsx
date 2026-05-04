@@ -183,6 +183,19 @@ export default function Checkout() {
         setForm({ ...parsed, password: "", confirmPassword: "" });
       } catch {}
     }
+
+    // Restore pending PIX payment if there is one
+    const savedPix = localStorage.getItem("checkout_pending_pix");
+    if (savedPix) {
+      try {
+        const parsed = JSON.parse(savedPix);
+        if (parsed?.paymentId) {
+          setPixData(parsed);
+          setPaymentMethod("pix");
+          setStep("payment");
+        }
+      } catch {}
+    }
   }, []);
 
   useEffect(() => {
