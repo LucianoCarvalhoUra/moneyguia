@@ -113,6 +113,7 @@ const clearCheckoutData = () => {
   localStorage.removeItem("checkout_pending_form");
   localStorage.removeItem("checkout_pending_plan");
   localStorage.removeItem("checkout_pending_cycle");
+  localStorage.removeItem("checkout_pending_pix");
   localStorage.removeItem("checkout_completed_data");
   sessionStorage.clear();
 };
@@ -148,6 +149,53 @@ export default function Checkout() {
   const [accountErrors, setAccountErrors] = useState<Record<string, string>>({});
   const [creatingAccount, setCreatingAccount] = useState(false);
 
+  const [recoverId, setRecoverId] = useState("");
+  const [recovering, setRecovering] = useState(false);
+
+  const handleRecoverPayment = async () => {
+    const id = recoverId.trim();
+    if (!id) {
+      toast.error("Digite o ID do pagamento.");
+      return;
+    }
+    setRecovering(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-pix-payment", {
+        body: { paymentId: id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const restored: PixData = {
+        paymentId: id,
+        lookupToken: null,
+        qrCode: null,
+        qrCodeBase64: null,
+        ticketUrl: null,
+        status: data?.status || "pending",
+      };
+      setPixData(restored);
+      setPaymentMethod("pix");
+
+      if (data?.status === "approved") {
+        if (!user) {
+          setAccountForm(prev => ({ ...prev, name: form.fullName }));
+          setStep("create-account");
+        } else {
+          setStep("confirmation");
+        }
+        toast.success("Pagamento aprovado! Continue seu cadastro.");
+      } else {
+        setStep("payment");
+        toast.info(`Status atual: ${data?.status || "pendente"}. Você pode continuar verificando.`);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível recuperar este pagamento.");
+    } finally {
+      setRecovering(false);
+    }
+  };
+
   const [form, setForm] = useState({
     fullName: "",
     cpf: "",
@@ -181,6 +229,19 @@ export default function Checkout() {
         const parsed = JSON.parse(savedForm);
         // Don't pre-fill passwords for security
         setForm({ ...parsed, password: "", confirmPassword: "" });
+      } catch {}
+    }
+
+    // Restore pending PIX payment if there is one
+    const savedPix = localStorage.getItem("checkout_pending_pix");
+    if (savedPix) {
+      try {
+        const parsed = JSON.parse(savedPix);
+        if (parsed?.paymentId) {
+          setPixData(parsed);
+          setPaymentMethod("pix");
+          setStep("payment");
+        }
       } catch {}
     }
   }, []);
@@ -224,6 +285,7 @@ export default function Checkout() {
         });
 
         if (!error && data?.status === "approved") {
+          localStorage.removeItem("checkout_pending_pix");
           // Se não tem usuário logado, vai para criação de conta
           if (!user) {
             setAccountForm(prev => ({ ...prev, name: form.fullName }));
@@ -395,6 +457,11 @@ export default function Checkout() {
       }
 
       setPixData(data);
+      // Persist so user can resume after refresh / closing tab
+      try {
+        localStorage.setItem("checkout_pending_pix", JSON.stringify(data));
+        localStorage.setItem("checkout_pending_form", JSON.stringify({ ...form, password: "", confirmPassword: "" }));
+      } catch {}
       setStep("payment");
     } catch (err: any) {
       toast.error("Erro ao gerar PIX: " + (err.message || "Tente novamente"));
@@ -721,6 +788,29 @@ export default function Checkout() {
                     <span className="text-lg font-semibold">Cartão de Crédito</span>
                     <span className="text-sm text-muted-foreground">Parcele em até 12x</span>
                   </button>
+                </div>
+
+                {/* Recuperar pagamento PIX existente */}
+                <div className="mt-8 rounded-xl border border-dashed border-border bg-muted/30 p-4">
+                  <Label className="text-sm font-semibold mb-1 block">Já fez um PIX e quer continuar?</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Cole o ID do pagamento (Mercado Pago) para recuperar e seguir o cadastro sem gerar um novo.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      className="bg-background"
+                      placeholder="Ex: 156850283313"
+                      value={recoverId}
+                      onChange={(e) => setRecoverId(e.target.value)}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={handleRecoverPayment}
+                      disabled={recovering || !recoverId.trim()}
+                    >
+                      {recovering ? <Loader2 className="w-4 h-4 animate-spin" /> : "Recuperar"}
+                    </Button>
+                  </div>
                 </div>
 
                 <Button variant="ghost" onClick={() => setStep("info")} className="mt-6 w-full text-muted-foreground">
