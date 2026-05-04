@@ -789,6 +789,29 @@ export default function Checkout() {
                   </button>
                 </div>
 
+                {/* Recuperar pagamento PIX existente */}
+                <div className="mt-8 rounded-xl border border-dashed border-border bg-muted/30 p-4">
+                  <Label className="text-sm font-semibold mb-1 block">Já fez um PIX e quer continuar?</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Cole o ID do pagamento (Mercado Pago) para recuperar e seguir o cadastro sem gerar um novo.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      className="bg-background"
+                      placeholder="Ex: 156850283313"
+                      value={recoverId}
+                      onChange={(e) => setRecoverId(e.target.value)}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={handleRecoverPayment}
+                      disabled={recovering || !recoverId.trim()}
+                    >
+                      {recovering ? <Loader2 className="w-4 h-4 animate-spin" /> : "Recuperar"}
+                    </Button>
+                  </div>
+                </div>
+
                 <Button variant="ghost" onClick={() => setStep("info")} className="mt-6 w-full text-muted-foreground">
                   Voltar
                 </Button>
