@@ -149,7 +149,53 @@ export default function Checkout() {
   const [accountErrors, setAccountErrors] = useState<Record<string, string>>({});
   const [creatingAccount, setCreatingAccount] = useState(false);
 
-  const [form, setForm] = useState({
+  const [recoverId, setRecoverId] = useState("");
+  const [recovering, setRecovering] = useState(false);
+
+  const handleRecoverPayment = async () => {
+    const id = recoverId.trim();
+    if (!id) {
+      toast.error("Digite o ID do pagamento.");
+      return;
+    }
+    setRecovering(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-pix-payment", {
+        body: { paymentId: id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const restored: PixData = {
+        paymentId: id,
+        lookupToken: null,
+        qrCode: null,
+        qrCodeBase64: null,
+        ticketUrl: null,
+        status: data?.status || "pending",
+      };
+      setPixData(restored);
+      setPaymentMethod("pix");
+
+      if (data?.status === "approved") {
+        if (!user) {
+          setAccountForm(prev => ({ ...prev, name: form.fullName }));
+          setStep("create-account");
+        } else {
+          setStep("confirmation");
+        }
+        toast.success("Pagamento aprovado! Continue seu cadastro.");
+      } else {
+        setStep("payment");
+        toast.info(`Status atual: ${data?.status || "pendente"}. Você pode continuar verificando.`);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível recuperar este pagamento.");
+    } finally {
+      setRecovering(false);
+    }
+  };
+
     fullName: "",
     cpf: "",
     email: "",
