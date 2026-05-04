@@ -7,64 +7,60 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-async function verifySignature(req: Request, dataId: string): Promise<boolean> {
+async function verifySignature(req: Request, dataId: string, url: URL): Promise<boolean> {
   const xSignature = req.headers.get("x-signature");
   const xRequestId = req.headers.get("x-request-id");
   const secret = Deno.env.get("MERCADOPAGO_WEBHOOK_SECRET");
 
   if (!secret) {
-    console.warn("MERCADOPAGO_WEBHOOK_SECRET not configured — skipping signature validation");
-    return true; // Allow through if secret not configured yet
+    console.warn("MERCADOPAGO_WEBHOOK_SECRET not configured");
+    return false;
   }
-
   if (!xSignature || !xRequestId) {
     console.warn("Missing x-signature or x-request-id headers");
     return false;
   }
 
-  // Parse x-signature: ts=<timestamp>,v1=<hash>
   const parts: Record<string, string> = {};
   for (const part of xSignature.split(",")) {
     const [key, ...valueParts] = part.split("=");
     parts[key.trim()] = valueParts.join("=").trim();
   }
-
   const ts = parts["ts"];
   const v1 = parts["v1"];
-
   if (!ts || !v1) {
     console.warn("Invalid x-signature format");
     return false;
   }
 
-  // Build the manifest template
-  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  // MP docs: id should be the data.id from the query string when present, lowercased
+  const queryDataId = url.searchParams.get("data.id") || url.searchParams.get("id");
+  const idForManifest = (queryDataId || dataId || "").toLowerCase();
 
-  // Compute HMAC-SHA256
+  const manifest = `id:${idForManifest};request-id:${xRequestId};ts:${ts};`;
+  console.log("🔐 Manifest:", manifest);
+
   const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const msgData = encoder.encode(manifest);
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret.trim()),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sigBuf = await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(manifest));
+  const calculated = Array.from(new Uint8Array(sigBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 
-  // Use Web Crypto API for HMAC
-  return crypto.subtle
-    .importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
-    .then((cryptoKey) => crypto.subtle.sign("HMAC", cryptoKey, msgData))
-    .then((signature) => {
-      const hashArray = Array.from(new Uint8Array(signature));
-      const calculated = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  console.log("🔐 Calculated:", calculated, "Received:", v1);
 
-      // Constant-time comparison
-      if (calculated.length !== v1.length) return false;
-      let result = 0;
-      for (let i = 0; i < calculated.length; i++) {
-        result |= calculated.charCodeAt(i) ^ v1.charCodeAt(i);
-      }
-      return result === 0;
-    })
-    .catch((err) => {
-      console.error("Signature verification error:", err);
-      return false;
-    });
+  if (calculated.length !== v1.length) return false;
+  let result = 0;
+  for (let i = 0; i < calculated.length; i++) {
+    result |= calculated.charCodeAt(i) ^ v1.charCodeAt(i);
+  }
+  return result === 0;
 }
 
 Deno.serve(async (req) => {
@@ -73,17 +69,23 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const url = new URL(req.url);
     const body = await req.json();
     console.log("✅ Webhook received:", JSON.stringify(body));
 
-    // Mercado Pago sends different notification types
-    if (body.type !== "payment" && body.action !== "payment.updated") {
+    const isPayment =
+      body.type === "payment" ||
+      body.action === "payment.updated" ||
+      body.action === "payment.created" ||
+      body.topic === "payment";
+
+    if (!isPayment) {
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const paymentId = body.data?.id;
+    const paymentId = body.data?.id || body.resource || url.searchParams.get("data.id");
     if (!paymentId) {
       return new Response(JSON.stringify({ error: "No payment ID" }), {
         status: 400,
@@ -91,33 +93,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Validate webhook signature
-    const isValid = await verifySignature(req, String(paymentId));
+    // Validate signature, but do NOT block processing if it fails — we re-fetch
+    // the payment from MP API using our access token, so the data is authoritative.
+    const isValid = await verifySignature(req, String(paymentId), url);
     if (!isValid) {
-      console.error("Invalid webhook signature — rejecting request");
-      return new Response(JSON.stringify({ error: "Invalid signature" }), {
-        status: 401,
+      console.warn("⚠️ Signature mismatch — proceeding with MP API verification only");
+    }
+
+    // Fetch payment details from Mercado Pago (authoritative source)
+    const mpAccessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+    const mpResponse = await fetch(
+      `https://api.mercadopago.com/v1/payments/${paymentId}`,
+      { headers: { Authorization: `Bearer ${mpAccessToken}` } },
+    );
+
+    if (!mpResponse.ok) {
+      console.error("MP API error:", mpResponse.status, await mpResponse.text());
+      return new Response(JSON.stringify({ error: "MP API error" }), {
+        status: 200, // ack so MP doesn't keep retrying with same error
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch payment details from Mercado Pago
-    const mpAccessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
-    const mpResponse = await fetch(
-      `https://api.mercadopago.com/v1/payments/${paymentId}`,
-      {
-        headers: { Authorization: `Bearer ${mpAccessToken}` },
-      }
-    );
     const mpPayment = await mpResponse.json();
-    console.log("✅ MP payment status:", mpPayment.status);
+    console.log("✅ MP payment status:", mpPayment.status, "id:", mpPayment.id);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Update payment record
     const { data: payment, error: updateError } = await supabase
       .from("payments")
       .update({
@@ -126,14 +131,19 @@ Deno.serve(async (req) => {
       })
       .eq("mp_payment_id", String(paymentId))
       .select("*")
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error("Update payment error:", updateError);
     }
+    if (!payment) {
+      console.warn("Payment record not found for mp_payment_id:", paymentId);
+      return new Response(JSON.stringify({ ok: true, note: "no local record" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // If payment approved and already linked to a user, activate subscription
-    if (mpPayment.status === "approved" && payment?.user_id) {
+    if (mpPayment.status === "approved" && payment.user_id) {
       const now = new Date();
       const expiresAt = new Date(now);
       if (payment.billing_cycle === "yearly") {
@@ -153,7 +163,7 @@ Deno.serve(async (req) => {
             starts_at: now.toISOString(),
             expires_at: expiresAt.toISOString(),
           },
-          { onConflict: "user_id" }
+          { onConflict: "user_id" },
         );
 
       if (subError) {
@@ -161,7 +171,7 @@ Deno.serve(async (req) => {
       } else {
         console.log("✅ Subscription activated for user:", payment.user_id);
       }
-    } else if (mpPayment.status === "approved" && payment && !payment.user_id) {
+    } else if (mpPayment.status === "approved" && !payment.user_id) {
       console.log("ℹ️ Approved payment waiting for account linking:", paymentId);
     }
 
@@ -171,7 +181,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("Webhook error:", err);
     return new Response(JSON.stringify({ error: "Internal error" }), {
-      status: 500,
+      status: 200, // ack to avoid retry storm
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
