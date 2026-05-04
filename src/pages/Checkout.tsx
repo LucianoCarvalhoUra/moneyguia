@@ -419,7 +419,8 @@ export default function Checkout() {
   const handleCheckPayment = async () => {
     setCheckingPayment(true);
     try {
-      const { data, error } = await supabase.functions.invoke("pix-payment-status", {
+      // Sincroniza diretamente com o Mercado Pago (não depende do webhook)
+      const { data, error } = await supabase.functions.invoke("sync-pix-payment", {
         body: {
           paymentId: pixData?.paymentId || "",
           lookupToken: pixData?.lookupToken,
@@ -429,20 +430,21 @@ export default function Checkout() {
       if (error) throw error;
 
       if (data?.status === "approved") {
-        // Se não tem usuário logado, vai para criação de conta
         if (!user) {
-          // Preencher o nome do formulário de dados para a criação de conta
           setAccountForm(prev => ({ ...prev, name: form.fullName }));
           setStep("create-account");
         } else {
           setStep("confirmation");
         }
         toast.success("Pagamento confirmado!");
+      } else if (data?.status === "pending" || data?.status === "in_process") {
+        toast.info("Pagamento ainda não confirmado pelo Mercado Pago. Aguarde alguns instantes.");
       } else {
-        toast.info("Pagamento ainda não confirmado. Aguarde alguns instantes.");
+        toast.warning(`Status atual: ${data?.status || "desconhecido"}`);
       }
-    } catch {
-      toast.error("Erro ao verificar pagamento.");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Erro ao verificar pagamento.");
     } finally {
       setCheckingPayment(false);
     }
