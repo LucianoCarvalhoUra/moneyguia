@@ -196,6 +196,7 @@ export default function Checkout() {
     }
   };
 
+  const [form, setForm] = useState({
     fullName: "",
     cpf: "",
     email: "",
