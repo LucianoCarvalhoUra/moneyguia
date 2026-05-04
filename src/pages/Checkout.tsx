@@ -113,6 +113,7 @@ const clearCheckoutData = () => {
   localStorage.removeItem("checkout_pending_form");
   localStorage.removeItem("checkout_pending_plan");
   localStorage.removeItem("checkout_pending_cycle");
+  localStorage.removeItem("checkout_pending_pix");
   localStorage.removeItem("checkout_completed_data");
   sessionStorage.clear();
 };
