@@ -98,11 +98,13 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         const defaultCats = DEFAULT_INCOME_CATEGORIES.map(cat => {
           const mapping = INCOME_CATEGORY_MAPPING[cat.name];
           return {
-          ...cat,
-          icon: mapping ? mapping.icon : cat.icon,
-          color: mapping ? mapping.color : cat.color,
-          user_id: user.id,
-        }});
+            name: cat.name,
+            icon: mapping ? mapping.icon : cat.icon,
+            color: mapping ? mapping.color : cat.color,
+            is_default: cat.isDefault ?? true,
+            user_id: user.id,
+          };
+        });
         
         const { data: insertedCats } = await supabase
           .from('income_categories')
