@@ -1016,9 +1016,7 @@ export default function Checkout() {
                     : `Seu plano ${plan?.name} foi ativado com sucesso.`
                   }
                 </p>
-                <Link to="/dashboard">
-                  <Button className="mt-6 px-8">Ir para o Dashboard</Button>
-                </Link>
+                <Button onClick={handleConfirmationRedirect} className="mt-6 px-8">Ir para o Dashboard</Button>
               </div>
             )}
           </div>
