@@ -121,7 +121,7 @@ const clearCheckoutData = () => {
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, register } = useAuth();
+  const { user, register, refreshProfile } = useAuth();
 
   const planId = searchParams.get("plan");
   const cycle = searchParams.get("cycle") || "monthly";
@@ -277,7 +277,7 @@ export default function Checkout() {
 
     const checkStatus = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("pix-payment-status", {
+        const { data, error } = await supabase.functions.invoke("sync-pix-payment", {
           body: {
             paymentId: pixData.paymentId,
             lookupToken: pixData.lookupToken,
@@ -286,11 +286,11 @@ export default function Checkout() {
 
         if (!error && data?.status === "approved") {
           localStorage.removeItem("checkout_pending_pix");
-          // Se não tem usuário logado, vai para criação de conta
           if (!user) {
             setAccountForm(prev => ({ ...prev, name: form.fullName }));
             setStep("create-account");
           } else {
+            try { await refreshProfile?.(); } catch {}
             setStep("confirmation");
           }
           toast.success("Pagamento confirmado!");
@@ -350,11 +350,12 @@ export default function Checkout() {
   useEffect(() => {
     if (step === "confirmation") {
       const timer = setTimeout(() => {
-        navigate("/dashboard");
+        handleConfirmationRedirect();
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [step, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -569,6 +570,8 @@ export default function Checkout() {
         }));
         
         toast.success("Conta criada com sucesso!");
+        // Atualiza o perfil/assinatura para que o ProtectedRoute libere o /dashboard
+        try { await refreshProfile?.(); } catch {}
         setStep("confirmation");
         
         // Limpar dados sensíveis após sucesso
@@ -1014,9 +1017,7 @@ export default function Checkout() {
                     : `Seu plano ${plan?.name} foi ativado com sucesso.`
                   }
                 </p>
-                <Link to="/dashboard">
-                  <Button className="mt-6 px-8">Ir para o Dashboard</Button>
-                </Link>
+                <Button onClick={handleConfirmationRedirect} className="mt-6 px-8">Ir para o Dashboard</Button>
               </div>
             )}
           </div>
