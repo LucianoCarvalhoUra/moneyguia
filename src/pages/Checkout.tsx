@@ -569,6 +569,8 @@ export default function Checkout() {
         }));
         
         toast.success("Conta criada com sucesso!");
+        // Atualiza o perfil/assinatura para que o ProtectedRoute libere o /dashboard
+        try { await refreshProfile?.(); } catch {}
         setStep("confirmation");
         
         // Limpar dados sensíveis após sucesso
