@@ -38,28 +38,24 @@ Deno.serve(async (req) => {
       if (lookupToken) {
         query = query.eq("payment_lookup_token", String(lookupToken));
       } else {
+        // Allow lookup by paymentId only — used for guest checkout recovery.
+        // If an auth header is present, scope to the authenticated user.
         const authHeader = req.headers.get("Authorization");
-        if (!authHeader?.startsWith("Bearer ")) {
-          return new Response(JSON.stringify({ error: "Unauthorized" }), {
-            status: 401,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+        const bearerToken = authHeader?.startsWith("Bearer ")
+          ? authHeader.replace("Bearer ", "")
+          : null;
+        if (bearerToken && bearerToken !== anonKey) {
+          const userClient = createClient(
+            Deno.env.get("SUPABASE_URL")!,
+            anonKey,
+            { global: { headers: { Authorization: authHeader! } } },
+          );
+          const { data: claims } = await userClient.auth.getClaims(bearerToken);
+          if (claims?.claims?.sub) {
+            query = query.eq("user_id", claims.claims.sub);
+          }
         }
-        const userClient = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_ANON_KEY")!,
-          { global: { headers: { Authorization: authHeader } } },
-        );
-        const { data: claims } = await userClient.auth.getClaims(
-          authHeader.replace("Bearer ", ""),
-        );
-        if (!claims?.claims?.sub) {
-          return new Response(JSON.stringify({ error: "Unauthorized" }), {
-            status: 401,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        query = query.eq("user_id", claims.claims.sub);
       }
 
       const { data, error } = await query.maybeSingle();
