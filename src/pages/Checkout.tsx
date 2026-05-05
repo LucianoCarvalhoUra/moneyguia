@@ -350,11 +350,12 @@ export default function Checkout() {
   useEffect(() => {
     if (step === "confirmation") {
       const timer = setTimeout(() => {
-        navigate("/dashboard");
+        handleConfirmationRedirect();
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [step, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
