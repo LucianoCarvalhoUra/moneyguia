@@ -66,7 +66,7 @@ function ProtectedRoute({
 
   // Bloqueia acesso se não tiver plano pago ativo (Premium ou Total)
   if (subscriptionPlan === 'free' || subscriptionStatus !== 'active') {
-    return <Navigate to="/precos" replace />;
+    return <Navigate to="/planos" replace />;
   }
 
   if (requiredFeature && !hasFeatureAccess(requiredFeature)) {
