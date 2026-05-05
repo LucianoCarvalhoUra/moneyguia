@@ -32,12 +32,7 @@ export default function LandingPage() {
   const [testimonials, setTestimonials] = useState<Array<{ id: string; rating: number; comment: string | null }>>([]);
   const [loadingTestimonials, setLoadingTestimonials] = useState(true);
 
-  // Auto-login: redireciona usuário logado para o Dashboard
-  useEffect(() => {
-    if (!isLoading && user) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [user, isLoading, navigate]);
+  // Não redirecionar automaticamente — usuário pode visitar a home livremente
 
   // Scroll to section if hash exists in URL
   useEffect(() => {
