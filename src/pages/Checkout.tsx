@@ -570,6 +570,8 @@ export default function Checkout() {
         }));
         
         toast.success("Conta criada com sucesso!");
+        // Garante sessão ativa (signUp pode exigir confirmação de email em alguns ambientes)
+        try { await login(form.email, accountForm.password); } catch {}
         // Atualiza o perfil/assinatura para que o ProtectedRoute libere o /dashboard
         try { await refreshProfile?.(); } catch {}
         setStep("confirmation");
