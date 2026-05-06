@@ -595,7 +595,8 @@ export default function Checkout() {
     setForm(initialFormState);
     setAccountForm({ name: "", password: "", confirmPassword: "" });
     setPixData(null);
-    navigate("/dashboard");
+    // Hard redirect para garantir reavaliação de sessão e assinatura
+    window.location.href = "/dashboard";
   };
 
   const stepIndex = ["info", "method", "payment", "create-account", "confirmation"].indexOf(step);
