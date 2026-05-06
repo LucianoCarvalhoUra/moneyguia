@@ -121,7 +121,7 @@ const clearCheckoutData = () => {
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, register, refreshProfile } = useAuth();
+  const { user, register, login, refreshProfile } = useAuth();
 
   const planId = searchParams.get("plan");
   const cycle = searchParams.get("cycle") || "monthly";
@@ -570,6 +570,8 @@ export default function Checkout() {
         }));
         
         toast.success("Conta criada com sucesso!");
+        // Garante sessão ativa (signUp pode exigir confirmação de email em alguns ambientes)
+        try { await login(form.email, accountForm.password); } catch {}
         // Atualiza o perfil/assinatura para que o ProtectedRoute libere o /dashboard
         try { await refreshProfile?.(); } catch {}
         setStep("confirmation");
@@ -593,7 +595,8 @@ export default function Checkout() {
     setForm(initialFormState);
     setAccountForm({ name: "", password: "", confirmPassword: "" });
     setPixData(null);
-    navigate("/dashboard");
+    // Hard redirect para garantir reavaliação de sessão e assinatura
+    window.location.href = "/dashboard";
   };
 
   const stepIndex = ["info", "method", "payment", "create-account", "confirmation"].indexOf(step);

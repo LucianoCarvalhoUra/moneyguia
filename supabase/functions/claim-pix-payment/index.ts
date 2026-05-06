@@ -34,6 +34,29 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Garante que o profile exista antes de inserir a assinatura (FK user_subscriptions.user_id -> profiles.id)
+    const authUser = userRecord.user;
+    const { data: existingProfile } = await serviceClient
+      .from("profiles")
+      .select("id")
+      .eq("user_id", authUser.id)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      const { error: profileInsertError } = await serviceClient.from("profiles").insert({
+        id: authUser.id,
+        user_id: authUser.id,
+        name: (authUser.user_metadata as any)?.name || authUser.email?.split("@")[0] || "Usuario",
+        email: authUser.email,
+      } as any);
+      if (profileInsertError && !String(profileInsertError.message || "").toLowerCase().includes("duplicate")) {
+        return new Response(JSON.stringify({ error: `Falha ao criar perfil: ${profileInsertError.message}` }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const { data: payment, error: paymentError } = await serviceClient
       .from("payments")
       .update({ user_id: userId })
