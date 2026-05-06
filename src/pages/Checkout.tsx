@@ -121,7 +121,7 @@ const clearCheckoutData = () => {
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, register, refreshProfile } = useAuth();
+  const { user, register, login, refreshProfile } = useAuth();
 
   const planId = searchParams.get("plan");
   const cycle = searchParams.get("cycle") || "monthly";
