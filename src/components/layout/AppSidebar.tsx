@@ -38,6 +38,7 @@ const navItems = [
   { path: "/incomes", label: "Receitas", icon: TrendingUp },
   { path: "/accounts", label: "Contas", icon: CreditCard },
   { path: "/reconciliation", label: "Cartão", icon: FileCheck },
+  { path: "/conciliacao", label: "Conciliação", icon: FileText },
   { path: "/reports", label: "Relatórios", icon: FileText },
 ];
 
