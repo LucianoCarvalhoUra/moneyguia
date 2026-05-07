@@ -256,7 +256,7 @@ export default function Reconciliation() {
               <Input
                 id="file-input"
                 type="file"
-                accept=".ofx,.csv,.txt"
+                accept=".ofx,.csv,.txt,.pdf,application/pdf"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) handleFile(f);
