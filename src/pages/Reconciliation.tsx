@@ -251,7 +251,7 @@ export default function Reconciliation() {
             <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
               <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground mb-3">
-                Envie o arquivo do extrato (.ofx, .csv ou .txt)
+                Envie o arquivo do extrato (.ofx, .csv, .txt ou .pdf)
               </p>
               <Input
                 id="file-input"
@@ -264,7 +264,7 @@ export default function Reconciliation() {
                 className="max-w-sm mx-auto"
               />
               <p className="text-xs text-muted-foreground mt-3">
-                Bancos suportados: Itaú, Santander e C6 Bank. OFX é detectado automaticamente.
+                Bancos suportados: Itaú, Santander e C6 Bank. OFX é detectado automaticamente. PDFs e textos não estruturados também são interpretados — nada é incluído antes da sua confirmação.
               </p>
             </div>
           </CardContent>
