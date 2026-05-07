@@ -68,10 +68,21 @@ export default function Reconciliation() {
 
   const handleFile = async (file: File) => {
     try {
-      const text = await file.text();
+      let text: string;
+      const isPdf =
+        file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+      if (isPdf) {
+        toast.info("Lendo PDF...");
+        const { extractPdfText } = await import("@/lib/statement-parsers/pdf");
+        text = await extractPdfText(file);
+      } else {
+        text = await file.text();
+      }
       const txns = parseStatement(text, bank);
       if (!txns.length) {
-        toast.error("Não foi possível extrair lançamentos. Verifique o banco e o formato.");
+        toast.error(
+          "Não foi possível extrair lançamentos. Verifique o banco e o formato (CSV, TXT, OFX ou PDF).",
+        );
         return;
       }
       setFileName(file.name);
