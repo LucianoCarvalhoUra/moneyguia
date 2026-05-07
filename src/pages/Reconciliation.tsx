@@ -68,10 +68,21 @@ export default function Reconciliation() {
 
   const handleFile = async (file: File) => {
     try {
-      const text = await file.text();
+      let text: string;
+      const isPdf =
+        file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+      if (isPdf) {
+        toast.info("Lendo PDF...");
+        const { extractPdfText } = await import("@/lib/statement-parsers/pdf");
+        text = await extractPdfText(file);
+      } else {
+        text = await file.text();
+      }
       const txns = parseStatement(text, bank);
       if (!txns.length) {
-        toast.error("Não foi possível extrair lançamentos. Verifique o banco e o formato.");
+        toast.error(
+          "Não foi possível extrair lançamentos. Verifique o banco e o formato (CSV, TXT, OFX ou PDF).",
+        );
         return;
       }
       setFileName(file.name);
@@ -240,12 +251,12 @@ export default function Reconciliation() {
             <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
               <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground mb-3">
-                Envie o arquivo do extrato (.ofx, .csv ou .txt)
+                Envie o arquivo do extrato (.ofx, .csv, .txt ou .pdf)
               </p>
               <Input
                 id="file-input"
                 type="file"
-                accept=".ofx,.csv,.txt"
+                accept=".ofx,.csv,.txt,.pdf,application/pdf"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) handleFile(f);
@@ -253,7 +264,7 @@ export default function Reconciliation() {
                 className="max-w-sm mx-auto"
               />
               <p className="text-xs text-muted-foreground mt-3">
-                Bancos suportados: Itaú, Santander e C6 Bank. OFX é detectado automaticamente.
+                Bancos suportados: Itaú, Santander e C6 Bank. OFX é detectado automaticamente. PDFs e textos não estruturados também são interpretados — nada é incluído antes da sua confirmação.
               </p>
             </div>
           </CardContent>
