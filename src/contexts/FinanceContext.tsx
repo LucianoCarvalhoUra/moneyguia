@@ -180,11 +180,38 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       }
 
       if (expensesRes.data) {
-        setExpenses((expensesRes.data as any[]).map(e => {
-          const parseLocalDate = (dateStr: string) => {
-            const parts = dateStr.split('T')[0].split('-').map(Number);
-            return new Date(parts[0], parts[1] - 1, parts[2]);
-          };
+        const parseLocalDate = (dateStr: string) => {
+          const parts = dateStr.split('T')[0].split('-').map(Number);
+          return new Date(parts[0], parts[1] - 1, parts[2]);
+        };
+
+        // Compute current_installment dynamically per recurrence group, ordered by due_date.
+        // This corrects legacy/inconsistent data where the stored current_installment is wrong.
+        const rows = expensesRes.data as any[];
+        const positionByRow: Record<string, { position: number; total: number }> = {};
+        const groups: Record<string, any[]> = {};
+        for (const r of rows) {
+          const rid = r.recurrence_id;
+          if (!rid) continue;
+          (groups[rid] ||= []).push(r);
+        }
+        for (const rid of Object.keys(groups)) {
+          const sorted = groups[rid].slice().sort((a, b) => {
+            const da = a.due_date || '';
+            const db = b.due_date || '';
+            if (da !== db) return da.localeCompare(db);
+            return (a.created_at || '').localeCompare(b.created_at || '');
+          });
+          const total = sorted.length;
+          sorted.forEach((r, idx) => {
+            positionByRow[r.id] = { position: idx + 1, total };
+          });
+        }
+
+        setExpenses(rows.map(e => {
+          const pos = positionByRow[e.id];
+          const computedCurrent = pos ? pos.position : (e.current_installment || undefined);
+          const computedTotal = pos ? pos.total : (e.installments || undefined);
           return {
             id: e.id,
             categoryId: e.category_id || '',
@@ -197,8 +224,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             accountId: e.account_id || undefined,
             cardId: e.card_id || undefined,
             isRecurring: e.is_recurring,
-            installments: e.installments || undefined,
-            currentInstallment: e.current_installment || undefined,
+            installments: computedTotal,
+            currentInstallment: computedCurrent,
             observation: e.observation || undefined,
             isPaid: e.is_paid ?? false,
             recurrenceId: (e as any).recurrence_id || undefined,
