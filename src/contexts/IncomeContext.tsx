@@ -133,11 +133,36 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       }
 
       if (incomesRes.data) {
-        setIncomes(incomesRes.data.map(i => {
+        const rows = incomesRes.data as any[];
+        // Compute current_installment dynamically per recurrence group ordered by receive_date
+        const positionByRow: Record<string, { position: number; total: number }> = {};
+        const groups: Record<string, any[]> = {};
+        for (const r of rows) {
+          const rid = (r as any).recurrence_id;
+          if (!rid) continue;
+          (groups[rid] ||= []).push(r);
+        }
+        for (const rid of Object.keys(groups)) {
+          const sorted = groups[rid].slice().sort((a, b) => {
+            const da = a.receive_date || '';
+            const db = b.receive_date || '';
+            if (da !== db) return da.localeCompare(db);
+            return (a.created_at || '').localeCompare(b.created_at || '');
+          });
+          const total = sorted.length;
+          sorted.forEach((r, idx) => {
+            positionByRow[r.id] = { position: idx + 1, total };
+          });
+        }
+
+        setIncomes(rows.map(i => {
           // Parse date string as local date to avoid timezone issues
           const [year, month, day] = i.receive_date.split('-').map(Number);
           const receiveDate = new Date(year, month - 1, day);
-          
+          const pos = positionByRow[i.id];
+          const computedCurrent = pos ? pos.position : ((i as any).current_installment || undefined);
+          const computedTotal = pos ? pos.total : ((i as any).installments || undefined);
+
           return {
             id: i.id,
             categoryId: i.category_id || '',
@@ -151,8 +176,8 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             accountId: i.account_id || undefined,
             recurrenceId: (i as any).recurrence_id || undefined,
             excludeFromCalculations: i.exclude_from_calculations ?? false,
-            installments: (i as any).installments || undefined,
-            currentInstallment: (i as any).current_installment || undefined,
+            installments: computedTotal,
+            currentInstallment: computedCurrent,
             userId: i.user_id,
             createdAt: new Date(i.created_at),
           };
