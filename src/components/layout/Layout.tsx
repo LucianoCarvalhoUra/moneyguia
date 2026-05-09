@@ -20,6 +20,29 @@ export default function Layout({ children }: LayoutProps) {
   const [lgpdLoading, setLgpdLoading] = useState(true);
   const shouldShowCsat = location.pathname.startsWith("/dashboard");
 
+  const ROUTE_TITLES: Record<string, string> = {
+    "/dashboard": "Dashboard",
+    "/goals": "Metas",
+    "/expenses": "Despesas",
+    "/incomes": "Receitas",
+    "/accounts": "Contas",
+    "/reconciliation": "Conciliação de Cartão",
+    "/conciliacao": "Conciliação Bancária",
+    "/reports": "Relatórios",
+    "/subscription": "Assinatura",
+    "/settings": "Configurações",
+    "/admin": "Admin",
+    "/admin/csat": "CSAT",
+    "/plans": "Planos",
+    "/planos": "Planos",
+  };
+  const currentTitle =
+    Object.entries(ROUTE_TITLES).find(([path]) => location.pathname.startsWith(path))?.[1] || "MoneyGuia";
+
+  useEffect(() => {
+    document.title = `${currentTitle} | MoneyGuia`;
+  }, [currentTitle]);
+
   const checkLgpdTerms = useCallback(async () => {
     try {
       if (!isAuthenticated || !user?.id) {
