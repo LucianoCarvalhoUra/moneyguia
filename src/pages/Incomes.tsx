@@ -35,6 +35,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { Income } from '@/types/income';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import GroupsPanel, { GroupedItem } from '@/components/groups/GroupsPanel';
 
 export default function Incomes() {
   const location = useLocation();
