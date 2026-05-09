@@ -66,6 +66,7 @@ export default function Expenses() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const getMonthLabel = (monthIndex: number) => {
     const label = format(new Date(selectedYear, monthIndex, 1), 'MMMM', { locale: ptBR });
