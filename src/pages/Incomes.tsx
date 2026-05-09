@@ -450,6 +450,19 @@ export default function Incomes() {
         </CardContent>
       </Card>
 
+      <GroupsPanel
+        kind="income"
+        draggingId={draggingId}
+        items={filteredIncomes.map<GroupedItem>(i => ({
+          id: i.id,
+          groupId: (i as any).groupId,
+          primary: i.title,
+          secondary: (incomeCategories.find(c => c.id === i.categoryId)?.name) || undefined,
+          amount: i.amount,
+        }))}
+        onChanged={() => refreshData()}
+      />
+
       <Card>
         <CardContent className="p-0">
           <Table>
