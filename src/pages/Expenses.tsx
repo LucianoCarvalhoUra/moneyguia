@@ -430,6 +430,20 @@ export default function Expenses() {
         </CardContent>
       </Card>
       
+      {/* Agrupamentos */}
+      <GroupsPanel
+        kind="expense"
+        draggingId={draggingId}
+        items={filteredExpenses.map<GroupedItem>(e => ({
+          id: e.id,
+          groupId: (e as any).groupId,
+          primary: e.description,
+          secondary: (categories.find(c => c.id === e.categoryId)?.name) || undefined,
+          amount: e.amount,
+        }))}
+        onChanged={() => refreshData()}
+      />
+
       {/* Table */}
       <Card>
         <CardContent className="p-0">
