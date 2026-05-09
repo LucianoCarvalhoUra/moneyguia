@@ -93,7 +93,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex-1 flex min-w-0 flex-col overflow-x-hidden transition-all duration-300">
             <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-sm lg:px-6">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-              <span className="text-sm font-medium text-muted-foreground md:hidden">MoneyGuia</span>
+              <span className="text-sm font-semibold text-foreground truncate">{currentTitle}</span>
             </header>
             <main className="flex-1 overflow-x-hidden p-4 lg:p-6">
               <div className="w-full min-w-0 rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 lg:p-7">
