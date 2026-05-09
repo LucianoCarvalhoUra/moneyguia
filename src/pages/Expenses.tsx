@@ -35,6 +35,7 @@ import { Expense } from '@/types/finance';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EyeOff } from 'lucide-react';
+import GroupsPanel, { GroupedItem } from '@/components/groups/GroupsPanel';
 
 export default function Expenses() {
   const location = useLocation();
@@ -64,6 +65,7 @@ export default function Expenses() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const getMonthLabel = (monthIndex: number) => {
     const label = format(new Date(selectedYear, monthIndex, 1), 'MMMM', { locale: ptBR });
@@ -427,6 +429,20 @@ export default function Expenses() {
         </CardContent>
       </Card>
       
+      {/* Agrupamentos */}
+      <GroupsPanel
+        kind="expense"
+        draggingId={draggingId}
+        items={filteredExpenses.map<GroupedItem>(e => ({
+          id: e.id,
+          groupId: (e as any).groupId,
+          primary: e.description,
+          secondary: (categories.find(c => c.id === e.categoryId)?.name) || undefined,
+          amount: e.amount,
+        }))}
+        onChanged={() => refreshData()}
+      />
+
       {/* Table */}
       <Card>
         <CardContent className="p-0">
@@ -474,7 +490,22 @@ export default function Expenses() {
                     const isPaid = expense.isPaid;
 
                     return (
-                    <TableRow key={expense.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleEdit(expense)}>
+                    <TableRow
+                      key={expense.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', expense.id);
+                        e.dataTransfer.effectAllowed = 'move';
+                        setDraggingId(expense.id);
+                      }}
+                      onDragEnd={() => setDraggingId(null)}
+                      className={cn(
+                        "cursor-pointer hover:bg-muted/50 transition-colors",
+                        draggingId === expense.id && "opacity-40",
+                        (expense as any).groupId && "bg-primary/5",
+                      )}
+                      onClick={() => handleEdit(expense)}
+                    >
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {(expense as any).excludeFromCalculations && (

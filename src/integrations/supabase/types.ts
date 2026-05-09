@@ -214,6 +214,7 @@ export type Database = {
           due_date: string
           exclude_from_calculations: boolean | null
           expense_date: string
+          group_id: string | null
           id: string
           installments: number | null
           is_paid: boolean
@@ -238,6 +239,7 @@ export type Database = {
           due_date: string
           exclude_from_calculations?: boolean | null
           expense_date: string
+          group_id?: string | null
           id?: string
           installments?: number | null
           is_paid?: boolean
@@ -262,6 +264,7 @@ export type Database = {
           due_date?: string
           exclude_from_calculations?: boolean | null
           expense_date?: string
+          group_id?: string | null
           id?: string
           installments?: number | null
           is_paid?: boolean
@@ -469,6 +472,7 @@ export type Database = {
           current_installment: number | null
           description: string | null
           exclude_from_calculations: boolean | null
+          group_id: string | null
           id: string
           installments: number | null
           is_received: boolean
@@ -490,6 +494,7 @@ export type Database = {
           current_installment?: number | null
           description?: string | null
           exclude_from_calculations?: boolean | null
+          group_id?: string | null
           id?: string
           installments?: number | null
           is_received?: boolean
@@ -511,6 +516,7 @@ export type Database = {
           current_installment?: number | null
           description?: string | null
           exclude_from_calculations?: boolean | null
+          group_id?: string | null
           id?: string
           installments?: number | null
           is_received?: boolean
@@ -849,6 +855,36 @@ export type Database = {
           setting_key?: string
           setting_value?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      transaction_groups: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

@@ -35,6 +35,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { Income } from '@/types/income';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import GroupsPanel, { GroupedItem } from '@/components/groups/GroupsPanel';
 
 export default function Incomes() {
   const location = useLocation();
@@ -66,6 +67,7 @@ export default function Incomes() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState<Income | null>(null);
   const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const getMonthLabel = (monthIndex: number) => {
     const label = format(new Date(selectedYear, monthIndex, 1), 'MMMM', { locale: ptBR });
@@ -448,6 +450,19 @@ export default function Incomes() {
         </CardContent>
       </Card>
 
+      <GroupsPanel
+        kind="income"
+        draggingId={draggingId}
+        items={filteredIncomes.map<GroupedItem>(i => ({
+          id: i.id,
+          groupId: (i as any).groupId,
+          primary: i.title,
+          secondary: (incomeCategories.find(c => c.id === i.categoryId)?.name) || undefined,
+          amount: i.amount,
+        }))}
+        onChanged={() => refreshData()}
+      />
+
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -494,7 +509,22 @@ export default function Incomes() {
                   const isReceived = income.isReceived;
                   
                   return (
-                    <TableRow key={income.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleEdit(income)}>
+                    <TableRow
+                      key={income.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', income.id);
+                        e.dataTransfer.effectAllowed = 'move';
+                        setDraggingId(income.id);
+                      }}
+                      onDragEnd={() => setDraggingId(null)}
+                      className={cn(
+                        "cursor-pointer hover:bg-muted/50 transition-colors",
+                        draggingId === income.id && "opacity-40",
+                        (income as any).groupId && "bg-primary/5",
+                      )}
+                      onClick={() => handleEdit(income)}
+                    >
                       <TableCell className="font-medium">
                          <div className="flex items-center gap-2">
                           {income.excludeFromCalculations && (

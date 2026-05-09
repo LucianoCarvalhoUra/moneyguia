@@ -180,6 +180,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             currentInstallment: computedCurrent,
             userId: i.user_id,
             createdAt: new Date(i.created_at),
+            groupId: (i as any).group_id || undefined,
           };
         }));
       }

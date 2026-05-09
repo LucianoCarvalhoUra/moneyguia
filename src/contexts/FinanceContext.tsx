@@ -233,6 +233,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             excludeFromCalculations: e.exclude_from_calculations ?? false,
             classificationType: (e as any).classification_type || 'variavel',
             recurrenceType: (e as any).recurrence_type || 'variavel',
+            groupId: (e as any).group_id || undefined,
             createdAt: new Date(e.created_at),
           } as unknown as Expense;
         }));
