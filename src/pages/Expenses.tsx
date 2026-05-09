@@ -491,7 +491,22 @@ export default function Expenses() {
                     const isPaid = expense.isPaid;
 
                     return (
-                    <TableRow key={expense.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleEdit(expense)}>
+                    <TableRow
+                      key={expense.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', expense.id);
+                        e.dataTransfer.effectAllowed = 'move';
+                        setDraggingId(expense.id);
+                      }}
+                      onDragEnd={() => setDraggingId(null)}
+                      className={cn(
+                        "cursor-pointer hover:bg-muted/50 transition-colors",
+                        draggingId === expense.id && "opacity-40",
+                        (expense as any).groupId && "bg-primary/5",
+                      )}
+                      onClick={() => handleEdit(expense)}
+                    >
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {(expense as any).excludeFromCalculations && (
