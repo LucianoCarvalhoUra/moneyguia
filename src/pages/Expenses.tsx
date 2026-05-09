@@ -35,6 +35,8 @@ import { Expense } from '@/types/finance';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EyeOff } from 'lucide-react';
+import GroupsPanel, { GroupedItem } from '@/components/groups/GroupsPanel';
+import { GripVertical } from 'lucide-react';
 
 export default function Expenses() {
   const location = useLocation();
