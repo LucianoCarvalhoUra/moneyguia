@@ -333,12 +333,12 @@ export default function Expenses() {
   return (
     <div className="space-y-6">
       {/* Header, Date Selector, Filters, etc. */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Despesas</h1>
-          <p className="text-muted-foreground">Gerencie seus gastos</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Despesas</h1>
+          <p className="text-sm text-muted-foreground">Gerencie seus gastos</p>
         </div>
-        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingExpense(null); setDuplicatingExpense(null); setIsFormOpen(true); }}>
+        <Button className="w-full sm:w-auto bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingExpense(null); setDuplicatingExpense(null); setIsFormOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Nova Despesa
         </Button>
       </div>
