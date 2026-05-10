@@ -88,35 +88,35 @@ export default function LandingPage() {
       <PublicHeader />
 
       <main>
-        <section className="py-16 lg:py-24">
-          <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
-            <div className="space-y-7">
-              <div className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+        <section className="py-10 sm:py-16 lg:py-24">
+          <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 sm:gap-12 lg:grid-cols-2 lg:px-8">
+            <div className="space-y-5 sm:space-y-7">
+              <div className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700 sm:text-xs">
                 <Sparkles className="h-4 w-4" />
                 IA Financeira
               </div>
-              <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-[#1e293b] md:text-5xl lg:text-6xl">
+              <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-[#1e293b] sm:text-4xl md:text-5xl lg:text-6xl">
                 Domine suas Finanças com Inteligência Artificial
               </h1>
-              <p className="max-w-xl text-lg leading-relaxed text-[#64748b]">
+              <p className="max-w-xl text-base leading-relaxed text-[#64748b] sm:text-lg">
                 O controle orçamentário que aprende com seus hábitos e automatiza sua gestão financeira.
               </p>
-              <div className="flex flex-col gap-4 sm:flex-row items-start sm:items-center">
-                <Link to="/planos">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <Link to="/planos" className="w-full sm:w-auto">
                   <Button 
-                    className="bg-emerald-500 hover:bg-emerald-600 px-8 py-4 text-lg font-bold text-white rounded-full shadow-lg shadow-emerald-200 hover:shadow-xl hover:scale-105 transition-all duration-200"
+                    className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 px-6 py-4 text-base sm:text-lg font-bold text-white rounded-full shadow-lg shadow-emerald-200 hover:shadow-xl sm:hover:scale-105 transition-all duration-200"
                   >
                     Vamos Começar
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <p className="text-sm text-muted-foreground pl-2">
+                <p className="text-xs sm:text-sm text-muted-foreground sm:pl-2">
                   Sem cartão de crédito. Grátis para sempre.
                 </p>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" role="img" aria-label="Dashboard do MoneyGuia mostrando gráfico de gastos e métricas financeiras">
+            <div className="hidden sm:block rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" role="img" aria-label="Dashboard do MoneyGuia mostrando gráfico de gastos e métricas financeiras">
               <div className="grid gap-4">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
                   <p className="text-sm font-medium text-[#64748b]">Crescimento projetado</p>
