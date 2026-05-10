@@ -184,11 +184,11 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="depoimentos" className="pb-20">
+        <section id="depoimentos" className="pb-14 sm:pb-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-widest text-[#059669]">Depoimentos</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#1e293b] md:text-4xl">
+              <p className="text-xs font-semibold uppercase tracking-widest text-[#059669] sm:text-sm">Depoimentos</p>
+              <h2 className="mt-3 text-2xl font-bold tracking-tight text-[#1e293b] sm:text-3xl md:text-4xl">
                 O que nossos usuários dizem
               </h2>
             </div>
@@ -198,9 +198,9 @@ export default function LandingPage() {
             ) : testimonials.length === 0 ? (
               <p className="mt-8 text-center text-sm text-[#64748b]">Ainda não há depoimentos públicos.</p>
             ) : (
-              <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-8 grid gap-4 sm:mt-10 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {testimonials.map((testimonial) => (
-                  <article key={testimonial.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <article key={testimonial.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                     <div className="mb-3 flex items-center gap-1 text-amber-500">
                       {Array.from({ length: 5 }).map((_, index) => (
                         <Star
