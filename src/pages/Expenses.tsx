@@ -420,12 +420,12 @@ export default function Expenses() {
       )}
 
       <Card className="bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20">
-        <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Total de Despesas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
-            <p className="text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrency(filteredExpenses.filter(e => !(e as any).excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total de Despesas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
+            <p className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrency(filteredExpenses.filter(e => !(e as any).excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
-          <div className="text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border">{filteredExpenses.length} registro(s) encontrado(s)</div>
+          <div className="text-xs sm:text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border self-start sm:self-auto">{filteredExpenses.length} registro(s) encontrado(s)</div>
         </CardContent>
       </Card>
       
