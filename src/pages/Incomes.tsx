@@ -344,12 +344,12 @@ export default function Incomes() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Receitas</h1>
-          <p className="text-muted-foreground">Gerencie seus ganhos</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Receitas</h1>
+          <p className="text-sm text-muted-foreground">Gerencie seus ganhos</p>
         </div>
-        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingIncome(null); setDuplicatingIncome(null); setIsFormOpen(true); }}>
+        <Button className="w-full sm:w-auto bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingIncome(null); setDuplicatingIncome(null); setIsFormOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Nova Receita
         </Button>
       </div>
