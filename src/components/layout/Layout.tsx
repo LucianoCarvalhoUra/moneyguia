@@ -95,8 +95,8 @@ export default function Layout({ children }: LayoutProps) {
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <span className="text-sm font-semibold text-foreground truncate">{currentTitle}</span>
             </header>
-            <main className="flex-1 overflow-x-hidden p-4 lg:p-6">
-              <div className="w-full min-w-0 rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 lg:p-7">
+            <main className="flex-1 overflow-x-hidden p-3 sm:p-4 lg:p-6">
+              <div className="w-full min-w-0 rounded-xl border border-border bg-card p-3 shadow-sm transition-all duration-300 sm:p-5 lg:p-7">
                 {children}
               </div>
             </main>
