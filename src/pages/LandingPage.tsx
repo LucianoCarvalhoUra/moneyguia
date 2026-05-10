@@ -150,15 +150,15 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="recursos" className="py-14 lg:py-20">
+        <section id="recursos" className="py-10 sm:py-14 lg:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-widest text-[#059669]">Recursos</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#1e293b] md:text-4xl">Clareza visual e decisões melhores</h2>
+              <p className="text-xs font-semibold uppercase tracking-widest text-[#059669] sm:text-sm">Recursos</p>
+              <h2 className="mt-3 text-2xl font-bold tracking-tight text-[#1e293b] sm:text-3xl md:text-4xl">Clareza visual e decisões melhores</h2>
             </div>
-            <div className="mt-10 grid gap-6 md:grid-cols-3">
+            <div className="mt-8 grid gap-4 sm:mt-10 sm:gap-6 md:grid-cols-3">
               {features.map((feature) => (
-                <article key={feature.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <article key={feature.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                   <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-slate-50 text-[#059669]">
                     <feature.icon className="h-5 w-5" />
                   </div>
@@ -170,14 +170,14 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="seguranca" className="pb-20">
+        <section id="seguranca" className="pb-14 sm:pb-20">
           <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-            <div className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
               <ShieldCheck className="mx-auto h-10 w-10 text-amber-500" />
-              <h2 className="mt-4 text-3xl font-bold tracking-tight text-[#1e293b] md:text-4xl">
+              <h2 className="mt-4 text-2xl font-bold tracking-tight text-[#1e293b] sm:text-3xl md:text-4xl">
                 Segurança e crescimento no mesmo painel
               </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-lg text-[#64748b]">
+              <p className="mx-auto mt-4 max-w-2xl text-base text-[#64748b] sm:text-lg">
                 Um sistema moderno, com excelente legibilidade, pronto para apoiar sua estratégia financeira.
               </p>
             </div>
