@@ -186,20 +186,21 @@ export default function Settings() {
     if (!user) return;
     setIsSendingTest(true);
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      if (!token) { toast.error('Sessão inválida'); return; }
+      // Garante que o notification_settings do usuário está salvo antes de acionar o envio
+      await saveEmailSettings(notificationEmail, emailEnabled);
 
-      const res = await supabase.functions.invoke('send-test-alert', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Chama check-due-expenses que já está deployada e processa usuários com email configurado
+      const res = await supabase.functions.invoke('check-due-expenses');
 
       if (res.error) {
         toast.error(`Erro: ${res.error.message}`);
-      } else if (res.data?.success) {
-        toast.success(`Email de teste enviado para ${res.data.sentTo}`);
       } else {
-        toast.error(res.data?.error || 'Erro desconhecido');
+        const emailsSent = res.data?.emailsSent ?? 0;
+        if (emailsSent > 0) {
+          toast.success(`Email de teste enviado para ${notificationEmail}`);
+        } else {
+          toast.info('Nenhuma despesa próxima encontrada para enviar. Verifique se há despesas pendentes nos próximos dias.');
+        }
       }
     } catch (e: any) {
       toast.error(`Erro ao enviar: ${e.message}`);
