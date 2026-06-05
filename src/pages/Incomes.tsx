@@ -44,16 +44,21 @@ export default function Incomes() {
   const { incomes, incomeCategories, incomeSubcategories, removeIncome, updateIncome, refreshData } = useIncome();
   
   const [selectedMonth, setSelectedMonth] = useState(() => {
+    if (location.state?.month !== undefined) return location.state.month;
     const p = searchParams.get('month');
     return p !== null ? parseInt(p) : new Date().getMonth();
   });
   const [selectedYear, setSelectedYear] = useState(() => {
+    if (location.state?.year !== undefined) return location.state.year;
     const p = searchParams.get('year');
     return p !== null ? parseInt(p) : new Date().getFullYear();
   });
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const f = location.state?.filter;
+    return f === 'overdue' || f === 'pending' ? 'pending' : 'all';
+  });
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [subcategoryFilter, setSubcategoryFilter] = useState<string>('all');
   const [visualFilter, setVisualFilter] = useState<string>('all');
