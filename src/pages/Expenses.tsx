@@ -426,17 +426,20 @@ export default function Expenses() {
             <p className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrency(filteredExpenses.filter(e => !(e as any).excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
           <div className="flex gap-2 self-start sm:self-auto">
-            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
               <span className="text-xs text-muted-foreground">Total</span>
               <span className="text-sm font-semibold text-foreground">{filteredExpenses.length}</span>
+              <span className="text-xs text-muted-foreground">{formatCurrency(filteredExpenses.reduce((acc, e) => acc + e.amount, 0))}</span>
             </div>
-            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
               <span className="text-xs text-muted-foreground">Pagas</span>
               <span className="text-sm font-semibold text-green-600">{filteredExpenses.filter(e => e.isPaid).length}</span>
+              <span className="text-xs text-green-600">{formatCurrency(filteredExpenses.filter(e => e.isPaid).reduce((acc, e) => acc + e.amount, 0))}</span>
             </div>
-            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
               <span className="text-xs text-muted-foreground">Pendentes</span>
               <span className="text-sm font-semibold text-red-600">{filteredExpenses.filter(e => !e.isPaid).length}</span>
+              <span className="text-xs text-red-600">{formatCurrency(filteredExpenses.filter(e => !e.isPaid).reduce((acc, e) => acc + e.amount, 0))}</span>
             </div>
           </div>
         </CardContent>

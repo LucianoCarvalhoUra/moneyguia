@@ -456,17 +456,20 @@ export default function Incomes() {
             <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
           <div className="flex gap-2 self-start sm:self-auto">
-            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
               <span className="text-xs text-muted-foreground">Total</span>
               <span className="text-sm font-semibold text-foreground">{filteredIncomes.length}</span>
+              <span className="text-xs text-muted-foreground">{formatCurrency(filteredIncomes.reduce((acc, i) => acc + i.amount, 0))}</span>
             </div>
-            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
               <span className="text-xs text-muted-foreground">Recebidas</span>
               <span className="text-sm font-semibold text-green-600">{filteredIncomes.filter(i => i.isReceived).length}</span>
+              <span className="text-xs text-green-600">{formatCurrency(filteredIncomes.filter(i => i.isReceived).reduce((acc, i) => acc + i.amount, 0))}</span>
             </div>
-            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
               <span className="text-xs text-muted-foreground">Pendentes</span>
               <span className="text-sm font-semibold text-amber-600">{filteredIncomes.filter(i => !i.isReceived).length}</span>
+              <span className="text-xs text-amber-600">{formatCurrency(filteredIncomes.filter(i => !i.isReceived).reduce((acc, i) => acc + i.amount, 0))}</span>
             </div>
           </div>
         </CardContent>
