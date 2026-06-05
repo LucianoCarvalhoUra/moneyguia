@@ -449,6 +449,8 @@ export default function Expenses() {
       <GroupsPanel
         kind="expense"
         draggingId={draggingId}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
         items={filteredExpenses.map<GroupedItem>(e => ({
           id: e.id,
           groupId: (e as any).groupId,
