@@ -35,12 +35,12 @@ DROP TABLE IF EXISTS public.user_roles CASCADE;
 -- ─────────────────────────────────────────────────────────────────────
 -- 4. REMOVER TODAS AS VERSÕES DAS FUNÇÕES (para recriar sem conflito)
 -- ─────────────────────────────────────────────────────────────────────
-DROP FUNCTION IF EXISTS public.has_role(UUID, TEXT);
-DROP FUNCTION IF EXISTS public.has_role(UUID, app_role);
-DROP FUNCTION IF EXISTS public.is_admin(UUID);
-DROP FUNCTION IF EXISTS public.is_admin();
-DROP FUNCTION IF EXISTS public.check_is_admin();
-DROP FUNCTION IF EXISTS public.is_admin_check();
+DROP FUNCTION IF EXISTS public.has_role(UUID, TEXT) CASCADE;
+DROP FUNCTION IF EXISTS public.has_role(UUID, app_role) CASCADE;
+DROP FUNCTION IF EXISTS public.is_admin(UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.is_admin() CASCADE;
+DROP FUNCTION IF EXISTS public.check_is_admin() CASCADE;
+DROP FUNCTION IF EXISTS public.is_admin_check() CASCADE;
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 5. RECRIAR has_role — aceita app_role (usado por políticas posteriores)
@@ -246,6 +246,22 @@ CREATE POLICY "Admins can view all subscriptions"
 
 CREATE POLICY "Admins can manage all subscriptions"
   ON public.user_subscriptions FOR ALL TO authenticated
+  USING  (public.is_admin(auth.uid()))
+  WITH CHECK (public.is_admin(auth.uid()));
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 12. RECRIAR políticas do CSAT (removidas pelo CASCADE acima)
+-- ─────────────────────────────────────────────────────────────────────
+DROP POLICY IF EXISTS "Admins can manage campaigns"       ON public.csat_campaigns;
+DROP POLICY IF EXISTS "Admins can manage CSAT responses"  ON public.csat_responses;
+
+CREATE POLICY "Admins can manage campaigns"
+  ON public.csat_campaigns FOR ALL TO authenticated
+  USING  (public.is_admin(auth.uid()))
+  WITH CHECK (public.is_admin(auth.uid()));
+
+CREATE POLICY "Admins can manage CSAT responses"
+  ON public.csat_responses FOR ALL TO authenticated
   USING  (public.is_admin(auth.uid()))
   WITH CHECK (public.is_admin(auth.uid()));
 
