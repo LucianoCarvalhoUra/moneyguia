@@ -859,7 +859,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           <AlertDialogHeader>
             <AlertDialogTitle>Atualizar Recorrência</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta é uma despesa recorrente. Como deseja aplicar as alterações?
+              Esta é uma despesa recorrente. Como deseja aplicar as alterações? Status de pagamento e data real de pagamento serão mantidos individuais em cada parcela.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex flex-col gap-2 py-4">
