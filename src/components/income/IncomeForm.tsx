@@ -387,6 +387,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
           </div>
 
+          {/* Seção: Conta */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Conta de Destino</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Row 3: Conta + Status */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2 space-y-1.5">
