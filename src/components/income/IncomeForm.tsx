@@ -59,6 +59,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [shakeKey, setShakeKey] = useState(0);
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
+  const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<any>(null);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
