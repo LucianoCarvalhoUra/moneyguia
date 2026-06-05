@@ -86,8 +86,12 @@ export default function Incomes() {
   }, [selectedMonth, selectedYear, setSearchParams]);
 
   useEffect(() => {
-    if (location.state?.filter === 'pending') {
+    if (location.state?.filter === 'pending' || location.state?.filter === 'overdue') {
       setStatusFilter('pending');
+      if (location.state.month !== undefined && location.state.year !== undefined) {
+        setSelectedMonth(location.state.month);
+        setSelectedYear(location.state.year);
+      }
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
