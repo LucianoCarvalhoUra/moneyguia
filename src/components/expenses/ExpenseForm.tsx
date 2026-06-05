@@ -729,6 +729,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
           </div>
 
+          {/* Seção: Recorrência & Observação */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Repeat className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Recorrência</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Row 4: Recorrência */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
