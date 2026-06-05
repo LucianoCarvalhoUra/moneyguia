@@ -629,6 +629,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
           </div>
 
+          {/* Seção: Classificação */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Tag className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Categoria & Vencimento</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Row 2: Categoria + Subcategoria + Vencimento */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
