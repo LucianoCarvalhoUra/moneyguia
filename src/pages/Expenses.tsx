@@ -425,7 +425,20 @@ export default function Expenses() {
             <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total de Despesas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
             <p className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrency(filteredExpenses.filter(e => !(e as any).excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
-          <div className="text-xs sm:text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border self-start sm:self-auto">{filteredExpenses.length} registro(s) encontrado(s)</div>
+          <div className="flex gap-2 self-start sm:self-auto">
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+              <span className="text-xs text-muted-foreground">Total</span>
+              <span className="text-sm font-semibold text-foreground">{filteredExpenses.length}</span>
+            </div>
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+              <span className="text-xs text-muted-foreground">Pagas</span>
+              <span className="text-sm font-semibold text-green-600">{filteredExpenses.filter(e => e.isPaid).length}</span>
+            </div>
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+              <span className="text-xs text-muted-foreground">Pendentes</span>
+              <span className="text-sm font-semibold text-red-600">{filteredExpenses.filter(e => !e.isPaid).length}</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
       

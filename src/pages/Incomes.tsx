@@ -455,7 +455,20 @@ export default function Incomes() {
             <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total de Receitas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
             <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
-          <div className="text-xs sm:text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border self-start sm:self-auto">{filteredIncomes.length} registro(s) encontrado(s)</div>
+          <div className="flex gap-2 self-start sm:self-auto">
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+              <span className="text-xs text-muted-foreground">Total</span>
+              <span className="text-sm font-semibold text-foreground">{filteredIncomes.length}</span>
+            </div>
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+              <span className="text-xs text-muted-foreground">Recebidas</span>
+              <span className="text-sm font-semibold text-green-600">{filteredIncomes.filter(i => i.isReceived).length}</span>
+            </div>
+            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[70px]">
+              <span className="text-xs text-muted-foreground">Pendentes</span>
+              <span className="text-sm font-semibold text-amber-600">{filteredIncomes.filter(i => !i.isReceived).length}</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
