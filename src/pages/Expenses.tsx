@@ -425,23 +425,36 @@ export default function Expenses() {
             <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total de Despesas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
             <p className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrency(filteredExpenses.filter(e => !(e as any).excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
-          <div className="flex gap-2 self-start sm:self-auto">
-            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
-              <span className="text-xs text-muted-foreground">Total</span>
-              <span className="text-sm font-semibold text-foreground">{filteredExpenses.length}</span>
-              <span className="text-xs text-muted-foreground">{formatCurrency(filteredExpenses.reduce((acc, e) => acc + e.amount, 0))}</span>
-            </div>
-            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
-              <span className="text-xs text-muted-foreground">Pagas</span>
-              <span className="text-sm font-semibold text-green-600">{filteredExpenses.filter(e => e.isPaid).length}</span>
-              <span className="text-xs text-green-600">{formatCurrency(filteredExpenses.filter(e => e.isPaid).reduce((acc, e) => acc + e.amount, 0))}</span>
-            </div>
-            <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
-              <span className="text-xs text-muted-foreground">Pendentes</span>
-              <span className="text-sm font-semibold text-red-600">{filteredExpenses.filter(e => !e.isPaid).length}</span>
-              <span className="text-xs text-red-600">{formatCurrency(filteredExpenses.filter(e => !e.isPaid).reduce((acc, e) => acc + e.amount, 0))}</span>
-            </div>
-          </div>
+          {(() => {
+            const real = filteredExpenses.filter(e => !(e as any).excludeFromCalculations);
+            const visual = filteredExpenses.filter(e => (e as any).excludeFromCalculations);
+            return (
+              <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
+                  <span className="text-xs text-muted-foreground">Total</span>
+                  <span className="text-sm font-semibold text-foreground">{real.length}</span>
+                  <span className="text-xs text-muted-foreground">{formatCurrency(real.reduce((acc, e) => acc + e.amount, 0))}</span>
+                </div>
+                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
+                  <span className="text-xs text-muted-foreground">Pagas</span>
+                  <span className="text-sm font-semibold text-green-600">{real.filter(e => e.isPaid).length}</span>
+                  <span className="text-xs text-green-600">{formatCurrency(real.filter(e => e.isPaid).reduce((acc, e) => acc + e.amount, 0))}</span>
+                </div>
+                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
+                  <span className="text-xs text-muted-foreground">Pendentes</span>
+                  <span className="text-sm font-semibold text-red-600">{real.filter(e => !e.isPaid).length}</span>
+                  <span className="text-xs text-red-600">{formatCurrency(real.filter(e => !e.isPaid).reduce((acc, e) => acc + e.amount, 0))}</span>
+                </div>
+                {visual.length > 0 && (
+                  <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px] opacity-60">
+                    <span className="text-xs text-muted-foreground">Visuais</span>
+                    <span className="text-sm font-semibold text-muted-foreground">{visual.length}</span>
+                    <span className="text-xs text-muted-foreground">{formatCurrency(visual.reduce((acc, e) => acc + e.amount, 0))}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
       
