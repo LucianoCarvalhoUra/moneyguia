@@ -20,6 +20,29 @@ export default function Layout({ children }: LayoutProps) {
   const [lgpdLoading, setLgpdLoading] = useState(true);
   const shouldShowCsat = location.pathname.startsWith("/dashboard");
 
+  const ROUTE_TITLES: Record<string, string> = {
+    "/dashboard": "Dashboard",
+    "/goals": "Metas",
+    "/expenses": "Despesas",
+    "/incomes": "Receitas",
+    "/accounts": "Contas",
+    "/reconciliation": "Conciliação de Cartão",
+    "/conciliacao": "Conciliação Bancária",
+    "/reports": "Relatórios",
+    "/subscription": "Assinatura",
+    "/settings": "Configurações",
+    "/admin": "Admin",
+    "/admin/csat": "CSAT",
+    "/plans": "Planos",
+    "/planos": "Planos",
+  };
+  const currentTitle =
+    Object.entries(ROUTE_TITLES).find(([path]) => location.pathname.startsWith(path))?.[1] || "MoneyGuia";
+
+  useEffect(() => {
+    document.title = `${currentTitle} | MoneyGuia`;
+  }, [currentTitle]);
+
   const checkLgpdTerms = useCallback(async () => {
     try {
       if (!isAuthenticated || !user?.id) {
@@ -70,10 +93,10 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex-1 flex min-w-0 flex-col overflow-x-hidden transition-all duration-300">
             <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-sm lg:px-6">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-              <span className="text-sm font-medium text-muted-foreground md:hidden">MoneyGuia</span>
+              <span className="text-sm font-semibold text-foreground truncate">{currentTitle}</span>
             </header>
-            <main className="flex-1 overflow-x-hidden p-4 lg:p-6">
-              <div className="w-full min-w-0 rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 lg:p-7">
+            <main className="flex-1 overflow-x-hidden p-3 sm:p-4 lg:p-6">
+              <div className="w-full min-w-0 rounded-xl border border-border bg-card p-3 shadow-sm transition-all duration-300 sm:p-5 lg:p-7">
                 {children}
               </div>
             </main>

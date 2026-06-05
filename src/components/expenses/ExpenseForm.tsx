@@ -22,7 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Expense, PaymentMethod } from '@/types/finance';
-import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock } from 'lucide-react';
+import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock, FileText, Tag, CreditCard, Repeat, Settings2 } from 'lucide-react';
 import { CalculatorPopover } from '@/components/ui/calculator-popover';
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
@@ -585,27 +585,33 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
+      <DialogContent className="sm:max-w-2xl w-[calc(100vw-1rem)] max-h-[95vh] sm:max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
         {/* Header */}
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-6 py-4 bg-gradient-to-r from-primary/5 to-transparent">
-          <div>
-            <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-primary/5 to-transparent">
+          <div className="min-w-0">
+            <DialogTitle className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">
               {expense ? 'Editar Despesa' : 'Nova Despesa'}
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+            <DialogDescription className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate">
               {expense 
                 ? `Cadastrada em ${format(new Date(expense.createdAt), 'dd/MM/yyyy HH:mm')}${expense.installments && expense.installments > 1 ? ` • Parcela ${expense.currentInstallment || 1}/${expense.installments}` : expense.isRecurring ? ' • Recorrente' : ''}`
                 : 'Preencha os detalhes da transação'}
             </DialogDescription>
           </div>
           {expense && (
-            <Button type="button" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-lg" onClick={handleDelete}>
-              <Trash2 className="w-4 h-4 mr-1" /> Excluir
+            <Button type="button" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-lg shrink-0" onClick={handleDelete}>
+              <Trash2 className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Excluir</span>
             </Button>
           )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-80px)]">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(95vh-72px)] sm:max-h-[calc(90vh-80px)]">
+          {/* Seção: Informações Básicas */}
+          <div className="flex items-center gap-2 -mb-2">
+            <FileText className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Informações</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Row 1: Descrição + Valor */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div key={`desc-${shakeKey}`} className={cn("sm:col-span-2 space-y-1.5", showErrors && !description && "animate-shake")}>
@@ -623,6 +629,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
           </div>
 
+          {/* Seção: Classificação */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Tag className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Categoria & Vencimento</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Row 2: Categoria + Subcategoria + Vencimento */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
@@ -657,6 +669,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
           </div>
 
+          {/* Seção: Pagamento */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <CreditCard className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Pagamento</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Row 3: Pagamento + Status + Recorrência */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
@@ -711,6 +729,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
           </div>
 
+          {/* Seção: Recorrência & Observação */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Repeat className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Recorrência</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Row 4: Recorrência */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
@@ -741,6 +765,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
           </div>
 
+          {/* Seção: Avançado */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Settings2 className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Opções Avançadas</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Toggles: Agendamento + Controle Visual */}
           <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
             {/* Agendamento */}
@@ -829,7 +859,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           <AlertDialogHeader>
             <AlertDialogTitle>Atualizar Recorrência</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta é uma despesa recorrente. Como deseja aplicar as alterações?
+              Esta é uma despesa recorrente. Como deseja aplicar as alterações? Status de pagamento e data real de pagamento serão mantidos individuais em cada parcela.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex flex-col gap-2 py-4">

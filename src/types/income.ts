@@ -31,6 +31,7 @@ export interface Income {
   currentInstallment?: number;
   userId: string;
   createdAt: Date;
+  groupId?: string;
 }
 
 export const DEFAULT_INCOME_CATEGORIES: Omit<IncomeCategory, 'userId'>[] = [

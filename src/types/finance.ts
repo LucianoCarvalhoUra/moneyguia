@@ -53,6 +53,7 @@ export interface Expense {
   excludeFromCalculations?: boolean;
   classificationType?: 'essencial' | 'superfluo' | 'longo_prazo' | 'variavel';
   recurrenceType?: 'fixa' | 'variavel';
+  groupId?: string;
 }
 
 export interface User {

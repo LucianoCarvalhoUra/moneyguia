@@ -8,12 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Income } from '@/types/income';
-import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock, Wallet } from 'lucide-react';
+import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock, Wallet, FileText, Tag, CreditCard, Repeat, Settings2 } from 'lucide-react';
 import { CalculatorPopover } from '@/components/ui/calculator-popover';
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
@@ -58,6 +59,8 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [shakeKey, setShakeKey] = useState(0);
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
+  const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<any>(null);
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -167,6 +170,58 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     }
   };
 
+  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
+    if (!income || !pendingData) return;
+    setIsSubmitting(true);
+    try {
+      const originalReceiveDate = income.receiveDate instanceof Date
+        ? format(income.receiveDate, 'yyyy-MM-dd')
+        : String(income.receiveDate).split('T')[0];
+
+      const { error: singleError } = await supabase.from('incomes').update(pendingData).eq('id', income.id);
+      if (singleError) throw singleError;
+
+      if (scope !== 'single') {
+        let recurrenceId = income.recurrenceId || (income as any).recurrence_id;
+        if (!recurrenceId) {
+          recurrenceId = crypto.randomUUID();
+          const baseTitle = income.title.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
+          const { data: siblings } = await supabase
+            .from('incomes')
+            .select('id, title')
+            .eq('user_id', income.userId)
+            .eq('is_recurring', true);
+          const matchingIds = (siblings || [])
+            .filter((s: any) => s.title.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim() === baseTitle)
+            .map((s: any) => s.id);
+          if (matchingIds.length > 0) {
+            await supabase.from('incomes').update({ recurrence_id: recurrenceId }).in('id', matchingIds);
+          }
+        }
+
+        // Preserve individual payment data: do not propagate receive_date, is_received, user_id, current_installment
+        const { receive_date, is_received, user_id, current_installment, ...batchData } = pendingData;
+        let query = supabase.from('incomes').update(batchData).eq('recurrence_id', recurrenceId).neq('id', income.id);
+        if (scope === 'future') {
+          query = query.gte('receive_date', originalReceiveDate);
+        }
+        const { error } = await query;
+        if (error) throw error;
+      }
+
+      toast.success('Receitas atualizadas com sucesso!');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await refreshData();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('[IncomeBatchUpdate]', error);
+      toast.error('Erro ao atualizar: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+      setScopeDialogOpen(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -199,6 +254,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       };
 
       if (income) {
+        if (income.isRecurring) {
+          setPendingData(payload);
+          setScopeDialogOpen(true);
+          setIsSubmitting(false);
+          return;
+        }
         const { error } = await supabase.from('incomes').update(payload).eq('id', income.id);
         if (error) throw error;
         toast.success('Receita atualizada!');
@@ -245,27 +306,33 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
+      <DialogContent className="sm:max-w-2xl w-[calc(100vw-1rem)] max-h-[95vh] sm:max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
         {/* Header - Identidade Verde */}
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-6 py-4 bg-gradient-to-r from-emerald-500/5 to-transparent">
-          <div>
-            <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-emerald-500/5 to-transparent">
+          <div className="min-w-0">
+            <DialogTitle className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">
               {income ? 'Editar Receita' : 'Nova Receita'}
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+            <DialogDescription className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate">
               {income 
                 ? `Cadastrada em ${format(new Date(income.createdAt), 'dd/MM/yyyy HH:mm')}${income.installments && income.installments > 1 ? ` • Parcela ${income.currentInstallment || 1}/${income.installments}` : ''}`
                 : 'Preencha os detalhes do seu ganho'}
             </DialogDescription>
           </div>
           {income && (
-            <Button type="button" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-lg" onClick={handleDelete}>
-              <Trash2 className="w-4 h-4 mr-1" /> Excluir
+            <Button type="button" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 h-8 px-2 rounded-lg shrink-0" onClick={handleDelete}>
+              <Trash2 className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Excluir</span>
             </Button>
           )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-80px)]">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(95vh-72px)] sm:max-h-[calc(90vh-80px)]">
+          {/* Seção: Informações */}
+          <div className="flex items-center gap-2 -mb-2">
+            <FileText className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Informações</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Row 1: Descrição + Valor */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div key={`title-${shakeKey}`} className={cn("sm:col-span-2 space-y-1.5", showErrors && !title && "animate-shake")}>
@@ -283,6 +350,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
           </div>
 
+          {/* Seção: Categoria & Recebimento */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Tag className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Categoria & Recebimento</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Row 2: Categoria + Subcategoria + Recebimento */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
@@ -314,6 +387,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
           </div>
 
+          {/* Seção: Conta */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Conta de Destino</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Row 3: Conta + Status */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2 space-y-1.5">
@@ -335,6 +414,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
           </div>
 
+          {/* Seção: Recorrência & Observação */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Repeat className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Recorrência</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Row 4: Recorrência + Observação */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
@@ -356,6 +441,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
           </div>
 
+          {/* Seção: Avançado */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Settings2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Opções Avançadas</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Toggles: Agendamento + Controle Visual */}
           <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
             <div className={cn("flex items-center gap-3", isReceived && "opacity-40 pointer-events-none")}>
@@ -405,6 +496,43 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={scopeDialogOpen} onOpenChange={setScopeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Atualizar Recorrência</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta é uma receita recorrente. Como deseja aplicar as alterações? Status de recebimento e data real serão mantidos individuais em cada parcela.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-4">
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('single')}>
+              <Calendar className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Apenas esta</div>
+                <div className="text-xs text-muted-foreground">Alterar somente a receita atual</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('future')}>
+              <CalendarClock className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Esta e próximas</div>
+                <div className="text-xs text-muted-foreground">Alterar desta data em diante (exceto status/data de recebimento)</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
+              <CalendarDays className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Todas</div>
+                <div className="text-xs text-muted-foreground">Alterar toda a série (exceto status/data de recebimento)</div>
+              </div>
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

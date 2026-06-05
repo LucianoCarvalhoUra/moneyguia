@@ -145,11 +145,13 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         const defaultCats = DEFAULT_CATEGORIES.map(cat => {
           const mapping = EXPENSE_CATEGORY_MAPPING[cat.name];
           return {
-          ...cat,
-          icon: mapping ? mapping.icon : cat.icon,
-          color: mapping ? mapping.color : cat.color,
-          user_id: user.id,
-        }});
+            name: cat.name,
+            icon: mapping ? mapping.icon : cat.icon,
+            color: mapping ? mapping.color : cat.color,
+            is_default: cat.isDefault ?? true,
+            user_id: user.id,
+          };
+        });
         
         const { data: insertedCats } = await supabase
           .from('categories')
@@ -178,11 +180,38 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       }
 
       if (expensesRes.data) {
-        setExpenses((expensesRes.data as any[]).map(e => {
-          const parseLocalDate = (dateStr: string) => {
-            const parts = dateStr.split('T')[0].split('-').map(Number);
-            return new Date(parts[0], parts[1] - 1, parts[2]);
-          };
+        const parseLocalDate = (dateStr: string) => {
+          const parts = dateStr.split('T')[0].split('-').map(Number);
+          return new Date(parts[0], parts[1] - 1, parts[2]);
+        };
+
+        // Compute current_installment dynamically per recurrence group, ordered by due_date.
+        // This corrects legacy/inconsistent data where the stored current_installment is wrong.
+        const rows = expensesRes.data as any[];
+        const positionByRow: Record<string, { position: number; total: number }> = {};
+        const groups: Record<string, any[]> = {};
+        for (const r of rows) {
+          const rid = r.recurrence_id;
+          if (!rid) continue;
+          (groups[rid] ||= []).push(r);
+        }
+        for (const rid of Object.keys(groups)) {
+          const sorted = groups[rid].slice().sort((a, b) => {
+            const da = a.due_date || '';
+            const db = b.due_date || '';
+            if (da !== db) return da.localeCompare(db);
+            return (a.created_at || '').localeCompare(b.created_at || '');
+          });
+          const total = sorted.length;
+          sorted.forEach((r, idx) => {
+            positionByRow[r.id] = { position: idx + 1, total };
+          });
+        }
+
+        setExpenses(rows.map(e => {
+          const pos = positionByRow[e.id];
+          const computedCurrent = pos ? pos.position : (e.current_installment || undefined);
+          const computedTotal = pos ? pos.total : (e.installments || undefined);
           return {
             id: e.id,
             categoryId: e.category_id || '',
@@ -195,8 +224,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             accountId: e.account_id || undefined,
             cardId: e.card_id || undefined,
             isRecurring: e.is_recurring,
-            installments: e.installments || undefined,
-            currentInstallment: e.current_installment || undefined,
+            installments: computedTotal,
+            currentInstallment: computedCurrent,
             observation: e.observation || undefined,
             isPaid: e.is_paid ?? false,
             recurrenceId: (e as any).recurrence_id || undefined,
@@ -204,6 +233,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             excludeFromCalculations: e.exclude_from_calculations ?? false,
             classificationType: (e as any).classification_type || 'variavel',
             recurrenceType: (e as any).recurrence_type || 'variavel',
+            groupId: (e as any).group_id || undefined,
             createdAt: new Date(e.created_at),
           } as unknown as Expense;
         }));

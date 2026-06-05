@@ -77,6 +77,30 @@ export type Database = {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          discount_percentage: number
+          id: string
+          is_active: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_percentage: number
+          id?: string
+          is_active?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_percentage?: number
+          id?: string
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
       credit_cards: {
         Row: {
           brand: string
@@ -190,6 +214,7 @@ export type Database = {
           due_date: string
           exclude_from_calculations: boolean | null
           expense_date: string
+          group_id: string | null
           id: string
           installments: number | null
           is_paid: boolean
@@ -214,6 +239,7 @@ export type Database = {
           due_date: string
           exclude_from_calculations?: boolean | null
           expense_date: string
+          group_id?: string | null
           id?: string
           installments?: number | null
           is_paid?: boolean
@@ -225,7 +251,7 @@ export type Database = {
           scheduled_date?: string | null
           subcategory_id?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           account_id?: string | null
@@ -238,6 +264,7 @@ export type Database = {
           due_date?: string
           exclude_from_calculations?: boolean | null
           expense_date?: string
+          group_id?: string | null
           id?: string
           installments?: number | null
           is_paid?: boolean
@@ -445,6 +472,7 @@ export type Database = {
           current_installment: number | null
           description: string | null
           exclude_from_calculations: boolean | null
+          group_id: string | null
           id: string
           installments: number | null
           is_received: boolean
@@ -466,6 +494,7 @@ export type Database = {
           current_installment?: number | null
           description?: string | null
           exclude_from_calculations?: boolean | null
+          group_id?: string | null
           id?: string
           installments?: number | null
           is_received?: boolean
@@ -487,6 +516,7 @@ export type Database = {
           current_installment?: number | null
           description?: string | null
           exclude_from_calculations?: boolean | null
+          group_id?: string | null
           id?: string
           installments?: number | null
           is_received?: boolean
@@ -606,10 +636,12 @@ export type Database = {
           mp_qr_code: string | null
           mp_qr_code_base64: string | null
           mp_ticket_url: string | null
+          payer_email: string | null
+          payment_lookup_token: string
           plan_id: string
           status: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           amount: number
@@ -620,10 +652,12 @@ export type Database = {
           mp_qr_code?: string | null
           mp_qr_code_base64?: string | null
           mp_ticket_url?: string | null
+          payer_email?: string | null
+          payment_lookup_token?: string
           plan_id: string
           status?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -634,10 +668,12 @@ export type Database = {
           mp_qr_code?: string | null
           mp_qr_code_base64?: string | null
           mp_ticket_url?: string | null
+          payer_email?: string | null
+          payment_lookup_token?: string
           plan_id?: string
           status?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -822,6 +858,36 @@ export type Database = {
         }
         Relationships: []
       }
+      transaction_groups: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -893,30 +959,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      },
-      coupons: {
-        Row: {
-          id: string
-          code: string
-          discount_percentage: number
-          is_active: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          code: string
-          discount_percentage: number
-          is_active?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          code?: string
-          discount_percentage?: number
-          is_active?: boolean
-          created_at?: string
-        }
-        Relationships: []
       }
     }
     Views: {

@@ -35,6 +35,7 @@ import { Expense } from '@/types/finance';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EyeOff } from 'lucide-react';
+import GroupsPanel, { GroupedItem } from '@/components/groups/GroupsPanel';
 
 export default function Expenses() {
   const location = useLocation();
@@ -64,6 +65,7 @@ export default function Expenses() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const getMonthLabel = (monthIndex: number) => {
     const label = format(new Date(selectedYear, monthIndex, 1), 'MMMM', { locale: ptBR });
@@ -331,12 +333,12 @@ export default function Expenses() {
   return (
     <div className="space-y-6">
       {/* Header, Date Selector, Filters, etc. */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Despesas</h1>
-          <p className="text-muted-foreground">Gerencie seus gastos</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Despesas</h1>
+          <p className="text-sm text-muted-foreground">Gerencie seus gastos</p>
         </div>
-        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingExpense(null); setDuplicatingExpense(null); setIsFormOpen(true); }}>
+        <Button className="w-full sm:w-auto bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingExpense(null); setDuplicatingExpense(null); setIsFormOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Nova Despesa
         </Button>
       </div>
@@ -418,17 +420,95 @@ export default function Expenses() {
       )}
 
       <Card className="bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20">
-        <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Total de Despesas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
-            <p className="text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrency(filteredExpenses.filter(e => !(e as any).excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total de Despesas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
+            <p className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrency(filteredExpenses.filter(e => !(e as any).excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
-          <div className="text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border">{filteredExpenses.length} registro(s) encontrado(s)</div>
+          <div className="text-xs sm:text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border self-start sm:self-auto">{filteredExpenses.length} registro(s) encontrado(s)</div>
         </CardContent>
       </Card>
       
-      {/* Table */}
-      <Card>
+      {/* Agrupamentos */}
+      <GroupsPanel
+        kind="expense"
+        draggingId={draggingId}
+        items={filteredExpenses.map<GroupedItem>(e => ({
+          id: e.id,
+          groupId: (e as any).groupId,
+          primary: e.description,
+          secondary: (categories.find(c => c.id === e.categoryId)?.name) || undefined,
+          amount: e.amount,
+        }))}
+        onChanged={() => refreshData()}
+      />
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-2">
+        {filteredExpenses.length === 0 ? (
+          <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Nenhuma despesa encontrada.</CardContent></Card>
+        ) : (
+          filteredExpenses.map((expense) => {
+            const category = categories.find(c => c.id === expense.categoryId);
+            const subcategory = subcategories.find(s => s.id === expense.subcategoryId);
+            const dueDate = expense.dueDate;
+            const isOverdue = !expense.isPaid && isBefore(startOfDay(dueDate), startOfDay(new Date()));
+            const isPaid = expense.isPaid;
+            return (
+              <Card
+                key={expense.id}
+                className={cn("active:scale-[0.99] transition-all", (expense as any).groupId && "bg-primary/5 border-primary/30")}
+                onClick={() => handleEdit(expense)}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-start gap-3">
+                    <div className={cn("w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0", category?.color ? `bg-${category.color}/10` : "bg-muted")}>
+                      <CategoryIcon iconName={category?.icon || 'Package'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-medium text-sm truncate">{expense.description}</p>
+                            {expense.installments && expense.installments > 1 && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{expense.currentInstallment || 1}/{expense.installments}</Badge>
+                            )}
+                            {(expense as any).excludeFromCalculations && <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {category?.name || 'Sem categoria'}{subcategory ? ` • ${subcategory.name}` : ''}
+                          </p>
+                        </div>
+                        <p className={cn("text-sm font-semibold whitespace-nowrap", isOverdue ? "text-destructive" : isPaid ? "text-green-600 dark:text-green-400" : "")}>
+                          {formatCurrency(expense.amount)}
+                        </p>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className={cn(isOverdue ? "text-destructive font-semibold" : "text-muted-foreground")}>
+                            {format(dueDate, 'dd/MM/yyyy')}
+                          </span>
+                          {isPaid && <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 text-[10px] px-1.5 py-0 h-4">Pago</Badge>}
+                          {!isPaid && isOverdue && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">Atrasado</Badge>}
+                          {!isPaid && !isOverdue && <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 text-[10px] px-1.5 py-0 h-4">Pendente</Badge>}
+                        </div>
+                        <div className="flex gap-0.5" onClick={e => e.stopPropagation()}>
+                          <Button size="icon" variant="ghost" className={cn("h-8 w-8", expense.isPaid ? "text-green-600" : "text-muted-foreground")} onClick={() => handlePay(expense.id, expense.isPaid)}><Check className="w-4 h-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDuplicate(expense)}><Copy className="w-4 h-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (expense.recurrenceId) handleDelete(expense); else handleUndoableDelete(expense); }}><Trash2 className="w-4 h-4" /></Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -474,7 +554,22 @@ export default function Expenses() {
                     const isPaid = expense.isPaid;
 
                     return (
-                    <TableRow key={expense.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleEdit(expense)}>
+                    <TableRow
+                      key={expense.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', expense.id);
+                        e.dataTransfer.effectAllowed = 'move';
+                        setDraggingId(expense.id);
+                      }}
+                      onDragEnd={() => setDraggingId(null)}
+                      className={cn(
+                        "cursor-pointer hover:bg-muted/50 transition-colors",
+                        draggingId === expense.id && "opacity-40",
+                        (expense as any).groupId && "bg-primary/5",
+                      )}
+                      onClick={() => handleEdit(expense)}
+                    >
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {(expense as any).excludeFromCalculations && (

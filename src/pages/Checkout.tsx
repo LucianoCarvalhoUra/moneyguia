@@ -81,6 +81,7 @@ interface Plan {
 
 interface PixData {
   paymentId: string;
+  lookupToken?: string | null;
   qrCode: string | null;
   qrCodeBase64: string | null;
   ticketUrl: string | null;
@@ -112,6 +113,7 @@ const clearCheckoutData = () => {
   localStorage.removeItem("checkout_pending_form");
   localStorage.removeItem("checkout_pending_plan");
   localStorage.removeItem("checkout_pending_cycle");
+  localStorage.removeItem("checkout_pending_pix");
   localStorage.removeItem("checkout_completed_data");
   sessionStorage.clear();
 };
@@ -119,7 +121,7 @@ const clearCheckoutData = () => {
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, register } = useAuth();
+  const { user, register, login, refreshProfile } = useAuth();
 
   const planId = searchParams.get("plan");
   const cycle = searchParams.get("cycle") || "monthly";
@@ -146,6 +148,53 @@ export default function Checkout() {
   });
   const [accountErrors, setAccountErrors] = useState<Record<string, string>>({});
   const [creatingAccount, setCreatingAccount] = useState(false);
+
+  const [recoverId, setRecoverId] = useState("");
+  const [recovering, setRecovering] = useState(false);
+
+  const handleRecoverPayment = async () => {
+    const id = recoverId.trim();
+    if (!id) {
+      toast.error("Digite o ID do pagamento.");
+      return;
+    }
+    setRecovering(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-pix-payment", {
+        body: { paymentId: id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const restored: PixData = {
+        paymentId: id,
+        lookupToken: null,
+        qrCode: null,
+        qrCodeBase64: null,
+        ticketUrl: null,
+        status: data?.status || "pending",
+      };
+      setPixData(restored);
+      setPaymentMethod("pix");
+
+      if (data?.status === "approved") {
+        if (!user) {
+          setAccountForm(prev => ({ ...prev, name: form.fullName }));
+          setStep("create-account");
+        } else {
+          setStep("confirmation");
+        }
+        toast.success("Pagamento aprovado! Continue seu cadastro.");
+      } else {
+        setStep("payment");
+        toast.info(`Status atual: ${data?.status || "pendente"}. Você pode continuar verificando.`);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível recuperar este pagamento.");
+    } finally {
+      setRecovering(false);
+    }
+  };
 
   const [form, setForm] = useState({
     fullName: "",
@@ -182,6 +231,19 @@ export default function Checkout() {
         setForm({ ...parsed, password: "", confirmPassword: "" });
       } catch {}
     }
+
+    // Restore pending PIX payment if there is one
+    const savedPix = localStorage.getItem("checkout_pending_pix");
+    if (savedPix) {
+      try {
+        const parsed = JSON.parse(savedPix);
+        if (parsed?.paymentId) {
+          setPixData(parsed);
+          setPaymentMethod("pix");
+          setStep("payment");
+        }
+      } catch {}
+    }
   }, []);
 
   useEffect(() => {
@@ -215,18 +277,20 @@ export default function Checkout() {
 
     const checkStatus = async () => {
       try {
-        const { data, error } = await supabase
-          .from("payments")
-          .select("status")
-          .eq("mp_payment_id", pixData.paymentId)
-          .single();
+        const { data, error } = await supabase.functions.invoke("sync-pix-payment", {
+          body: {
+            paymentId: pixData.paymentId,
+            lookupToken: pixData.lookupToken,
+          },
+        });
 
         if (!error && data?.status === "approved") {
-          // Se não tem usuário logado, vai para criação de conta
+          localStorage.removeItem("checkout_pending_pix");
           if (!user) {
             setAccountForm(prev => ({ ...prev, name: form.fullName }));
             setStep("create-account");
           } else {
+            try { await refreshProfile?.(); } catch {}
             setStep("confirmation");
           }
           toast.success("Pagamento confirmado!");
@@ -286,11 +350,12 @@ export default function Checkout() {
   useEffect(() => {
     if (step === "confirmation") {
       const timer = setTimeout(() => {
-        navigate("/dashboard");
+        handleConfirmationRedirect();
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [step, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -362,46 +427,42 @@ export default function Checkout() {
 
   const handleSelectPix = async () => {
     setPaymentMethod("pix");
+
+    // Guard: ensure required fields are filled before calling the edge function
+    if (!form.fullName?.trim() || !form.cpf?.trim() || !form.email?.trim()) {
+      toast.error("Preencha seus dados antes de continuar.");
+      setStep("info");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      // ✅ Usa token do usuário logado se existir, senão continua anônimo
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke("create-pix-payment", {
+        body: {
+          planId: plan!.id,
+          billingCycle: cycle,
+          amount: finalPrice,
+          fullName: form.fullName,
+          cpf: form.cpf,
+          email: form.email,
+        },
+      });
 
-      const response = await fetch(
-        "https://uuirvevhvjvnubihnstz.supabase.co/functions/v1/create-pix-payment",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            planId: plan!.id,
-            billingCycle: cycle,
-            amount: finalPrice,
-            fullName: form.fullName,
-            cpf: form.cpf,
-            email: form.email,
-          }),
-        }
-      );
-
-      const data = await response.json();
-      console.log("✅ Status HTTP:", response.status);
-      console.log("✅ Resposta completa:", JSON.stringify(data, null, 2));
-      
-      if (!response.ok) {
-        console.error("❌ Erro HTTP na resposta:", data);
-        throw new Error(data.error || `Erro ${response.status}`);
+      if (error) {
+        throw new Error(error.message || "Erro ao gerar PIX");
       }
-      
+
       if (data?.error) {
         console.error("❌ Erro retornado pela função:", data.error, data.details);
         throw new Error(data.error);
       }
 
       setPixData(data);
+      // Persist so user can resume after refresh / closing tab
+      try {
+        localStorage.setItem("checkout_pending_pix", JSON.stringify(data));
+        localStorage.setItem("checkout_pending_form", JSON.stringify({ ...form, password: "", confirmPassword: "" }));
+      } catch {}
       setStep("payment");
     } catch (err: any) {
       toast.error("Erro ao gerar PIX: " + (err.message || "Tente novamente"));
@@ -426,27 +487,32 @@ export default function Checkout() {
   const handleCheckPayment = async () => {
     setCheckingPayment(true);
     try {
-      const { data } = await supabase
-        .from("payments")
-        .select("status")
-        .eq("mp_payment_id", pixData?.paymentId || "")
-        .single();
+      // Sincroniza diretamente com o Mercado Pago (não depende do webhook)
+      const { data, error } = await supabase.functions.invoke("sync-pix-payment", {
+        body: {
+          paymentId: pixData?.paymentId || "",
+          lookupToken: pixData?.lookupToken,
+        },
+      });
+
+      if (error) throw error;
 
       if (data?.status === "approved") {
-        // Se não tem usuário logado, vai para criação de conta
         if (!user) {
-          // Preencher o nome do formulário de dados para a criação de conta
           setAccountForm(prev => ({ ...prev, name: form.fullName }));
           setStep("create-account");
         } else {
           setStep("confirmation");
         }
         toast.success("Pagamento confirmado!");
+      } else if (data?.status === "pending" || data?.status === "in_process") {
+        toast.info("Pagamento ainda não confirmado pelo Mercado Pago. Aguarde alguns instantes.");
       } else {
-        toast.info("Pagamento ainda não confirmado. Aguarde alguns instantes.");
+        toast.warning(`Status atual: ${data?.status || "desconhecido"}`);
       }
-    } catch {
-      toast.error("Erro ao verificar pagamento.");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Erro ao verificar pagamento.");
     } finally {
       setCheckingPayment(false);
     }
@@ -475,6 +541,26 @@ export default function Checkout() {
       const result = await register(accountForm.name, form.email, accountForm.password);
       
       if (result.success) {
+        if (pixData?.paymentId && pixData?.lookupToken && result.userId && planId) {
+          const { error: claimError, data: claimData } = await supabase.functions.invoke("claim-pix-payment", {
+            body: {
+              paymentId: pixData.paymentId,
+              lookupToken: pixData.lookupToken,
+              planId,
+              billingCycle: cycle,
+              userId: result.userId,
+            },
+          });
+
+          if (claimError) {
+            throw new Error(claimError.message || "Erro ao vincular pagamento à conta");
+          }
+
+          if (claimData?.error) {
+            throw new Error(claimData.error);
+          }
+        }
+
         // Salvar dados do checkout pendentes para o webhook processar
         localStorage.setItem("checkout_completed_data", JSON.stringify({
           planId,
@@ -484,6 +570,10 @@ export default function Checkout() {
         }));
         
         toast.success("Conta criada com sucesso!");
+        // Garante sessão ativa (signUp pode exigir confirmação de email em alguns ambientes)
+        try { await login(form.email, accountForm.password); } catch {}
+        // Atualiza o perfil/assinatura para que o ProtectedRoute libere o /dashboard
+        try { await refreshProfile?.(); } catch {}
         setStep("confirmation");
         
         // Limpar dados sensíveis após sucesso
@@ -505,7 +595,8 @@ export default function Checkout() {
     setForm(initialFormState);
     setAccountForm({ name: "", password: "", confirmPassword: "" });
     setPixData(null);
-    navigate("/dashboard");
+    // Hard redirect para garantir reavaliação de sessão e assinatura
+    window.location.href = "/dashboard";
   };
 
   const stepIndex = ["info", "method", "payment", "create-account", "confirmation"].indexOf(step);
@@ -703,6 +794,29 @@ export default function Checkout() {
                     <span className="text-lg font-semibold">Cartão de Crédito</span>
                     <span className="text-sm text-muted-foreground">Parcele em até 12x</span>
                   </button>
+                </div>
+
+                {/* Recuperar pagamento PIX existente */}
+                <div className="mt-8 rounded-xl border border-dashed border-border bg-muted/30 p-4">
+                  <Label className="text-sm font-semibold mb-1 block">Já fez um PIX e quer continuar?</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Cole o ID do pagamento (Mercado Pago) para recuperar e seguir o cadastro sem gerar um novo.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      className="bg-background"
+                      placeholder="Ex: 156850283313"
+                      value={recoverId}
+                      onChange={(e) => setRecoverId(e.target.value)}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={handleRecoverPayment}
+                      disabled={recovering || !recoverId.trim()}
+                    >
+                      {recovering ? <Loader2 className="w-4 h-4 animate-spin" /> : "Recuperar"}
+                    </Button>
+                  </div>
                 </div>
 
                 <Button variant="ghost" onClick={() => setStep("info")} className="mt-6 w-full text-muted-foreground">
@@ -906,9 +1020,7 @@ export default function Checkout() {
                     : `Seu plano ${plan?.name} foi ativado com sucesso.`
                   }
                 </p>
-                <Link to="/dashboard">
-                  <Button className="mt-6 px-8">Ir para o Dashboard</Button>
-                </Link>
+                <Button onClick={handleConfirmationRedirect} className="mt-6 px-8">Ir para o Dashboard</Button>
               </div>
             )}
           </div>

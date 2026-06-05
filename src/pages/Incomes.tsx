@@ -35,6 +35,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { Income } from '@/types/income';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import GroupsPanel, { GroupedItem } from '@/components/groups/GroupsPanel';
 
 export default function Incomes() {
   const location = useLocation();
@@ -66,6 +67,7 @@ export default function Incomes() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState<Income | null>(null);
   const [selectedDeleteScope, setSelectedDeleteScope] = useState<'single' | 'future' | 'past' | 'all'>('single');
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const getMonthLabel = (monthIndex: number) => {
     const label = format(new Date(selectedYear, monthIndex, 1), 'MMMM', { locale: ptBR });
@@ -346,12 +348,12 @@ export default function Incomes() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Receitas</h1>
-          <p className="text-muted-foreground">Gerencie seus ganhos</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Receitas</h1>
+          <p className="text-sm text-muted-foreground">Gerencie seus ganhos</p>
         </div>
-        <Button className="bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingIncome(null); setDuplicatingIncome(null); setIsFormOpen(true); }}>
+        <Button className="w-full sm:w-auto bg-primary text-primary-foreground shadow hover:bg-primary/90" onClick={() => { setEditingIncome(null); setDuplicatingIncome(null); setIsFormOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Nova Receita
         </Button>
       </div>
@@ -443,16 +445,93 @@ export default function Incomes() {
       )}
 
       <Card className="bg-green-50/50 dark:bg-green-900/10 border-green-100 dark:border-green-900/20">
-        <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Total de Receitas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
-            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total de Receitas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
+            <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
-          <div className="text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border">{filteredIncomes.length} registro(s) encontrado(s)</div>
+          <div className="text-xs sm:text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border self-start sm:self-auto">{filteredIncomes.length} registro(s) encontrado(s)</div>
         </CardContent>
       </Card>
 
-      <Card>
+      <GroupsPanel
+        kind="income"
+        draggingId={draggingId}
+        items={filteredIncomes.map<GroupedItem>(i => ({
+          id: i.id,
+          groupId: (i as any).groupId,
+          primary: i.title,
+          secondary: (incomeCategories.find(c => c.id === i.categoryId)?.name) || undefined,
+          amount: i.amount,
+        }))}
+        onChanged={() => refreshData()}
+      />
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-2">
+        {filteredIncomes.length === 0 ? (
+          <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Nenhuma receita encontrada.</CardContent></Card>
+        ) : (
+          filteredIncomes.map((income) => {
+            const category = incomeCategories.find(c => c.id === income.categoryId);
+            const subcategory = incomeSubcategories.find(s => s.id === income.subcategoryId);
+            const receiveDate = new Date(income.receiveDate);
+            const isOverdue = !income.isReceived && isBefore(startOfDay(receiveDate), startOfDay(new Date()));
+            const isReceived = income.isReceived;
+            return (
+              <Card
+                key={income.id}
+                className={cn("active:scale-[0.99] transition-all", (income as any).groupId && "bg-primary/5 border-primary/30")}
+                onClick={() => handleEdit(income)}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-start gap-3">
+                    <div className={cn("w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0", category?.color ? `bg-${category.color}/10` : "bg-muted")}>
+                      <CategoryIcon iconName={category?.icon || 'Wallet'} className={cn("w-4 h-4", category?.color ? `text-${category.color}` : "text-muted-foreground")} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-medium text-sm truncate">{income.title}</p>
+                            {(income as any).installments && (income as any).installments > 1 && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{(income as any).currentInstallment || 1}/{(income as any).installments}</Badge>
+                            )}
+                            {income.excludeFromCalculations && <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {category?.name || 'Sem categoria'}{subcategory ? ` • ${subcategory.name}` : ''}
+                          </p>
+                        </div>
+                        <p className={cn("text-sm font-semibold whitespace-nowrap", isReceived ? "text-green-600 dark:text-green-400" : "")}>
+                          {formatCurrency(income.amount)}
+                        </p>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className={cn(isOverdue ? "text-destructive font-semibold" : "text-muted-foreground")}>
+                            {format(receiveDate, 'dd/MM/yyyy')}
+                          </span>
+                          {isReceived && <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 text-[10px] px-1.5 py-0 h-4">Recebido</Badge>}
+                          {!isReceived && isOverdue && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">Atrasado</Badge>}
+                          {!isReceived && !isOverdue && <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 text-[10px] px-1.5 py-0 h-4">Pendente</Badge>}
+                        </div>
+                        <div className="flex gap-0.5" onClick={e => e.stopPropagation()}>
+                          <Button size="icon" variant="ghost" className={cn("h-8 w-8", income.isReceived ? "text-green-600" : "text-muted-foreground")} onClick={() => handleToggleReceived(income.id, income.isReceived)}><Check className="w-4 h-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDuplicate(income)}><Copy className="w-4 h-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (income.recurrenceId) handleDelete(income); else handleUndoableDelete(income); }}><Trash2 className="w-4 h-4" /></Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+      </div>
+
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -498,7 +577,22 @@ export default function Incomes() {
                   const isReceived = income.isReceived;
                   
                   return (
-                    <TableRow key={income.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleEdit(income)}>
+                    <TableRow
+                      key={income.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', income.id);
+                        e.dataTransfer.effectAllowed = 'move';
+                        setDraggingId(income.id);
+                      }}
+                      onDragEnd={() => setDraggingId(null)}
+                      className={cn(
+                        "cursor-pointer hover:bg-muted/50 transition-colors",
+                        draggingId === income.id && "opacity-40",
+                        (income as any).groupId && "bg-primary/5",
+                      )}
+                      onClick={() => handleEdit(income)}
+                    >
                       <TableCell className="font-medium">
                          <div className="flex items-center gap-2">
                           {income.excludeFromCalculations && (
