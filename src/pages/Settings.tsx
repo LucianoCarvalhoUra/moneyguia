@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { User, Shield, Loader2, Bell, Bot, Sparkles, CalendarClock } from 'lucide-react';
+import { User, Shield, Loader2, Bell, Bot, Sparkles, CalendarClock, Mail, Send } from 'lucide-react';
 import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
 import DashboardCustomization from '@/components/dashboard/DashboardCustomization';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
@@ -40,6 +40,10 @@ export default function Settings() {
   const [isClassifying, setIsClassifying] = useState(false);
   const canUseAiClassification = hasFeatureAccess('ai_classification');
   const [autoLiquidation, setAutoLiquidation] = useState(false);
+  const [notificationEmail, setNotificationEmail] = useState('');
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -110,6 +114,20 @@ export default function Settings() {
         email: user.email || '',
       });
     }
+
+    // Load email notification settings
+    const { data: notifSettings } = await (supabase.from('notification_settings') as any)
+      .select('notification_email, email_enabled')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (notifSettings) {
+      setNotificationEmail(notifSettings.notification_email || user?.email || '');
+      setEmailEnabled(notifSettings.email_enabled ?? false);
+    } else {
+      setNotificationEmail(user?.email || '');
+    }
+
     setIsLoading(false);
   };
 
@@ -135,6 +153,59 @@ export default function Settings() {
     localStorage.setItem('alert_days_before', days);
     localStorage.setItem('alert_type', type);
     toast.success('Preferências de alerta atualizadas');
+  };
+
+  const saveEmailSettings = async (email: string, enabled: boolean) => {
+    if (!user?.id) return;
+    setIsSavingEmail(true);
+    try {
+      const { data: existing } = await (supabase.from('notification_settings') as any)
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existing) {
+        await (supabase.from('notification_settings') as any)
+          .update({ notification_email: email, email_enabled: enabled })
+          .eq('user_id', user.id);
+      } else {
+        await (supabase.from('notification_settings') as any)
+          .insert({ user_id: user.id, notification_email: email, email_enabled: enabled });
+      }
+      setNotificationEmail(email);
+      setEmailEnabled(enabled);
+      toast.success('Configurações de email salvas');
+    } catch {
+      toast.error('Erro ao salvar configurações de email');
+    } finally {
+      setIsSavingEmail(false);
+    }
+  };
+
+  const sendTestEmail = async () => {
+    if (!user) return;
+    setIsSendingTest(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      if (!token) { toast.error('Sessão inválida'); return; }
+
+      const res = await supabase.functions.invoke('send-test-alert', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.error) {
+        toast.error(`Erro: ${res.error.message}`);
+      } else if (res.data?.success) {
+        toast.success(`Email de teste enviado para ${res.data.sentTo}`);
+      } else {
+        toast.error(res.data?.error || 'Erro desconhecido');
+      }
+    } catch (e: any) {
+      toast.error(`Erro ao enviar: ${e.message}`);
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   const handleClassifyExpenses = async () => {
@@ -301,6 +372,58 @@ export default function Settings() {
               </div>
             </div>
           )}
+
+          {/* Email alerts section */}
+          <div className="border-t pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-primary" />
+                <Label className="text-base">Alertas por Email</Label>
+              </div>
+              <Switch
+                checked={emailEnabled}
+                onCheckedChange={(checked) => saveEmailSettings(notificationEmail, checked)}
+                disabled={isSavingEmail}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Receba lembretes de despesas próximas do vencimento por email.
+            </p>
+            {emailEnabled && (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Email para receber alertas</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={notificationEmail}
+                      onChange={(e) => setNotificationEmail(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => saveEmailSettings(notificationEmail, emailEnabled)}
+                      disabled={isSavingEmail}
+                    >
+                      {isSavingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+                    </Button>
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  className="w-full sm:w-auto gap-2"
+                  onClick={sendTestEmail}
+                  disabled={isSendingTest || !notificationEmail}
+                >
+                  {isSendingTest
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Enviando...</>
+                    : <><Send className="w-4 h-4" /> Enviar email de teste</>
+                  }
+                </Button>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
