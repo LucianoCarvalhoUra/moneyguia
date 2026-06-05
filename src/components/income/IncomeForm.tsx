@@ -170,6 +170,58 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     }
   };
 
+  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
+    if (!income || !pendingData) return;
+    setIsSubmitting(true);
+    try {
+      const originalReceiveDate = income.receiveDate instanceof Date
+        ? format(income.receiveDate, 'yyyy-MM-dd')
+        : String(income.receiveDate).split('T')[0];
+
+      const { error: singleError } = await supabase.from('incomes').update(pendingData).eq('id', income.id);
+      if (singleError) throw singleError;
+
+      if (scope !== 'single') {
+        let recurrenceId = income.recurrenceId || (income as any).recurrence_id;
+        if (!recurrenceId) {
+          recurrenceId = crypto.randomUUID();
+          const baseTitle = income.title.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
+          const { data: siblings } = await supabase
+            .from('incomes')
+            .select('id, title')
+            .eq('user_id', income.userId)
+            .eq('is_recurring', true);
+          const matchingIds = (siblings || [])
+            .filter((s: any) => s.title.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim() === baseTitle)
+            .map((s: any) => s.id);
+          if (matchingIds.length > 0) {
+            await supabase.from('incomes').update({ recurrence_id: recurrenceId }).in('id', matchingIds);
+          }
+        }
+
+        // Preserve individual payment data: do not propagate receive_date, is_received, user_id, current_installment
+        const { receive_date, is_received, user_id, current_installment, ...batchData } = pendingData;
+        let query = supabase.from('incomes').update(batchData).eq('recurrence_id', recurrenceId).neq('id', income.id);
+        if (scope === 'future') {
+          query = query.gte('receive_date', originalReceiveDate);
+        }
+        const { error } = await query;
+        if (error) throw error;
+      }
+
+      toast.success('Receitas atualizadas com sucesso!');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await refreshData();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('[IncomeBatchUpdate]', error);
+      toast.error('Erro ao atualizar: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+      setScopeDialogOpen(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
