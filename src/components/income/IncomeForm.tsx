@@ -441,6 +441,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
           </div>
 
+          {/* Seção: Avançado */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Settings2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Opções Avançadas</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
           {/* Toggles: Agendamento + Controle Visual */}
           <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
             <div className={cn("flex items-center gap-3", isReceived && "opacity-40 pointer-events-none")}>
