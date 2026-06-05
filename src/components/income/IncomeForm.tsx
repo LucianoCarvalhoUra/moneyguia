@@ -466,6 +466,43 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={scopeDialogOpen} onOpenChange={setScopeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Atualizar Recorrência</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta é uma receita recorrente. Como deseja aplicar as alterações? Status de recebimento e data real serão mantidos individuais em cada parcela.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-4">
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('single')}>
+              <Calendar className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Apenas esta</div>
+                <div className="text-xs text-muted-foreground">Alterar somente a receita atual</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('future')}>
+              <CalendarClock className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Esta e próximas</div>
+                <div className="text-xs text-muted-foreground">Alterar desta data em diante (exceto status/data de recebimento)</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
+              <CalendarDays className="w-4 h-4 mr-3 text-muted-foreground" />
+              <div className="text-left">
+                <div className="font-medium">Todas</div>
+                <div className="text-xs text-muted-foreground">Alterar toda a série (exceto status/data de recebimento)</div>
+              </div>
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
