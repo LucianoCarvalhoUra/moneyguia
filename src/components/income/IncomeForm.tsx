@@ -202,6 +202,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
       };
 
       if (income) {
+        if (income.isRecurring) {
+          setPendingData(payload);
+          setScopeDialogOpen(true);
+          setIsSubmitting(false);
+          return;
+        }
         const { error } = await supabase.from('incomes').update(payload).eq('id', income.id);
         if (error) throw error;
         toast.success('Receita atualizada!');
