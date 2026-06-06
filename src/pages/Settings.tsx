@@ -17,6 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { User, Shield, Loader2, Bell, Bot, Sparkles, CalendarClock } from 'lucide-react';
 import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
 import EmailSmtpSettings from '@/components/settings/EmailSmtpSettings';
+import NotificationAlertsSettings from '@/components/settings/NotificationAlertsSettings';
 import DashboardCustomization from '@/components/dashboard/DashboardCustomization';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
 import ChangePasswordForm from '@/components/settings/ChangePasswordForm';
@@ -257,7 +258,7 @@ export default function Settings() {
             <Bell className="w-5 h-5 text-primary" />
             Notificações Inteligentes
           </CardTitle>
-          <CardDescription>Configure seus alertas de vencimento</CardDescription>
+          <CardDescription>Alerta visual no Dashboard (não envia e-mails)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
@@ -304,6 +305,9 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Email alerts (conteúdo + frequência) */}
+      <NotificationAlertsSettings />
 
       {/* Auto-liquidation */}
       <Card>

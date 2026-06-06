@@ -556,9 +556,14 @@ export type Database = {
       }
       notification_settings: {
         Row: {
+          alert_overdue_expenses: boolean
+          alert_pending_incomes: boolean
+          alert_received_incomes: boolean
+          alert_upcoming_expenses: boolean
           created_at: string
           days_before_due: number
           email_enabled: boolean
+          frequency: string
           id: string
           is_enabled: boolean
           last_notification_date: string | null
@@ -571,9 +576,14 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          alert_overdue_expenses?: boolean
+          alert_pending_incomes?: boolean
+          alert_received_incomes?: boolean
+          alert_upcoming_expenses?: boolean
           created_at?: string
           days_before_due?: number
           email_enabled?: boolean
+          frequency?: string
           id?: string
           is_enabled?: boolean
           last_notification_date?: string | null
@@ -586,9 +596,14 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          alert_overdue_expenses?: boolean
+          alert_pending_incomes?: boolean
+          alert_received_incomes?: boolean
+          alert_upcoming_expenses?: boolean
           created_at?: string
           days_before_due?: number
           email_enabled?: boolean
+          frequency?: string
           id?: string
           is_enabled?: boolean
           last_notification_date?: string | null
