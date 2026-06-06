@@ -258,7 +258,7 @@ export default function Settings() {
             <Bell className="w-5 h-5 text-primary" />
             Notificações Inteligentes
           </CardTitle>
-          <CardDescription>Configure seus alertas de vencimento</CardDescription>
+          <CardDescription>Alerta visual no Dashboard (não envia e-mails)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
