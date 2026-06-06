@@ -327,6 +327,9 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* Email SMTP */}
+      <EmailSmtpSettings />
+
       {/* Security */}
       <Card>
         <CardHeader>
