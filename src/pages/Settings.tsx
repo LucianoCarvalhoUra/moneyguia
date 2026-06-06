@@ -16,6 +16,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { User, Shield, Loader2, Bell, Bot, Sparkles, CalendarClock } from 'lucide-react';
 import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
+import EmailSmtpSettings from '@/components/settings/EmailSmtpSettings';
 import DashboardCustomization from '@/components/dashboard/DashboardCustomization';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
 import ChangePasswordForm from '@/components/settings/ChangePasswordForm';
@@ -325,6 +326,9 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Email SMTP */}
+      <EmailSmtpSettings />
 
       {/* Security */}
       <Card>
