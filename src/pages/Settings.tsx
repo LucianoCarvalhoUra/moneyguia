@@ -306,6 +306,9 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* Email alerts (conteúdo + frequência) */}
+      <NotificationAlertsSettings />
+
       {/* Auto-liquidation */}
       <Card>
         <CardHeader>
