@@ -17,6 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { User, Shield, Loader2, Bell, Bot, Sparkles, CalendarClock } from 'lucide-react';
 import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
 import EmailSmtpSettings from '@/components/settings/EmailSmtpSettings';
+import NotificationAlertsSettings from '@/components/settings/NotificationAlertsSettings';
 import DashboardCustomization from '@/components/dashboard/DashboardCustomization';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
 import ChangePasswordForm from '@/components/settings/ChangePasswordForm';
