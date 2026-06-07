@@ -22,6 +22,7 @@ interface Settings {
   notification_email: string;
   days_before_due: number;
   frequency: 'daily' | 'weekly' | 'monthly';
+  send_hour: number;
   alert_overdue_expenses: boolean;
   alert_upcoming_expenses: boolean;
   alert_pending_incomes: boolean;
@@ -34,6 +35,7 @@ const DEFAULTS: Settings = {
   notification_email: '',
   days_before_due: 3,
   frequency: 'daily',
+  send_hour: 9,
   alert_overdue_expenses: true,
   alert_upcoming_expenses: true,
   alert_pending_incomes: false,
