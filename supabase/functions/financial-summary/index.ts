@@ -16,6 +16,8 @@ interface NotificationSettings {
   notification_email: string | null;
   send_once_only: boolean;
   last_notification_date: string | null;
+  send_hour: number;
+  send_minute: number;
 }
 
 interface DueExpense {
@@ -157,6 +159,11 @@ Deno.serve(async (req: Request) => {
 
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
+
+    // Current time in Brasília (UTC-3)
+    const brasiliaHour = (today.getUTCHours() - 3 + 24) % 24;
+    const brasiliaSlot = today.getUTCMinutes() < 30 ? 0 : 30;
+
     let totalEmailsSent = 0;
 
     for (const settings of notificationSettings as NotificationSettings[]) {
@@ -165,6 +172,11 @@ Deno.serve(async (req: Request) => {
       }
 
       if (!settings.notification_email) {
+        continue;
+      }
+
+      // Only send if we're in the user's scheduled 30-minute slot
+      if (settings.send_hour !== brasiliaHour || settings.send_minute !== brasiliaSlot) {
         continue;
       }
 

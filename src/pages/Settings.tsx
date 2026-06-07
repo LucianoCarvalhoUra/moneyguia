@@ -42,6 +42,8 @@ export default function Settings() {
   const [autoLiquidation, setAutoLiquidation] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState('');
   const [emailEnabled, setEmailEnabled] = useState(false);
+  const [sendHour, setSendHour] = useState(8);
+  const [sendMinute, setSendMinute] = useState(0);
   const [isSavingEmail, setIsSavingEmail] = useState(false);
   const [isSendingTest, setIsSendingTest] = useState(false);
 
@@ -117,13 +119,15 @@ export default function Settings() {
 
     // Load email notification settings
     const { data: notifSettings } = await (supabase.from('notification_settings') as any)
-      .select('notification_email, email_enabled')
+      .select('notification_email, email_enabled, send_hour, send_minute')
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (notifSettings) {
       setNotificationEmail(notifSettings.notification_email || user?.email || '');
       setEmailEnabled(notifSettings.email_enabled ?? false);
+      setSendHour(notifSettings.send_hour ?? 8);
+      setSendMinute(notifSettings.send_minute ?? 0);
     } else {
       setNotificationEmail(user?.email || '');
     }
@@ -155,7 +159,12 @@ export default function Settings() {
     toast.success('Preferências de alerta atualizadas');
   };
 
-  const saveEmailSettings = async (email: string, enabled: boolean) => {
+  const saveEmailSettings = async (
+    email: string,
+    enabled: boolean,
+    hour: number = sendHour,
+    minute: number = sendMinute,
+  ) => {
     if (!user?.id) return;
     setIsSavingEmail(true);
     try {
@@ -164,22 +173,37 @@ export default function Settings() {
         .eq('user_id', user.id)
         .maybeSingle();
 
+      const payload = { notification_email: email, email_enabled: enabled, send_hour: hour, send_minute: minute };
+
       if (existing) {
         await (supabase.from('notification_settings') as any)
-          .update({ notification_email: email, email_enabled: enabled })
+          .update(payload)
           .eq('user_id', user.id);
       } else {
         await (supabase.from('notification_settings') as any)
-          .insert({ user_id: user.id, notification_email: email, email_enabled: enabled });
+          .insert({ user_id: user.id, ...payload });
       }
       setNotificationEmail(email);
       setEmailEnabled(enabled);
+      setSendHour(hour);
+      setSendMinute(minute);
       toast.success('Configurações de email salvas');
     } catch {
       toast.error('Erro ao salvar configurações de email');
     } finally {
       setIsSavingEmail(false);
     }
+  };
+
+  const timeSlots = Array.from({ length: 48 }, (_, i) => {
+    const h = Math.floor(i / 2);
+    const m = i % 2 === 0 ? 0 : 30;
+    return { value: `${h}:${m}`, label: `${String(h).padStart(2, '0')}:${m === 0 ? '00' : '30'}` };
+  });
+
+  const handleTimeChange = (value: string) => {
+    const [h, m] = value.split(':').map(Number);
+    saveEmailSettings(notificationEmail, emailEnabled, h, m);
   };
 
   const sendTestEmail = async () => {
@@ -410,6 +434,28 @@ export default function Settings() {
                       {isSavingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
                     </Button>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Horário de envio (Brasília)</Label>
+                  <Select
+                    value={`${sendHour}:${sendMinute}`}
+                    onValueChange={handleTimeChange}
+                    disabled={isSavingEmail}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeSlots.map((slot) => (
+                        <SelectItem key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    O e-mail é disparado automaticamente neste horário.
+                  </p>
                 </div>
                 <Button
                   variant="secondary"
