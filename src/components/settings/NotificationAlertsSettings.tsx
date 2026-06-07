@@ -67,6 +67,7 @@ export default function NotificationAlertsSettings() {
           days_before_due: data.days_before_due ?? 3,
           frequency: (data.frequency as Settings['frequency']) || 'daily',
           send_hour: typeof data.send_hour === 'number' ? data.send_hour : 9,
+          send_minute: typeof data.send_minute === 'number' ? data.send_minute : 0,
           alert_overdue_expenses: data.alert_overdue_expenses ?? true,
           alert_upcoming_expenses: data.alert_upcoming_expenses ?? true,
           alert_pending_incomes: data.alert_pending_incomes ?? false,
