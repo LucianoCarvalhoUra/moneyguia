@@ -122,13 +122,15 @@ Deno.serve(async (req) => {
     const today = new Date(`${sp.date}T00:00:00`);
     const todayStr = sp.date;
     const currentHour = sp.hour;
+    const currentMinute = sp.minute;
     let totalEmailsSent = 0;
 
     for (const s of (allSettings || []) as NotificationSettings[]) {
       if (!s.notification_email) continue;
-      // Hour-of-day match (skipped when forced from "Enviar agora")
+      // Hour-and-minute match (skipped when forced from "Enviar agora")
       const desiredHour = typeof s.send_hour === "number" ? s.send_hour : 9;
-      if (!force && desiredHour !== currentHour) continue;
+      const desiredMinute = typeof s.send_minute === "number" ? s.send_minute : 0;
+      if (!force && (desiredHour !== currentHour || desiredMinute !== currentMinute)) continue;
       if (!force && !shouldSendByFrequency(s.frequency || "daily", todayStr, s.last_notification_date))
         continue;
 
