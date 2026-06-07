@@ -24,12 +24,13 @@ interface NotificationSettings {
 }
 
 // Current hour in America/Sao_Paulo (UTC-3, no DST)
-function brasiliaNow(): { date: string; hour: number } {
+function brasiliaNow(): { date: string; hour: number; minute: number } {
   const nowUtc = new Date();
   const sp = new Date(nowUtc.getTime() - 3 * 60 * 60 * 1000);
   return {
     date: sp.toISOString().split("T")[0],
     hour: sp.getUTCHours(),
+    minute: sp.getUTCMinutes(),
   };
 }
 
