@@ -20,6 +20,7 @@ interface NotificationSettings {
   alert_received_incomes: boolean;
   frequency: "daily" | "weekly" | "monthly";
   send_hour: number;
+  send_minute: number;
 }
 
 // Current hour in America/Sao_Paulo (UTC-3, no DST)
