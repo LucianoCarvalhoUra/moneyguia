@@ -569,6 +569,7 @@ export type Database = {
           last_notification_date: string | null
           notification_email: string | null
           send_hour: number
+          send_minute: number
           send_once_only: boolean
           sender_email: string | null
           sender_name: string | null
@@ -590,6 +591,7 @@ export type Database = {
           last_notification_date?: string | null
           notification_email?: string | null
           send_hour?: number
+          send_minute?: number
           send_once_only?: boolean
           sender_email?: string | null
           sender_name?: string | null
@@ -611,6 +613,7 @@ export type Database = {
           last_notification_date?: string | null
           notification_email?: string | null
           send_hour?: number
+          send_minute?: number
           send_once_only?: boolean
           sender_email?: string | null
           sender_name?: string | null

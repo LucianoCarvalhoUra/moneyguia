@@ -1,0 +1,1 @@
+ALTER TABLE public.notification_settings ADD COLUMN send_minute INTEGER NOT NULL DEFAULT 0 CHECK (send_minute >= 0 AND send_minute <= 59);
