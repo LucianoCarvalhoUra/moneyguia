@@ -22,6 +22,7 @@ interface Settings {
   notification_email: string;
   days_before_due: number;
   frequency: 'daily' | 'weekly' | 'monthly';
+  send_hour: number;
   alert_overdue_expenses: boolean;
   alert_upcoming_expenses: boolean;
   alert_pending_incomes: boolean;
@@ -34,6 +35,7 @@ const DEFAULTS: Settings = {
   notification_email: '',
   days_before_due: 3,
   frequency: 'daily',
+  send_hour: 9,
   alert_overdue_expenses: true,
   alert_upcoming_expenses: true,
   alert_pending_incomes: false,
@@ -62,6 +64,7 @@ export default function NotificationAlertsSettings() {
           notification_email: data.notification_email || user.email || '',
           days_before_due: data.days_before_due ?? 3,
           frequency: (data.frequency as Settings['frequency']) || 'daily',
+          send_hour: typeof data.send_hour === 'number' ? data.send_hour : 9,
           alert_overdue_expenses: data.alert_overdue_expenses ?? true,
           alert_upcoming_expenses: data.alert_upcoming_expenses ?? true,
           alert_pending_incomes: data.alert_pending_incomes ?? false,
@@ -203,6 +206,27 @@ export default function NotificationAlertsSettings() {
                 <SelectItem value="monthly">Mensal</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Horário de envio (Brasília)</Label>
+            <Select
+              value={String(settings.send_hour)}
+              onValueChange={(v) => update('send_hour', Number(v))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-64">
+                {Array.from({ length: 24 }, (_, h) => (
+                  <SelectItem key={h} value={String(h)}>
+                    {String(h).padStart(2, '0')}:00
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              O e-mail é disparado automaticamente neste horário.
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Antecedência (dias)</Label>

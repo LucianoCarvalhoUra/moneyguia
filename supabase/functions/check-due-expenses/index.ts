@@ -19,6 +19,17 @@ interface NotificationSettings {
   alert_pending_incomes: boolean;
   alert_received_incomes: boolean;
   frequency: "daily" | "weekly" | "monthly";
+  send_hour: number;
+}
+
+// Current hour in America/Sao_Paulo (UTC-3, no DST)
+function brasiliaNow(): { date: string; hour: number } {
+  const nowUtc = new Date();
+  const sp = new Date(nowUtc.getTime() - 3 * 60 * 60 * 1000);
+  return {
+    date: sp.toISOString().split("T")[0],
+    hour: sp.getUTCHours(),
+  };
 }
 
 interface Row {
@@ -105,12 +116,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
+    const sp = brasiliaNow();
+    const today = new Date(`${sp.date}T00:00:00`);
+    const todayStr = sp.date;
+    const currentHour = sp.hour;
     let totalEmailsSent = 0;
 
     for (const s of (allSettings || []) as NotificationSettings[]) {
       if (!s.notification_email) continue;
+      // Hour-of-day match (skipped when forced from "Enviar agora")
+      const desiredHour = typeof s.send_hour === "number" ? s.send_hour : 9;
+      if (!force && desiredHour !== currentHour) continue;
       if (!force && !shouldSendByFrequency(s.frequency || "daily", todayStr, s.last_notification_date))
         continue;
 
