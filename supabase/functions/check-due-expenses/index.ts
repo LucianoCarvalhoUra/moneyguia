@@ -84,6 +84,14 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    let force = false;
+    try {
+      const b = await req.json();
+      force = !!b?.force;
+    } catch (_e) {
+      // no body
+    }
+
     const { data: allSettings, error: settingsError } = await supabase
       .from("notification_settings")
       .select("*")
