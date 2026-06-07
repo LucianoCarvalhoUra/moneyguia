@@ -208,6 +208,27 @@ export default function NotificationAlertsSettings() {
             </Select>
           </div>
           <div className="space-y-2">
+            <Label>Horário de envio (Brasília)</Label>
+            <Select
+              value={String(settings.send_hour)}
+              onValueChange={(v) => update('send_hour', Number(v))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-64">
+                {Array.from({ length: 24 }, (_, h) => (
+                  <SelectItem key={h} value={String(h)}>
+                    {String(h).padStart(2, '0')}:00
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              O e-mail é disparado automaticamente neste horário.
+            </p>
+          </div>
+          <div className="space-y-2">
             <Label>Antecedência (dias)</Label>
             <Input
               type="number"
