@@ -98,7 +98,7 @@ export default function NotificationAlertsSettings() {
   const runNow = async () => {
     setRunning(true);
     try {
-      const { data, error } = await supabase.functions.invoke('check-due-expenses', { body: {} });
+      const { data, error } = await supabase.functions.invoke('check-due-expenses', { body: { force: true } });
       if (error) throw error;
       const sent = (data as any)?.emailsSent ?? 0;
       toast.success(sent > 0 ? `E-mail enviado!` : 'Nenhum item para alertar agora.');
