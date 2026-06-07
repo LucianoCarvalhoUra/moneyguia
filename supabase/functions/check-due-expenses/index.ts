@@ -19,6 +19,17 @@ interface NotificationSettings {
   alert_pending_incomes: boolean;
   alert_received_incomes: boolean;
   frequency: "daily" | "weekly" | "monthly";
+  send_hour: number;
+}
+
+// Current hour in America/Sao_Paulo (UTC-3, no DST)
+function brasiliaNow(): { date: string; hour: number } {
+  const nowUtc = new Date();
+  const sp = new Date(nowUtc.getTime() - 3 * 60 * 60 * 1000);
+  return {
+    date: sp.toISOString().split("T")[0],
+    hour: sp.getUTCHours(),
+  };
 }
 
 interface Row {
