@@ -23,6 +23,7 @@ interface Settings {
   days_before_due: number;
   frequency: 'daily' | 'weekly' | 'monthly';
   send_hour: number;
+  send_minute: number;
   alert_overdue_expenses: boolean;
   alert_upcoming_expenses: boolean;
   alert_pending_incomes: boolean;
@@ -36,6 +37,7 @@ const DEFAULTS: Settings = {
   days_before_due: 3,
   frequency: 'daily',
   send_hour: 9,
+  send_minute: 0,
   alert_overdue_expenses: true,
   alert_upcoming_expenses: true,
   alert_pending_incomes: false,
@@ -65,6 +67,7 @@ export default function NotificationAlertsSettings() {
           days_before_due: data.days_before_due ?? 3,
           frequency: (data.frequency as Settings['frequency']) || 'daily',
           send_hour: typeof data.send_hour === 'number' ? data.send_hour : 9,
+          send_minute: typeof data.send_minute === 'number' ? data.send_minute : 0,
           alert_overdue_expenses: data.alert_overdue_expenses ?? true,
           alert_upcoming_expenses: data.alert_upcoming_expenses ?? true,
           alert_pending_incomes: data.alert_pending_incomes ?? false,
@@ -209,21 +212,39 @@ export default function NotificationAlertsSettings() {
           </div>
           <div className="space-y-2">
             <Label>Horário de envio (Brasília)</Label>
-            <Select
-              value={String(settings.send_hour)}
-              onValueChange={(v) => update('send_hour', Number(v))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="max-h-64">
-                {Array.from({ length: 24 }, (_, h) => (
-                  <SelectItem key={h} value={String(h)}>
-                    {String(h).padStart(2, '0')}:00
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={String(settings.send_hour)}
+                onValueChange={(v) => update('send_hour', Number(v))}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Hora" />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <SelectItem key={h} value={String(h)}>
+                      {String(h).padStart(2, '0')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="self-center text-muted-foreground">:</span>
+              <Select
+                value={String(settings.send_minute)}
+                onValueChange={(v) => update('send_minute', Number(v))}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Min" />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  {Array.from({ length: 60 }, (_, m) => (
+                    <SelectItem key={m} value={String(m)}>
+                      {String(m).padStart(2, '0')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <p className="text-xs text-muted-foreground">
               O e-mail é disparado automaticamente neste horário.
             </p>
