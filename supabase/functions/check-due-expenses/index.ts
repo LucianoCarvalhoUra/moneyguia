@@ -84,6 +84,14 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+    let force = false;
+    try {
+      const b = await req.json();
+      force = !!b?.force;
+    } catch (_e) {
+      // no body
+    }
+
     const { data: allSettings, error: settingsError } = await supabase
       .from("notification_settings")
       .select("*")
@@ -103,7 +111,7 @@ Deno.serve(async (req) => {
 
     for (const s of (allSettings || []) as NotificationSettings[]) {
       if (!s.notification_email) continue;
-      if (!shouldSendByFrequency(s.frequency || "daily", todayStr, s.last_notification_date))
+      if (!force && !shouldSendByFrequency(s.frequency || "daily", todayStr, s.last_notification_date))
         continue;
 
       const dueThreshold = new Date(today);
@@ -129,7 +137,11 @@ Deno.serve(async (req) => {
           .eq("is_paid", false)
           .lt("due_date", todayStr)
           .order("due_date", { ascending: true });
-        overdueExpenses = (data || []).map((r: any) => ({ ...r, date: r.due_date }));
+        overdueExpenses = (data || []).map((r: any) => ({
+          ...r,
+          description: r.description || "(sem descrição)",
+          date: r.due_date,
+        }));
       }
 
       if (s.alert_upcoming_expenses) {
@@ -141,30 +153,44 @@ Deno.serve(async (req) => {
           .gte("due_date", todayStr)
           .lte("due_date", dueThresholdStr)
           .order("due_date", { ascending: true });
-        upcomingExpenses = (data || []).map((r: any) => ({ ...r, date: r.due_date }));
+        upcomingExpenses = (data || []).map((r: any) => ({
+          ...r,
+          description: r.description || "(sem descrição)",
+          date: r.due_date,
+        }));
       }
 
       if (s.alert_pending_incomes) {
         const { data } = await supabase
           .from("incomes")
-          .select("id, description, amount, receive_date")
+          .select("id, title, description, amount, receive_date")
           .eq("user_id", s.user_id)
           .eq("is_received", false)
           .lte("receive_date", dueThresholdStr)
           .order("receive_date", { ascending: true });
-        pendingIncomes = (data || []).map((r: any) => ({ ...r, date: r.receive_date }));
+        pendingIncomes = (data || []).map((r: any) => ({
+          id: r.id,
+          description: r.title || r.description || "(sem título)",
+          amount: r.amount,
+          date: r.receive_date,
+        }));
       }
 
       if (s.alert_received_incomes) {
         const { data } = await supabase
           .from("incomes")
-          .select("id, description, amount, receive_date")
+          .select("id, title, description, amount, receive_date")
           .eq("user_id", s.user_id)
           .eq("is_received", true)
           .gte("receive_date", lookbackStr)
           .lte("receive_date", todayStr)
           .order("receive_date", { ascending: false });
-        receivedIncomes = (data || []).map((r: any) => ({ ...r, date: r.receive_date }));
+        receivedIncomes = (data || []).map((r: any) => ({
+          id: r.id,
+          description: r.title || r.description || "(sem título)",
+          amount: r.amount,
+          date: r.receive_date,
+        }));
       }
 
       const totalItems =

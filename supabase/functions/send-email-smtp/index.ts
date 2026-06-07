@@ -130,13 +130,16 @@ Deno.serve(async (req: Request) => {
       },
     });
 
+    // Collapse newlines to avoid quoted-printable soft-breaks (=20) appearing in clients
+    const htmlOneLine = html ? html.replace(/\r?\n+/g, " ").replace(/\s{2,}/g, " ") : undefined;
+
     try {
       await client.send({
         from: `${fromName} <${SMTP_FROM}>`,
         to: body.to,
         subject: body.subject,
         content: body.text || "Veja a versao HTML deste e-mail.",
-        html,
+        html: htmlOneLine,
       });
     } finally {
       try {
