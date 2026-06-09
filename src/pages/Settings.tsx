@@ -252,58 +252,71 @@ export default function Settings() {
       <DashboardCustomization />
 
       {/* Smart Notifications */}
-      <Card>
+      <Card className="border-amber-200 dark:border-amber-900/40 bg-gradient-to-br from-amber-50/60 to-white dark:from-amber-950/20 dark:to-background">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="w-5 h-5 text-primary" />
-            Notificações Inteligentes
-          </CardTitle>
-          <CardDescription>Alerta visual no Dashboard (não envia e-mails)</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-            <div className="space-y-0.5">
-              <Label className="text-base">Alerta no Dashboard</Label>
-              <p className="text-sm text-muted-foreground">
-                Mostrar aviso de contas próximas do vencimento
-              </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <Bell className="w-5 h-5" />
+                Notificações Inteligentes
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Aviso visual no Dashboard sobre contas próximas do vencimento. Não envia e-mails.
+              </CardDescription>
             </div>
-            <Button
-              className={cn(alertEnabled ? 'bg-primary hover:bg-primary/90' : 'bg-muted text-muted-foreground hover:bg-muted/80')}
-              onClick={() => saveAlertSettings(!alertEnabled, alertDays, alertType)}
-            >
-              {alertEnabled ? 'Ativado' : 'Desativado'}
-            </Button>
+            <Switch
+              checked={alertEnabled}
+              onCheckedChange={(c) => saveAlertSettings(c, alertDays, alertType)}
+            />
           </div>
+        </CardHeader>
 
-          {alertEnabled && (
+        {alertEnabled && (
+          <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Alertar sobre</Label>
-                <Select value={alertType} onValueChange={(v) => saveAlertSettings(alertEnabled, alertDays, v)}>
-                  <SelectTrigger>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Alertar sobre
+                </Label>
+                <Select
+                  value={alertType}
+                  onValueChange={(v) => saveAlertSettings(alertEnabled, alertDays, v)}
+                >
+                  <SelectTrigger className="bg-background">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="expenses">Apenas Despesas</SelectItem>
                     <SelectItem value="incomes">Apenas Receitas</SelectItem>
-                    <SelectItem value="both">Ambos</SelectItem>
+                    <SelectItem value="both">Despesas e Receitas</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Antecedência (dias)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="30"
-                  value={alertDays}
-                  onChange={(e) => saveAlertSettings(alertEnabled, e.target.value, alertType)}
-                />
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Antecedência
+                </Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="30"
+                    value={alertDays}
+                    onChange={(e) => saveAlertSettings(alertEnabled, e.target.value, alertType)}
+                    className="bg-background pr-14"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    dias
+                  </span>
+                </div>
               </div>
             </div>
-          )}
-        </CardContent>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Bell className="w-3 h-3" />
+              Você será avisado no Dashboard com até <strong>{alertDays}</strong> dia(s) de antecedência.
+            </p>
+          </CardContent>
+        )}
       </Card>
 
       {/* Email alerts (conteúdo + frequência) */}
