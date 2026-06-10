@@ -125,6 +125,17 @@ Deno.serve(async (req) => {
     const currentMinute = sp.minute;
     let totalEmailsSent = 0;
 
+    console.log(
+      "check-due-expenses run:",
+      JSON.stringify({
+        force,
+        processed: allSettings?.length || 0,
+        todayStr,
+        currentHour,
+        currentMinute,
+      }),
+    );
+
     for (const s of (allSettings || []) as NotificationSettings[]) {
       if (!s.notification_email) continue;
       // Hour-and-minute match (skipped when forced from "Enviar agora")
@@ -133,6 +144,20 @@ Deno.serve(async (req) => {
       if (!force && (desiredHour !== currentHour || desiredMinute !== currentMinute)) continue;
       if (!force && !shouldSendByFrequency(s.frequency || "daily", todayStr, s.last_notification_date))
         continue;
+
+      console.log(
+        "notification matched:",
+        JSON.stringify({
+          userId: s.user_id,
+          force,
+          frequency: s.frequency,
+          lastNotificationDate: s.last_notification_date,
+          desiredHour,
+          desiredMinute,
+          currentHour,
+          currentMinute,
+        }),
+      );
 
       const dueThreshold = new Date(today);
       dueThreshold.setDate(dueThreshold.getDate() + (s.days_before_due || 3));
@@ -247,10 +272,12 @@ Deno.serve(async (req) => {
 
         if (emailResponse.ok) {
           totalEmailsSent++;
-          await supabase
-            .from("notification_settings")
-            .update({ last_notification_date: todayStr })
-            .eq("user_id", s.user_id);
+          if (!force) {
+            await supabase
+              .from("notification_settings")
+              .update({ last_notification_date: todayStr })
+              .eq("user_id", s.user_id);
+          }
         } else {
           console.error("send-email-smtp failed:", await emailResponse.text());
         }
