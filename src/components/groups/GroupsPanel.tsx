@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronRight, FolderPlus, Trash2, X, GripVertical } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChevronDown, ChevronRight, FolderPlus, Trash2, X, GripVertical, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -27,8 +28,10 @@ export interface GroupedItem {
 interface GroupsPanelProps {
   kind: "expense" | "income";
   items: GroupedItem[];
-  onChanged: () => void; // refresh after assignment
+  onChanged: () => void;
   draggingId: string | null;
+  selectedMonth: number;
+  selectedYear: number;
 }
 
 const PALETTE = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
@@ -36,7 +39,15 @@ const PALETTE = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899
 const formatCurrency = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
-export default function GroupsPanel({ kind, items, onChanged, draggingId }: GroupsPanelProps) {
+// Strips installment suffix like " - 2/10" or " (3/8)" before comparing names
+const normalizeName = (name: string) =>
+  name
+    .replace(/\s*[-–]\s*\d+\/\d+\s*$/, "")
+    .replace(/\s*\(\d+\/\d+\)\s*$/, "")
+    .trim()
+    .toLowerCase();
+
+export default function GroupsPanel({ kind, items, onChanged, draggingId, selectedMonth, selectedYear }: GroupsPanelProps) {
   const { user } = useAuth();
   const table = kind === "expense" ? "expenses" : "incomes";
   const [groups, setGroups] = useState<TransactionGroup[]>([]);
@@ -44,6 +55,7 @@ export default function GroupsPanel({ kind, items, onChanged, draggingId }: Grou
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [hoverId, setHoverId] = useState<string | null>(null);
+  const [replicating, setReplicating] = useState(false);
 
   const loadGroups = async () => {
     if (!user) return;
@@ -84,7 +96,6 @@ export default function GroupsPanel({ kind, items, onChanged, draggingId }: Grou
 
   const handleDeleteGroup = async (id: string) => {
     if (!confirm("Excluir este grupo? Os itens não serão removidos, apenas desagrupados.")) return;
-    // Unassign items first
     await (supabase.from(table) as any).update({ group_id: null }).eq("group_id", id);
     const { error } = await (supabase.from("transaction_groups") as any).delete().eq("id", id);
     if (error) {
@@ -120,6 +131,75 @@ export default function GroupsPanel({ kind, items, onChanged, draggingId }: Grou
     onChanged();
   };
 
+  const handleReplicate = async () => {
+    if (!user || groups.length === 0) return;
+
+    const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+    const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+
+    const startStr = `${prevYear}-${String(prevMonth + 1).padStart(2, "0")}-01`;
+    const lastDay = new Date(prevYear, prevMonth + 1, 0).getDate();
+    const endStr = `${prevYear}-${String(prevMonth + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+    const dateField = kind === "expense" ? "due_date" : "receive_date";
+    const nameField = kind === "expense" ? "description" : "title";
+
+    setReplicating(true);
+    try {
+      const { data: prevItems, error } = await (supabase.from(table) as any)
+        .select(`id, ${nameField}, group_id`)
+        .eq("user_id", user.id)
+        .not("group_id", "is", null)
+        .gte(dateField, startStr)
+        .lte(dateField, endStr);
+
+      if (error) {
+        toast.error("Erro ao buscar dados do mês anterior");
+        return;
+      }
+
+      if (!prevItems?.length) {
+        toast.info("Nenhum agrupamento encontrado no mês anterior.");
+        return;
+      }
+
+      // Build normalized name → group_id map from previous month
+      const nameToGroup = new Map<string, string>();
+      for (const item of prevItems) {
+        const name = normalizeName(item[nameField] || "");
+        if (name && item.group_id) nameToGroup.set(name, item.group_id);
+      }
+
+      // Match current month's ungrouped items
+      const ungroupedItems = items.filter((i) => !i.groupId);
+      const updates: { id: string; groupId: string }[] = [];
+
+      for (const item of ungroupedItems) {
+        const name = normalizeName(item.primary);
+        const groupId = nameToGroup.get(name);
+        if (groupId && groups.find((g) => g.id === groupId)) {
+          updates.push({ id: item.id, groupId });
+        }
+      }
+
+      if (updates.length === 0) {
+        toast.info("Nenhum item compatível encontrado para replicar.");
+        return;
+      }
+
+      await Promise.all(
+        updates.map(({ id, groupId }) =>
+          (supabase.from(table) as any).update({ group_id: groupId }).eq("id", id)
+        )
+      );
+
+      toast.success(`${updates.length} item(s) replicado(s) com sucesso!`);
+      onChanged();
+    } finally {
+      setReplicating(false);
+    }
+  };
+
   const itemsByGroup = (gid: string) => items.filter((i) => i.groupId === gid);
   const totalByGroup = (gid: string) => itemsByGroup(gid).reduce((s, i) => s + i.amount, 0);
 
@@ -134,32 +214,54 @@ export default function GroupsPanel({ kind, items, onChanged, draggingId }: Grou
               Arraste itens da lista abaixo para um grupo
             </span>
           </div>
-          {!creating ? (
-            <Button size="sm" variant="outline" onClick={() => setCreating(true)}>
-              <FolderPlus className="w-4 h-4 mr-1" /> Novo grupo
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Input
-                autoFocus
-                placeholder="Ex: Moradia"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCreate();
-                  if (e.key === "Escape") {
-                    setCreating(false);
-                    setNewName("");
-                  }
-                }}
-                className="h-8 w-40"
-              />
-              <Button size="sm" onClick={handleCreate}>Criar</Button>
-              <Button size="sm" variant="ghost" onClick={() => { setCreating(false); setNewName(""); }}>
-                <X className="w-4 h-4" />
+          <div className="flex items-center gap-2">
+            {groups.length > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleReplicate}
+                      disabled={replicating}
+                    >
+                      <Copy className="w-4 h-4 mr-1" />
+                      {replicating ? "Replicando..." : "Replicar mês anterior"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Associa automaticamente os itens deste mês aos mesmos grupos do mês anterior, comparando os nomes.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {!creating ? (
+              <Button size="sm" variant="outline" onClick={() => setCreating(true)}>
+                <FolderPlus className="w-4 h-4 mr-1" /> Novo grupo
               </Button>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center gap-2">
+                <Input
+                  autoFocus
+                  placeholder="Ex: Moradia"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreate();
+                    if (e.key === "Escape") {
+                      setCreating(false);
+                      setNewName("");
+                    }
+                  }}
+                  className="h-8 w-40"
+                />
+                <Button size="sm" onClick={handleCreate}>Criar</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setCreating(false); setNewName(""); }}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {groups.length === 0 ? (

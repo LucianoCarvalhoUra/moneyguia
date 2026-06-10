@@ -1,3 +1,7 @@
+# Migration exports (dados sensíveis)
+migration/exported-data.json
+migration/exported-auth-users.json
+
 # Logs
 logs
 *.log

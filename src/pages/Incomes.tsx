@@ -44,16 +44,21 @@ export default function Incomes() {
   const { incomes, incomeCategories, incomeSubcategories, removeIncome, updateIncome, refreshData } = useIncome();
   
   const [selectedMonth, setSelectedMonth] = useState(() => {
+    if (location.state?.month !== undefined) return location.state.month;
     const p = searchParams.get('month');
     return p !== null ? parseInt(p) : new Date().getMonth();
   });
   const [selectedYear, setSelectedYear] = useState(() => {
+    if (location.state?.year !== undefined) return location.state.year;
     const p = searchParams.get('year');
     return p !== null ? parseInt(p) : new Date().getFullYear();
   });
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const f = location.state?.filter;
+    return f === 'overdue' || f === 'pending' ? 'pending' : 'all';
+  });
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [subcategoryFilter, setSubcategoryFilter] = useState<string>('all');
   const [visualFilter, setVisualFilter] = useState<string>('all');
@@ -88,8 +93,12 @@ export default function Incomes() {
   }, [selectedMonth, selectedYear, setSearchParams]);
 
   useEffect(() => {
-    if (location.state?.filter === 'pending') {
+    if (location.state?.filter === 'pending' || location.state?.filter === 'overdue') {
       setStatusFilter('pending');
+      if (location.state.month !== undefined && location.state.year !== undefined) {
+        setSelectedMonth(location.state.month);
+        setSelectedYear(location.state.year);
+      }
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -446,13 +455,44 @@ export default function Incomes() {
             <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total de Receitas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
             <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
           </div>
-          <div className="text-xs sm:text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border self-start sm:self-auto">{filteredIncomes.length} registro(s) encontrado(s)</div>
+          {(() => {
+            const real = filteredIncomes.filter(i => !i.excludeFromCalculations);
+            const visual = filteredIncomes.filter(i => i.excludeFromCalculations);
+            return (
+              <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
+                  <span className="text-xs text-muted-foreground">Total</span>
+                  <span className="text-sm font-semibold text-foreground">{real.length}</span>
+                  <span className="text-xs text-muted-foreground">{formatCurrency(real.reduce((acc, i) => acc + i.amount, 0))}</span>
+                </div>
+                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
+                  <span className="text-xs text-muted-foreground">Recebidas</span>
+                  <span className="text-sm font-semibold text-green-600">{real.filter(i => i.isReceived).length}</span>
+                  <span className="text-xs text-green-600">{formatCurrency(real.filter(i => i.isReceived).reduce((acc, i) => acc + i.amount, 0))}</span>
+                </div>
+                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
+                  <span className="text-xs text-muted-foreground">Pendentes</span>
+                  <span className="text-sm font-semibold text-amber-600">{real.filter(i => !i.isReceived).length}</span>
+                  <span className="text-xs text-amber-600">{formatCurrency(real.filter(i => !i.isReceived).reduce((acc, i) => acc + i.amount, 0))}</span>
+                </div>
+                {visual.length > 0 && (
+                  <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px] opacity-60">
+                    <span className="text-xs text-muted-foreground">Visuais</span>
+                    <span className="text-sm font-semibold text-muted-foreground">{visual.length}</span>
+                    <span className="text-xs text-muted-foreground">{formatCurrency(visual.reduce((acc, i) => acc + i.amount, 0))}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 
       <GroupsPanel
         kind="income"
         draggingId={draggingId}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
         items={filteredIncomes.map<GroupedItem>(i => ({
           id: i.id,
           groupId: (i as any).groupId,
