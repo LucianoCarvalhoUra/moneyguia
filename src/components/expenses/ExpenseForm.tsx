@@ -73,6 +73,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [shakeKey, setShakeKey] = useState(0);
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
+  const [settlementMethod, setSettlementMethod] = useState<PaymentMethod | ''>('');
+  const [settlementAccountId, setSettlementAccountId] = useState('');
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -128,6 +130,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setObservation((dataToLoad as any).observation || '');
         setIsScheduled((dataToLoad as any).is_scheduled || false);
         setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
+        setSettlementMethod(((dataToLoad as any).settlementMethod || (dataToLoad as any).settlement_method || '') as PaymentMethod | '');
+        setSettlementAccountId((dataToLoad as any).settlementAccountId || (dataToLoad as any).settlement_account_id || '');
       } else {
         // Reset
         setDescription('');
@@ -148,6 +152,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setShowErrors(false);
         setIsScheduled(false);
         setScheduledDate('');
+        setSettlementMethod('');
+        setSettlementAccountId('');
       }
     }
   }, [open, expense, initialData]);
@@ -466,6 +472,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         observation: observation || null,
         is_scheduled: isScheduled,
         scheduled_date: isScheduled && scheduledDate ? scheduledDate : null,
+        settlement_method: isPaid && settlementMethod ? settlementMethod : null,
+        settlement_account_id: isPaid && settlementMethod && settlementMethod !== 'credit_card' && settlementAccountId ? settlementAccountId : null,
       };
 
       if (expense) {
