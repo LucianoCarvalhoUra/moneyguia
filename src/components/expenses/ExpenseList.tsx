@@ -16,7 +16,34 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function ExpenseList() {
-  const { getMonthlyExpenses, getMonthlyTotal, removeExpense, updateExpense, getCategoryById, getSubcategoryById } = useFinance();
+  const { getMonthlyExpenses, getMonthlyTotal, removeExpense, updateExpense, getCategoryById, getSubcategoryById, cards, accounts } = useFinance();
+
+  const describeOrigin = (e: Expense) => {
+    if (e.paymentMethod === 'credit_card') {
+      const c = cards.find(x => x.id === e.cardId);
+      return c ? `Cartão ${c.brand} •••• ${c.lastFourDigits}` : 'Cartão de Crédito';
+    }
+    if (e.paymentMethod === 'account') {
+      const a = accounts.find(x => x.id === e.accountId);
+      return a ? `Débito em conta · ${a.bankName}` : 'Débito em Conta';
+    }
+    if (e.paymentMethod === 'pix') {
+      const a = accounts.find(x => x.id === e.accountId);
+      return a ? `PIX · ${a.bankName}` : 'PIX / Dinheiro';
+    }
+    return '-';
+  };
+
+  const describeSettlement = (e: Expense) => {
+    const m = (e as any).settlementMethod;
+    if (!e.isPaid || !m) return null;
+    const accId = (e as any).settlementAccountId;
+    const a = accounts.find(x => x.id === accId);
+    if (m === 'credit_card') return 'Outro cartão de crédito';
+    if (m === 'account') return a ? `Débito em conta · ${a.bankName}` : 'Débito em Conta';
+    if (m === 'pix') return a ? `PIX · ${a.bankName}` : 'PIX / Dinheiro';
+    return null;
+  };
 
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -153,16 +180,28 @@ export default function ExpenseList() {
                       <TableCell className="text-muted-foreground">{expense.expenseDate ? new Date(expense.expenseDate).toLocaleDateString('pt-BR') : '-'}</TableCell>
                       <TableCell>{expense.dueDate ? new Date(expense.dueDate).toLocaleDateString('pt-BR') : '-'}</TableCell>
                       <TableCell className={cn("font-medium", expense.isPaid && "line-through text-muted-foreground")}>
-                        <div className="flex items-center gap-2">
-                          {expense.description}
-                          {(expense as any).excludeFromCalculations && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger><EyeOff className="w-3 h-3 text-muted-foreground" /></TooltipTrigger>
-                                <TooltipContent>Não contabilizado no saldo</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate">{expense.description}</span>
+                            {(expense as any).excludeFromCalculations && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger><EyeOff className="w-3 h-3 text-muted-foreground" /></TooltipTrigger>
+                                  <TooltipContent>Não contabilizado no saldo</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1 text-[10px] font-normal no-underline">
+                            <span className="inline-flex items-center rounded-md bg-slate-100 text-slate-700 px-1.5 py-0.5">
+                              Origem: {describeOrigin(expense)}
+                            </span>
+                            {describeSettlement(expense) && (
+                              <span className="inline-flex items-center rounded-md bg-emerald-100 text-emerald-700 px-1.5 py-0.5">
+                                Quitação: {describeSettlement(expense)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="font-bold">
