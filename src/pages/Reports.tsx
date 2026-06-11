@@ -34,6 +34,7 @@ interface ReportItem {
   category: string;
   subcategory: string;
   paymentMethod: string;
+  settlement: string;
   amount: number;
 }
 
@@ -52,7 +53,7 @@ export default function Reports() {
   useIdleTimeout(); // Set up idle timeout for this page
 
   const { user } = useAuth();
-  const { expenses, categories, getCategoryById, getSubcategoryById, isLoading: financeLoading } = useFinance();
+  const { expenses, categories, accounts, cards, getCategoryById, getSubcategoryById, isLoading: financeLoading } = useFinance();
   const { incomes, incomeCategories, getIncomeCategoryById, getIncomeSubcategoryById, isLoading: incomeLoading } = useIncome();
   const [activeTab, setActiveTab] = useState('visual');
 
@@ -90,6 +91,16 @@ export default function Reports() {
           if (selectedCategory !== 'all' && expense.categoryId !== selectedCategory) return;
           if (selectedPaymentMethod !== 'all' && expense.paymentMethod !== selectedPaymentMethod) return;
 
+          const sMethod = (expense as any).settlementMethod;
+          const sAccId = (expense as any).settlementAccountId;
+          const sAcc = sAccId ? accounts.find(a => a.id === sAccId) : null;
+          let settlement = '-';
+          if (expense.isPaid && sMethod) {
+            if (sMethod === 'credit_card') settlement = 'Outro cartão de crédito';
+            else if (sMethod === 'account') settlement = sAcc ? `Débito em conta · ${sAcc.bankName}` : 'Débito em Conta';
+            else if (sMethod === 'pix') settlement = sAcc ? `PIX · ${sAcc.bankName}` : 'PIX / Dinheiro';
+          }
+
           items.push({
             id: expense.id,
             date: format(expenseDate, 'yyyy-MM-dd'),
@@ -98,6 +109,7 @@ export default function Reports() {
             category: category?.name || 'Sem categoria',
             subcategory: subcategory?.name || '-',
             paymentMethod: PAYMENT_METHOD_LABELS[expense.paymentMethod] || expense.paymentMethod,
+            settlement,
             amount: expense.amount,
           });
         }
@@ -125,6 +137,7 @@ export default function Reports() {
             category: category?.name || 'Sem categoria',
             subcategory: subcategory?.name || '-',
             paymentMethod: '-',
+            settlement: '-',
             amount: income.amount,
           });
         }
