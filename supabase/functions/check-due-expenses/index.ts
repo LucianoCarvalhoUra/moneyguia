@@ -246,6 +246,22 @@ Deno.serve(async (req) => {
 
       if (totalItems === 0) continue;
 
+      // Identify the source account (so when the same destination email is used
+      // by multiple accounts, the recipient can clearly tell which one it refers to)
+      let accountLabel = "";
+      let accountEmail = "";
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, email")
+          .eq("user_id", s.user_id)
+          .maybeSingle();
+        accountEmail = (profile as any)?.email || "";
+        accountLabel = (profile as any)?.full_name || accountEmail || s.user_id;
+      } catch (_e) {
+        accountLabel = s.user_id;
+      }
+
       const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:20px;color:#111;">
         <h2 style="color:#2563eb;">Resumo financeiro MoneyGuia</h2>
         <p style="color:#475569;">Aqui está seu resumo de ${fmtDate(todayStr)}.</p>
