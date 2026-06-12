@@ -246,9 +246,36 @@ Deno.serve(async (req) => {
 
       if (totalItems === 0) continue;
 
+      // Identify the source account (so when the same destination email is used
+      // by multiple accounts, the recipient can clearly tell which one it refers to)
+      let accountLabel = "";
+      let accountEmail = "";
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, email")
+          .eq("user_id", s.user_id)
+          .maybeSingle();
+        accountEmail = (profile as any)?.email || "";
+        accountLabel = (profile as any)?.full_name || accountEmail || s.user_id;
+      } catch (_e) {
+        accountLabel = s.user_id;
+      }
+
+      const accountBanner = `
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+          <p style="margin:0;font-size:13px;color:#1e3a8a;">
+            <strong>Conta:</strong> ${accountLabel}${accountEmail && accountEmail !== accountLabel ? ` &lt;${accountEmail}&gt;` : ""}
+          </p>
+          <p style="margin:4px 0 0;font-size:12px;color:#475569;">
+            Este resumo contém apenas dados desta conta. Se você usa o mesmo e-mail de destino em mais de uma conta, receberá um e-mail separado por conta.
+          </p>
+        </div>`;
+
       const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:20px;color:#111;">
         <h2 style="color:#2563eb;">Resumo financeiro MoneyGuia</h2>
         <p style="color:#475569;">Aqui está seu resumo de ${fmtDate(todayStr)}.</p>
+        ${accountBanner}
         ${buildSection("⚠️ Despesas vencidas", "#dc2626", overdueExpenses)}
         ${buildSection("📅 Despesas a vencer", "#d97706", upcomingExpenses)}
         ${buildSection("💰 Receitas a receber", "#0891b2", pendingIncomes)}
@@ -265,7 +292,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             to: s.notification_email,
-            subject: `MoneyGuia: ${totalItems} item(ns) financeiro(s) para você`,
+            subject: `MoneyGuia [${accountLabel}]: ${totalItems} item(ns) financeiro(s)`,
             html,
           }),
         });
