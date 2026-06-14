@@ -1,7 +1,8 @@
 import { useState, useMemo, ReactNode } from 'react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Download, FileSpreadsheet, FileType, Calendar, Filter, ChevronDown, Wallet, Bot, PieChart as PieChartIcon, Loader2 } from 'lucide-react';
+import { FileText, Download, FileSpreadsheet, FileType, Calendar, Filter, ChevronDown, Wallet, Bot, PieChart as PieChartIcon, Loader2, Sparkles } from 'lucide-react';
+import { AIReportGenerator } from '@/components/reports/AIReportGenerator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -630,6 +631,10 @@ export default function Reports() {
         <TabsList>
           <TabsTrigger value="visual">Visão Gráfica</TabsTrigger>
           <TabsTrigger value="detailed">Relatório Detalhado</TabsTrigger>
+          <TabsTrigger value="ai" className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" />
+            Relatórios IA
+          </TabsTrigger>
         </TabsList>
 
         {/* Visual Dashboard Tab */}
@@ -922,6 +927,13 @@ export default function Reports() {
                 )}
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        {/* AI Report Generator Tab */}
+        <TabsContent value="ai">
+          <div className="animate-in fade-in-50">
+            <AIReportGenerator />
           </div>
         </TabsContent>
       </Tabs>
