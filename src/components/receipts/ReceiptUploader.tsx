@@ -1,30 +1,29 @@
-import { useState, useRef, useCallback, useId } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
-  Upload, ScanLine, Plus, Trash2, Sparkles, Save, AlertCircle,
+  Upload, ScanLine, Plus, Trash2, Sparkles, Save,
+  AlertCircle, KeyRound, ExternalLink, Eye, EyeOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/integrations/supabase/client';
 import { useFinance } from '@/contexts/FinanceContext';
 import { toast } from 'sonner';
 import {
-  PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { format, parseISO } from 'date-fns';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ReceiptItem {
   id: string;
   category: string;
-  value: string; // string for input binding
+  value: string;
   reference: string;
 }
 
@@ -38,9 +37,14 @@ interface ReceiptForm {
   items: ReceiptItem[];
 }
 
-type Step = 'upload' | 'processing' | 'form';
+type Step = 'setup' | 'upload' | 'processing' | 'form';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+
+const LS_KEY = 'moneyguia_google_ai_key';
+
+const GEMINI_URL = (key: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
 
 const RECEIPT_CATEGORIES = [
   'Aluguel', 'Condomínio', 'IPTU', 'Água', 'Luz/Energia', 'Gás',
@@ -55,7 +59,7 @@ const PIE_COLORS = [
   '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#64748b',
 ];
 
-const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,image/heic,application/pdf';
+const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,application/pdf';
 
 const EMPTY_FORM: ReceiptForm = {
   beneficiary: '', email: '', paymentMethod: '',
@@ -70,58 +74,127 @@ const fmtMoney = (v: number) =>
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(',')[1]); // strip data URL prefix
-    };
+    reader.onload = () => resolve((reader.result as string).split(',')[1]);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
 function makeItem(overrides: Partial<ReceiptItem> = {}): ReceiptItem {
-  return {
-    id: crypto.randomUUID(),
-    category: '',
-    value: '',
-    reference: '',
-    ...overrides,
+  return { id: crypto.randomUUID(), category: '', value: '', reference: '', ...overrides };
+}
+
+function getStoredKey(): string {
+  return localStorage.getItem(LS_KEY) ?? '';
+}
+
+function saveKey(key: string) {
+  localStorage.setItem(LS_KEY, key.trim());
+}
+
+// ─── OCR via Google Gemini (direto do browser, sem edge function) ─────────────
+
+async function callGeminiOCR(apiKey: string, fileBase64: string, mimeType: string) {
+  const prompt = `Você é um especialista em leitura de comprovantes financeiros brasileiros.
+Analise o arquivo e retorne APENAS um JSON válido, sem markdown, sem texto extra.
+
+Estrutura obrigatória:
+{
+  "beneficiary": "Nome do beneficiário ou null",
+  "email": "E-mail encontrado ou null",
+  "paymentMethod": "Forma de pagamento (PIX, Transferência, Boleto, etc.) ou null",
+  "dueDate": "YYYY-MM-DD ou null",
+  "paymentDate": "YYYY-MM-DD ou null",
+  "items": [
+    { "category": "Categoria (Aluguel, Condomínio, IPTU, Salário, Serviço, etc.)", "value": 1234.56, "reference": "Descrição do item" }
+  ],
+  "notes": "Observações adicionais ou null"
+}
+
+Regras: se houver múltiplos componentes de valor, crie um item por componente. Datas em YYYY-MM-DD. Valores como número float.`;
+
+  const body = {
+    contents: [{
+      parts: [
+        { inline_data: { mime_type: mimeType, data: fileBase64 } },
+        { text: prompt },
+      ],
+    }],
+    generationConfig: { temperature: 0.1 },
   };
+
+  const response = await fetch(GEMINI_URL(apiKey), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    if (response.status === 400) throw new Error('Chave de API inválida. Verifique e tente novamente.');
+    if (response.status === 429) throw new Error('Limite de requisições atingido. Aguarde e tente novamente.');
+    throw new Error(err?.error?.message ?? `Erro Gemini: ${response.status}`);
+  }
+
+  const result = await response.json();
+  const rawText: string = result?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+
+  const cleaned = rawText
+    .replace(/^```json\s*/im, '').replace(/^```\s*/im, '')
+    .replace(/\s*```$/im, '').trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const match = rawText.match(/\{[\s\S]*\}/);
+    if (match) return JSON.parse(match[0]);
+    throw new Error('A IA não retornou um JSON válido. Tente novamente.');
+  }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ReceiptUploader() {
-  const [step, setStep]         = useState<Step>('upload');
+  const hasKey = Boolean(getStoredKey());
+
+  const [step, setStep]         = useState<Step>(hasKey ? 'upload' : 'setup');
+  const [apiKeyInput, setApiKey] = useState('');
+  const [showKey, setShowKey]   = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState('');
   const [form, setForm]         = useState<ReceiptForm>(EMPTY_FORM);
   const [error, setError]       = useState<string | null>(null);
   const fileInputRef            = useRef<HTMLInputElement>(null);
-  const uid                     = useId();
 
   const { categories, addExpense } = useFinance();
 
-  // All category options: user's categories + predefined receipt categories
   const categoryOptions = [
     ...RECEIPT_CATEGORIES,
-    ...categories
-      .map(c => c.name)
-      .filter(n => !RECEIPT_CATEGORIES.includes(n)),
+    ...categories.map(c => c.name).filter(n => !RECEIPT_CATEGORIES.includes(n)),
   ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-  // ── Derived values ─────────────────────────────────────────────────────────
-  const total = form.items.reduce((s, item) => s + (parseFloat(item.value) || 0), 0);
-
+  const total = form.items.reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
   const chartData = form.items
     .filter(i => parseFloat(i.value) > 0)
-    .map(i => ({
-      name: i.category || i.reference || 'Item',
-      value: parseFloat(i.value),
-    }));
+    .map(i => ({ name: i.category || i.reference || 'Item', value: parseFloat(i.value) }));
 
-  // ── File processing ────────────────────────────────────────────────────────
+  // ── Save key ──────────────────────────────────────────────────────────────
+  const handleSaveKey = () => {
+    const k = apiKeyInput.trim();
+    if (!k.startsWith('AIza')) {
+      toast.error('Chave inválida. Chaves do Google AI começam com "AIza".');
+      return;
+    }
+    saveKey(k);
+    setStep('upload');
+    toast.success('Chave configurada com sucesso!');
+  };
+
+  // ── Process file ──────────────────────────────────────────────────────────
   const processFile = useCallback(async (file: File) => {
+    const apiKey = getStoredKey();
+    if (!apiKey) { setStep('setup'); return; }
+
     setError(null);
     setFileName(file.name);
     setStep('processing');
@@ -129,24 +202,11 @@ export function ReceiptUploader() {
     try {
       const base64   = await fileToBase64(file);
       const mimeType = file.type || 'image/jpeg';
+      const data     = await callGeminiOCR(apiKey, base64, mimeType);
 
-      const { data, error: fnError } = await supabase.functions.invoke('process-receipt', {
-        body: { fileBase64: base64, mimeType },
-      });
-
-      if (fnError) throw new Error(fnError.message ?? 'Erro na leitura do comprovante');
-      if (!data)   throw new Error('Resposta vazia da IA');
-      if (data.error) throw new Error(data.error);
-
-      // Map AI response to form state
       const items: ReceiptItem[] = Array.isArray(data.items) && data.items.length > 0
         ? data.items.map((it: { category?: string; value?: number; reference?: string }) =>
-            makeItem({
-              category:  it.category  ?? '',
-              value:     String(it.value ?? ''),
-              reference: it.reference ?? '',
-            })
-          )
+            makeItem({ category: it.category ?? '', value: String(it.value ?? ''), reference: it.reference ?? '' }))
         : [makeItem()];
 
       setForm({
@@ -158,11 +218,16 @@ export function ReceiptUploader() {
         notes:         data.notes         ?? '',
         items,
       });
-
       setStep('form');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao processar o arquivo');
-      setStep('upload');
+      setError(e instanceof Error ? e.message : 'Erro ao processar o arquivo.');
+      // If key is invalid, go back to setup
+      if (e instanceof Error && e.message.includes('inválida')) {
+        localStorage.removeItem(LS_KEY);
+        setStep('setup');
+      } else {
+        setStep('upload');
+      }
     }
   }, []);
 
@@ -173,72 +238,123 @@ export function ReceiptUploader() {
     if (file) processFile(file);
   }, [processFile]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
-  };
-
-  // ── Form helpers ───────────────────────────────────────────────────────────
-  const setField = <K extends keyof Omit<ReceiptForm, 'items'>>(
-    key: K, value: ReceiptForm[K],
-  ) => setForm(f => ({ ...f, [key]: value }));
-
+  // ── Form helpers ──────────────────────────────────────────────────────────
+  const setField = <K extends keyof Omit<ReceiptForm, 'items'>>(k: K, v: ReceiptForm[K]) =>
+    setForm(f => ({ ...f, [k]: v }));
   const updateItem = (id: string, patch: Partial<ReceiptItem>) =>
-    setForm(f => ({
-      ...f,
-      items: f.items.map(it => it.id === id ? { ...it, ...patch } : it),
-    }));
+    setForm(f => ({ ...f, items: f.items.map(it => it.id === id ? { ...it, ...patch } : it) }));
+  const addItem    = () => setForm(f => ({ ...f, items: [...f.items, makeItem()] }));
+  const removeItem = (id: string) => setForm(f => ({ ...f, items: f.items.filter(it => it.id !== id) }));
 
-  const addItem = () =>
-    setForm(f => ({ ...f, items: [...f.items, makeItem()] }));
-
-  const removeItem = (id: string) =>
-    setForm(f => ({ ...f, items: f.items.filter(it => it.id !== id) }));
-
-  // ── Save expenses ──────────────────────────────────────────────────────────
+  // ── Save expenses ─────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (form.items.length === 0) {
-      toast.error('Adicione ao menos um item antes de salvar.');
-      return;
-    }
+    const validItems = form.items.filter(i => parseFloat(i.value) > 0);
+    if (!validItems.length) { toast.error('Adicione ao menos um item com valor.'); return; }
 
-    const paymentDate = form.paymentDate || form.dueDate || new Date().toISOString().split('T')[0];
-
+    const payDate = form.paymentDate || form.dueDate || new Date().toISOString().split('T')[0];
     try {
-      for (const item of form.items) {
-        const value = parseFloat(item.value);
-        if (!value || value <= 0) continue;
-
-        // Try to match a user category by name
-        const matchedCat = categories.find(
-          c => c.name.toLowerCase() === item.category.toLowerCase()
-        );
-
+      for (const item of validItems) {
+        const matchedCat = categories.find(c => c.name.toLowerCase() === item.category.toLowerCase());
         await addExpense({
           description:   item.reference || item.category || form.beneficiary || 'Comprovante',
-          amount:        value,
-          expenseDate:   new Date(paymentDate),
-          dueDate:       new Date(form.dueDate || paymentDate),
+          amount:        parseFloat(item.value),
+          expenseDate:   new Date(payDate),
+          dueDate:       new Date(form.dueDate || payDate),
           paymentMethod: 'pix',
           isPaid:        true,
           isRecurring:   false,
           categoryId:    matchedCat?.id ?? '',
-          observation:   form.notes ?? undefined,
+          observation:   form.notes || undefined,
         });
       }
-
-      toast.success(`${form.items.length} despesa(s) salva(s) com sucesso!`);
+      toast.success(`${validItems.length} despesa(s) salva(s)!`);
       setForm(EMPTY_FORM);
       setStep('upload');
       setFileName('');
-    } catch (e) {
-      toast.error('Erro ao salvar despesas.');
+    } catch {
+      toast.error('Erro ao salvar. Tente novamente.');
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════════
+  // STEP: Setup — configure Google AI key
+  // ════════════════════════════════════════════════════════════════════════════
+  if (step === 'setup') {
+    return (
+      <Card className="max-w-lg mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-primary" />
+            Configurar Chave de IA
+          </CardTitle>
+          <CardDescription>
+            A leitura de comprovantes usa o Google Gemini diretamente no seu navegador.
+            Você precisa de uma chave gratuita do Google AI Studio.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Instructions */}
+          <div className="rounded-lg bg-muted/60 p-4 space-y-2 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Como obter a chave (grátis):</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Acesse <strong>aistudio.google.com</strong></li>
+              <li>Clique em <strong>"Get API key"</strong> → <strong>"Create API key"</strong></li>
+              <li>Copie a chave gerada (começa com <code className="bg-muted px-1 rounded">AIza...</code>)</li>
+              <li>Cole abaixo e clique em Salvar</li>
+            </ol>
+            <a
+              href="https://aistudio.google.com/app/apikey"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-primary font-medium hover:underline mt-1"
+            >
+              Abrir Google AI Studio <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
 
+          {error && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-red-700 text-sm">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="ai-key">Chave do Google AI Studio</Label>
+            <div className="relative">
+              <Input
+                id="ai-key"
+                type={showKey ? 'text' : 'password'}
+                value={apiKeyInput}
+                onChange={e => setApiKey(e.target.value)}
+                placeholder="AIzaSy..."
+                className="pr-10 font-mono text-sm"
+                onKeyDown={e => e.key === 'Enter' && handleSaveKey()}
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey(s => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              A chave fica salva apenas no seu navegador (localStorage). Não é enviada a terceiros.
+            </p>
+          </div>
+
+          <Button className="w-full gradient-primary" onClick={handleSaveKey} disabled={!apiKeyInput.trim()}>
+            Salvar e Continuar
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
   // STEP: Upload
+  // ════════════════════════════════════════════════════════════════════════════
   if (step === 'upload') {
     return (
       <div className="space-y-4">
@@ -266,29 +382,36 @@ export function ReceiptUploader() {
             <Upload className="w-8 h-8 text-primary" />
           </div>
           <div>
-            <p className="text-base font-semibold text-foreground">
-              Arraste o comprovante aqui
-            </p>
+            <p className="text-base font-semibold text-foreground">Arraste o comprovante aqui</p>
             <p className="text-sm text-muted-foreground mt-1">
               ou <span className="text-primary font-medium underline underline-offset-2">clique para selecionar</span>
             </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Suporta: JPEG, PNG, WebP, PDF
-            </p>
+            <p className="text-xs text-muted-foreground mt-2">JPEG, PNG, WebP, PDF</p>
           </div>
           <input
             ref={fileInputRef}
             type="file"
             accept={ACCEPTED_TYPES}
             className="hidden"
-            onChange={handleFileChange}
+            onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f); }}
           />
+        </div>
+
+        <div className="flex justify-center">
+          <button
+            onClick={() => { localStorage.removeItem(LS_KEY); setStep('setup'); }}
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+          >
+            Alterar chave de IA
+          </button>
         </div>
       </div>
     );
   }
 
+  // ════════════════════════════════════════════════════════════════════════════
   // STEP: Processing
+  // ════════════════════════════════════════════════════════════════════════════
   if (step === 'processing') {
     return (
       <div className="flex flex-col items-center justify-center gap-6 py-20">
@@ -301,7 +424,7 @@ export function ReceiptUploader() {
           <p className="text-sm text-muted-foreground mt-1">{fileName}</p>
         </div>
         <div className="flex gap-1.5">
-          {[0,1,2].map(i => (
+          {[0, 1, 2].map(i => (
             <div
               key={i}
               className="h-2 w-2 rounded-full bg-primary animate-bounce"
@@ -313,7 +436,9 @@ export function ReceiptUploader() {
     );
   }
 
+  // ════════════════════════════════════════════════════════════════════════════
   // STEP: Form
+  // ════════════════════════════════════════════════════════════════════════════
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -321,7 +446,8 @@ export function ReceiptUploader() {
         <div>
           <h3 className="font-semibold text-foreground flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
-            Comprovante lido: <span className="font-normal text-muted-foreground">{fileName}</span>
+            Comprovante lido:{' '}
+            <span className="font-normal text-muted-foreground">{fileName}</span>
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             Verifique e edite os campos antes de salvar.
@@ -342,67 +468,39 @@ export function ReceiptUploader() {
         {/* ── Left: Form ────────────────────────────────────────────────── */}
         <div className="lg:col-span-2 space-y-6">
 
-          {/* Section A: Metadata */}
+          {/* Section A */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 A — Metadados do Lançamento
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor={`${uid}-benef`}>Locador / Beneficiário</Label>
-                  <Input
-                    id={`${uid}-benef`}
-                    value={form.beneficiary}
-                    onChange={e => setField('beneficiary', e.target.value)}
-                    placeholder="Nome do beneficiário"
-                  />
+                  <Label>Locador / Beneficiário</Label>
+                  <Input value={form.beneficiary} onChange={e => setField('beneficiary', e.target.value)} placeholder="Nome do beneficiário" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor={`${uid}-email`}>Contato (E-mail)</Label>
-                  <Input
-                    id={`${uid}-email`}
-                    type="email"
-                    value={form.email}
-                    onChange={e => setField('email', e.target.value)}
-                    placeholder="email@exemplo.com"
-                  />
+                  <Label>Contato (E-mail)</Label>
+                  <Input type="email" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="email@exemplo.com" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor={`${uid}-method`}>Forma de Pagamento</Label>
-                  <Input
-                    id={`${uid}-method`}
-                    value={form.paymentMethod}
-                    onChange={e => setField('paymentMethod', e.target.value)}
-                    placeholder="Ex: PIX, Transferência Bancária"
-                  />
-                </div>
-                <div className="space-y-1.5 sm:col-span-1" />
-                <div className="space-y-1.5">
-                  <Label htmlFor={`${uid}-due`}>Vencimento</Label>
-                  <Input
-                    id={`${uid}-due`}
-                    type="date"
-                    value={form.dueDate}
-                    onChange={e => setField('dueDate', e.target.value)}
-                  />
+                  <Label>Forma de Pagamento</Label>
+                  <Input value={form.paymentMethod} onChange={e => setField('paymentMethod', e.target.value)} placeholder="PIX, Transferência..." />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor={`${uid}-paid`}>Data do Pagamento</Label>
-                  <Input
-                    id={`${uid}-paid`}
-                    type="date"
-                    value={form.paymentDate}
-                    onChange={e => setField('paymentDate', e.target.value)}
-                  />
+                  <Label>Vencimento</Label>
+                  <Input type="date" value={form.dueDate} onChange={e => setField('dueDate', e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Data do Pagamento</Label>
+                  <Input type="date" value={form.paymentDate} onChange={e => setField('paymentDate', e.target.value)} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`${uid}-notes`}>Observações</Label>
+                <Label>Observações</Label>
                 <Textarea
-                  id={`${uid}-notes`}
                   value={form.notes}
                   onChange={e => setField('notes', e.target.value)}
                   placeholder="Notas adicionais do comprovante…"
@@ -412,15 +510,14 @@ export function ReceiptUploader() {
             </CardContent>
           </Card>
 
-          {/* Section B: Items */}
+          {/* Section B */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 B — Desmembramento do Pagamento
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* Column headers */}
               <div className="grid grid-cols-[1fr_1fr_120px_36px] gap-2 text-xs font-medium text-muted-foreground px-1">
                 <span>Subcategoria</span>
                 <span>Referência / Descrição</span>
@@ -428,69 +525,32 @@ export function ReceiptUploader() {
                 <span />
               </div>
 
-              {form.items.map((item, idx) => (
+              {form.items.map(item => (
                 <div key={item.id} className="grid grid-cols-[1fr_1fr_120px_36px] gap-2 items-start">
-                  <Select
-                    value={item.category}
-                    onValueChange={v => updateItem(item.id, { category: v })}
-                  >
+                  <Select value={item.category} onValueChange={v => updateItem(item.id, { category: v })}>
                     <SelectTrigger className="h-9 text-sm">
                       <SelectValue placeholder="Categoria…" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categoryOptions.map(c => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
+                      {categoryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
-
-                  <Input
-                    className="h-9 text-sm"
-                    value={item.reference}
-                    onChange={e => updateItem(item.id, { reference: e.target.value })}
-                    placeholder="Descrição…"
-                  />
-
-                  <Input
-                    className="h-9 text-sm text-right tabular-nums"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.value}
-                    onChange={e => updateItem(item.id, { value: e.target.value })}
-                    placeholder="0,00"
-                  />
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeItem(item.id)}
-                    disabled={form.items.length === 1}
-                  >
+                  <Input className="h-9 text-sm" value={item.reference} onChange={e => updateItem(item.id, { reference: e.target.value })} placeholder="Descrição…" />
+                  <Input className="h-9 text-sm text-right tabular-nums" type="number" min="0" step="0.01" value={item.value} onChange={e => updateItem(item.id, { value: e.target.value })} placeholder="0,00" />
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={() => removeItem(item.id)} disabled={form.items.length === 1}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               ))}
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full mt-1 border-dashed"
-                onClick={addItem}
-              >
-                <Plus className="w-4 h-4 mr-1.5" />
-                Adicionar item
+              <Button variant="outline" size="sm" className="w-full mt-1 border-dashed" onClick={addItem}>
+                <Plus className="w-4 h-4 mr-1.5" /> Adicionar item
               </Button>
 
               <Separator />
-
-              {/* Total */}
               <div className="flex items-center justify-between px-1 pt-1">
-                <span className="text-sm font-semibold text-foreground">TOTAL DEPOSITADO</span>
-                <span className="text-xl font-bold text-foreground tabular-nums">
-                  {fmtMoney(total)}
-                </span>
+                <span className="text-sm font-semibold">TOTAL DEPOSITADO</span>
+                <span className="text-xl font-bold tabular-nums">{fmtMoney(total)}</span>
               </div>
             </CardContent>
           </Card>
@@ -500,7 +560,7 @@ export function ReceiptUploader() {
         <div className="lg:col-span-1">
           <Card className="sticky top-20">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 C — Impacto Orçamentário
               </CardTitle>
             </CardHeader>
@@ -508,67 +568,40 @@ export function ReceiptUploader() {
               {chartData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-muted-foreground">
                   <div className="w-16 h-16 rounded-full border-4 border-dashed border-muted-foreground/20" />
-                  <p className="text-xs">Preencha os valores para<br />visualizar a distribuição</p>
+                  <p className="text-xs">Preencha os valores para visualizar a distribuição</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <ResponsiveContainer width="100%" height={240}>
+                  <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
-                      <Pie
-                        data={chartData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        paddingAngle={3}
-                      >
-                        {chartData.map((_, i) => (
-                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                        ))}
+                      <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3}>
+                        {chartData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                       </Pie>
                       <Tooltip
                         formatter={(v: number) => [fmtMoney(v), '']}
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--background))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                        }}
+                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
 
-                  {/* Legend */}
                   <div className="space-y-1.5">
-                    {chartData.map((item, i) => {
-                      const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
-                      return (
-                        <div key={i} className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div
-                              className="w-2.5 h-2.5 rounded-full shrink-0"
-                              style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
-                            />
-                            <span className="truncate text-muted-foreground">
-                              {item.name}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0 ml-2">
-                            <span className="font-medium text-foreground tabular-nums">
-                              {pct}%
-                            </span>
-                          </div>
+                    {chartData.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span className="truncate text-muted-foreground">{item.name}</span>
                         </div>
-                      );
-                    })}
+                        <span className="font-medium shrink-0 ml-2 tabular-nums">
+                          {total > 0 ? `${((item.value / total) * 100).toFixed(1)}%` : '—'}
+                        </span>
+                      </div>
+                    ))}
                   </div>
 
                   <Separator />
-                  <div className="flex justify-between items-center text-xs font-semibold">
+                  <div className="flex justify-between text-xs font-semibold">
                     <span className="text-muted-foreground">Total</span>
-                    <span className="text-foreground tabular-nums">{fmtMoney(total)}</span>
+                    <span className="tabular-nums">{fmtMoney(total)}</span>
                   </div>
                 </div>
               )}
