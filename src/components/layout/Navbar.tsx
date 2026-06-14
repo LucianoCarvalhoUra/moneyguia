@@ -16,6 +16,7 @@ import {
   Target,
   Sparkles,
   Shield,
+  ScanLine,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ const navItems = [
   { path: "/accounts", label: "Contas", icon: CreditCard },
   { path: "/reconciliation", label: "Cartão", icon: FileCheck },
   { path: "/reports", label: "Relatórios", icon: FileText },
+  { path: "/receipts", label: "Comprovantes", icon: ScanLine },
   { path: "/subscription", label: "Assinatura", icon: Sparkles },
   { path: "/settings", label: "Configurações", icon: Settings },
 ];
