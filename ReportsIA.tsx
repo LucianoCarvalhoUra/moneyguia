@@ -1,5 +1,23 @@
-import React, { useState } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import React, { useState, useCallback, useRef } from 'react';
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  applyNodeChanges,
+  applyEdgeChanges,
+  addEdge,
+  Node,
+  Edge,
+  OnNodesChange,
+  OnEdgesChange,
+  OnConnect,
+  Handle,
+  Position,
+  NodeProps,
+  ReactFlowInstance,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+
 import { 
   PieChart as PieChartIcon, 
   LineChart as LineChartIcon, 
@@ -9,9 +27,15 @@ import {
   Hash, 
   Settings2,
   Trash2,
-  GripVertical,
   Database,
-  Move
+  Move,
+  ChevronRight,
+  Plus,
+  MousePointer2,
+  CheckSquare,
+  AlignLeft,
+  Heading1,
+  SeparatorHorizontal
 } from 'lucide-react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,316 +43,352 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  PieChart, Pie, Cell, ResponsiveContainer, 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend 
-} from 'recharts';
+import { Badge } from "@/components/ui/badge";
 
-// --- Tipos e Interfaces ---
-type ElementType = 'pie-chart' | 'line-chart' | 'table' | 'kpi' | 'divider' | 'text';
+// --- Custom Node Components ---
 
-interface LayoutElement {
-  id: string;
-  type: ElementType;
-  title: string;
-  config: {
-    value?: string;
-    filter?: string;
-    color?: string;
-  };
-}
+const DataSourceNode = ({ data }: NodeProps) => (
+  <Card className="min-w-[180px] border-slate-200 shadow-lg overflow-hidden bg-white">
+    <div className="bg-emerald-50 px-3 py-2 border-b border-emerald-100 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <Database className="w-3.5 h-3.5 text-emerald-600" />
+        <span className="text-xs font-bold text-emerald-900 uppercase tracking-tight">{data.label as string}</span>
+      </div>
+      <Badge variant="outline" className="text-[10px] bg-white text-emerald-700 border-emerald-200 h-4 px-1">
+        {data.fieldsCount || 0} fields
+      </Badge>
+    </div>
+    <div className="p-3 space-y-1">
+      {((data.fields as string[]) || []).slice(0, 3).map(field => (
+        <div key={field} className="text-[10px] text-slate-500 flex items-center gap-1.5">
+          <div className="w-1 h-1 rounded-full bg-slate-300" />
+          {field}
+        </div>
+      ))}
+      {(data.fieldsCount as number) > 3 && <div className="text-[9px] text-slate-400 italic">...and more</div>}
+    </div>
+    <Handle type="source" position={Position.Right} className="w-2 h-2 bg-emerald-500 border-white" />
+  </Card>
+);
 
-// --- Mocks de Dados ---
-const MOCK_PIE_DATA = [
-  { name: 'Alimentação', value: 400 },
-  { name: 'Lazer', value: 300 },
-  { name: 'Saúde', value: 300 },
-  { name: 'Transporte', value: 200 },
-];
+const VisualNode = ({ data }: NodeProps) => (
+  <Card className="min-w-[160px] border-slate-200 shadow-lg overflow-hidden bg-white">
+    <Handle type="target" position={Position.Left} className="w-2 h-2 bg-blue-500 border-white" />
+    <div className="bg-blue-50 px-3 py-2 border-b border-blue-100 flex items-center gap-2">
+      <div className="p-1 rounded bg-white">{data.icon as React.ReactNode}</div>
+      <span className="text-xs font-bold text-blue-900">{data.label as string}</span>
+    </div>
+    <div className="p-4 flex items-center justify-center bg-slate-50/50 min-h-[60px]">
+       <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden relative">
+          <div className="absolute inset-0 bg-blue-400 w-2/3" />
+       </div>
+    </div>
+    <Handle type="source" position={Position.Right} className="w-2 h-2 bg-blue-500 border-white" />
+  </Card>
+);
 
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
+const InputNode = ({ data }: NodeProps) => (
+  <Card className="min-w-[140px] border-slate-200 shadow-sm bg-white p-3">
+    <div className="flex items-center gap-2 mb-2">
+      {data.icon as React.ReactNode}
+      <span className="text-xs font-medium text-slate-700">{data.label as string}</span>
+    </div>
+    <div className="h-6 bg-slate-50 border border-slate-100 rounded flex items-center px-2 text-[10px] text-slate-400 italic">
+      User input...
+    </div>
+    <Handle type="source" position={Position.Right} className="w-2 h-2 bg-slate-400 border-white" />
+  </Card>
+);
 
-const PALETTE_ITEMS = [
-  { type: 'kpi', label: 'Card de KPI', icon: <Hash className="w-4 h-4" /> },
-  { type: 'pie-chart', label: 'Gráfico de Pizza', icon: <PieChartIcon className="w-4 h-4" /> },
-  { type: 'line-chart', label: 'Gráfico de Linha', icon: <LineChartIcon className="w-4 h-4" /> },
-  { type: 'table', label: 'Tabela de Dados', icon: <TableIcon className="w-4 h-4" /> },
-  { type: 'text', label: 'Caixa de Texto', icon: <Type className="w-4 h-4" /> },
-  { type: 'divider', label: 'Linha Divisória', icon: <Layout className="w-4 h-4" /> },
-];
+const nodeTypes = {
+  dataSource: DataSourceNode,
+  visual: VisualNode,
+  input: InputNode,
+};
 
-const DATA_FIELDS = ["Valor", "Data", "Categoria", "Conta", "Status", "Descrição"];
+// --- Configurações da Paleta ---
+
+const PALETTE = {
+  dataSources: [
+    { type: 'dataSource', label: 'Expenses', id: 'expenses', fields: ['Amount', 'Date', 'Category', 'Account', 'Status', 'Description'] },
+    { type: 'dataSource', label: 'Incomes', id: 'incomes', fields: ['Value', 'Date', 'Source', 'Received', 'Account'] },
+    { type: 'dataSource', label: 'Categories', id: 'categories', fields: ['Name', 'Icon', 'Color', 'Target'] },
+    { type: 'dataSource', label: 'Bank Accounts', id: 'accounts', fields: ['Bank', 'Balance', 'Type', 'Limit'] },
+  ],
+  visuals: [
+    { type: 'visual', label: 'Pie Chart', id: 'pie', icon: <PieChartIcon className="w-3 h-3 text-blue-600" /> },
+    { type: 'visual', label: 'Bar Chart', id: 'bar', icon: <LineChartIcon className="w-3 h-3 text-blue-600" /> },
+    { type: 'visual', label: 'KPI Card', id: 'kpi', icon: <Hash className="w-3 h-3 text-blue-600" /> },
+    { type: 'visual', label: 'Data Table', id: 'table', icon: <TableIcon className="w-3 h-3 text-blue-600" /> },
+  ],
+  inputs: [
+    { type: 'input', label: 'Number Field', id: 'in-num', icon: <Hash className="w-3 h-3 text-slate-500" /> },
+    { type: 'input', label: 'Text Input', id: 'in-txt', icon: <AlignLeft className="w-3 h-3 text-slate-500" /> },
+    { type: 'input', label: 'Select Box', id: 'in-sel', icon: <ChevronRight className="w-3 h-3 text-slate-500" /> },
+    { type: 'input', label: 'Checkbox', id: 'in-chk', icon: <CheckSquare className="w-3 h-3 text-slate-500" /> },
+  ],
+  textUI: [
+    { type: 'input', label: 'Heading', id: 'ui-h1', icon: <Heading1 className="w-3 h-3 text-slate-500" /> },
+    { type: 'input', label: 'Separator', id: 'ui-sep', icon: <SeparatorHorizontal className="w-3 h-3 text-slate-500" /> },
+  ]
+};
 
 export default function ReportsIA() {
-  const [canvasElements, setCanvasElements] = useState<LayoutElement[]>([]);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
-  const onDragEnd = (result: DropResult) => {
-    const { source, destination, draggableId } = result;
+  const onNodesChange: OnNodesChange = useCallback(
+    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    []
+  );
+  const onEdgesChange: OnEdgesChange = useCallback(
+    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    []
+  );
+  const onConnect: OnConnect = useCallback(
+    (params) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#10b981' } }, eds)),
+    []
+  );
 
-    if (!destination) return;
-
-    // Lógica para adicionar novo elemento da paleta ao canvas
-    if (source.droppableId === 'palette' && destination.droppableId === 'canvas') {
-      const newElement: LayoutElement = {
-        id: `el-${Date.now()}`,
-        type: draggableId as ElementType,
-        title: `Novo ${draggableId}`,
-        config: { color: '#10b981' }
-      };
-      setCanvasElements([...canvasElements, newElement]);
-      return;
-    }
-
-    // Lógica para reordenar elementos no canvas
-    if (source.droppableId === 'canvas' && destination.droppableId === 'canvas') {
-      const items = Array.from(canvasElements);
-      const [reorderedItem] = items.splice(source.index, 1);
-      items.splice(destination.index, 0, reorderedItem);
-      setCanvasElements(items);
-    }
+  const onDragStart = (event: React.DragEvent, nodeData: any) => {
+    event.dataTransfer.setData('application/reactflow', JSON.stringify(nodeData));
+    event.dataTransfer.effectAllowed = 'move';
   };
 
-  const removeElement = (id: string) => {
-    setCanvasElements(canvasElements.filter(el => el.id !== id));
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      if (!reactFlowWrapper.current || !reactFlowInstance) return;
+
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const data = JSON.parse(event.dataTransfer.getData('application/reactflow'));
+
+      if (typeof data === 'undefined' || !data) return;
+
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      const newNode: Node = {
+        id: `${data.type}-${Date.now()}`,
+        type: data.type,
+        position,
+        data: { 
+          label: data.label, 
+          fields: data.fields, 
+          fieldsCount: data.fields?.length,
+          icon: data.icon 
+        },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [reactFlowInstance]
+  );
+
+  const onNodeClick = (_: any, node: Node) => {
+    setSelectedId(node.id);
+  };
+
+  const removeSelected = () => {
+    if (!selectedId) return;
+    setNodes((nds) => nds.filter((node) => node.id !== selectedId));
+    setEdges((eds) => eds.filter((edge) => edge.source !== selectedId && edge.target !== selectedId));
     if (selectedId === id) setSelectedId(null);
   };
 
-  const updateSelectedElement = (updates: Partial<LayoutElement>) => {
-    setCanvasElements(canvasElements.map(el => 
-      el.id === selectedId ? { ...el, ...updates } : el
-    ));
-  };
-
-  const selectedElement = canvasElements.find(el => el.id === selectedId);
+  const selectedNode = nodes.find(n => n.id === selectedId);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-white overflow-hidden">
-      <DragDropContext onDragEnd={onDragEnd}>
+    <div className="flex h-[calc(100vh-4rem)] bg-slate-50 overflow-hidden select-none">
+      
+      {/* 1. BARRA LATERAL ESQUERDA (Paleta) */}
+      <aside className="w-[260px] border-r bg-white flex flex-col z-20">
+        <div className="p-4 border-b">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <Plus className="w-4 h-4 text-emerald-600" /> Construtor Visual
+          </h2>
+          <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-semibold">Arraste para o canvas</p>
+        </div>
         
-        {/* Coluna Esquerda: Paleta de Elementos */}
-        <aside className="w-[260px] border-r bg-slate-50/50 flex flex-col p-4">
-          <div className="mb-6">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Database className="w-4 h-4" /> Dados
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {DATA_FIELDS.map(field => (
-                <div key={field} className="px-3 py-2 bg-white border border-slate-200 rounded-md text-xs text-slate-600 flex items-center gap-2 cursor-grab active:cursor-grabbing shadow-sm hover:border-emerald-500 transition-colors">
-                  <Move className="w-3 h-3 text-slate-300" /> {field}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Separator className="mb-6" />
-
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Layout className="w-4 h-4" /> Componentes Visuais
-          </h3>
-          <Droppable droppableId="palette" isDropDisabled={true}>
-            {(provided) => (
-              <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                {PALETTE_ITEMS.map((item, index) => (
-                  <Draggable key={item.type} draggableId={item.type} index={index}>
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 hover:shadow-md hover:border-emerald-500 transition-all group"
-                      >
-                        <div className="p-1.5 rounded bg-slate-100 group-hover:bg-emerald-50 text-slate-400 group-hover:text-emerald-600 transition-colors">
-                          {item.icon}
-                        </div>
-                        {item.label}
-                      </div>
-                    )}
-                  </Draggable>
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-6">
+            {/* DATA SOURCES */}
+            <section>
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Data Sources</h3>
+              <div className="grid grid-cols-1 gap-2">
+                {PALETTE.dataSources.map(item => (
+                  <div 
+                    key={item.id}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, item)}
+                    className="px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs font-medium text-slate-700 flex items-center gap-2 cursor-grab active:cursor-grabbing hover:border-emerald-500 hover:bg-white transition-all shadow-sm"
+                  >
+                    <Database className="w-3 h-3 text-emerald-500" /> {item.label}
+                  </div>
                 ))}
-                {provided.placeholder}
               </div>
-            )}
-          </Droppable>
-        </aside>
+            </section>
 
-        {/* Área Central: Canvas */}
-        <main className="flex-1 bg-slate-50 relative p-8 overflow-y-auto custom-scrollbar">
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:24px_24px]"></div>
+            {/* VISUALS */}
+            <section>
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Visuals</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {PALETTE.visuals.map(item => (
+                  <div 
+                    key={item.id}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, item)}
+                    className="flex flex-col items-center justify-center p-3 bg-slate-50 border border-slate-100 rounded-lg text-[10px] font-medium text-slate-600 cursor-grab active:cursor-grabbing hover:border-blue-500 hover:bg-white transition-all shadow-sm gap-2"
+                  >
+                    {item.icon}
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* INPUT FIELDS */}
+            <section>
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Input Fields</h3>
+              <div className="grid grid-cols-1 gap-2">
+                {PALETTE.inputs.map(item => (
+                  <div 
+                    key={item.id}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, item)}
+                    className="px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs font-medium text-slate-700 flex items-center gap-2 cursor-grab active:cursor-grabbing hover:border-slate-400 hover:bg-white transition-all"
+                  >
+                    {item.icon} {item.label}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* TEXT & UI */}
+            <section>
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Text & UI</h3>
+              <div className="grid grid-cols-1 gap-2">
+                {PALETTE.textUI.map(item => (
+                  <div 
+                    key={item.id}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, item)}
+                    className="px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs font-medium text-slate-700 flex items-center gap-2 cursor-grab active:cursor-grabbing hover:border-slate-400 hover:bg-white transition-all"
+                  >
+                    {item.icon} {item.label}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </ScrollArea>
+      </aside>
+
+      {/* 2. ÁREA CENTRAL (Canvas) */}
+      <main className="flex-1 relative bg-white" ref={reactFlowWrapper}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onInit={setReactFlowInstance}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          onNodeClick={onNodeClick}
+          nodeTypes={nodeTypes}
+          fitView
+          className="bg-slate-50"
+        >
+          <Background color="#cbd5e1" variant="dots" gap={20} size={1} />
+          <Controls position="bottom-right" className="bg-white border-slate-200 shadow-xl" />
           
-          <div className="max-w-4xl mx-auto min-h-full">
-            <header className="mb-8 flex justify-between items-end">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">Construtor de Relatórios</h1>
-                <p className="text-slate-500 text-sm">Monte sua visão financeira personalizada arrastando os blocos.</p>
+          {nodes.length === 0 && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 pointer-events-none z-10">
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                <MousePointer2 className="w-8 h-8 opacity-20" />
               </div>
-              <Button variant="outline" size="sm" className="bg-white" onClick={() => console.log('Commiting to Git...')}>
-                Salvar e Commitar
-              </Button>
-            </header>
+              <h3 className="text-lg font-semibold text-slate-500">Fluxo de Dados IA</h3>
+              <p className="text-sm">Arraste uma tabela da esquerda para começar o pipeline</p>
+            </div>
+          )}
+        </ReactFlow>
+      </main>
 
-            <Droppable droppableId="canvas">
-              {(provided, snapshot) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className={`min-h-[600px] rounded-xl border-2 border-dashed p-6 transition-colors flex flex-col gap-4 ${
-                    snapshot.isDraggingOver ? 'border-emerald-400 bg-emerald-50/50' : 'border-slate-200'
-                  }`}
-                >
-                  {canvasElements.length === 0 && (
-                    <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2">
-                      <Move className="w-8 h-8 opacity-20" />
-                      <p>Arraste e solte os elementos aqui para construir seu relatório</p>
+      {/* 3. BARRA LATERAL DIREITA (Propriedades) */}
+      <aside className="w-[280px] border-l bg-white flex flex-col shadow-[-4px_0_15px_rgba(0,0,0,0.03)] z-20">
+        <div className="p-4 border-b bg-slate-50/50">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-tight">
+            <Settings2 className="w-4 h-4 text-emerald-600" /> Propriedades do Nó
+          </h2>
+        </div>
+
+        <ScrollArea className="flex-1">
+          {selectedNode ? (
+            <div className="p-6 space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">ID do Sistema</Label>
+                  <div className="text-xs font-mono text-slate-500 mt-1 bg-slate-50 p-2 rounded border border-slate-100 overflow-hidden text-ellipsis italic">
+                    {selectedNode.id}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-slate-700 font-semibold">Nome de Exibição</Label>
+                  <Input 
+                    defaultValue={selectedNode.data.label as string}
+                    className="bg-white border-slate-200 mt-1.5 h-8 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-xs text-slate-700 font-semibold">Configurações/Filtros</Label>
+                  <div className="mt-2 p-3 border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400 italic">
+                      <Move className="w-3 h-3" /> No configuration available for this node type yet.
                     </div>
-                  )}
-
-                  {canvasElements.map((el, index) => (
-                    <Draggable key={el.id} draggableId={el.id} index={index}>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          onClick={() => setSelectedId(el.id)}
-                          className={`group relative bg-white rounded-xl shadow-sm border p-5 transition-all cursor-default ${
-                            selectedId === el.id ? 'ring-2 ring-emerald-500 border-transparent' : 'hover:border-slate-300'
-                          }`}
-                        >
-                          <div {...provided.dragHandleProps} className="absolute left-1/2 -top-3 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white p-1 rounded-full cursor-grab active:cursor-grabbing">
-                            <GripVertical className="w-3 h-3" />
-                          </div>
-
-                          <div className="flex justify-between items-start mb-4">
-                            <h4 className="font-semibold text-slate-800">{el.title}</h4>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-7 w-7 text-slate-400 hover:text-red-500"
-                              onClick={(e) => { e.stopPropagation(); removeElement(el.id); }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-
-                          <div className="min-h-[100px] flex items-center justify-center bg-slate-50/50 rounded-lg border border-slate-100 overflow-hidden">
-                            {el.type === 'pie-chart' && (
-                              <div className="w-full h-48 py-4">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <PieChart>
-                                    <Pie data={MOCK_PIE_DATA} innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
-                                      {MOCK_PIE_DATA.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                      ))}
-                                    </Pie>
-                                    <Tooltip />
-                                  </PieChart>
-                                </ResponsiveContainer>
-                              </div>
-                            )}
-                            {el.type === 'kpi' && (
-                              <div className="text-center py-6">
-                                <p className="text-3xl font-bold text-slate-900">R$ 12.450,00</p>
-                                <p className="text-xs text-emerald-600 font-medium">+15.4% vs mês anterior</p>
-                              </div>
-                            )}
-                            {el.type === 'divider' && <Separator className="w-full" />}
-                            {el.type === 'text' && (
-                              <p className="p-4 text-slate-600 text-sm italic">Clique para configurar o texto de observações aqui...</p>
-                            )}
-                            {el.type === 'line-chart' && (
-                               <div className="w-full h-48 p-2">
-                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={MOCK_PIE_DATA}>
-                                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                      <XAxis dataKey="name" fontSize={10} />
-                                      <YAxis fontSize={10} />
-                                      <Tooltip />
-                                      <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={{r: 4}} />
-                                    </LineChart>
-                                 </ResponsiveContainer>
-                               </div>
-                            )}
-                            {el.type === 'table' && (
-                              <div className="w-full p-4 space-y-2 opacity-60">
-                                <div className="h-4 bg-slate-200 rounded w-full"></div>
-                                <div className="h-4 bg-slate-100 rounded w-full"></div>
-                                <div className="h-4 bg-slate-200 rounded w-full"></div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </div>
-        </main>
-
-        {/* Coluna Direita: Propriedades */}
-        <aside className="w-[280px] border-l bg-white flex flex-col p-6 shadow-2xl z-10">
-          <div className="flex items-center gap-2 mb-6">
-            <Settings2 className="w-5 h-5 text-emerald-600" />
-            <h2 className="font-bold text-slate-900">Propriedades</h2>
-          </div>
-
-          {selectedElement ? (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label className="text-xs text-slate-500">Título do Bloco</Label>
-                <Input 
-                  value={selectedElement.title} 
-                  onChange={(e) => updateSelectedElement({ title: e.target.value })}
-                  className="bg-slate-50 border-slate-200"
-                />
-              </div>
-
-              {selectedElement.type !== 'divider' && (
-                <div className="space-y-2">
-                  <Label className="text-xs text-slate-500">Filtro de Dados</Label>
-                  <select className="w-full bg-slate-50 border border-slate-200 rounded-md p-2 text-sm text-slate-700">
-                    <option>Sem Filtro</option>
-                    <option>Apenas Despesas</option>
-                    <option>Apenas Receitas</option>
-                    <option>Por Categoria</option>
-                  </select>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label className="text-xs text-slate-500">Tamanho da Exibição</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['P', 'M', 'G'].map(size => (
-                    <Button key={size} variant="outline" size="sm" className="h-8">{size}</Button>
-                  ))}
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t">
+              <Separator />
+
+              <div className="pt-2">
                 <Button 
                   variant="destructive" 
-                  className="w-full gap-2" 
-                  onClick={() => removeElement(selectedElement.id)}
+                  size="sm"
+                  className="w-full gap-2 h-8 text-[11px]" 
+                  onClick={removeSelected}
                 >
-                  <Trash2 className="w-4 h-4" /> Remover Bloco
+                  <Trash2 className="w-3.5 h-3.5" /> Excluir do Fluxo
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center p-4">
-              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
-                <Move className="w-6 h-6 text-slate-300" />
+            <div className="h-full flex flex-col items-center justify-center text-center p-8">
+              <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                <MousePointer2 className="w-5 h-5 text-slate-300" />
               </div>
-              <p className="text-slate-400 text-sm">
-                Selecione um elemento no canvas para editar suas propriedades.
+              <h4 className="text-xs font-bold text-slate-700">Nada Selecionado</h4>
+              <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                Clique em um nó no canvas para configurar seus parâmetros de dados e filtros.
               </p>
             </div>
           )}
         </aside>
-
-      </DragDropContext>
+      
     </div>
   );
 }
