@@ -44,9 +44,8 @@ type Step = 'setup' | 'upload' | 'processing' | 'report';
 
 const LS_KEY = 'moneyguia_google_ai_key';
 
-// v1 stable API (not v1beta)
 const GEMINI_URL = (key: string) =>
-  `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`;
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
 
 const RECEIPT_CATEGORIES = [
   'Aluguel', 'Condomínio', 'IPTU', 'Água', 'Luz/Energia', 'Gás',
