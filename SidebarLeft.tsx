@@ -1,13 +1,13 @@
 import React from 'react';
-import { useReportStore } from '@/hooks/useReportStore';
+import { useReportStore } from './src/hooks/useReportStore';
 import { 
   Accordion, 
   AccordionContent, 
   AccordionItem, 
   AccordionTrigger 
-} from "@/components/ui/accordion";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
+} from "./src/components/ui/accordion";
+import { Checkbox } from "./src/components/ui/checkbox";
+import { ScrollArea } from "./src/components/ui/scroll-area";
 import { 
   Database, 
   Layout, 
@@ -17,8 +17,8 @@ import {
   GripVertical,
   Plus
 } from 'lucide-react';
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Badge } from "./src/components/ui/badge";
+import { cn } from "./src/lib/utils";
 
 const AVAILABLE_TABLES = [
   { id: 'expenses', name: 'Despesas', fields: ['description', 'amount', 'due_date', 'is_paid', 'payment_method'] },
