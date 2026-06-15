@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
 import {
-  Upload, ScanLine, Plus, Trash2, Sparkles, Save,
+  Upload, ScanLine, Plus, Trash2, Sparkles, CheckCircle2,
   AlertCircle, KeyRound, ExternalLink, Eye, EyeOff,
+  User, CalendarCheck, Wallet, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,14 +38,15 @@ interface ReceiptForm {
   items: ReceiptItem[];
 }
 
-type Step = 'setup' | 'upload' | 'processing' | 'form';
+type Step = 'setup' | 'upload' | 'processing' | 'report';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const LS_KEY = 'moneyguia_google_ai_key';
 
+// v1 stable API (not v1beta)
 const GEMINI_URL = (key: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+  `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`;
 
 const RECEIPT_CATEGORIES = [
   'Aluguel', 'Condomínio', 'IPTU', 'Água', 'Luz/Energia', 'Gás',
@@ -69,6 +71,12 @@ const EMPTY_FORM: ReceiptForm = {
 const fmtMoney = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+const fmtDate = (iso: string) => {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fileToBase64(file: File): Promise<string> {
@@ -92,7 +100,7 @@ function saveKey(key: string) {
   localStorage.setItem(LS_KEY, key.trim());
 }
 
-// ─── OCR via Google Gemini (direto do browser, sem edge function) ─────────────
+// ─── OCR via Google Gemini v1 (browser-safe, no edge function) ───────────────
 
 async function callGeminiOCR(apiKey: string, fileBase64: string, mimeType: string) {
   const prompt = `Você é um especialista em leitura de comprovantes financeiros brasileiros.
@@ -131,9 +139,14 @@ Regras: se houver múltiplos componentes de valor, crie um item por componente. 
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    if (response.status === 400) throw new Error('Chave de API inválida. Verifique e tente novamente.');
-    if (response.status === 429) throw new Error('Limite de requisições atingido. Aguarde e tente novamente.');
-    throw new Error(err?.error?.message ?? `Erro Gemini: ${response.status}`);
+    const msg: string = err?.error?.message ?? '';
+    if (response.status === 400 && msg.toLowerCase().includes('api key')) {
+      throw new Error('Chave de API inválida. Verifique e tente novamente.');
+    }
+    if (response.status === 429) {
+      throw new Error('Limite de requisições atingido. Aguarde e tente novamente.');
+    }
+    throw new Error(msg || `Erro Gemini: ${response.status}`);
   }
 
   const result = await response.json();
@@ -152,19 +165,62 @@ Regras: se houver múltiplos componentes de valor, crie um item por componente. 
   }
 }
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function KpiCard({
+  icon: Icon, label, value, highlight,
+}: { icon: React.ElementType; label: string; value: string; highlight?: boolean }) {
+  return (
+    <Card className={highlight ? 'border-primary/30 bg-primary/5' : ''}>
+      <CardContent className="pt-5 pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+            <p className={`mt-1 text-xl font-bold truncate ${highlight ? 'text-primary' : 'text-foreground'}`}>
+              {value}
+            </p>
+          </div>
+          <div className={`shrink-0 flex h-9 w-9 items-center justify-center rounded-lg ${highlight ? 'bg-primary/10' : 'bg-muted'}`}>
+            <Icon className={`w-4 h-4 ${highlight ? 'text-primary' : 'text-muted-foreground'}`} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }: {
+  cx: number; cy: number; midAngle: number;
+  innerRadius: number; outerRadius: number; percent: number;
+}) {
+  if (percent < 0.05) return null;
+  const RADIAN = Math.PI / 180;
+  const r = innerRadius + (outerRadius - innerRadius) * 0.55;
+  const x = cx + r * Math.cos(-midAngle * RADIAN);
+  const y = cy + r * Math.sin(-midAngle * RADIAN);
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central"
+      fontSize={11} fontWeight={600}>
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ReceiptUploader() {
   const hasKey = Boolean(getStoredKey());
 
-  const [step, setStep]         = useState<Step>(hasKey ? 'upload' : 'setup');
+  const [step, setStep]          = useState<Step>(hasKey ? 'upload' : 'setup');
   const [apiKeyInput, setApiKey] = useState('');
-  const [showKey, setShowKey]   = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-  const [fileName, setFileName] = useState('');
-  const [form, setForm]         = useState<ReceiptForm>(EMPTY_FORM);
-  const [error, setError]       = useState<string | null>(null);
-  const fileInputRef            = useRef<HTMLInputElement>(null);
+  const [showKey, setShowKey]    = useState(false);
+  const [dragOver, setDragOver]  = useState(false);
+  const [fileName, setFileName]  = useState('');
+  const [form, setForm]          = useState<ReceiptForm>(EMPTY_FORM);
+  const [error, setError]        = useState<string | null>(null);
+  const [metaOpen, setMetaOpen]  = useState(false);
+  const [saving, setSaving]      = useState(false);
+  const fileInputRef             = useRef<HTMLInputElement>(null);
 
   const { categories, addExpense } = useFinance();
 
@@ -174,6 +230,7 @@ export function ReceiptUploader() {
   ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
   const total = form.items.reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+
   const chartData = form.items
     .filter(i => parseFloat(i.value) > 0)
     .map(i => ({ name: i.category || i.reference || 'Item', value: parseFloat(i.value) }));
@@ -218,11 +275,12 @@ export function ReceiptUploader() {
         notes:         data.notes         ?? '',
         items,
       });
-      setStep('form');
+      setMetaOpen(false);
+      setStep('report');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao processar o arquivo.');
-      // If key is invalid, go back to setup
-      if (e instanceof Error && e.message.includes('inválida')) {
+      const msg = e instanceof Error ? e.message : 'Erro ao processar o arquivo.';
+      setError(msg);
+      if (msg.includes('inválida')) {
         localStorage.removeItem(LS_KEY);
         setStep('setup');
       } else {
@@ -246,12 +304,14 @@ export function ReceiptUploader() {
   const addItem    = () => setForm(f => ({ ...f, items: [...f.items, makeItem()] }));
   const removeItem = (id: string) => setForm(f => ({ ...f, items: f.items.filter(it => it.id !== id) }));
 
-  // ── Save expenses ─────────────────────────────────────────────────────────
-  const handleSave = async () => {
+  // ── Confirm & save ────────────────────────────────────────────────────────
+  const handleConfirm = async () => {
     const validItems = form.items.filter(i => parseFloat(i.value) > 0);
     if (!validItems.length) { toast.error('Adicione ao menos um item com valor.'); return; }
 
+    setSaving(true);
     const payDate = form.paymentDate || form.dueDate || new Date().toISOString().split('T')[0];
+
     try {
       for (const item of validItems) {
         const matchedCat = categories.find(c => c.name.toLowerCase() === item.category.toLowerCase());
@@ -267,17 +327,28 @@ export function ReceiptUploader() {
           observation:   form.notes || undefined,
         });
       }
-      toast.success(`${validItems.length} despesa(s) salva(s)!`);
+      toast.success(`${validItems.length} despesa(s) salva(s) com sucesso!`);
       setForm(EMPTY_FORM);
       setStep('upload');
       setFileName('');
+      setMetaOpen(false);
     } catch {
       toast.error('Erro ao salvar. Tente novamente.');
+    } finally {
+      setSaving(false);
     }
   };
 
+  const resetToUpload = () => {
+    setStep('upload');
+    setFileName('');
+    setForm(EMPTY_FORM);
+    setMetaOpen(false);
+    setError(null);
+  };
+
   // ════════════════════════════════════════════════════════════════════════════
-  // STEP: Setup — configure Google AI key
+  // STEP: Setup
   // ════════════════════════════════════════════════════════════════════════════
   if (step === 'setup') {
     return (
@@ -293,7 +364,6 @@ export function ReceiptUploader() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Instructions */}
           <div className="rounded-lg bg-muted/60 p-4 space-y-2 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">Como obter a chave (grátis):</p>
             <ol className="list-decimal list-inside space-y-1">
@@ -340,7 +410,7 @@ export function ReceiptUploader() {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              A chave fica salva apenas no seu navegador (localStorage). Não é enviada a terceiros.
+              A chave fica salva apenas no seu navegador (localStorage).
             </p>
           </div>
 
@@ -386,14 +456,14 @@ export function ReceiptUploader() {
             <p className="text-sm text-muted-foreground mt-1">
               ou <span className="text-primary font-medium underline underline-offset-2">clique para selecionar</span>
             </p>
-            <p className="text-xs text-muted-foreground mt-2">JPEG, PNG, WebP, PDF</p>
+            <p className="text-xs text-muted-foreground mt-2">JPEG · PNG · WebP · PDF</p>
           </div>
           <input
             ref={fileInputRef}
             type="file"
             accept={ACCEPTED_TYPES}
             className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f); }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f); e.target.value = ''; }}
           />
         </div>
 
@@ -437,178 +507,288 @@ export function ReceiptUploader() {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // STEP: Form
+  // STEP: Report — rich financial report, fully editable before saving
   // ════════════════════════════════════════════════════════════════════════════
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h3 className="font-semibold text-foreground flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            Comprovante lido:{' '}
-            <span className="font-normal text-muted-foreground">{fileName}</span>
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Verifique e edite os campos antes de salvar.
-          </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-foreground leading-tight">
+              Relatório gerado —{' '}
+              <span className="font-normal text-muted-foreground">{fileName}</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Verifique e edite qualquer campo antes de confirmar.
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => { setStep('upload'); setFileName(''); }}>
-            Novo arquivo
-          </Button>
-          <Button size="sm" className="gradient-primary" onClick={handleSave}>
-            <Save className="w-4 h-4 mr-1.5" />
-            Salvar Despesas
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={resetToUpload}>
+          Novo arquivo
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── Left: Form ────────────────────────────────────────────────── */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <KpiCard icon={Wallet}       label="Total do Comprovante" value={fmtMoney(total)} highlight />
+        <KpiCard icon={User}         label="Beneficiário"         value={form.beneficiary || '—'} />
+        <KpiCard icon={CalendarCheck} label="Data de Liquidação"  value={fmtDate(form.paymentDate || form.dueDate)} />
+      </div>
 
-          {/* Section A */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                A — Metadados do Lançamento
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Locador / Beneficiário</Label>
-                  <Input value={form.beneficiary} onChange={e => setField('beneficiary', e.target.value)} placeholder="Nome do beneficiário" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Contato (E-mail)</Label>
-                  <Input type="email" value={form.email} onChange={e => setField('email', e.target.value)} placeholder="email@exemplo.com" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Forma de Pagamento</Label>
-                  <Input value={form.paymentMethod} onChange={e => setField('paymentMethod', e.target.value)} placeholder="PIX, Transferência..." />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Vencimento</Label>
-                  <Input type="date" value={form.dueDate} onChange={e => setField('dueDate', e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Data do Pagamento</Label>
-                  <Input type="date" value={form.paymentDate} onChange={e => setField('paymentDate', e.target.value)} />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Observações</Label>
-                <Textarea
-                  value={form.notes}
-                  onChange={e => setField('notes', e.target.value)}
-                  placeholder="Notas adicionais do comprovante…"
-                  className="min-h-[72px] resize-none"
+      {/* Main content: editable table + pie chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        {/* Editable items table */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Desmembramento do Pagamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="grid grid-cols-[1fr_1fr_112px_32px] gap-2 px-1 text-xs font-medium text-muted-foreground">
+              <span>Categoria</span>
+              <span>Referência / Descrição</span>
+              <span className="text-right">Valor (R$)</span>
+              <span />
+            </div>
+
+            {form.items.map(item => (
+              <div key={item.id} className="grid grid-cols-[1fr_1fr_112px_32px] gap-2 items-start">
+                <Select
+                  value={item.category}
+                  onValueChange={v => updateItem(item.id, { category: v })}
+                >
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Categoria…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryOptions.map(c => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  className="h-9 text-sm"
+                  value={item.reference}
+                  onChange={e => updateItem(item.id, { reference: e.target.value })}
+                  placeholder="Descrição…"
                 />
+
+                <Input
+                  className="h-9 text-sm text-right tabular-nums"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={item.value}
+                  onChange={e => updateItem(item.id, { value: e.target.value })}
+                  placeholder="0,00"
+                />
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => removeItem(item.id)}
+                  disabled={form.items.length === 1}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
               </div>
-            </CardContent>
-          </Card>
+            ))}
 
-          {/* Section B */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                B — Desmembramento do Pagamento
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-[1fr_1fr_120px_36px] gap-2 text-xs font-medium text-muted-foreground px-1">
-                <span>Subcategoria</span>
-                <span>Referência / Descrição</span>
-                <span className="text-right">Valor (R$)</span>
-                <span />
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full border-dashed text-muted-foreground"
+              onClick={addItem}
+            >
+              <Plus className="w-3.5 h-3.5 mr-1.5" />
+              Adicionar item
+            </Button>
+
+            <Separator />
+
+            <div className="flex items-center justify-between px-1 pt-1">
+              <span className="text-sm font-semibold text-foreground">TOTAL PAGO</span>
+              <span className={`text-2xl font-bold tabular-nums ${total > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                {fmtMoney(total)}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pie chart */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Distribuição por Item
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {chartData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-muted-foreground">
+                <div className="w-16 h-16 rounded-full border-4 border-dashed border-muted-foreground/20" />
+                <p className="text-xs">Preencha os valores para ver a distribuição</p>
               </div>
+            ) : (
+              <div className="space-y-3">
+                <ResponsiveContainer width="100%" height={210}>
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={42}
+                      outerRadius={82}
+                      paddingAngle={2}
+                      labelLine={false}
+                      label={PieLabel as React.FC}
+                    >
+                      {chartData.map((_, i) => (
+                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(v: number) => [fmtMoney(v), '']}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
 
-              {form.items.map(item => (
-                <div key={item.id} className="grid grid-cols-[1fr_1fr_120px_36px] gap-2 items-start">
-                  <Select value={item.category} onValueChange={v => updateItem(item.id, { category: v })}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Categoria…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Input className="h-9 text-sm" value={item.reference} onChange={e => updateItem(item.id, { reference: e.target.value })} placeholder="Descrição…" />
-                  <Input className="h-9 text-sm text-right tabular-nums" type="number" min="0" step="0.01" value={item.value} onChange={e => updateItem(item.id, { value: e.target.value })} placeholder="0,00" />
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={() => removeItem(item.id)} disabled={form.items.length === 1}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-
-              <Button variant="outline" size="sm" className="w-full mt-1 border-dashed" onClick={addItem}>
-                <Plus className="w-4 h-4 mr-1.5" /> Adicionar item
-              </Button>
-
-              <Separator />
-              <div className="flex items-center justify-between px-1 pt-1">
-                <span className="text-sm font-semibold">TOTAL DEPOSITADO</span>
-                <span className="text-xl font-bold tabular-nums">{fmtMoney(total)}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ── Right: Chart ─────────────────────────────────────────────── */}
-        <div className="lg:col-span-1">
-          <Card className="sticky top-20">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                C — Impacto Orçamentário
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {chartData.length === 0 ? (
-                <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-muted-foreground">
-                  <div className="w-16 h-16 rounded-full border-4 border-dashed border-muted-foreground/20" />
-                  <p className="text-xs">Preencha os valores para visualizar a distribuição</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
-                      <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3}>
-                        {chartData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip
-                        formatter={(v: number) => [fmtMoney(v), '']}
-                        contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-
-                  <div className="space-y-1.5">
-                    {chartData.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                          <span className="truncate text-muted-foreground">{item.name}</span>
-                        </div>
-                        <span className="font-medium shrink-0 ml-2 tabular-nums">
+                <div className="space-y-1.5 pt-1">
+                  {chartData.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+                        />
+                        <span className="truncate text-muted-foreground">{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 tabular-nums">
+                        <span className="text-muted-foreground">
                           {total > 0 ? `${((item.value / total) * 100).toFixed(1)}%` : '—'}
                         </span>
+                        <span className="font-medium">{fmtMoney(item.value)}</span>
                       </div>
-                    ))}
-                  </div>
-
-                  <Separator />
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-muted-foreground">Total</span>
-                    <span className="tabular-nums">{fmtMoney(total)}</span>
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+
+                <Separator />
+                <div className="flex justify-between text-xs font-semibold">
+                  <span className="text-muted-foreground">Total</span>
+                  <span className="tabular-nums">{fmtMoney(total)}</span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Metadata (collapsible) */}
+      <Card>
+        <button
+          className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-muted/30 rounded-lg transition-colors"
+          onClick={() => setMetaOpen(o => !o)}
+        >
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Metadados do Lançamento
+          </span>
+          {metaOpen
+            ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        </button>
+
+        {metaOpen && (
+          <CardContent className="pt-0 pb-5 space-y-4">
+            <Separator className="mb-4" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Beneficiário</Label>
+                <Input
+                  value={form.beneficiary}
+                  onChange={e => setField('beneficiary', e.target.value)}
+                  placeholder="Nome do beneficiário"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Contato (E-mail)</Label>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={e => setField('email', e.target.value)}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Forma de Pagamento</Label>
+                <Input
+                  value={form.paymentMethod}
+                  onChange={e => setField('paymentMethod', e.target.value)}
+                  placeholder="PIX, Transferência, Boleto…"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Vencimento</Label>
+                <Input
+                  type="date"
+                  value={form.dueDate}
+                  onChange={e => setField('dueDate', e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Data de Pagamento</Label>
+                <Input
+                  type="date"
+                  value={form.paymentDate}
+                  onChange={e => setField('paymentDate', e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Observações</Label>
+              <Textarea
+                value={form.notes}
+                onChange={e => setField('notes', e.target.value)}
+                placeholder="Notas adicionais do comprovante…"
+                className="min-h-[72px] resize-none"
+              />
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Confirm button */}
+      <Button
+        className="w-full h-12 text-base font-semibold gradient-primary"
+        onClick={handleConfirm}
+        disabled={saving || total === 0}
+      >
+        {saving ? (
+          <>
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+            Salvando…
+          </>
+        ) : (
+          <>
+            <CheckCircle2 className="w-5 h-5 mr-2" />
+            Confirmar e Salvar no Banco
+          </>
+        )}
+      </Button>
     </div>
   );
 }
