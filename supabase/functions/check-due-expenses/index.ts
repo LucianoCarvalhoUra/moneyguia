@@ -246,29 +246,37 @@ Deno.serve(async (req) => {
 
       if (totalItems === 0) continue;
 
-      // Identify the source account (so when the same destination email is used
-      // by multiple accounts, the recipient can clearly tell which one it refers to)
-      let accountLabel = "";
+      // Identify the SOURCE account. The search key for expenses/incomes above is
+      // always `user_id` (never the destination email). The destination email
+      // (`notification_email`) is used ONLY to deliver the alert. When the same
+      // destination email is shared by multiple accounts, each account still
+      // produces its own separate email, clearly labelled below.
+      let accountName = "";
       let accountEmail = "";
       try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("full_name, email")
+          .select("name, email")
           .eq("user_id", s.user_id)
           .maybeSingle();
+        accountName = (profile as any)?.name || "";
         accountEmail = (profile as any)?.email || "";
-        accountLabel = (profile as any)?.full_name || accountEmail || s.user_id;
       } catch (_e) {
-        accountLabel = s.user_id;
+        // ignore, fall back to user_id below
       }
+      const accountLabel = accountName || accountEmail || s.user_id;
 
       const accountBanner = `
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
-          <p style="margin:0;font-size:13px;color:#1e3a8a;">
-            <strong>Conta:</strong> ${accountLabel}${accountEmail && accountEmail !== accountLabel ? ` &lt;${accountEmail}&gt;` : ""}
+          <p style="margin:0 0 4px;font-size:14px;color:#1e3a8a;">
+            <strong>Conta de origem:</strong> ${accountName || "(sem nome)"}
           </p>
-          <p style="margin:4px 0 0;font-size:12px;color:#475569;">
-            Este resumo contém apenas dados desta conta. Se você usa o mesmo e-mail de destino em mais de uma conta, receberá um e-mail separado por conta.
+          ${accountEmail ? `<p style="margin:0;font-size:13px;color:#1e40af;"><strong>E-mail da conta:</strong> ${accountEmail}</p>` : ""}
+          <p style="margin:6px 0 0;font-size:12px;color:#475569;">
+            Este resumo contém <strong>somente</strong> os dados desta conta (identificada internamente).
+            O e-mail de destino <code>${s.notification_email}</code> é usado apenas para entrega —
+            se o mesmo endereço estiver cadastrado em mais de uma conta, você receberá um e-mail
+            separado para cada uma delas.
           </p>
         </div>`;
 
