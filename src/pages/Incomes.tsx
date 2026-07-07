@@ -435,28 +435,54 @@ export default function Incomes() {
         </Card>
       )}
 
-      <Card className="bg-green-50/50 dark:bg-green-900/10 border-green-100 dark:border-green-900/20">
-        <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div>
-            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total de Receitas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
-            <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
+      {(() => {
+        const contab = filteredIncomes.filter(i => !i.excludeFromCalculations);
+        const totalAmt = contab.reduce((a, c) => a + c.amount, 0);
+        const receivedAmt = contab.filter(i => i.isReceived).reduce((a, c) => a + c.amount, 0);
+        const pendingAmt = totalAmt - receivedAmt;
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Card className="bg-green-50/50 dark:bg-green-900/10 border-green-100 dark:border-green-900/20">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">Total de Receitas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalAmt)}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{filteredIncomes.length} registro(s)</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/20">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">Total Recebido</p>
+                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(receivedAmt)}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{contab.filter(i => i.isReceived).length} recebida(s)</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-yellow-50/50 dark:bg-yellow-900/10 border-yellow-100 dark:border-yellow-900/20">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">Total Pendente</p>
+                <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">{formatCurrency(pendingAmt)}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{contab.filter(i => !i.isReceived).length} pendente(s)</p>
+              </CardContent>
+            </Card>
           </div>
-          <div className="text-xs sm:text-sm text-muted-foreground bg-background/50 px-3 py-1 rounded-md border self-start sm:self-auto">{filteredIncomes.length} registro(s) encontrado(s)</div>
-        </CardContent>
-      </Card>
+        );
+      })()}
 
       <GroupsPanel
         kind="income"
         draggingId={draggingId}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
         items={filteredIncomes.map<GroupedItem>(i => ({
           id: i.id,
           groupId: (i as any).groupId,
           primary: i.title,
           secondary: (incomeCategories.find(c => c.id === i.categoryId)?.name) || undefined,
           amount: i.amount,
+          isPaid: i.isReceived,
         }))}
         onChanged={() => refreshData()}
       />
+
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
