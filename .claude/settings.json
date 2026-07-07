@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"group\")",
+      "Bash(xargs grep -l \"transaction_groups\")",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

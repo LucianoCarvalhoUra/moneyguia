@@ -148,24 +148,22 @@ export default function Dashboard() {
 
   // Calculate Overdue Items (Global - All time)
   const overdueItems = useMemo(() => {
-    // if (!alertConfig.enabled) return { expenses: [], incomes: [] }; // Optional: force show overdue regardless of config
-
     const today = startOfDay(new Date());
 
-    const overdueExp = expenses.filter(e => {
+    const overdueExp = alertConfig.type === 'incomes' ? [] : expenses.filter(e => {
       if (e.isPaid) return false;
       const dueDate = startOfDay(new Date(e.dueDate));
-      return isBefore(dueDate, today); // Strictly overdue (< today)
+      return isBefore(dueDate, today);
     });
 
-    const overdueInc = incomes.filter(i => {
+    const overdueInc = alertConfig.type === 'expenses' ? [] : incomes.filter(i => {
       if (i.isReceived) return false;
       const receiveDate = startOfDay(new Date(i.receiveDate));
-      return isBefore(receiveDate, today); // Strictly overdue (< today)
+      return isBefore(receiveDate, today);
     });
 
     return { expenses: overdueExp, incomes: overdueInc };
-  }, [expenses, incomes]);
+  }, [expenses, incomes, alertConfig.type]);
 
   // --- Data Preparation for New Charts ---
 
@@ -267,20 +265,28 @@ export default function Dashboard() {
 
   const handleAlertClick = () => {
     const overdueExpenses = overdueItems.expenses;
-    if (overdueExpenses.length > 0) {
-      // Find the oldest overdue expense
-      const oldestOverdue = overdueExpenses.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
-      const oldestDate = new Date(oldestOverdue.dueDate);
+    const overdueIncomes = overdueItems.incomes;
 
-      navigate('/expenses', { 
-        state: { 
+    if (overdueExpenses.length > 0) {
+      const oldestOverdue = [...overdueExpenses].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+      const oldestDate = new Date(oldestOverdue.dueDate);
+      navigate('/expenses', {
+        state: {
           filter: 'overdue',
           month: oldestDate.getMonth(),
           year: oldestDate.getFullYear(),
         }
       });
-    } else if (overdueItems.incomes.length > 0) {
-      navigate('/incomes', { state: { filter: 'pending' } }); // Or overdue logic if implemented
+    } else if (overdueIncomes.length > 0) {
+      const oldestOverdue = [...overdueIncomes].sort((a, b) => new Date(a.receiveDate).getTime() - new Date(b.receiveDate).getTime())[0];
+      const oldestDate = new Date(oldestOverdue.receiveDate);
+      navigate('/incomes', {
+        state: {
+          filter: 'overdue',
+          month: oldestDate.getMonth(),
+          year: oldestDate.getFullYear(),
+        }
+      });
     }
   };
 
