@@ -43,14 +43,9 @@ export default function Incomes() {
   const { user } = useAuth();
   const { incomes, incomeCategories, incomeSubcategories, removeIncome, updateIncome, refreshData } = useIncome();
   
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const p = searchParams.get('month');
-    return p !== null ? parseInt(p) : new Date().getMonth();
-  });
-  const [selectedYear, setSelectedYear] = useState(() => {
-    const p = searchParams.get('year');
-    return p !== null ? parseInt(p) : new Date().getFullYear();
-  });
+  // Sempre inicia no mês corrente ao entrar na página
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
