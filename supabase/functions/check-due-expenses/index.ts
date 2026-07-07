@@ -246,9 +246,44 @@ Deno.serve(async (req) => {
 
       if (totalItems === 0) continue;
 
+      // Identify the SOURCE account. The search key for expenses/incomes above is
+      // always `user_id` (never the destination email). The destination email
+      // (`notification_email`) is used ONLY to deliver the alert. When the same
+      // destination email is shared by multiple accounts, each account still
+      // produces its own separate email, clearly labelled below.
+      let accountName = "";
+      let accountEmail = "";
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name, email")
+          .eq("user_id", s.user_id)
+          .maybeSingle();
+        accountName = (profile as any)?.name || "";
+        accountEmail = (profile as any)?.email || "";
+      } catch (_e) {
+        // ignore, fall back to user_id below
+      }
+      const accountLabel = accountName || accountEmail || s.user_id;
+
+      const accountBanner = `
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+          <p style="margin:0 0 4px;font-size:14px;color:#1e3a8a;">
+            <strong>Conta de origem:</strong> ${accountName || "(sem nome)"}
+          </p>
+          ${accountEmail ? `<p style="margin:0;font-size:13px;color:#1e40af;"><strong>E-mail da conta:</strong> ${accountEmail}</p>` : ""}
+          <p style="margin:6px 0 0;font-size:12px;color:#475569;">
+            Este resumo contém <strong>somente</strong> os dados desta conta (identificada internamente).
+            O e-mail de destino <code>${s.notification_email}</code> é usado apenas para entrega —
+            se o mesmo endereço estiver cadastrado em mais de uma conta, você receberá um e-mail
+            separado para cada uma delas.
+          </p>
+        </div>`;
+
       const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:20px;color:#111;">
         <h2 style="color:#2563eb;">Resumo financeiro MoneyGuia</h2>
         <p style="color:#475569;">Aqui está seu resumo de ${fmtDate(todayStr)}.</p>
+        ${accountBanner}
         ${buildSection("⚠️ Despesas vencidas", "#dc2626", overdueExpenses)}
         ${buildSection("📅 Despesas a vencer", "#d97706", upcomingExpenses)}
         ${buildSection("💰 Receitas a receber", "#0891b2", pendingIncomes)}
@@ -265,7 +300,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             to: s.notification_email,
-            subject: `MoneyGuia: ${totalItems} item(ns) financeiro(s) para você`,
+            subject: `MoneyGuia [${accountLabel}]: ${totalItems} item(ns) financeiro(s)`,
             html,
           }),
         });

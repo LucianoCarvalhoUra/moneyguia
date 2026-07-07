@@ -42,14 +42,9 @@ export default function Expenses() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { expenses, categories, subcategories, removeExpense, updateExpense, refreshData } = useFinance();
   
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const p = searchParams.get('month');
-    return p !== null ? parseInt(p) : new Date().getMonth();
-  });
-  const [selectedYear, setSelectedYear] = useState(() => {
-    const p = searchParams.get('year');
-    return p !== null ? parseInt(p) : new Date().getFullYear();
-  });
+  // Sempre inicia no mês corrente ao entrar na página
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -419,45 +414,38 @@ export default function Expenses() {
         </Card>
       )}
 
-      <Card className="bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20">
-        <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div>
-            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total de Despesas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
-            <p className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">{formatCurrency(filteredExpenses.filter(e => !(e as any).excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
+      {(() => {
+        const contab = filteredExpenses.filter(e => !(e as any).excludeFromCalculations);
+        const totalAmt = contab.reduce((a, c) => a + c.amount, 0);
+        const paidAmt = contab.filter(e => e.isPaid).reduce((a, c) => a + c.amount, 0);
+        const pendingAmt = totalAmt - paidAmt;
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Card className="bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">Total de Despesas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{formatCurrency(totalAmt)}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{filteredExpenses.length} registro(s)</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-green-50/50 dark:bg-green-900/10 border-green-100 dark:border-green-900/20">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">Total Pago</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(paidAmt)}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{contab.filter(e => e.isPaid).length} pago(s)</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-yellow-50/50 dark:bg-yellow-900/10 border-yellow-100 dark:border-yellow-900/20">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">Total Pendente</p>
+                <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">{formatCurrency(pendingAmt)}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{contab.filter(e => !e.isPaid).length} pendente(s)</p>
+              </CardContent>
+            </Card>
           </div>
-          {(() => {
-            const real = filteredExpenses.filter(e => !(e as any).excludeFromCalculations);
-            const visual = filteredExpenses.filter(e => (e as any).excludeFromCalculations);
-            return (
-              <div className="flex flex-wrap gap-2 self-start sm:self-auto">
-                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
-                  <span className="text-xs text-muted-foreground">Total</span>
-                  <span className="text-sm font-semibold text-foreground">{real.length}</span>
-                  <span className="text-xs text-muted-foreground">{formatCurrency(real.reduce((acc, e) => acc + e.amount, 0))}</span>
-                </div>
-                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
-                  <span className="text-xs text-muted-foreground">Pagas</span>
-                  <span className="text-sm font-semibold text-green-600">{real.filter(e => e.isPaid).length}</span>
-                  <span className="text-xs text-green-600">{formatCurrency(real.filter(e => e.isPaid).reduce((acc, e) => acc + e.amount, 0))}</span>
-                </div>
-                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
-                  <span className="text-xs text-muted-foreground">Pendentes</span>
-                  <span className="text-sm font-semibold text-red-600">{real.filter(e => !e.isPaid).length}</span>
-                  <span className="text-xs text-red-600">{formatCurrency(real.filter(e => !e.isPaid).reduce((acc, e) => acc + e.amount, 0))}</span>
-                </div>
-                {visual.length > 0 && (
-                  <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px] opacity-60">
-                    <span className="text-xs text-muted-foreground">Visuais</span>
-                    <span className="text-sm font-semibold text-muted-foreground">{visual.length}</span>
-                    <span className="text-xs text-muted-foreground">{formatCurrency(visual.reduce((acc, e) => acc + e.amount, 0))}</span>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </CardContent>
-      </Card>
-      
+        );
+      })()}
+
       {/* Agrupamentos */}
       <GroupsPanel
         kind="expense"
@@ -470,9 +458,11 @@ export default function Expenses() {
           primary: e.description,
           secondary: (categories.find(c => c.id === e.categoryId)?.name) || undefined,
           amount: e.amount,
+          isPaid: e.isPaid,
         }))}
         onChanged={() => refreshData()}
       />
+
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">

@@ -234,6 +234,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             classificationType: (e as any).classification_type || 'variavel',
             recurrenceType: (e as any).recurrence_type || 'variavel',
             groupId: (e as any).group_id || undefined,
+            settlementMethod: (e as any).settlement_method || undefined,
+            settlementAccountId: (e as any).settlement_account_id || undefined,
             createdAt: new Date(e.created_at),
           } as unknown as Expense;
         }));

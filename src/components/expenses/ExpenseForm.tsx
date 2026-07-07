@@ -73,6 +73,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [shakeKey, setShakeKey] = useState(0);
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
+  const [settlementMethod, setSettlementMethod] = useState<PaymentMethod | ''>('');
+  const [settlementAccountId, setSettlementAccountId] = useState('');
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -128,6 +130,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setObservation((dataToLoad as any).observation || '');
         setIsScheduled((dataToLoad as any).is_scheduled || false);
         setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
+        setSettlementMethod(((dataToLoad as any).settlementMethod || (dataToLoad as any).settlement_method || '') as PaymentMethod | '');
+        setSettlementAccountId((dataToLoad as any).settlementAccountId || (dataToLoad as any).settlement_account_id || '');
       } else {
         // Reset
         setDescription('');
@@ -148,6 +152,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setShowErrors(false);
         setIsScheduled(false);
         setScheduledDate('');
+        setSettlementMethod('');
+        setSettlementAccountId('');
       }
     }
   }, [open, expense, initialData]);
@@ -466,6 +472,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         observation: observation || null,
         is_scheduled: isScheduled,
         scheduled_date: isScheduled && scheduledDate ? scheduledDate : null,
+        settlement_method: isPaid && settlementMethod ? settlementMethod : null,
+        settlement_account_id: isPaid && settlementMethod && settlementMethod !== 'credit_card' && settlementAccountId ? settlementAccountId : null,
       };
 
       if (expense) {
@@ -728,6 +736,40 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               </div>
             </div>
           </div>
+
+          {/* Seção: Quitação — como o pagamento foi efetivado */}
+          {isPaid && (
+            <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/40 p-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-3.5 h-3.5 text-emerald-700" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Quitação</span>
+                <div className="flex-1 h-px bg-emerald-200/60" />
+                <span className="text-[10px] text-emerald-700/70">De onde saiu o dinheiro</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Forma de quitação</Label>
+                  <Select value={settlementMethod || undefined} onValueChange={(v) => { setSettlementMethod(v as PaymentMethod); setSettlementAccountId(''); }}>
+                    <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pix">PIX / Dinheiro</SelectItem>
+                      <SelectItem value="account">Débito em Conta</SelectItem>
+                      <SelectItem value="credit_card">Outro Cartão de Crédito</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {settlementMethod && settlementMethod !== 'credit_card' && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Banco da quitação</Label>
+                    <Select value={settlementAccountId} onValueChange={setSettlementAccountId}>
+                      <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione o banco" /></SelectTrigger>
+                      <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Seção: Recorrência & Observação */}
           <div className="flex items-center gap-2 -mb-2 pt-2">

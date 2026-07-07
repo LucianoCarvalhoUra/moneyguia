@@ -36,6 +36,7 @@ interface ReportItem {
   category: string;
   subcategory: string;
   paymentMethod: string;
+  settlement: string;
   amount: number;
 }
 
@@ -54,7 +55,7 @@ export default function Reports() {
   useIdleTimeout(); // Set up idle timeout for this page
 
   const { user } = useAuth();
-  const { expenses, categories, getCategoryById, getSubcategoryById, isLoading: financeLoading } = useFinance();
+  const { expenses, categories, accounts, cards, getCategoryById, getSubcategoryById, isLoading: financeLoading } = useFinance();
   const { incomes, incomeCategories, getIncomeCategoryById, getIncomeSubcategoryById, isLoading: incomeLoading } = useIncome();
   const [activeTab, setActiveTab] = useState('visual');
 
@@ -92,6 +93,16 @@ export default function Reports() {
           if (selectedCategory !== 'all' && expense.categoryId !== selectedCategory) return;
           if (selectedPaymentMethod !== 'all' && expense.paymentMethod !== selectedPaymentMethod) return;
 
+          const sMethod = (expense as any).settlementMethod;
+          const sAccId = (expense as any).settlementAccountId;
+          const sAcc = sAccId ? accounts.find(a => a.id === sAccId) : null;
+          let settlement = '-';
+          if (expense.isPaid && sMethod) {
+            if (sMethod === 'credit_card') settlement = 'Outro cartão de crédito';
+            else if (sMethod === 'account') settlement = sAcc ? `Débito em conta · ${sAcc.bankName}` : 'Débito em Conta';
+            else if (sMethod === 'pix') settlement = sAcc ? `PIX · ${sAcc.bankName}` : 'PIX / Dinheiro';
+          }
+
           items.push({
             id: expense.id,
             date: format(expenseDate, 'yyyy-MM-dd'),
@@ -100,6 +111,7 @@ export default function Reports() {
             category: category?.name || 'Sem categoria',
             subcategory: subcategory?.name || '-',
             paymentMethod: PAYMENT_METHOD_LABELS[expense.paymentMethod] || expense.paymentMethod,
+            settlement,
             amount: expense.amount,
           });
         }
@@ -127,6 +139,7 @@ export default function Reports() {
             category: category?.name || 'Sem categoria',
             subcategory: subcategory?.name || '-',
             paymentMethod: '-',
+            settlement: '-',
             amount: income.amount,
           });
         }
@@ -403,14 +416,15 @@ export default function Reports() {
       item.category,
       item.subcategory,
       item.paymentMethod,
+      item.settlement,
       formatCurrency(item.amount),
     ]);
 
     autoTable(doc, {
       startY: 95,
-      head: [['Data', 'Tipo', 'Descrição', 'Categoria', 'Subcategoria', 'Forma Pagto', 'Valor']],
+      head: [['Data', 'Tipo', 'Descrição', 'Categoria', 'Subcategoria', 'Forma Pagto', 'Quitação', 'Valor']],
       body: tableData,
-      foot: [['', '', '', '', '', 'Total Geral:', formatCurrency(totals.income - totals.expense)]],
+      foot: [['', '', '', '', '', '', 'Total Geral:', formatCurrency(totals.income - totals.expense)]],
       styles: { fontSize: 8, cellPadding: 3 },
       headStyles: { fillColor: [59, 130, 246], textColor: 255 },
       footStyles: { fillColor: [240, 240, 240], textColor: [40, 40, 40], fontStyle: 'bold' },
@@ -448,7 +462,8 @@ export default function Reports() {
       { width: 30 },
       { width: 18 },
       { width: 16 },
-      { width: 16 },
+      { width: 20 },
+      { width: 26 },
       { width: 16 },
     ];
 
@@ -476,7 +491,7 @@ export default function Reports() {
     worksheet.addRow([]);
     
     // Table header
-    const headerRow = worksheet.addRow(['Data', 'Tipo', 'Descrição', 'Categoria', 'Subcategoria', 'Forma de Pagamento', 'Valor']);
+    const headerRow = worksheet.addRow(['Data', 'Tipo', 'Descrição', 'Categoria', 'Subcategoria', 'Forma de Pagamento', 'Quitação', 'Valor']);
     headerRow.eachCell((cell) => {
       cell.fill = {
         type: 'pattern',
@@ -496,17 +511,18 @@ export default function Reports() {
         item.category,
         item.subcategory,
         item.paymentMethod,
+        item.settlement,
         item.amount,
       ]);
-      row.getCell(7).numFmt = '"R$" #,##0.00';
+      row.getCell(8).numFmt = '"R$" #,##0.00';
     });
 
     // Total row
     worksheet.addRow([]);
-    const totalRow = worksheet.addRow(['', '', '', '', '', 'Total Geral:', totals.income - totals.expense]);
-    totalRow.getCell(6).font = { bold: true };
+    const totalRow = worksheet.addRow(['', '', '', '', '', '', 'Total Geral:', totals.income - totals.expense]);
     totalRow.getCell(7).font = { bold: true };
-    totalRow.getCell(7).numFmt = '"R$" #,##0.00';
+    totalRow.getCell(8).font = { bold: true };
+    totalRow.getCell(8).numFmt = '"R$" #,##0.00';
     totalRow.eachCell((cell) => {
       cell.fill = {
         type: 'pattern',
@@ -524,7 +540,7 @@ export default function Reports() {
   const exportToWord = async () => {
     const tableRows = [
       new DocxTableRow({
-        children: ['Data', 'Tipo', 'Descrição', 'Categoria', 'Subcategoria', 'Forma Pagto', 'Valor'].map(text => 
+        children: ['Data', 'Tipo', 'Descrição', 'Categoria', 'Subcategoria', 'Forma Pagto', 'Quitação', 'Valor'].map(text => 
           new DocxTableCell({
             children: [new Paragraph({ children: [new TextRun({ text, bold: true })] })],
             shading: { fill: '3B82F6' },
@@ -540,6 +556,7 @@ export default function Reports() {
             item.category,
             item.subcategory,
             item.paymentMethod,
+            item.settlement,
             formatCurrency(item.amount),
           ].map(text => 
             new DocxTableCell({
@@ -550,7 +567,7 @@ export default function Reports() {
       ),
       new DocxTableRow({
         children: [
-          ...['', '', '', '', '', 'Total Geral:'].map(text => 
+          ...['', '', '', '', '', '', 'Total Geral:'].map(text => 
             new DocxTableCell({
               children: [new Paragraph({ children: [new TextRun({ text, bold: true })] })],
               shading: { fill: 'F0F0F0' },
@@ -899,6 +916,7 @@ export default function Reports() {
                           <TableHead>Categoria</TableHead>
                           <TableHead>Subcategoria</TableHead>
                           <TableHead>Forma de Pagamento</TableHead>
+                          <TableHead>Quitação</TableHead>
                           <TableHead className="text-right">Valor</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -919,6 +937,7 @@ export default function Reports() {
                             <TableCell>{item.category}</TableCell>
                             <TableCell>{item.subcategory}</TableCell>
                             <TableCell>{item.paymentMethod}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{item.settlement}</TableCell>
                             <TableCell className={`text-right font-medium ${
                               item.type === 'income' ? 'text-green-600' : 'text-red-600'
                             }`}>

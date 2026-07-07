@@ -43,16 +43,9 @@ export default function Incomes() {
   const { user } = useAuth();
   const { incomes, incomeCategories, incomeSubcategories, removeIncome, updateIncome, refreshData } = useIncome();
   
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    if (location.state?.month !== undefined) return location.state.month;
-    const p = searchParams.get('month');
-    return p !== null ? parseInt(p) : new Date().getMonth();
-  });
-  const [selectedYear, setSelectedYear] = useState(() => {
-    if (location.state?.year !== undefined) return location.state.year;
-    const p = searchParams.get('year');
-    return p !== null ? parseInt(p) : new Date().getFullYear();
-  });
+  // Sempre inicia no mês corrente ao entrar na página
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(() => {
@@ -449,44 +442,37 @@ export default function Incomes() {
         </Card>
       )}
 
-      <Card className="bg-green-50/50 dark:bg-green-900/10 border-green-100 dark:border-green-900/20">
-        <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div>
-            <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total de Receitas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
-            <p className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{formatCurrency(filteredIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, curr) => acc + curr.amount, 0))}</p>
+      {(() => {
+        const contab = filteredIncomes.filter(i => !i.excludeFromCalculations);
+        const totalAmt = contab.reduce((a, c) => a + c.amount, 0);
+        const receivedAmt = contab.filter(i => i.isReceived).reduce((a, c) => a + c.amount, 0);
+        const pendingAmt = totalAmt - receivedAmt;
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Card className="bg-green-50/50 dark:bg-green-900/10 border-green-100 dark:border-green-900/20">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">Total de Receitas ({getMonthLabel(selectedMonth)}/{selectedYear})</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalAmt)}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{filteredIncomes.length} registro(s)</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/20">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">Total Recebido</p>
+                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(receivedAmt)}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{contab.filter(i => i.isReceived).length} recebida(s)</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-yellow-50/50 dark:bg-yellow-900/10 border-yellow-100 dark:border-yellow-900/20">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-muted-foreground">Total Pendente</p>
+                <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">{formatCurrency(pendingAmt)}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{contab.filter(i => !i.isReceived).length} pendente(s)</p>
+              </CardContent>
+            </Card>
           </div>
-          {(() => {
-            const real = filteredIncomes.filter(i => !i.excludeFromCalculations);
-            const visual = filteredIncomes.filter(i => i.excludeFromCalculations);
-            return (
-              <div className="flex flex-wrap gap-2 self-start sm:self-auto">
-                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
-                  <span className="text-xs text-muted-foreground">Total</span>
-                  <span className="text-sm font-semibold text-foreground">{real.length}</span>
-                  <span className="text-xs text-muted-foreground">{formatCurrency(real.reduce((acc, i) => acc + i.amount, 0))}</span>
-                </div>
-                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
-                  <span className="text-xs text-muted-foreground">Recebidas</span>
-                  <span className="text-sm font-semibold text-green-600">{real.filter(i => i.isReceived).length}</span>
-                  <span className="text-xs text-green-600">{formatCurrency(real.filter(i => i.isReceived).reduce((acc, i) => acc + i.amount, 0))}</span>
-                </div>
-                <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px]">
-                  <span className="text-xs text-muted-foreground">Pendentes</span>
-                  <span className="text-sm font-semibold text-amber-600">{real.filter(i => !i.isReceived).length}</span>
-                  <span className="text-xs text-amber-600">{formatCurrency(real.filter(i => !i.isReceived).reduce((acc, i) => acc + i.amount, 0))}</span>
-                </div>
-                {visual.length > 0 && (
-                  <div className="flex flex-col items-center bg-background/50 px-3 py-2 rounded-md border min-w-[80px] opacity-60">
-                    <span className="text-xs text-muted-foreground">Visuais</span>
-                    <span className="text-sm font-semibold text-muted-foreground">{visual.length}</span>
-                    <span className="text-xs text-muted-foreground">{formatCurrency(visual.reduce((acc, i) => acc + i.amount, 0))}</span>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </CardContent>
-      </Card>
+        );
+      })()}
 
       <GroupsPanel
         kind="income"
@@ -499,9 +485,11 @@ export default function Incomes() {
           primary: i.title,
           secondary: (incomeCategories.find(c => c.id === i.categoryId)?.name) || undefined,
           amount: i.amount,
+          isPaid: i.isReceived,
         }))}
         onChanged={() => refreshData()}
       />
+
 
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
