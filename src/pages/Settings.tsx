@@ -16,6 +16,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { User, Shield, Loader2, Bell, Bot, Sparkles, CalendarClock, Mail, Send } from 'lucide-react';
 import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
+import EmailSmtpSettings from '@/components/settings/EmailSmtpSettings';
+import NotificationAlertsSettings from '@/components/settings/NotificationAlertsSettings';
 import DashboardCustomization from '@/components/dashboard/DashboardCustomization';
 import DeleteProfileDialog from '@/components/settings/DeleteProfileDialog';
 import ChangePasswordForm from '@/components/settings/ChangePasswordForm';
@@ -346,133 +348,75 @@ export default function Settings() {
       <DashboardCustomization />
 
       {/* Smart Notifications */}
-      <Card>
+      <Card className="border-amber-200 dark:border-amber-900/40 bg-gradient-to-br from-amber-50/60 to-white dark:from-amber-950/20 dark:to-background">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="w-5 h-5 text-primary" />
-            Notificações Inteligentes
-          </CardTitle>
-          <CardDescription>Configure seus alertas de vencimento</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-            <div className="space-y-0.5">
-              <Label className="text-base">Alerta no Dashboard</Label>
-              <p className="text-sm text-muted-foreground">
-                Mostrar aviso de contas próximas do vencimento
-              </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <Bell className="w-5 h-5" />
+                Notificações Inteligentes
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Aviso visual no Dashboard sobre contas próximas do vencimento. Não envia e-mails.
+              </CardDescription>
             </div>
-            <Button
-              className={cn(alertEnabled ? 'bg-primary hover:bg-primary/90' : 'bg-muted text-muted-foreground hover:bg-muted/80')}
-              onClick={() => saveAlertSettings(!alertEnabled, alertDays, alertType)}
-            >
-              {alertEnabled ? 'Ativado' : 'Desativado'}
-            </Button>
+            <Switch
+              checked={alertEnabled}
+              onCheckedChange={(c) => saveAlertSettings(c, alertDays, alertType)}
+            />
           </div>
+        </CardHeader>
 
-          {alertEnabled && (
+        {alertEnabled && (
+          <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Alertar sobre</Label>
-                <Select value={alertType} onValueChange={(v) => saveAlertSettings(alertEnabled, alertDays, v)}>
-                  <SelectTrigger>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Alertar sobre
+                </Label>
+                <Select
+                  value={alertType}
+                  onValueChange={(v) => saveAlertSettings(alertEnabled, alertDays, v)}
+                >
+                  <SelectTrigger className="bg-background">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="expenses">Apenas Despesas</SelectItem>
                     <SelectItem value="incomes">Apenas Receitas</SelectItem>
-                    <SelectItem value="both">Ambos</SelectItem>
+                    <SelectItem value="both">Despesas e Receitas</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Antecedência (dias)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="30"
-                  value={alertDays}
-                  onChange={(e) => saveAlertSettings(alertEnabled, e.target.value, alertType)}
-                />
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Antecedência
+                </Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="30"
+                    value={alertDays}
+                    onChange={(e) => saveAlertSettings(alertEnabled, e.target.value, alertType)}
+                    className="bg-background pr-14"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    dias
+                  </span>
+                </div>
               </div>
             </div>
-          )}
-
-          {/* Email alerts section */}
-          <div className="border-t pt-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-primary" />
-                <Label className="text-base">Alertas por Email</Label>
-              </div>
-              <Switch
-                checked={emailEnabled}
-                onCheckedChange={(checked) => saveEmailSettings(notificationEmail, checked)}
-                disabled={isSavingEmail}
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Receba lembretes de despesas próximas do vencimento por email.
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Bell className="w-3 h-3" />
+              Você será avisado no Dashboard com até <strong>{alertDays}</strong> dia(s) de antecedência.
             </p>
-            {emailEnabled && (
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label>Email para receber alertas</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={notificationEmail}
-                      onChange={(e) => setNotificationEmail(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="outline"
-                      onClick={() => saveEmailSettings(notificationEmail, emailEnabled)}
-                      disabled={isSavingEmail}
-                    >
-                      {isSavingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Horário de envio (Brasília)</Label>
-                  <Select
-                    value={`${sendHour}:${sendMinute}`}
-                    onValueChange={handleTimeChange}
-                    disabled={isSavingEmail}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {timeSlots.map((slot) => (
-                        <SelectItem key={slot.value} value={slot.value}>
-                          {slot.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    O e-mail é disparado automaticamente neste horário.
-                  </p>
-                </div>
-                <Button
-                  variant="secondary"
-                  className="w-full sm:w-auto gap-2"
-                  onClick={sendTestEmail}
-                  disabled={isSendingTest || !notificationEmail}
-                >
-                  {isSendingTest
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Enviando...</>
-                    : <><Send className="w-4 h-4" /> Enviar email de teste</>
-                  }
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
+          </CardContent>
+        )}
       </Card>
+
+      {/* Email alerts (conteúdo + frequência) */}
+      <NotificationAlertsSettings />
 
       {/* Auto-liquidation */}
       <Card>
@@ -495,6 +439,9 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Email SMTP */}
+      <EmailSmtpSettings />
 
       {/* Security */}
       <Card>
