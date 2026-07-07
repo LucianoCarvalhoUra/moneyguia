@@ -36,36 +36,9 @@ export default function Dashboard() {
   useScheduledTransactions();
   const [showSubAlert, setShowSubAlert] = useState(true);
   const now = new Date();
-  const getInitialPeriod = () => {
-    const monthParam = searchParams.get('month');
-    const yearParam = searchParams.get('year');
-
-    if (monthParam && yearParam) {
-      const parsedMonth = Number.parseInt(monthParam, 10);
-      const parsedYear = Number.parseInt(yearParam, 10);
-      if (!Number.isNaN(parsedMonth) && !Number.isNaN(parsedYear) && parsedMonth >= 1 && parsedMonth <= 12) {
-        return { month: parsedMonth - 1, year: parsedYear };
-      }
-    }
-
-    const stored = localStorage.getItem('dashboard_period');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as { month?: number; year?: number };
-        if (typeof parsed.month === 'number' && typeof parsed.year === 'number' && parsed.month >= 0 && parsed.month <= 11) {
-          return { month: parsed.month, year: parsed.year };
-        }
-      } catch {
-        // ignore invalid localStorage payload
-      }
-    }
-
-    return { month: now.getMonth(), year: now.getFullYear() };
-  };
-
-  const initialPeriod = getInitialPeriod();
-  const [selectedYear, setSelectedYear] = useState(initialPeriod.year);
-  const [selectedMonth, setSelectedMonth] = useState(initialPeriod.month);
+  // Sempre inicia no mês corrente ao entrar no dashboard
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [showOverdueAlert, setShowOverdueAlert] = useState(true);
   const [alertConfig, setAlertConfig] = useState({ enabled: true, days: 2, type: 'expenses' });
   const [settings, setSettings] = useState<DashboardSettings>(DEFAULT_DASHBOARD_SETTINGS);
