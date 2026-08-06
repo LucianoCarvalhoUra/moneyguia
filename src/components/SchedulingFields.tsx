@@ -1,5 +1,5 @@
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { DateInputBR } from "@/components/ui/date-input-br";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarClock } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
@@ -30,16 +30,10 @@ export function SchedulingFields({ form, baseDateFieldName }: SchedulingFieldsPr
       {isScheduled && (
         <div className="animate-in fade-in slide-in-from-top-2 duration-200">
           <Label htmlFor="scheduled_date">Agendar para</Label>
-          <Input 
-            id="scheduled_date" 
-            type="date"
-            {...form.register("scheduled_date", {
-              required: isScheduled,
-              validate: (value) => {
-                if (!value || !baseDate) return true;
-                return value <= baseDate || "A data de agendamento não pode ser posterior ao vencimento.";
-              }
-            })}
+          <DateInputBR
+            id="scheduled_date"
+            value={form.watch("scheduled_date") || ""}
+            onChange={(iso) => form.setValue("scheduled_date", iso, { shouldValidate: true })}
           />
           {form.formState.errors.scheduled_date && (
             <p className="text-xs text-red-500 mt-1">
