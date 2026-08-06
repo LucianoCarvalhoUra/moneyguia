@@ -27,6 +27,7 @@ import { CalculatorPopover } from '@/components/ui/calculator-popover';
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 import { getPlanLimit, getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
+import { type RecurrenceScope, toIsoDay, dayOfMonth, withDayOfMonth } from '@/lib/recurrenceScope';
 
 interface ExpenseFormProps {
   open: boolean;
@@ -342,18 +343,16 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     }
   };
 
-  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
+  const handleRecurrenceUpdate = async (scope: RecurrenceScope) => {
     if (!expense || !pendingData) return;
     
     setIsSubmitting(true);
     try {
-      // Use original due_date as anchor for future scope (before updating current)
-      const originalDueDate = expense.dueDate instanceof Date 
-        ? format(expense.dueDate, 'yyyy-MM-dd')
-        : String(expense.dueDate).split('T')[0];
+      // Use original dates as anchor (before updating current)
+      const originalDueDate = toIsoDay(expense.dueDate as any);
+      const originalExpenseDate = expense.expenseDate ? toIsoDay(expense.expenseDate as any) : null;
 
-      // 1. Atualiza a despesa atual (Logs de depuração para despesa única)
-      console.log('Dados enviados (Recorrência Single):', pendingData);
+      // 1. Atualiza a despesa atual
       const { error: singleError } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
       
       if (singleError) {
@@ -387,19 +386,53 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           }
         }
         
-        // Remove date fields, is_paid and user_id from batch to preserve individual state
-        const { due_date, expense_date, is_paid, user_id, current_installment, ...batchData } = pendingData;
-        console.log('Dados enviados (Batch Update):', batchData);
-        let query = supabase.from('expenses').update(batchData).eq('recurrence_id', recurrenceId).neq('id', expense.id);
+        // Remove per-installment fields: payment state and absolute dates stay individual
+        const { due_date, expense_date, is_paid, user_id, current_installment, settlement_method, settlement_account_id, ...batchData } = pendingData;
 
-        if (scope === 'future') {
-          // Use ORIGINAL date as anchor to correctly identify future items
-          query = query.gte('due_date', originalDueDate);
+        // Identify affected rows according to the chosen scope
+        let selectQuery = supabase
+          .from('expenses')
+          .select('id, due_date, expense_date')
+          .eq('recurrence_id', recurrenceId)
+          .neq('id', expense.id);
+
+        if (scope === 'future') selectQuery = selectQuery.gte('due_date', originalDueDate);
+        if (scope === 'past') selectQuery = selectQuery.lte('due_date', originalDueDate);
+
+        const { data: targets, error: selectError } = await selectQuery;
+        if (selectError) throw selectError;
+
+        const ids = (targets || []).map((t: any) => t.id);
+
+        if (ids.length > 0) {
+          if (Object.keys(batchData).length > 0) {
+            const { error } = await supabase.from('expenses').update(batchData).in('id', ids);
+            if (error) throw error;
+          }
+
+          // Propagate day-of-month changes while keeping each installment's own month/year
+          const dueDayChanged = due_date && dayOfMonth(due_date) !== dayOfMonth(originalDueDate);
+          const expenseDayChanged =
+            expense_date && originalExpenseDate && dayOfMonth(expense_date) !== dayOfMonth(originalExpenseDate);
+
+          if (dueDayChanged || expenseDayChanged) {
+            await Promise.all(
+              (targets || []).map((t: any) => {
+                const patch: Record<string, string> = {};
+                if (dueDayChanged && t.due_date) {
+                  patch.due_date = withDayOfMonth(toIsoDay(t.due_date), dayOfMonth(due_date));
+                }
+                if (expenseDayChanged && t.expense_date) {
+                  patch.expense_date = withDayOfMonth(toIsoDay(t.expense_date), dayOfMonth(expense_date));
+                }
+                if (Object.keys(patch).length === 0) return Promise.resolve();
+                return supabase.from('expenses').update(patch).eq('id', t.id);
+              })
+            );
+          }
         }
-
-        const { error } = await query;
-        if (error) throw error;
       }
+
 
       toast.success('Despesas atualizadas com sucesso!', {
         description: 'As alterações foram aplicadas à série de recorrência.',
@@ -919,6 +952,14 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 <div className="text-xs text-muted-foreground">Alterar desta data em diante</div>
               </div>
             </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('past')}>
+              <CalendarClock className="w-4 h-4 mr-3 text-muted-foreground rotate-180" />
+              <div className="text-left">
+                <div className="font-medium">Esta e anteriores</div>
+                <div className="text-xs text-muted-foreground">Alterar desta data para trás</div>
+              </div>
+            </Button>
+
             <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
               <CalendarDays className="w-4 h-4 mr-3 text-muted-foreground" />
               <div className="text-left">
