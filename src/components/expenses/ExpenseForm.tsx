@@ -27,6 +27,7 @@ import { CalculatorPopover } from '@/components/ui/calculator-popover';
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 import { getPlanLimit, getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
+import { type RecurrenceScope, toIsoDay, dayOfMonth, withDayOfMonth } from '@/lib/recurrenceScope';
 
 interface ExpenseFormProps {
   open: boolean;
