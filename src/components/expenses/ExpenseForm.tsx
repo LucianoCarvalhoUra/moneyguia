@@ -952,6 +952,14 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 <div className="text-xs text-muted-foreground">Alterar desta data em diante</div>
               </div>
             </Button>
+            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('past')}>
+              <CalendarClock className="w-4 h-4 mr-3 text-muted-foreground rotate-180" />
+              <div className="text-left">
+                <div className="font-medium">Esta e anteriores</div>
+                <div className="text-xs text-muted-foreground">Alterar desta data para trás</div>
+              </div>
+            </Button>
+
             <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
               <CalendarDays className="w-4 h-4 mr-3 text-muted-foreground" />
               <div className="text-left">
