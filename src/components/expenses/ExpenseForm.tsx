@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 import { getPlanLimit, getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
 import { type RecurrenceScope, toIsoDay, dayOfMonth, withDayOfMonth } from '@/lib/recurrenceScope';
+import { DateInputBR } from "@/components/ui/date-input-br";
 
 interface ExpenseFormProps {
   open: boolean;
@@ -705,7 +706,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </div>
             <div key={`due-${shakeKey}`} className={cn("space-y-1.5", showErrors && !dueDate && "animate-shake")}>
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !dueDate ? "text-destructive" : "text-muted-foreground")}>Vencimento *</Label>
-              <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !dueDate && "border-destructive ring-1 ring-destructive/30")} />
+              <DateInputBR value={dueDate} onChange={setDueDate} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !dueDate && "border-destructive ring-1 ring-destructive/30")} />
               {showErrors && !dueDate && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
           </div>
@@ -859,11 +860,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             {isScheduled && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-14">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento</Label>
-                <Input
-                  type="date"
+                <DateInputBR
                   value={scheduledDate}
-                  onChange={e => setScheduledDate(e.target.value)}
-                  max={dueDate || undefined}
+                  onChange={setScheduledDate}
                   className="h-10 rounded-xl border-border/60 bg-muted/30"
                 />
                 {scheduledDate && dueDate && scheduledDate > dueDate && (

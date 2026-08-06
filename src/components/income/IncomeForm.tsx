@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 import { type RecurrenceScope, toIsoDay, dayOfMonth, withDayOfMonth } from '@/lib/recurrenceScope';
 import { getPlanLimit, getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
+import { DateInputBR } from "@/components/ui/date-input-br";
 
 interface IncomeFormProps {
   open: boolean;
@@ -412,7 +413,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
             <div key={`due-${shakeKey}`} className={cn("space-y-1.5", showErrors && !receiveDate && "animate-shake")}>
               <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !receiveDate ? "text-destructive" : "text-muted-foreground")}>Data de Recebimento *</Label>
-              <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
+              <DateInputBR value={receiveDate} onChange={setReceiveDate} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
             </div>
           </div>
 
@@ -488,7 +489,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             {isScheduled && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-14">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento (Baixa Automática)</Label>
-                <Input type="date" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} max={receiveDate || undefined} className="h-10 rounded-xl border-border/60 bg-muted/30" />
+                <DateInputBR value={scheduledDate} onChange={setScheduledDate} className="h-10 rounded-xl border-border/60 bg-muted/30" />
               </div>
             )}
             <div className="border-t border-border/40" />

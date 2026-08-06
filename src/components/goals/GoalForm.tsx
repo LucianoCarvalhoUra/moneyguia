@@ -11,6 +11,7 @@ import { Goal, GoalCategory, GoalPriority, GOAL_CATEGORIES } from '@/types/goals
 import { Loader2, Calculator, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInMonths } from 'date-fns';
+import { DateInputBR } from "@/components/ui/date-input-br";
 
 const AVAILABLE_COLORS = [
   'slate-500', 'red-500', 'orange-500', 'amber-500', 'yellow-500', 'lime-500',
@@ -181,7 +182,7 @@ export const GoalForm = ({ open, onOpenChange, goal }: GoalFormProps) => {
               <Label>Data Limite *</Label>
               <div className="relative">
                 <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="pl-9" />
+                <DateInputBR value={deadline} onChange={setDeadline} className="pl-9" />
               </div>
             </div>
           </div>
