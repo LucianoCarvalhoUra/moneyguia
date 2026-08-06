@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DateInputBR } from "@/components/ui/date-input-br";
 
 export default function Goals() {
   const { goals, removeGoal, updateGoal, refreshGoals, isLoading, addContribution, removeContribution, getContributionsByGoal } = useGoals();
@@ -436,7 +437,7 @@ export default function Goals() {
             </div>
             <div className="space-y-2">
               <Label>Data</Label>
-              <Input type="date" value={contributionDate} onChange={(e) => setContributionDate(e.target.value)} />
+              <DateInputBR value={contributionDate} onChange={setContributionDate} />
             </div>
             <div className="space-y-2">
               <Label>Nota (opcional)</Label>
