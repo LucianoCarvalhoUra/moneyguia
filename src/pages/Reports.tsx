@@ -25,6 +25,7 @@ import { useIdleTimeout } from '@/hooks/useIdleTimeout';
 // import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { DateInputBR } from "@/components/ui/date-input-br";
 
 type RecordType = 'all' | 'income' | 'expense';
 
@@ -792,11 +793,10 @@ export default function Reports() {
                       <Calendar className="w-4 h-4" />
                       Data Início
                     </Label>
-                    <Input
+                    <DateInputBR
                       id="startDate"
-                      type="date"
                       value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
+                      onChange={setStartDate}
                     />
                   </div>
 
@@ -805,11 +805,10 @@ export default function Reports() {
                       <Calendar className="w-4 h-4" />
                       Data Fim
                     </Label>
-                    <Input
+                    <DateInputBR
                       id="endDate"
-                      type="date"
                       value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
+                      onChange={setEndDate}
                     />
                   </div>
 
