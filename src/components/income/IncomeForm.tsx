@@ -18,6 +18,7 @@ import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock, Wallet, F
 import { CalculatorPopover } from '@/components/ui/calculator-popover';
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
+import { type RecurrenceScope, toIsoDay, dayOfMonth, withDayOfMonth } from '@/lib/recurrenceScope';
 import { getPlanLimit, getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
 
 interface IncomeFormProps {
