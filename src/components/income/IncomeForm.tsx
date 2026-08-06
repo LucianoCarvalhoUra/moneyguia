@@ -170,13 +170,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     }
   };
 
-  const handleRecurrenceUpdate = async (scope: 'single' | 'future' | 'all') => {
+  const handleRecurrenceUpdate = async (scope: RecurrenceScope) => {
     if (!income || !pendingData) return;
     setIsSubmitting(true);
     try {
-      const originalReceiveDate = income.receiveDate instanceof Date
-        ? format(income.receiveDate, 'yyyy-MM-dd')
-        : String(income.receiveDate).split('T')[0];
+      const originalReceiveDate = toIsoDay(income.receiveDate as any);
 
       const { error: singleError } = await supabase.from('incomes').update(pendingData).eq('id', income.id);
       if (singleError) throw singleError;
@@ -201,13 +199,43 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
         // Preserve individual payment data: do not propagate receive_date, is_received, user_id, current_installment
         const { receive_date, is_received, user_id, current_installment, ...batchData } = pendingData;
-        let query = supabase.from('incomes').update(batchData).eq('recurrence_id', recurrenceId).neq('id', income.id);
-        if (scope === 'future') {
-          query = query.gte('receive_date', originalReceiveDate);
+
+        let selectQuery = supabase
+          .from('incomes')
+          .select('id, receive_date')
+          .eq('recurrence_id', recurrenceId)
+          .neq('id', income.id);
+
+        if (scope === 'future') selectQuery = selectQuery.gte('receive_date', originalReceiveDate);
+        if (scope === 'past') selectQuery = selectQuery.lte('receive_date', originalReceiveDate);
+
+        const { data: targets, error: selectError } = await selectQuery;
+        if (selectError) throw selectError;
+
+        const ids = (targets || []).map((t: any) => t.id);
+
+        if (ids.length > 0) {
+          if (Object.keys(batchData).length > 0) {
+            const { error } = await supabase.from('incomes').update(batchData).in('id', ids);
+            if (error) throw error;
+          }
+
+          // Propagate day-of-month change keeping each installment's own month/year
+          if (receive_date && dayOfMonth(receive_date) !== dayOfMonth(originalReceiveDate)) {
+            await Promise.all(
+              (targets || []).map((t: any) =>
+                t.receive_date
+                  ? supabase
+                      .from('incomes')
+                      .update({ receive_date: withDayOfMonth(toIsoDay(t.receive_date), dayOfMonth(receive_date)) })
+                      .eq('id', t.id)
+                  : Promise.resolve()
+              )
+            );
+          }
         }
-        const { error } = await query;
-        if (error) throw error;
       }
+
 
       toast.success('Receitas atualizadas com sucesso!');
       await new Promise(resolve => setTimeout(resolve, 300));
