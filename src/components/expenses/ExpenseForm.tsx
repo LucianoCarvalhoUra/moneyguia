@@ -930,49 +930,37 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       </Dialog>
 
       <AlertDialog open={scopeDialogOpen} onOpenChange={setScopeDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Atualizar Recorrência</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta é uma despesa recorrente. Como deseja aplicar as alterações? Status de pagamento e data real de pagamento serão mantidos individuais em cada parcela.
+        <AlertDialogContent className="max-w-xs p-4 gap-3">
+          <AlertDialogHeader className="space-y-1">
+            <AlertDialogTitle className="text-base">Atualizar recorrência</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              O status de pagamento continua individual em cada parcela.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="flex flex-col gap-2 py-4">
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('single')}>
-              <Calendar className="w-4 h-4 mr-3 text-muted-foreground" />
-              <div className="text-left">
-                <div className="font-medium">Apenas esta</div>
-                <div className="text-xs text-muted-foreground">Alterar somente a despesa atual</div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('future')}>
-              <CalendarClock className="w-4 h-4 mr-3 text-muted-foreground" />
-              <div className="text-left">
-                <div className="font-medium">Esta e próximas</div>
-                <div className="text-xs text-muted-foreground">Alterar desta data em diante</div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('past')}>
-              <CalendarClock className="w-4 h-4 mr-3 text-muted-foreground rotate-180" />
-              <div className="text-left">
-                <div className="font-medium">Esta e anteriores</div>
-                <div className="text-xs text-muted-foreground">Alterar desta data para trás</div>
-              </div>
-            </Button>
-
-            <Button variant="outline" className="justify-start h-auto py-3 px-4" onClick={() => handleRecurrenceUpdate('all')}>
-              <CalendarDays className="w-4 h-4 mr-3 text-muted-foreground" />
-              <div className="text-left">
-                <div className="font-medium">Todas</div>
-                <div className="text-xs text-muted-foreground">Alterar toda a série</div>
-              </div>
-            </Button>
+          <div className="flex flex-col gap-1.5">
+            {([
+              ['single', 'Apenas esta'],
+              ['future', 'Esta e próximas'],
+              ['past', 'Esta e anteriores'],
+              ['all', 'Todas'],
+            ] as const).map(([scope, label]) => (
+              <Button
+                key={scope}
+                variant="outline"
+                size="sm"
+                className="justify-start h-9 text-sm"
+                onClick={() => handleRecurrenceUpdate(scope)}
+              >
+                {label}
+              </Button>
+            ))}
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="mt-1">
+            <AlertDialogCancel className="h-8 text-xs w-full">Cancelar</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       <AlertDialog open={deleteScopeDialogOpen} onOpenChange={setDeleteScopeDialogOpen}>
         <AlertDialogContent>
