@@ -280,7 +280,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
         description: description || null, // Observação
         is_scheduled: isScheduled,
-        scheduled_date: isScheduled ? scheduledDate : null,
+        scheduled_date: isScheduled && scheduledDate ? `${scheduledDate}T12:00:00` : null,
       };
 
       if (income) {
