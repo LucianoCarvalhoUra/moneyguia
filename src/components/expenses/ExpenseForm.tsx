@@ -390,7 +390,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         }
         
         // Remove per-installment fields: payment state and absolute dates stay individual
-        const { due_date, expense_date, is_paid, user_id, current_installment, settlement_method, settlement_account_id, ...batchData } = pendingData;
+        const { due_date, expense_date, is_paid, user_id, current_installment, settlement_method, settlement_account_id, settlement_card_id, ...batchData } = pendingData;
 
         // Identify affected rows according to the chosen scope
         let selectQuery = supabase
