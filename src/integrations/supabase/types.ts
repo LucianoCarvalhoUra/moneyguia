@@ -225,6 +225,7 @@ export type Database = {
           recurrence_id: string | null
           scheduled_date: string | null
           settlement_account_id: string | null
+          settlement_card_id: string | null
           settlement_method:
             | Database["public"]["Enums"]["payment_method"]
             | null
@@ -254,6 +255,7 @@ export type Database = {
           recurrence_id?: string | null
           scheduled_date?: string | null
           settlement_account_id?: string | null
+          settlement_card_id?: string | null
           settlement_method?:
             | Database["public"]["Enums"]["payment_method"]
             | null
@@ -283,6 +285,7 @@ export type Database = {
           recurrence_id?: string | null
           scheduled_date?: string | null
           settlement_account_id?: string | null
+          settlement_card_id?: string | null
           settlement_method?:
             | Database["public"]["Enums"]["payment_method"]
             | null
@@ -317,6 +320,13 @@ export type Database = {
             columns: ["settlement_account_id"]
             isOneToOne: false
             referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_settlement_card_id_fkey"
+            columns: ["settlement_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
             referencedColumns: ["id"]
           },
           {

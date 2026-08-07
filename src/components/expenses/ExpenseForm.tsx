@@ -77,6 +77,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [scheduledDate, setScheduledDate] = useState('');
   const [settlementMethod, setSettlementMethod] = useState<PaymentMethod | ''>('');
   const [settlementAccountId, setSettlementAccountId] = useState('');
+  const [settlementCardId, setSettlementCardId] = useState('');
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -134,6 +135,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
         setSettlementMethod(((dataToLoad as any).settlementMethod || (dataToLoad as any).settlement_method || '') as PaymentMethod | '');
         setSettlementAccountId((dataToLoad as any).settlementAccountId || (dataToLoad as any).settlement_account_id || '');
+        setSettlementCardId((dataToLoad as any).settlementCardId || (dataToLoad as any).settlement_card_id || '');
       } else {
         // Reset
         setDescription('');
@@ -388,7 +390,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         }
         
         // Remove per-installment fields: payment state and absolute dates stay individual
-        const { due_date, expense_date, is_paid, user_id, current_installment, settlement_method, settlement_account_id, ...batchData } = pendingData;
+        const { due_date, expense_date, is_paid, user_id, current_installment, settlement_method, settlement_account_id, settlement_card_id, ...batchData } = pendingData;
 
         // Identify affected rows according to the chosen scope
         let selectQuery = supabase
@@ -509,6 +511,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         scheduled_date: isScheduled && scheduledDate ? `${scheduledDate}T12:00:00` : null,
         settlement_method: isPaid && settlementMethod ? settlementMethod : null,
         settlement_account_id: isPaid && settlementMethod && settlementMethod !== 'credit_card' && settlementAccountId ? settlementAccountId : null,
+        settlement_card_id: isPaid && settlementMethod === 'credit_card' && settlementCardId ? settlementCardId : null,
       };
 
       if (expense) {
@@ -784,7 +787,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Forma de quitação</Label>
-                  <Select value={settlementMethod || undefined} onValueChange={(v) => { setSettlementMethod(v as PaymentMethod); setSettlementAccountId(''); }}>
+                  <Select value={settlementMethod || undefined} onValueChange={(v) => { setSettlementMethod(v as PaymentMethod); setSettlementAccountId(''); setSettlementCardId(''); }}>
                     <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pix">PIX / Dinheiro</SelectItem>
@@ -800,6 +803,18 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                       <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione o banco" /></SelectTrigger>
                       <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
                     </Select>
+                  </div>
+                )}
+                {settlementMethod === 'credit_card' && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cartão da quitação</Label>
+                    <Select value={settlementCardId} onValueChange={setSettlementCardId}>
+                      <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione o cartão (final)" /></SelectTrigger>
+                      <SelectContent>{cards.map(c => <SelectItem key={c.id} value={c.id}>{c.brand} •••• {c.lastFourDigits}</SelectItem>)}</SelectContent>
+                    </Select>
+                    {cards.length === 0 && (
+                      <p className="text-[10px] text-muted-foreground">Cadastre seus cartões em Contas &amp; Cartões para selecionar o final.</p>
+                    )}
                   </div>
                 )}
               </div>
