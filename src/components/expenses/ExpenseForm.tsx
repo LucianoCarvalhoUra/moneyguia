@@ -77,6 +77,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const [scheduledDate, setScheduledDate] = useState('');
   const [settlementMethod, setSettlementMethod] = useState<PaymentMethod | ''>('');
   const [settlementAccountId, setSettlementAccountId] = useState('');
+  const [settlementCardId, setSettlementCardId] = useState('');
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
