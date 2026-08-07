@@ -135,6 +135,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
         setSettlementMethod(((dataToLoad as any).settlementMethod || (dataToLoad as any).settlement_method || '') as PaymentMethod | '');
         setSettlementAccountId((dataToLoad as any).settlementAccountId || (dataToLoad as any).settlement_account_id || '');
+        setSettlementCardId((dataToLoad as any).settlementCardId || (dataToLoad as any).settlement_card_id || '');
       } else {
         // Reset
         setDescription('');
