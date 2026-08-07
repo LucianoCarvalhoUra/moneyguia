@@ -1,0 +1,1 @@
+ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS settlement_card_id uuid REFERENCES public.credit_cards(id) ON DELETE SET NULL;
