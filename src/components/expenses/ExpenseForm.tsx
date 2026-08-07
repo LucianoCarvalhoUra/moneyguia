@@ -461,10 +461,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       toast.error('Preencha os campos obrigatórios');
       return;
     }
-    if (isScheduled && scheduledDate && dueDate && scheduledDate > dueDate) {
-      toast.error('A data de agendamento não pode ser posterior ao vencimento.');
+    if (isScheduled && !scheduledDate) {
+      toast.error('Informe a data do agendamento.');
       return;
     }
+
     setShowErrors(false);
 
     setIsSubmitting(true);
@@ -505,7 +506,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
         observation: observation || null,
         is_scheduled: isScheduled,
-        scheduled_date: isScheduled && scheduledDate ? scheduledDate : null,
+        scheduled_date: isScheduled && scheduledDate ? `${scheduledDate}T12:00:00` : null,
         settlement_method: isPaid && settlementMethod ? settlementMethod : null,
         settlement_account_id: isPaid && settlementMethod && settlementMethod !== 'credit_card' && settlementAccountId ? settlementAccountId : null,
       };
@@ -866,7 +867,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                   className="h-10 rounded-xl border-border/60 bg-muted/30"
                 />
                 {scheduledDate && dueDate && scheduledDate > dueDate && (
-                  <p className="text-xs text-destructive">A data de agendamento não pode ser posterior ao vencimento.</p>
+                  <p className="text-xs text-muted-foreground">Pagamento agendado para depois do vencimento.</p>
                 )}
               </div>
             )}
