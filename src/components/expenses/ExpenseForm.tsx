@@ -787,7 +787,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Forma de quitação</Label>
-                  <Select value={settlementMethod || undefined} onValueChange={(v) => { setSettlementMethod(v as PaymentMethod); setSettlementAccountId(''); }}>
+                  <Select value={settlementMethod || undefined} onValueChange={(v) => { setSettlementMethod(v as PaymentMethod); setSettlementAccountId(''); setSettlementCardId(''); }}>
                     <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pix">PIX / Dinheiro</SelectItem>
@@ -803,6 +803,18 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                       <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione o banco" /></SelectTrigger>
                       <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
                     </Select>
+                  </div>
+                )}
+                {settlementMethod === 'credit_card' && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cartão da quitação</Label>
+                    <Select value={settlementCardId} onValueChange={setSettlementCardId}>
+                      <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione o cartão (final)" /></SelectTrigger>
+                      <SelectContent>{cards.map(c => <SelectItem key={c.id} value={c.id}>{c.brand} •••• {c.lastFourDigits}</SelectItem>)}</SelectContent>
+                    </Select>
+                    {cards.length === 0 && (
+                      <p className="text-[10px] text-muted-foreground">Cadastre seus cartões em Contas &amp; Cartões para selecionar o final.</p>
+                    )}
                   </div>
                 )}
               </div>
