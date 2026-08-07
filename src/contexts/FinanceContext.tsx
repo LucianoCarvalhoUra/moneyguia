@@ -236,6 +236,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             groupId: (e as any).group_id || undefined,
             settlementMethod: (e as any).settlement_method || undefined,
             settlementAccountId: (e as any).settlement_account_id || undefined,
+            settlementCardId: (e as any).settlement_card_id || undefined,
             is_scheduled: (e as any).is_scheduled ?? false,
             scheduled_date: (e as any).scheduled_date || null,
             createdAt: new Date(e.created_at),
