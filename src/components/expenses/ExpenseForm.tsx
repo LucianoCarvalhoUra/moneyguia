@@ -511,6 +511,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         scheduled_date: isScheduled && scheduledDate ? `${scheduledDate}T12:00:00` : null,
         settlement_method: isPaid && settlementMethod ? settlementMethod : null,
         settlement_account_id: isPaid && settlementMethod && settlementMethod !== 'credit_card' && settlementAccountId ? settlementAccountId : null,
+        settlement_card_id: isPaid && settlementMethod === 'credit_card' && settlementCardId ? settlementCardId : null,
       };
 
       if (expense) {
