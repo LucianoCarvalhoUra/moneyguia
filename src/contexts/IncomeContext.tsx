@@ -181,6 +181,8 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             userId: i.user_id,
             createdAt: new Date(i.created_at),
             groupId: (i as any).group_id || undefined,
+            is_scheduled: (i as any).is_scheduled ?? false,
+            scheduled_date: (i as any).scheduled_date || null,
           };
         }));
       }
