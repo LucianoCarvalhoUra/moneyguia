@@ -7,6 +7,7 @@ import CsatSurvey from "@/components/csat/CsatSurvey";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useScheduledTransactions } from "@/hooks/useScheduledTransactions";
 
 interface LayoutProps {
   children: ReactNode;
@@ -17,6 +18,7 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [showLgpd, setShowLgpd] = useState(false);
+  useScheduledTransactions();
   const [lgpdLoading, setLgpdLoading] = useState(true);
   const shouldShowCsat = location.pathname.startsWith("/dashboard");
 
