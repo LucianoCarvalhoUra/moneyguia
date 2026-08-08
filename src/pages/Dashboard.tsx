@@ -23,7 +23,6 @@ import MonthlyComparisonChart from '@/components/dashboard/MonthlyComparisonChar
 import UpcomingDueExpenses from '@/components/dashboard/UpcomingDueExpenses';
 import { useUserPlan } from '@/hooks/useUserPlan';
 import { useAuth } from '@/contexts/AuthContext';
-import { useScheduledTransactions } from '@/components/useScheduledTransactions';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -33,7 +32,6 @@ export default function Dashboard() {
   const [formOpen, setFormOpen] = useState(false);
   const { subscription, plan } = useUserPlan();
   useAuth();
-  useScheduledTransactions();
   const [showSubAlert, setShowSubAlert] = useState(true);
   const now = new Date();
   // Sempre inicia no mês corrente ao entrar no dashboard
