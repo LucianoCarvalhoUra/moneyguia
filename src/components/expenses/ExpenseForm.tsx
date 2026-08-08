@@ -787,15 +787,36 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Forma de quitação</Label>
-                  <Select value={settlementMethod || undefined} onValueChange={(v) => { setSettlementMethod(v as PaymentMethod); setSettlementAccountId(''); setSettlementCardId(''); }}>
+                  <Select
+                    value={settlementMethod || undefined}
+                    onValueChange={(v) => {
+                      if (v === 'same_origin') {
+                        setSettlementMethod(paymentMethod);
+                        setSettlementAccountId(paymentMethod !== 'credit_card' ? accountId : '');
+                        setSettlementCardId(paymentMethod === 'credit_card' ? cardId : '');
+                        return;
+                      }
+                      setSettlementMethod(v as PaymentMethod);
+                      setSettlementAccountId('');
+                      setSettlementCardId('');
+                    }}
+                  >
                     <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="same_origin">
+                        {paymentMethod === 'credit_card'
+                          ? 'Mesmo cartão da compra'
+                          : paymentMethod === 'account'
+                            ? 'Mesma conta da compra'
+                            : 'Mesmo meio da compra (PIX/Dinheiro)'}
+                      </SelectItem>
                       <SelectItem value="pix">PIX / Dinheiro</SelectItem>
                       <SelectItem value="account">Débito em Conta</SelectItem>
                       <SelectItem value="credit_card">Outro Cartão de Crédito</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
                 {settlementMethod && settlementMethod !== 'credit_card' && (
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Banco da quitação</Label>
