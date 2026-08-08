@@ -40,11 +40,14 @@ export default function ExpenseList() {
     const accId = (e as any).settlementAccountId;
     const a = accounts.find(x => x.id === accId);
     if (m === 'credit_card') {
+      const sameCard = (e as any).settlementCardId && (e as any).settlementCardId === e.cardId;
       const c = cards.find(x => x.id === (e as any).settlementCardId);
-      return c ? `Cartão ${c.brand} •••• ${c.lastFourDigits}` : 'Outro cartão de crédito';
+      if (c) return `${sameCard ? 'Mesmo cartão' : 'Cartão'} ${c.brand} •••• ${c.lastFourDigits}`;
+      return 'Outro cartão de crédito';
     }
-    if (m === 'account') return a ? `Débito em conta · ${a.bankName}` : 'Débito em Conta';
+    if (m === 'account') return a ? `${accId && accId === e.accountId ? 'Mesma conta' : 'Débito em conta'} · ${a.bankName}` : 'Débito em Conta';
     if (m === 'pix') return a ? `PIX · ${a.bankName}` : 'PIX / Dinheiro';
+
     return null;
   };
 
