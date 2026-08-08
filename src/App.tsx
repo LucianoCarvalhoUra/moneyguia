@@ -18,6 +18,7 @@ import Accounts from "./pages/Accounts";
 import InvoiceReconciliation from "./pages/InvoiceReconciliation";
 import Reconciliation from "./pages/Reconciliation";
 import Reports from "./pages/Reports";
+import ReportBuilder from "./pages/ReportBuilder";
 import Settings from "./pages/Settings";
 import Goals from "./pages/Goals";
 import LandingPage from "./pages/LandingPage";
