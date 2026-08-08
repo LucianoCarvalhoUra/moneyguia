@@ -40,6 +40,7 @@ const navItems = [
   { path: "/reconciliation", label: "Cartão", icon: FileCheck },
   { path: "/conciliacao", label: "Conciliação", icon: FileText },
   { path: "/reports", label: "Relatórios", icon: FileText },
+  { path: "/report-builder", label: "Comprovantes", icon: FileCheck },
 ];
 
 const bottomItems = [
