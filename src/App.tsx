@@ -141,6 +141,8 @@ const AppRoutes = () => (
     <Route path="/reconciliation" element={<ProtectedRoute><InvoiceReconciliation /></ProtectedRoute>} />
     <Route path="/conciliacao" element={<ProtectedRoute><Reconciliation /></ProtectedRoute>} />
     <Route path="/reports" element={<ProtectedRoute requiredFeature="advanced_reports"><Reports /></ProtectedRoute>} />
+    <Route path="/report-builder" element={<ProtectedRoute><ReportBuilder /></ProtectedRoute>} />
+
     <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="/subscription" element={<ProtectedRoute><MySubscription /></ProtectedRoute>} />
