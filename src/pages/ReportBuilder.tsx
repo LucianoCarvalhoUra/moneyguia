@@ -38,6 +38,7 @@ export default function ReportBuilder() {
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [templateName, setTemplateName] = useState('Novo comprovante');
   const [expenseId, setExpenseId] = useState<string>('');
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -49,15 +50,32 @@ export default function ReportBuilder() {
   const selected = elements.find((e) => e.id === selectedId) ?? null;
 
   const sortedExpenses = useMemo(
-    () => [...expenses].sort((a, b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime()),
-    [expenses]
+    () =>
+      [...expenses]
+        .filter((e) => (categoryId ? e.categoryId === categoryId : true))
+        .sort((a, b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime()),
+    [expenses, categoryId]
   );
 
   useEffect(() => {
-    if (!expenseId && sortedExpenses.length) setExpenseId(sortedExpenses[0].id);
+    if (!sortedExpenses.length) {
+      if (expenseId) setExpenseId('');
+      return;
+    }
+    if (!expenseId || !sortedExpenses.some((e) => e.id === expenseId)) {
+      setExpenseId(sortedExpenses[0].id);
+    }
   }, [sortedExpenses, expenseId]);
 
   const selectedExpense = expenses.find((e) => e.id === expenseId);
+  const categoryName = categories.find((c) => c.id === categoryId)?.name ?? null;
+  const categorySubNames = useMemo(
+    () =>
+      categoryId
+        ? subcategories.filter((s) => s.categoryId === categoryId).map((s) => s.name)
+        : [],
+    [subcategories, categoryId]
+  );
 
   const ctx: BindingContext = useMemo(() => {
     const related = selectedExpense?.groupId
@@ -72,10 +90,12 @@ export default function ReportBuilder() {
       subcategories,
       accounts,
       cards,
+      categoryId,
       profileName: user?.user_metadata?.name || user?.email?.split('@')[0],
       profileEmail: user?.email,
     };
-  }, [selectedExpense, expenses, categories, subcategories, accounts, cards, user]);
+  }, [selectedExpense, expenses, categories, subcategories, accounts, cards, user, categoryId]);
+
 
   const loadTemplates = useCallback(async () => {
     if (!user?.id) return;
