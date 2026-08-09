@@ -47,15 +47,50 @@ function resolveSubTotal(key: string, ctx: BindingContext): string {
   return formatBRL(total);
 }
 
+/** Soma total dos lançamentos relacionados (ou do lançamento selecionado). */
+export function totalOf(ctx: BindingContext): number {
+  const pool = ctx.related.length ? ctx.related : ctx.expense ? [ctx.expense] : [];
+  return pool.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+}
+
+/** Subitens do lançamento: uma linha por subcategoria (ou descrição) dos lançamentos relacionados. */
+export function buildSubitemRows(ctx: BindingContext): { label: string; value: string }[] {
+  const pool = ctx.related.length ? ctx.related : ctx.expense ? [ctx.expense] : [];
+  const map = new Map<string, number>();
+  pool.forEach((e) => {
+    const label =
+      ctx.subcategories.find((s) => s.id === e.subcategoryId)?.name || e.description || 'Item';
+    map.set(label, (map.get(label) ?? 0) + Number(e.amount || 0));
+  });
+  return Array.from(map.entries()).map(([label, value]) => ({ label, value: formatBRL(value) }));
+}
+
 export function resolveToken(token: string, ctx: BindingContext): string {
-  const key = token.replace(/[{}]/g, '').trim();
+  const raw = token.replace(/[{}]/g, '').trim();
   const e = ctx.expense;
 
+  const ALIASES: Record<string, string> = {
+    'categoria.nome': 'category.name',
+    'despesa.valor_total': 'total.amount',
+    'despesa.data_pagamento': 'expense.date',
+    'despesa.forma_pagamento': 'payment.method',
+    'despesa.descricao': 'expense.description',
+    'subcategoria.nome': 'subcategory.name',
+  };
+  const key = ALIASES[raw] ?? raw;
+
   if (key.startsWith('sub.')) return resolveSubTotal(key.slice(4), ctx);
+  if (key === 'subitens.lista')
+    return buildSubitemRows(ctx)
+      .map((r) => `${r.label}: ${r.value}`)
+      .join('\n');
 
   switch (key) {
+    case 'total.amount':
+      return formatBRL(totalOf(ctx));
     case 'expense.description':
       return e?.description ?? '—';
+
     case 'expense.amount':
       return e ? formatBRL(Number(e.amount)) : formatBRL(0);
     case 'expense.date':
