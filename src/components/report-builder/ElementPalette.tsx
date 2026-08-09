@@ -65,8 +65,37 @@ export default function ElementPalette({ onAddElement, onAddField, categoryName,
         <TabsContent value="data" className="m-0 min-h-0 flex-1">
           <ScrollArea className="h-full px-2 pb-3">
             <p className="px-1 pb-2 text-[11px] text-muted-foreground">
-              Arraste um campo para o canvas ou clique para inserir.
+              {categoryName
+                ? `Campos da categoria "${categoryName}". Arraste para o canvas ou clique para inserir.`
+                : 'Selecione a categoria do modelo para carregar os subitens. Arraste um campo para o canvas ou clique para inserir.'}
             </p>
+
+            {categoryName && subcategoryNames.length > 0 && (
+              <div className="mb-3">
+                <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Subitens de {categoryName}
+                </p>
+                <div className="space-y-1">
+                  {subcategoryNames.map((name) => {
+                    const token = `{sub.${slug(name)}}`;
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData('application/x-field', token)}
+                        onClick={() => onAddField(token)}
+                        className="w-full cursor-grab rounded-lg border border-dashed border-primary/40 bg-primary/5 px-2 py-1.5 text-left transition-colors hover:bg-primary/10"
+                      >
+                        <span className="block text-xs font-medium text-foreground">{name}</span>
+                        <span className="block font-mono text-[10px] text-primary">{token}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {fieldGroups.map((group) => (
               <div key={group} className="mb-3">
                 <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
