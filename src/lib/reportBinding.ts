@@ -118,7 +118,10 @@ export function resolveToken(token: string, ctx: BindingContext): string {
     case 'payment.status':
       return e?.isPaid ? 'PAGO' : 'PENDENTE';
     case 'category.name':
-      return ctx.categories.find((c) => c.id === e?.categoryId)?.name ?? '—';
+      return (
+        ctx.categories.find((c) => c.id === (e?.categoryId || ctx.categoryId))?.name ?? '—'
+      );
+
     case 'subcategory.name':
       return ctx.subcategories.find((s) => s.id === e?.subcategoryId)?.name ?? '—';
     case 'profile.name':
