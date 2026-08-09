@@ -160,6 +160,19 @@ export const PALETTE: {
     },
   },
   {
+    type: 'table',
+    label: 'Tabela de subitens (categoria)',
+    group: 'Tabelas',
+    defaults: {
+      w: 420,
+      h: 160,
+      content: 'Subitens da categoria',
+      rows: [{ label: 'Subitens', value: '{subitens.lista}' }],
+      style: { ...DEFAULT_STYLE, borderWidth: 1, padding: 10, background: '#ffffff' },
+    },
+  },
+
+  {
     type: 'image',
     label: 'Logo / Imagem',
     group: 'Mídia',
