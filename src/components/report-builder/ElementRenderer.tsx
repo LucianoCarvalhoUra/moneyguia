@@ -1,5 +1,6 @@
 import { ReportElement } from '@/types/reportBuilder';
-import { BindingContext, renderBindings } from '@/lib/reportBinding';
+import { BindingContext, renderBindings, buildSubitemRows } from '@/lib/reportBinding';
+
 
 interface Props {
   element: ReportElement;
@@ -69,13 +70,22 @@ export default function ElementRenderer({ element: el, preview, ctx }: Props) {
   }
 
   if (el.type === 'table') {
-    const rows = el.rows ?? [];
+    const defined = el.rows ?? [];
+    const dynamic = defined.some((r) => r.value.includes('{subitens.lista}'));
+    const rows =
+      preview && dynamic
+        ? [
+            ...defined.filter((r) => !r.value.includes('{subitens.lista}')),
+            ...buildSubitemRows(ctx),
+          ]
+        : defined;
     return (
       <div style={{ ...baseStyle, display: 'flex', flexDirection: 'column' }}>
         {el.content && (
           <div style={{ fontWeight: 700, fontSize: s.fontSize, marginBottom: 6, textAlign: s.align }}>{text}</div>
         )}
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: s.fontSize }}>
+
           <tbody>
             {rows.map((r, i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
