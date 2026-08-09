@@ -9,7 +9,9 @@ export interface BindingContext {
   cards: CreditCard[];
   profileName?: string;
   profileEmail?: string;
+  categoryId?: string | null;
 }
+
 
 export const formatBRL = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
