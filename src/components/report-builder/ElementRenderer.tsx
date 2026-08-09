@@ -1,5 +1,6 @@
 import { ReportElement } from '@/types/reportBuilder';
-import { BindingContext, renderBindings } from '@/lib/reportBinding';
+import { BindingContext, renderBindings, buildSubitemRows } from '@/lib/reportBinding';
+
 
 interface Props {
   element: ReportElement;
