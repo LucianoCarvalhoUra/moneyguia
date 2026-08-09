@@ -399,7 +399,13 @@ export default function ReportBuilder() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[220px_minmax(0,1fr)_280px]">
         <div className="no-print h-[70vh] lg:sticky lg:top-16">
-          <ElementPalette onAddElement={(t) => addElement(t)} onAddField={(f) => addFieldElement(f)} />
+          <ElementPalette
+            onAddElement={(t) => addElement(t)}
+            onAddField={(f) => addFieldElement(f)}
+            categoryName={categoryName}
+            subcategoryNames={categorySubNames}
+          />
+
         </div>
 
         <div className="overflow-auto">
