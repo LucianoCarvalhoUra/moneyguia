@@ -44,7 +44,8 @@ export default function ElementPalette({ onAddElement, onAddField, categoryName,
                 <div className="space-y-1">
                   {PALETTE.filter((p) => p.group === group).map((p) => (
                     <button
-                      key={p.type}
+                      key={`${p.type}-${p.label}`}
+
                       type="button"
                       draggable
                       onDragStart={(e) => e.dataTransfer.setData('application/x-element', p.type)}
