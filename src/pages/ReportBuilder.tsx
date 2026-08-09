@@ -78,11 +78,20 @@ export default function ReportBuilder() {
   );
 
   const ctx: BindingContext = useMemo(() => {
-    const related = selectedExpense?.groupId
-      ? expenses.filter((e) => e.groupId === selectedExpense.groupId)
-      : selectedExpense
-      ? [selectedExpense]
-      : [];
+    const monthKey = (d: any) => String(d ?? '').slice(0, 7);
+    let related: typeof expenses = [];
+    if (selectedExpense?.groupId) {
+      related = expenses.filter((e) => e.groupId === selectedExpense.groupId);
+    } else if (selectedExpense && categoryId) {
+      related = expenses.filter(
+        (e) =>
+          e.categoryId === categoryId &&
+          monthKey(e.dueDate ?? e.expenseDate) === monthKey(selectedExpense.dueDate ?? selectedExpense.expenseDate)
+      );
+    } else if (selectedExpense) {
+      related = [selectedExpense];
+    }
+
     return {
       expense: selectedExpense,
       related,
