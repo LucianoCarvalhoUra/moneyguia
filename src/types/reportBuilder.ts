@@ -48,8 +48,24 @@ export interface ReportTemplate {
   name: string;
   page_size: PageSize;
   layout_json: ReportElement[];
+  category_id?: string | null;
   created_at?: string;
 }
+
+/** layout_json pode ser um array (legado) ou um objeto com metadados. */
+export interface TemplateLayoutPayload {
+  elements: ReportElement[];
+  categoryId?: string | null;
+}
+
+export function parseLayout(raw: any): { elements: ReportElement[]; categoryId: string | null } {
+  if (Array.isArray(raw)) return { elements: raw as ReportElement[], categoryId: null };
+  if (raw && Array.isArray(raw.elements)) {
+    return { elements: raw.elements as ReportElement[], categoryId: raw.categoryId ?? null };
+  }
+  return { elements: [], categoryId: null };
+}
+
 
 export const PAGE_SIZES: Record<PageSize, { label: string; width: number; height: number }> = {
   a4: { label: 'A4 (retrato)', width: 794, height: 1123 },
@@ -169,6 +185,11 @@ export interface DataField {
 }
 
 export const DATA_FIELDS: DataField[] = [
+  { token: '{categoria.nome}', label: 'Nome da categoria', group: 'Categoria do modelo' },
+  { token: '{despesa.valor_total}', label: 'Valor total do lançamento', group: 'Categoria do modelo' },
+  { token: '{despesa.data_pagamento}', label: 'Data de pagamento', group: 'Categoria do modelo' },
+  { token: '{despesa.forma_pagamento}', label: 'Forma de pagamento', group: 'Categoria do modelo' },
+  { token: '{subitens.lista}', label: 'Lista de subitens (tabela)', group: 'Categoria do modelo' },
   { token: '{expense.description}', label: 'Descrição da despesa', group: 'Despesa' },
   { token: '{expense.amount}', label: 'Valor total', group: 'Despesa' },
   { token: '{expense.date}', label: 'Data de pagamento', group: 'Despesa' },
@@ -186,3 +207,4 @@ export const DATA_FIELDS: DataField[] = [
   { token: '{profile.email}', label: 'Seu e-mail', group: 'Perfil' },
   { token: '{today}', label: 'Data de hoje', group: 'Geral' },
 ];
+
