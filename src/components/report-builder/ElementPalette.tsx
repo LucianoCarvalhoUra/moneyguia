@@ -6,12 +6,21 @@ import { Database, Shapes, GripVertical } from 'lucide-react';
 interface Props {
   onAddElement: (type: ElementType) => void;
   onAddField: (token: string) => void;
+  categoryName?: string | null;
+  subcategoryNames?: string[];
 }
 
 const GROUPS: Array<'Molduras' | 'Texto' | 'Tabelas' | 'Mídia'> = ['Molduras', 'Texto', 'Tabelas', 'Mídia'];
 
-export default function ElementPalette({ onAddElement, onAddField }: Props) {
+export default function ElementPalette({ onAddElement, onAddField, categoryName, subcategoryNames = [] }: Props) {
   const fieldGroups = Array.from(new Set(DATA_FIELDS.map((f) => f.group)));
+  const slug = (s: string) =>
+    s
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+
 
   return (
     <div className="flex h-full flex-col rounded-xl border border-border bg-card">
