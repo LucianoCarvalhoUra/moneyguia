@@ -13,7 +13,9 @@ import {
   PageSize,
   ReportElement,
   ReportTemplate,
+  parseLayout,
 } from '@/types/reportBuilder';
+
 import { BindingContext, formatBRL } from '@/lib/reportBinding';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
