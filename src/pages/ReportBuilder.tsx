@@ -226,7 +226,7 @@ export default function ReportBuilder() {
       user_id: user.id,
       name: templateName.trim(),
       page_size: pageSize,
-      layout_json: elements as any,
+      layout_json: { elements, categoryId } as any,
     };
     const { data, error } = templateId
       ? await supabase.from('report_templates').update(payload).eq('id', templateId).select().single()
