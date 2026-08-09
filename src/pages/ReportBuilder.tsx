@@ -279,7 +279,9 @@ export default function ReportBuilder() {
     setTemplateId(null);
     setTemplateName('Novo comprovante');
     setElements([]);
+    setCategoryId(null);
     setSelectedId(null);
+
   };
 
   const handlePrint = () => {
