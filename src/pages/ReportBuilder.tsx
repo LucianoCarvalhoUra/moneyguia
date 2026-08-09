@@ -108,14 +108,19 @@ export default function ReportBuilder() {
       return;
     }
     setTemplates(
-      (data ?? []).map((t: any) => ({
-        id: t.id,
-        name: t.name,
-        page_size: t.page_size as PageSize,
-        layout_json: (t.layout_json ?? []) as ReportElement[],
-        created_at: t.created_at,
-      }))
+      (data ?? []).map((t: any) => {
+        const parsed = parseLayout(t.layout_json);
+        return {
+          id: t.id,
+          name: t.name,
+          page_size: t.page_size as PageSize,
+          layout_json: parsed.elements,
+          category_id: parsed.categoryId,
+          created_at: t.created_at,
+        };
+      })
     );
+
   }, [user?.id]);
 
   useEffect(() => {
