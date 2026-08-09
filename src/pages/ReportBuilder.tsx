@@ -345,13 +345,36 @@ export default function ReportBuilder() {
       </div>
 
       <div className="no-print flex flex-wrap items-end gap-2 rounded-xl border border-border bg-card p-3">
-        <div className="min-w-[240px] flex-1">
-          <Label className="text-xs">Despesa vinculada (preenche os campos dinâmicos)</Label>
-          <Select value={expenseId} onValueChange={setExpenseId}>
+        <div className="min-w-[220px] flex-1">
+          <Label className="text-xs">Categoria do modelo</Label>
+          <Select value={categoryId ?? '__all'} onValueChange={(v) => setCategoryId(v === '__all' ? null : v)}>
             <SelectTrigger className="h-9 text-sm">
-              <SelectValue placeholder="Selecione uma despesa" />
+              <SelectValue placeholder="Todas as categorias" />
             </SelectTrigger>
             <SelectContent className="max-h-72">
+              <SelectItem value="__all">Todas as categorias</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="min-w-[240px] flex-1">
+          <Label className="text-xs">
+            Lançamento {categoryName ? `de "${categoryName}"` : ''} para emitir o comprovante
+          </Label>
+          <Select value={expenseId} onValueChange={setExpenseId}>
+            <SelectTrigger className="h-9 text-sm">
+              <SelectValue placeholder="Selecione um lançamento" />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              {sortedExpenses.length === 0 && (
+                <SelectItem value="__none" disabled>
+                  Nenhum lançamento nesta categoria
+                </SelectItem>
+              )}
               {sortedExpenses.slice(0, 100).map((e) => (
                 <SelectItem key={e.id} value={e.id}>
                   {new Date(e.expenseDate).toLocaleDateString('pt-BR')} — {e.description} ({formatBRL(Number(e.amount))})
@@ -360,6 +383,7 @@ export default function ReportBuilder() {
             </SelectContent>
           </Select>
         </div>
+
         <div className="flex gap-2">
           <Button size="sm" variant={preview ? 'outline' : 'default'} onClick={() => setPreview(false)}>
             <Pencil className="mr-1 h-4 w-4" /> Edição
