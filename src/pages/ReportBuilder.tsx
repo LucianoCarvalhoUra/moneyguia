@@ -249,7 +249,9 @@ export default function ReportBuilder() {
     setTemplateName(t.name);
     setPageSize(t.page_size ?? 'a4');
     setElements(Array.isArray(t.layout_json) ? t.layout_json : []);
+    setCategoryId(t.category_id ?? null);
     setSelectedId(null);
+
   };
 
   const handleDeleteTemplate = async () => {
