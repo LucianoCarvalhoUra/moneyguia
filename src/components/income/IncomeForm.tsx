@@ -17,7 +17,7 @@ import { Loader2, Trash2, FileText, Tag, CreditCard, Repeat, Settings2, Calendar
 import { CalculatorPopover } from '@/components/ui/calculator-popover';
 import { toast } from 'sonner';
 import { addMonths, format, parseISO } from 'date-fns';
-import { type RecurrenceScope, toIsoDay, dayOfMonth, withDayOfMonth } from '@/lib/recurrenceScope';
+import { type RecurrenceScope, toIsoDay } from '@/lib/recurrenceScope';
 import { DateInputBR } from "@/components/ui/date-input-br";
 import { adjustToBusinessDay, getNthBusinessDay } from '@/lib/businessDays';
 
@@ -101,72 +101,71 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     setReceiveDate(formattedDate);
   };
 
- // --- Initialization ---
-useEffect(() => {
-  if (open) {
-    const today = getTodayString();
-    const dataToLoad: any = income || initialData;
+  // --- Initialization ---
+  useEffect(() => {
+    if (open) {
+      const today = getTodayString();
+      const dataToLoad: any = income || initialData;
 
-    if (dataToLoad) {
-      setTitle(dataToLoad.title || '');
-      setCategoryId(dataToLoad.categoryId || dataToLoad.category_id || '');
-      setSubcategoryId(dataToLoad.subcategoryId || dataToLoad.subcategory_id || '');
-      setReceiveDate(
-        dataToLoad.receiveDate 
-          ? formatToInput(dataToLoad.receiveDate) 
-          : dataToLoad.receive_date 
-          ? formatToInput(dataToLoad.receive_date) 
-          : today
-      );
-      setAmount(
-        dataToLoad.amount 
-          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) 
-          : ''
-      );
-      setAccountId(dataToLoad.accountId || dataToLoad.account_id || '');
-      setIsReceived(dataToLoad.isReceived ?? dataToLoad.is_received ?? false);
-      setIsRecurring(dataToLoad.isRecurring ?? dataToLoad.is_recurring ?? false);
-      setInstallments(dataToLoad.installments?.toString() || '1');
-      setExcludeFromCalculations(dataToLoad.excludeFromCalculations ?? dataToLoad.exclude_from_calculations ?? false);
-      setDescription(dataToLoad.description || '');
-      setIsScheduled(dataToLoad.isScheduled ?? dataToLoad.is_scheduled ?? false);
-      setScheduledDate(
-        dataToLoad.scheduledDate 
-          ? formatToInput(dataToLoad.scheduledDate) 
-          : dataToLoad.scheduled_date 
-          ? formatToInput(dataToLoad.scheduled_date) 
-          : ''
-      );
+      if (dataToLoad) {
+        setTitle(dataToLoad.title || '');
+        setCategoryId(dataToLoad.categoryId || dataToLoad.category_id || '');
+        setSubcategoryId(dataToLoad.subcategoryId || dataToLoad.subcategory_id || '');
+        setReceiveDate(
+          dataToLoad.receiveDate 
+            ? formatToInput(dataToLoad.receiveDate) 
+            : dataToLoad.receive_date 
+            ? formatToInput(dataToLoad.receive_date) 
+            : today
+        );
+        setAmount(
+          dataToLoad.amount 
+            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) 
+            : ''
+        );
+        setAccountId(dataToLoad.accountId || dataToLoad.account_id || '');
+        setIsReceived(dataToLoad.isReceived ?? dataToLoad.is_received ?? false);
+        setIsRecurring(dataToLoad.isRecurring ?? dataToLoad.is_recurring ?? false);
+        setInstallments(dataToLoad.installments?.toString() || '1');
+        setExcludeFromCalculations(dataToLoad.excludeFromCalculations ?? dataToLoad.exclude_from_calculations ?? false);
+        setDescription(dataToLoad.description || '');
+        setIsScheduled(dataToLoad.isScheduled ?? dataToLoad.is_scheduled ?? false);
+        setScheduledDate(
+          dataToLoad.scheduledDate 
+            ? formatToInput(dataToLoad.scheduledDate) 
+            : dataToLoad.scheduled_date 
+            ? formatToInput(dataToLoad.scheduled_date) 
+            : ''
+        );
+        
+        const recType = dataToLoad.recurrenceType || dataToLoad.recurrence_type || 'fixed_day';
+        const busDay = (dataToLoad.targetBusinessDay ?? dataToLoad.target_business_day ?? '5').toString();
+        const wStrategy = dataToLoad.weekendStrategy || dataToLoad.weekend_strategy || 'next';
 
-      // --- RECUPERAÇÃO DAS REGRAS DO BANCO (CamelCase + Snake_case + Conversão para String) ---
-      const recType = dataToLoad.recurrenceType || dataToLoad.recurrence_type || 'fixed_day';
-      const busDay = (dataToLoad.targetBusinessDay ?? dataToLoad.target_business_day ?? '5').toString();
-      const wStrategy = dataToLoad.weekendStrategy || dataToLoad.weekend_strategy || 'next';
-
-      setRecurrenceType(recType);
-      setTargetBusinessDay(busDay);
-      setWeekendStrategy(wStrategy);
-    } else {
-      setTitle('');
-      setCategoryId('');
-      setSubcategoryId('');
-      setReceiveDate(today);
-      setAmount('');
-      setAccountId('');
-      setIsReceived(false);
-      setIsRecurring(false);
-      setInstallments('1');
-      setExcludeFromCalculations(false);
-      setDescription('');
-      setShowErrors(false);
-      setIsScheduled(false);
-      setScheduledDate('');
-      setRecurrenceType('fixed_day');
-      setTargetBusinessDay('5');
-      setWeekendStrategy('next');
+        setRecurrenceType(recType);
+        setTargetBusinessDay(busDay);
+        setWeekendStrategy(wStrategy);
+      } else {
+        setTitle('');
+        setCategoryId('');
+        setSubcategoryId('');
+        setReceiveDate(today);
+        setAmount('');
+        setAccountId('');
+        setIsReceived(false);
+        setIsRecurring(false);
+        setInstallments('1');
+        setExcludeFromCalculations(false);
+        setDescription('');
+        setShowErrors(false);
+        setIsScheduled(false);
+        setScheduledDate('');
+        setRecurrenceType('fixed_day');
+        setTargetBusinessDay('5');
+        setWeekendStrategy('next');
+      }
     }
-  }
-}, [open, income, initialData]);
+  }, [open, income, initialData]);
 
   // --- Handlers ---
   const handleDelete = async () => {
@@ -206,12 +205,14 @@ useEffect(() => {
     }
   };
 
+  // --- ATUALIZAÇÃO EM LOTE PARA PASSADO E FUTURO COM RECÁLCULO INDIVIDUAL DE DIA ÚTIL ---
   const handleRecurrenceUpdate = async (scope: RecurrenceScope) => {
     if (!income || !pendingData) return;
     setIsSubmitting(true);
     try {
       const originalReceiveDate = toIsoDay(income.receiveDate as any);
 
+      // 1. Atualiza o registro selecionado no formulário
       const { error: singleError } = await supabase.from('incomes').update(pendingData).eq('id', income.id);
       if (singleError) throw singleError;
 
@@ -235,6 +236,7 @@ useEffect(() => {
 
         const { receive_date, is_received, user_id, current_installment, ...batchData } = pendingData;
 
+        // 2. Busca parcelas do grupo conforme o escopo (passado, futuro ou todas)
         let selectQuery = supabase
           .from('incomes')
           .select('id, receive_date')
@@ -250,23 +252,39 @@ useEffect(() => {
         const ids = (targets || []).map((t: any) => t.id);
 
         if (ids.length > 0) {
+          // 3. Atualiza os atributos gerais
           if (Object.keys(batchData).length > 0) {
             const { error } = await supabase.from('incomes').update(batchData).in('id', ids);
             if (error) throw error;
           }
 
-          if (receive_date && dayOfMonth(receive_date) !== dayOfMonth(originalReceiveDate)) {
-            await Promise.all(
-              (targets || []).map((t: any) =>
-                t.receive_date
-                  ? supabase
-                      .from('incomes')
-                      .update({ receive_date: withDayOfMonth(toIsoDay(t.receive_date), dayOfMonth(receive_date)) })
-                      .eq('id', t.id)
-                  : Promise.resolve()
-              )
-            );
-          }
+          // 4. Recalcula a data individualmente para o mês/ano de cada parcela
+          await Promise.all(
+            (targets || []).map((t: any) => {
+              if (!t.receive_date) return Promise.resolve();
+
+              const [tYear, tMonth] = t.receive_date.split('-').map(Number);
+              let targetNewDate: Date;
+
+              if (recurrenceType === 'business_day') {
+                targetNewDate = getNthBusinessDay(
+                  tYear, 
+                  tMonth - 1, 
+                  parseInt(targetBusinessDay), 
+                  weekendStrategy === 'previous' ? 'previous' : 'next'
+                );
+              } else {
+                const [selectedYear, selectedMonth, selectedDay] = receive_date.split('-').map(Number);
+                const rawDate = new Date(tYear, tMonth - 1, selectedDay);
+                targetNewDate = adjustToBusinessDay(rawDate, weekendStrategy);
+              }
+
+              return supabase
+                .from('incomes')
+                .update({ receive_date: format(targetNewDate, 'yyyy-MM-dd') })
+                .eq('id', t.id);
+            })
+          );
         }
       }
 
@@ -399,7 +417,6 @@ useEffect(() => {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[calc(95vh-72px)] sm:max-h-[calc(92vh-80px)] bg-muted/20">
-          {/* Bloco principal: Descrição + Valor */}
           <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
             <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500" />
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end pl-2">
@@ -420,7 +437,6 @@ useEffect(() => {
           </section>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Bloco: Categoria & Regras de Recebimento */}
             <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
               <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500/40" />
               <div className="flex items-center gap-2 pl-2 mb-3">
@@ -456,7 +472,6 @@ useEffect(() => {
                   </div>
                 </div>
 
-                {/* Regras de Recebimento e Sensibilização da Data */}
                 <div className="space-y-3 pt-2 border-t border-border/40">
                   <div className="space-y-1.5">
                     <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Regra de Recebimento</Label>
@@ -543,7 +558,6 @@ useEffect(() => {
               </div>
             </section>
 
-            {/* Conta de Destino & Status */}
             <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
               <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500/40" />
               <div className="flex items-center gap-2 pl-2 mb-3">
@@ -574,7 +588,6 @@ useEffect(() => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Recorrência & Observações */}
             <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
               <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500/40" />
               <div className="flex items-center gap-2 pl-2 mb-3">
@@ -609,7 +622,6 @@ useEffect(() => {
               </div>
             </section>
 
-            {/* Opções Avançadas */}
             <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
               <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500/40" />
               <div className="flex items-center gap-2 pl-2 mb-3">
@@ -643,7 +655,6 @@ useEffect(() => {
             </section>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl h-9 px-5 text-sm">Cancelar</Button>
             <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[110px] h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
@@ -653,7 +664,6 @@ useEffect(() => {
         </form>
       </DialogContent>
 
-      {/* Modal Nova Categoria */}
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
         <DialogContent className="sm:max-w-sm rounded-2xl border-0 bg-card shadow-xl">
           <DialogHeader><DialogTitle>Nova categoria de receita</DialogTitle></DialogHeader>
