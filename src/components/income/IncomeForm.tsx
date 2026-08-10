@@ -1,4 +1,4 @@
-﻿﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,11 +33,10 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const navigate = useNavigate();
   const { hasFeatureAccess, subscriptionPlan, user } = useAuth();
   const { accounts } = useFinance();
-  const { refreshData, incomeCategories, incomeSubcategories, removeIncome, addIncomeCategory, addIncomeSubcategory } = useIncome();
+  const { refreshData, incomeCategories, incomeSubcategories, removeIncome, addIncomeCategory } = useIncome();
   const canUseExtraControl = hasFeatureAccess('extra_control');
   const recurrencePlanLimit = getPlanLimit(subscriptionPlan as string);
   const ADD_CATEGORY_OPTION = '__add_new_income_category__';
-  const ADD_SUBCATEGORY_OPTION = '__add_new_income_subcategory__';
   
   // --- State ---
   const [title, setTitle] = useState('');
@@ -54,8 +53,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [recurrenceUsage, setRecurrenceUsage] = useState(0);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
-  const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [description, setDescription] = useState(''); // Usado para observações
   const [showErrors, setShowErrors] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
@@ -199,7 +196,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           }
         }
 
-        // Preserve individual payment data: do not propagate receive_date, is_received, user_id, current_installment
         const { receive_date, is_received, user_id, current_installment, ...batchData } = pendingData;
 
         let selectQuery = supabase
@@ -222,7 +218,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             if (error) throw error;
           }
 
-          // Propagate day-of-month change keeping each installment's own month/year
           if (receive_date && dayOfMonth(receive_date) !== dayOfMonth(originalReceiveDate)) {
             await Promise.all(
               (targets || []).map((t: any) =>
@@ -237,7 +232,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           }
         }
       }
-
 
       toast.success('Receitas atualizadas com sucesso!');
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -278,7 +272,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         installments: isRecurring ? parseInt(installments) : null,
         user_id: user?.id,
         exclude_from_calculations: canUseExtraControl ? excludeFromCalculations : false,
-        description: description || null, // Observação
+        description: description || null,
         is_scheduled: isScheduled,
         scheduled_date: isScheduled && scheduledDate ? `${scheduledDate}T12:00:00` : null,
       };
@@ -416,42 +410,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                 </div>
               </div>
             </section>
-          {/* Seção: Categoria & Recebimento */}
-          <div className="flex items-center gap-2 -mb-2 pt-2">
-            <Tag className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Categoria & Recebimento</span>
-            <div className="flex-1 h-px bg-border/60" />
-          </div>
-          {/* Row 2: Categoria + Subcategoria + Recebimento */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
-              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
-              <Select value={categoryId} onValueChange={handleCategorySelectChange}>
-                <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ADD_CATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-emerald-600">+ Nova categoria</SelectItem>
-                  {incomeCategories.map(c => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-emerald-500`} /> {c.name}</div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
-              <Select value={subcategoryId} onValueChange={setSubcategoryId} disabled={!categoryId}>
-                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
-                <SelectContent>
-                  {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div key={`due-${shakeKey}`} className={cn("space-y-1.5", showErrors && !receiveDate && "animate-shake")}>
-              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !receiveDate ? "text-destructive" : "text-muted-foreground")}>Data de Recebimento *</Label>
-              <DateInputBR value={receiveDate} onChange={setReceiveDate} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
-            </div>
-          </div>
 
             {/* Conta de Destino & Status */}
             <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
@@ -525,25 +483,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                 <Settings2 className="w-3.5 h-3.5 text-emerald-600" />
                 <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Opções Avançadas</span>
                 <div className="flex-1 h-px bg-border/60" />
-          {/* Seção: Avançado */}
-          <div className="flex items-center gap-2 -mb-2 pt-2">
-            <Settings2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Opções Avançadas</span>
-            <div className="flex-1 h-px bg-border/60" />
-          </div>
-          {/* Toggles: Agendamento + Controle Visual */}
-          <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
-            <div className={cn("flex items-center gap-3", isReceived && "opacity-40 pointer-events-none")}>
-              <Switch id="income-scheduling" checked={isScheduled} onCheckedChange={setIsScheduled} disabled={isReceived} />
-              <Label htmlFor="income-scheduling" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                <CalendarClock className="h-4 w-4 text-emerald-600" />
-                Agendar esta receita
-              </Label>
-            </div>
-            {isScheduled && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-14">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento (Baixa Automática)</Label>
-                <DateInputBR value={scheduledDate} onChange={setScheduledDate} className="h-10 rounded-xl border-border/60 bg-muted/30" />
               </div>
               <div className="space-y-3 pl-2">
                 <div className={cn("flex items-center gap-3", isReceived && "opacity-40 pointer-events-none")}>
@@ -554,12 +493,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                   </Label>
                 </div>
                 {isScheduled && (
-                  <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-12">
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-6">
                     <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Data do Agendamento (Baixa Automática)</Label>
                     <DateInputBR value={scheduledDate} onChange={setScheduledDate} className="h-10 rounded-xl border-border/60 bg-muted/30" />
                   </div>
                 )}
-                <div className="border-t border-border/40" />
+                <div className="border-t border-border/40 my-2" />
                 <div className={cn("flex items-center gap-3", !canUseExtraControl && "opacity-40")}>
                   <Switch id="visual-control-income" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl && !income} />
                   <Label htmlFor="visual-control-income" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
@@ -570,7 +509,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
               </div>
             </section>
           </div>
-
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
