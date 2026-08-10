@@ -669,6 +669,47 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                   <CalculatorPopover currentValue={amount} onConfirm={(val) => setAmount(formatCurrencyInput(val))} />
                 </div>
               </div>
+              {showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && <span className="text-xs text-destructive">Campo obrigatório</span>}
+            </div>
+          </div>
+
+          {/* Seção: Classificação */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Tag className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Categoria & Vencimento</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
+          {/* Row 2: Categoria + Subcategoria + Vencimento */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
+              <Select value={categoryId} onValueChange={handleCategorySelectChange}>
+                <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ADD_CATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-primary">+ Nova categoria</SelectItem>
+                  {categories.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-${c.color}`} /> {c.name}</div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {showErrors && !categoryId && <span className="text-xs text-destructive">Campo obrigatório</span>}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
+              <Select key={`subcat-${categoryId}-${subcategoryId}`} value={subcategoryId} onValueChange={handleSubcategorySelectChange} disabled={!categoryId}>
+                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ADD_SUBCATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-primary">+ Nova subcategoria</SelectItem>
+                  {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div key={`due-${shakeKey}`} className={cn("space-y-1.5", showErrors && !dueDate && "animate-shake")}>
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !dueDate ? "text-destructive" : "text-muted-foreground")}>Vencimento *</Label>
+              <DateInputBR value={dueDate} onChange={setDueDate} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !dueDate && "border-destructive ring-1 ring-destructive/30")} />
+              {showErrors && !dueDate && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
           </section>
 
@@ -788,6 +829,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-2">
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Forma de quitação</Label>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Forma de quitação</Label>
                   <Select
                     value={settlementMethod || undefined}
                     onValueChange={(v) => {
@@ -830,6 +872,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 {settlementMethod === 'credit_card' && (
                   <div className="space-y-1.5">
                     <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Cartão da quitação</Label>
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cartão da quitação</Label>
                     <Select value={settlementCardId} onValueChange={setSettlementCardId}>
                       <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione o cartão (final)" /></SelectTrigger>
                       <SelectContent>{cards.map(c => <SelectItem key={c.id} value={c.id}>{c.brand} •••• {c.lastFourDigits}</SelectItem>)}</SelectContent>
@@ -915,6 +958,32 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                       <p className="text-xs text-muted-foreground">Pagamento agendado para depois do vencimento.</p>
                     )}
                   </div>
+          {/* Seção: Avançado */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Settings2 className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Opções Avançadas</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
+          {/* Toggles: Agendamento + Controle Visual */}
+          <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
+            {/* Agendamento */}
+            <div className="flex items-center gap-3">
+              <Switch id="expense-scheduling" checked={isScheduled} onCheckedChange={setIsScheduled} />
+              <Label htmlFor="expense-scheduling" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                <CalendarClock className="h-4 w-4 text-primary" />
+                Agendar esta despesa
+              </Label>
+            </div>
+            {isScheduled && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-14">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento</Label>
+                <DateInputBR
+                  value={scheduledDate}
+                  onChange={setScheduledDate}
+                  className="h-10 rounded-xl border-border/60 bg-muted/30"
+                />
+                {scheduledDate && dueDate && scheduledDate > dueDate && (
+                  <p className="text-xs text-muted-foreground">Pagamento agendado para depois do vencimento.</p>
                 )}
 
                 <div className="border-t border-border/40" />

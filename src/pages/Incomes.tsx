@@ -48,7 +48,10 @@ export default function Incomes() {
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const f = location.state?.filter;
+    return f === 'overdue' || f === 'pending' ? 'pending' : 'all';
+  });
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [subcategoryFilter, setSubcategoryFilter] = useState<string>('all');
   const [visualFilter, setVisualFilter] = useState<string>('all');
@@ -83,8 +86,12 @@ export default function Incomes() {
   }, [selectedMonth, selectedYear, setSearchParams]);
 
   useEffect(() => {
-    if (location.state?.filter === 'pending') {
+    if (location.state?.filter === 'pending' || location.state?.filter === 'overdue') {
       setStatusFilter('pending');
+      if (location.state.month !== undefined && location.state.year !== undefined) {
+        setSelectedMonth(location.state.month);
+        setSelectedYear(location.state.year);
+      }
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);

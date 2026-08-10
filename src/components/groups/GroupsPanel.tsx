@@ -28,7 +28,7 @@ export interface GroupedItem {
 interface GroupsPanelProps {
   kind: "expense" | "income";
   items: GroupedItem[];
-  onChanged: () => void; // refresh after assignment
+  onChanged: () => void;
   draggingId: string | null;
   selectedMonth?: number; // 0-indexed, current view month
   selectedYear?: number;

@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { User, Shield, Loader2, Bell, Bot, Sparkles, CalendarClock } from 'lucide-react';
+import { User, Shield, Loader2, Bell, Bot, Sparkles, CalendarClock, Mail, Send } from 'lucide-react';
 import UnifiedCategoryManager from '../components/settings/UnifiedCategoryManager';
 import EmailSmtpSettings from '@/components/settings/EmailSmtpSettings';
 import NotificationAlertsSettings from '@/components/settings/NotificationAlertsSettings';
@@ -42,6 +42,12 @@ export default function Settings() {
   const [isClassifying, setIsClassifying] = useState(false);
   const canUseAiClassification = hasFeatureAccess('ai_classification');
   const [autoLiquidation, setAutoLiquidation] = useState(false);
+  const [notificationEmail, setNotificationEmail] = useState('');
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [sendHour, setSendHour] = useState(8);
+  const [sendMinute, setSendMinute] = useState(0);
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -112,6 +118,22 @@ export default function Settings() {
         email: user.email || '',
       });
     }
+
+    // Load email notification settings
+    const { data: notifSettings } = await (supabase.from('notification_settings') as any)
+      .select('notification_email, email_enabled, send_hour, send_minute')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (notifSettings) {
+      setNotificationEmail(notifSettings.notification_email || user?.email || '');
+      setEmailEnabled(notifSettings.email_enabled ?? false);
+      setSendHour(notifSettings.send_hour ?? 8);
+      setSendMinute(notifSettings.send_minute ?? 0);
+    } else {
+      setNotificationEmail(user?.email || '');
+    }
+
     setIsLoading(false);
   };
 
@@ -137,6 +159,80 @@ export default function Settings() {
     localStorage.setItem('alert_days_before', days);
     localStorage.setItem('alert_type', type);
     toast.success('Preferências de alerta atualizadas');
+  };
+
+  const saveEmailSettings = async (
+    email: string,
+    enabled: boolean,
+    hour: number = sendHour,
+    minute: number = sendMinute,
+  ) => {
+    if (!user?.id) return;
+    setIsSavingEmail(true);
+    try {
+      const { data: existing } = await (supabase.from('notification_settings') as any)
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const payload = { notification_email: email, email_enabled: enabled, send_hour: hour, send_minute: minute };
+
+      if (existing) {
+        await (supabase.from('notification_settings') as any)
+          .update(payload)
+          .eq('user_id', user.id);
+      } else {
+        await (supabase.from('notification_settings') as any)
+          .insert({ user_id: user.id, ...payload });
+      }
+      setNotificationEmail(email);
+      setEmailEnabled(enabled);
+      setSendHour(hour);
+      setSendMinute(minute);
+      toast.success('Configurações de email salvas');
+    } catch {
+      toast.error('Erro ao salvar configurações de email');
+    } finally {
+      setIsSavingEmail(false);
+    }
+  };
+
+  const timeSlots = Array.from({ length: 48 }, (_, i) => {
+    const h = Math.floor(i / 2);
+    const m = i % 2 === 0 ? 0 : 30;
+    return { value: `${h}:${m}`, label: `${String(h).padStart(2, '0')}:${m === 0 ? '00' : '30'}` };
+  });
+
+  const handleTimeChange = (value: string) => {
+    const [h, m] = value.split(':').map(Number);
+    saveEmailSettings(notificationEmail, emailEnabled, h, m);
+  };
+
+  const sendTestEmail = async () => {
+    if (!user) return;
+    setIsSendingTest(true);
+    try {
+      // Garante que o notification_settings do usuário está salvo antes de acionar o envio
+      await saveEmailSettings(notificationEmail, emailEnabled);
+
+      // Chama check-due-expenses que já está deployada e processa usuários com email configurado
+      const res = await supabase.functions.invoke('check-due-expenses');
+
+      if (res.error) {
+        toast.error(`Erro: ${res.error.message}`);
+      } else {
+        const emailsSent = res.data?.emailsSent ?? 0;
+        if (emailsSent > 0) {
+          toast.success(`Email de teste enviado para ${notificationEmail}`);
+        } else {
+          toast.info('Nenhuma despesa próxima encontrada para enviar. Verifique se há despesas pendentes nos próximos dias.');
+        }
+      }
+    } catch (e: any) {
+      toast.error(`Erro ao enviar: ${e.message}`);
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   const handleClassifyExpenses = async () => {

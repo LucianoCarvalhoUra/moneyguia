@@ -1,7 +1,9 @@
 import { useState, useMemo, ReactNode } from 'react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Download, FileSpreadsheet, FileType, Calendar, Filter, ChevronDown, Wallet, Bot, PieChart as PieChartIcon, Loader2 } from 'lucide-react';
+import { FileText, Download, FileSpreadsheet, FileType, Calendar, Filter, ChevronDown, Wallet, Bot, PieChart as PieChartIcon, Loader2, Sparkles, ScanLine } from 'lucide-react';
+import { AIReportGenerator } from '@/components/reports/AIReportGenerator';
+import { ReceiptUploader } from '@/components/receipts/ReceiptUploader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -648,6 +650,14 @@ export default function Reports() {
         <TabsList>
           <TabsTrigger value="visual">Visão Gráfica</TabsTrigger>
           <TabsTrigger value="detailed">Relatório Detalhado</TabsTrigger>
+          <TabsTrigger value="ai" className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" />
+            Relatórios IA
+          </TabsTrigger>
+          <TabsTrigger value="receipts" className="flex items-center gap-1.5">
+            <ScanLine className="w-3.5 h-3.5" />
+            Comprovantes
+          </TabsTrigger>
         </TabsList>
 
         {/* Visual Dashboard Tab */}
@@ -940,6 +950,29 @@ export default function Reports() {
                 )}
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        {/* AI Report Generator Tab */}
+        <TabsContent value="ai">
+          <div className="animate-in fade-in-50">
+            <AIReportGenerator />
+          </div>
+        </TabsContent>
+
+        {/* Receipt OCR Tab */}
+        <TabsContent value="receipts">
+          <div className="animate-in fade-in-50 space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <ScanLine className="w-5 h-5 text-primary" />
+                Leitura de Comprovantes
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Envie um comprovante de pagamento e a IA extrai e estrutura os dados automaticamente.
+              </p>
+            </div>
+            <ReceiptUploader />
           </div>
         </TabsContent>
       </Tabs>

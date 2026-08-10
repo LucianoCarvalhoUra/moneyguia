@@ -416,6 +416,42 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                 </div>
               </div>
             </section>
+          {/* Seção: Categoria & Recebimento */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Tag className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Categoria & Recebimento</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
+          {/* Row 2: Categoria + Subcategoria + Recebimento */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
+              <Select value={categoryId} onValueChange={handleCategorySelectChange}>
+                <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ADD_CATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-emerald-600">+ Nova categoria</SelectItem>
+                  {incomeCategories.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-emerald-500`} /> {c.name}</div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
+              <Select value={subcategoryId} onValueChange={setSubcategoryId} disabled={!categoryId}>
+                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
+                <SelectContent>
+                  {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div key={`due-${shakeKey}`} className={cn("space-y-1.5", showErrors && !receiveDate && "animate-shake")}>
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !receiveDate ? "text-destructive" : "text-muted-foreground")}>Data de Recebimento *</Label>
+              <DateInputBR value={receiveDate} onChange={setReceiveDate} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
+            </div>
+          </div>
 
             {/* Conta de Destino & Status */}
             <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
@@ -489,6 +525,25 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                 <Settings2 className="w-3.5 h-3.5 text-emerald-600" />
                 <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Opções Avançadas</span>
                 <div className="flex-1 h-px bg-border/60" />
+          {/* Seção: Avançado */}
+          <div className="flex items-center gap-2 -mb-2 pt-2">
+            <Settings2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Opções Avançadas</span>
+            <div className="flex-1 h-px bg-border/60" />
+          </div>
+          {/* Toggles: Agendamento + Controle Visual */}
+          <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
+            <div className={cn("flex items-center gap-3", isReceived && "opacity-40 pointer-events-none")}>
+              <Switch id="income-scheduling" checked={isScheduled} onCheckedChange={setIsScheduled} disabled={isReceived} />
+              <Label htmlFor="income-scheduling" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                <CalendarClock className="h-4 w-4 text-emerald-600" />
+                Agendar esta receita
+              </Label>
+            </div>
+            {isScheduled && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-14">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento (Baixa Automática)</Label>
+                <DateInputBR value={scheduledDate} onChange={setScheduledDate} className="h-10 rounded-xl border-border/60 bg-muted/30" />
               </div>
               <div className="space-y-3 pl-2">
                 <div className={cn("flex items-center gap-3", isReceived && "opacity-40 pointer-events-none")}>

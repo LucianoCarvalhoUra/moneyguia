@@ -19,6 +19,7 @@ import InvoiceReconciliation from "./pages/InvoiceReconciliation";
 import Reconciliation from "./pages/Reconciliation";
 import Reports from "./pages/Reports";
 import ReportBuilder from "./pages/ReportBuilder";
+import Receipts from "./pages/Receipts";
 import Settings from "./pages/Settings";
 import Goals from "./pages/Goals";
 import LandingPage from "./pages/LandingPage";
@@ -143,6 +144,7 @@ const AppRoutes = () => (
     <Route path="/reports" element={<ProtectedRoute requiredFeature="advanced_reports"><Reports /></ProtectedRoute>} />
     <Route path="/report-builder" element={<ProtectedRoute><ReportBuilder /></ProtectedRoute>} />
 
+    <Route path="/receipts" element={<ProtectedRoute><Receipts /></ProtectedRoute>} />
     <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="/subscription" element={<ProtectedRoute><MySubscription /></ProtectedRoute>} />
