@@ -1,4 +1,4 @@
-﻿﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Income, IncomeCategory, IncomeSubcategory, DEFAULT_INCOME_CATEGORIES } from '@/types/income';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,7 +32,7 @@ const IncomeContext = createContext<IncomeContextType | undefined>(undefined);
 
 // Mapping for migrating old/default income categories
 const INCOME_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> = {
-  'SalÃ¡rio': { icon: 'Banknote', color: 'green-500' },
+  'Salário': { icon: 'Banknote', color: 'green-500' },
   'Trabalho': { icon: 'Briefcase', color: 'slate-500' },
   'Investimentos': { icon: 'TrendingUp', color: 'green-500' },
   'Freelance': { icon: 'Coins', color: 'blue-500' },
@@ -49,13 +49,10 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
   const fetchData = useCallback(async (force = false) => {
     if (!user) return;
 
-    // Se os dados já foram carregados e não há um 'force' refresh, não busca novamente.
-    // Isso mantém a navegação instantânea entre as telas de Receitas e Dashboard.
     if (!force && incomes.length > 0 && incomeCategories.length > 0 && incomeSubcategories.length > 0) {
       return;
     }
     
-    // Evita flicker de carregamento se já houver dados carregados
     const hasData = incomes.length > 0 || incomeCategories.length > 0;
     if (!hasData || force) {
       setIsLoading(true);
@@ -67,12 +64,10 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         supabase.from('incomes').select('*').eq('user_id', user.id).order('receive_date', { ascending: false }),
       ]);
 
-      if (categoriesRes.data && categoriesRes.data.length > 0) { // Verifica se há categorias personalizadas
+      if (categoriesRes.data && categoriesRes.data.length > 0) {
         const loadedCategories = categoriesRes.data.map(c => {
-          // Check if this category needs migration
           const mapping = INCOME_CATEGORY_MAPPING[c.name];
           if (mapping && (c.icon !== mapping.icon || c.color !== mapping.color)) {
-             // Update in background
              supabase.from('income_categories').update({ icon: mapping.icon, color: mapping.color }).eq('id', c.id).then();
              return {
                id: c.id,
@@ -94,7 +89,6 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         });
         setIncomeCategories(loadedCategories.sort((a, b) => a.name.localeCompare(b.name)));
       } else {
-        // Inicializa com categorias padrão se não houver nenhuma
         const defaultCats = DEFAULT_INCOME_CATEGORIES.map(cat => {
           const mapping = INCOME_CATEGORY_MAPPING[cat.name];
           return {
@@ -134,7 +128,6 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
 
       if (incomesRes.data) {
         const rows = incomesRes.data as any[];
-        // Compute current_installment dynamically per recurrence group ordered by receive_date
         const positionByRow: Record<string, { position: number; total: number }> = {};
         const groups: Record<string, any[]> = {};
         for (const r of rows) {
@@ -156,7 +149,6 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         }
 
         setIncomes(rows.map(i => {
-          // Parse date string as local date to avoid timezone issues
           const [year, month, day] = i.receive_date.split('-').map(Number);
           const receiveDate = new Date(year, month - 1, day);
           const pos = positionByRow[i.id];
@@ -183,7 +175,15 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             groupId: (i as any).group_id || undefined,
             is_scheduled: (i as any).is_scheduled ?? false,
             scheduled_date: (i as any).scheduled_date || null,
-          };
+            
+            // --- MAPEAMENTO DOS NOVOS CAMPOS SALVOS NO SUPABASE ---
+            recurrenceType: i.recurrence_type || 'fixed_day',
+            targetBusinessDay: i.target_business_day ?? null,
+            weekendStrategy: i.weekend_strategy || 'next',
+            recurrence_type: i.recurrence_type || 'fixed_day',
+            target_business_day: i.target_business_day ?? null,
+            weekend_strategy: i.weekend_strategy || 'next',
+          } as any;
         }));
       }
     } catch (error) {
@@ -241,7 +241,6 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       }
     }
     
-    // Gera recurrence_id se for recorrente
     const recurrenceId = income.isRecurring ? (income.recurrenceId || crypto.randomUUID()) : null;
     
     const incomesToInsert: Array<{
@@ -259,9 +258,11 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       exclude_from_calculations: boolean;
       current_installment?: number | null;
       installments?: number | null;
+      recurrence_type?: string | null;
+      target_business_day?: number | null;
+      weekend_strategy?: string | null;
     }> = [];
 
-    // If recurring, create 12 months of income
     if (income.isRecurring) {
       const totalInstallments = 12;
       for (let i = 0; i < totalInstallments; i++) {
@@ -283,6 +284,9 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           exclude_from_calculations: income.excludeFromCalculations ?? false,
           current_installment: i + 1,
           installments: totalInstallments,
+          recurrence_type: (income as any).recurrenceType || (income as any).recurrence_type || 'fixed_day',
+          target_business_day: (income as any).targetBusinessDay ?? (income as any).target_business_day ?? null,
+          weekend_strategy: (income as any).weekendStrategy || (income as any).weekend_strategy || 'next',
         });
       }
     } else {
@@ -299,6 +303,9 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         account_id: income.accountId || null,
         recurrence_id: recurrenceId,
         exclude_from_calculations: income.excludeFromCalculations ?? false,
+        recurrence_type: (income as any).recurrenceType || (income as any).recurrence_type || 'fixed_day',
+        target_business_day: (income as any).targetBusinessDay ?? (income as any).target_business_day ?? null,
+        weekend_strategy: (income as any).weekendStrategy || (income as any).weekend_strategy || 'next',
       });
     }
 
@@ -314,7 +321,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     }
     
     if (data) {
-      await fetchData();
+      await fetchData(true);
     }
   };
 
@@ -331,6 +338,17 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     if (incomeUpdate.isReceived !== undefined) updateData.is_received = incomeUpdate.isReceived;
     if (incomeUpdate.excludeFromCalculations !== undefined) updateData.exclude_from_calculations = incomeUpdate.excludeFromCalculations;
     if (incomeUpdate.accountId !== undefined) updateData.account_id = incomeUpdate.accountId || null;
+
+    // Persistência das regras de dia útil no update
+    if ((incomeUpdate as any).recurrenceType !== undefined || (incomeUpdate as any).recurrence_type !== undefined) {
+      updateData.recurrence_type = (incomeUpdate as any).recurrenceType || (incomeUpdate as any).recurrence_type;
+    }
+    if ((incomeUpdate as any).targetBusinessDay !== undefined || (incomeUpdate as any).target_business_day !== undefined) {
+      updateData.target_business_day = (incomeUpdate as any).targetBusinessDay ?? (incomeUpdate as any).target_business_day ?? null;
+    }
+    if ((incomeUpdate as any).weekendStrategy !== undefined || (incomeUpdate as any).weekend_strategy !== undefined) {
+      updateData.weekend_strategy = (incomeUpdate as any).weekendStrategy || (incomeUpdate as any).weekend_strategy;
+    }
 
     const { error } = await supabase
       .from('incomes')
@@ -436,7 +454,6 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     }
     
     setIncomeCategories(prev => prev.filter(c => c.id !== id));
-    // Also remove associated subcategories from state
     setIncomeSubcategories(prev => prev.filter(s => s.categoryId !== id));
   };
 
@@ -542,7 +559,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshData = useCallback(async () => {
-    await fetchData(true); // Força o refresh dos dados
+    await fetchData(true);
   }, [fetchData]);
 
   return (
