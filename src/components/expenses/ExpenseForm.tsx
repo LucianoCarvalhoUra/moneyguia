@@ -671,7 +671,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               </div>
               {showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
-          </div>
+          </section>
 
           {/* Seção: Classificação */}
           <div className="flex items-center gap-2 -mb-2 pt-2">
@@ -711,7 +711,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               <DateInputBR value={dueDate} onChange={setDueDate} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !dueDate && "border-destructive ring-1 ring-destructive/30")} />
               {showErrors && !dueDate && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
-          </section>
+          </div>
 
           {/* Blocos horizontais lado a lado */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
