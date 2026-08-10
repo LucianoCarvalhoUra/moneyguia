@@ -79,6 +79,21 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(floatValue);
   };
 
+  // Recalcula a Data de Recebimento dinâmica com base nos seletores
+  const updateDynamicReceiveDate = (type: 'fixed_day' | 'business_day', busDay: string, strategy: 'next' | 'previous' | 'exact') => {
+    const currentDate = receiveDate ? parseISO(receiveDate) : new Date();
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    if (type === 'business_day') {
+      const calculatedDate = getNthBusinessDay(year, month, parseInt(busDay), strategy === 'previous' ? 'previous' : 'next');
+      setReceiveDate(format(calculatedDate, 'yyyy-MM-dd'));
+    } else {
+      const adjustedDate = adjustToBusinessDay(currentDate, strategy);
+      setReceiveDate(format(adjustedDate, 'yyyy-MM-dd'));
+    }
+  };
+
   // --- Initialization ---
   useEffect(() => {
     if (open) {
@@ -100,7 +115,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setIsScheduled((dataToLoad as any).is_scheduled || false);
         setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
         
-        // Carrega regras personalizadas se existirem no banco
         setRecurrenceType((dataToLoad as any).recurrence_type || 'fixed_day');
         setTargetBusinessDay((dataToLoad as any).target_business_day?.toString() || '5');
         setWeekendStrategy((dataToLoad as any).weekend_strategy || 'next');
@@ -290,19 +304,16 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           const newRecurrenceId = crypto.randomUUID();
           const newIncomes = [];
           const limit = parseInt(installments);
-          const [y, m, d] = receiveDate.split('-').map(Number);
           const initialDate = parseISO(receiveDate);
 
           for (let i = 0; i < limit; i++) {
             let nextDate: Date;
 
             if (recurrenceType === 'business_day') {
-              // Calcula o N-ésimo dia útil do mês correspondente
               const targetMonth = (initialDate.getMonth() + i) % 12;
               const targetYear = initialDate.getFullYear() + Math.floor((initialDate.getMonth() + i) / 12);
               nextDate = getNthBusinessDay(targetYear, targetMonth, parseInt(targetBusinessDay), weekendStrategy === 'previous' ? 'previous' : 'next');
             } else {
-              // Adiciona meses e ajusta final de semana conforme estratégia
               const rawDate = addMonths(initialDate, i);
               nextDate = adjustToBusinessDay(rawDate, weekendStrategy);
             }
@@ -318,7 +329,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           }
           const { error } = await supabase.from('incomes').insert(newIncomes);
           if (error) throw error;
-          toast.success(`${limit} receitas recorrentes/parceladas criadas!`);
+          toast.success(`${limit} receitas criadas com sucesso!`);
         } else {
           const { error } = await supabase.from('incomes').insert([payload]);
           if (error) throw error;
@@ -341,7 +352,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl w-[calc(100vw-1rem)] max-h-[95vh] sm:max-h-[92vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
-        {/* Header - Identidade Verde */}
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-emerald-500/5 to-transparent">
           <div className="min-w-0">
             <DialogTitle className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">
@@ -369,7 +379,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                 <Label className={cn("flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider", showErrors && !title ? "text-destructive" : "text-muted-foreground")}>
                   <FileText className="w-3 h-3" /> Descrição *
                 </Label>
-                <Input value={title} onChange={e => setTitle(e.target.value)} className={cn("h-11 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !title && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Salário, Aluguel Recebido" />
+                <Input value={title} onChange={e => setTitle(e.target.value)} className={cn("h-11 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !title && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Salário" />
               </div>
               <div key={`amt-${shakeKey}`} className={cn("w-full sm:w-64 space-y-1.5", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "animate-shake")}>
                 <Label className={cn("text-[11px] font-bold uppercase tracking-wider", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 ? "text-destructive" : "text-muted-foreground")}>Valor *</Label>
@@ -382,7 +392,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </section>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Categoria & Recebimento */}
+            {/* Bloco: Categoria & Regras de Recebimento */}
             <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
               <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500/40" />
               <div className="flex items-center gap-2 pl-2 mb-3">
@@ -390,33 +400,117 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                 <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Categoria & Recebimento</span>
                 <div className="flex-1 h-px bg-border/60" />
               </div>
-              <div className="grid grid-cols-2 gap-3 pl-2">
-                <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
-                  <Label className={cn("text-[11px] font-bold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
-                  <Select value={categoryId} onValueChange={handleCategorySelectChange}>
-                    <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ADD_CATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-emerald-600">+ Nova categoria</SelectItem>
-                      {(incomeCategories || []).map(c => (
-                        <SelectItem key={c.id} value={c.id}>
-                          <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-emerald-500`} /> {c.name}</div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              
+              <div className="space-y-3 pl-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
+                    <Label className={cn("text-[11px] font-bold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
+                    <Select value={categoryId} onValueChange={handleCategorySelectChange}>
+                      <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ADD_CATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-emerald-600">+ Nova categoria</SelectItem>
+                        {(incomeCategories || []).map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-emerald-500`} /> {c.name}</div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
+                    <Select value={subcategoryId} onValueChange={setSubcategoryId} disabled={!categoryId}>
+                      <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
+                      <SelectContent>
+                        {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
-                  <Select value={subcategoryId} onValueChange={setSubcategoryId} disabled={!categoryId}>
-                    <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
-                    <SelectContent>
-                      {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div key={`due-${shakeKey}`} className={cn("col-span-2 space-y-1.5", showErrors && !receiveDate && "animate-shake")}>
-                  <Label className={cn("text-[11px] font-bold uppercase tracking-wider", showErrors && !receiveDate ? "text-destructive" : "text-muted-foreground")}>Data de Recebimento *</Label>
-                  <DateInputBR value={receiveDate} onChange={setReceiveDate} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
+
+                {/* Regras de Recebimento e Sensibilização da Data */}
+                <div className="space-y-3 pt-2 border-t border-border/40">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Regra de Recebimento</Label>
+                    <Select 
+                      value={recurrenceType} 
+                      onValueChange={(v: 'fixed_day' | 'business_day') => {
+                        setRecurrenceType(v);
+                        updateDynamicReceiveDate(v, targetBusinessDay, weekendStrategy);
+                      }}
+                    >
+                      <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixed_day">Dia Fixo do Mês (ex: Todo dia 10)</SelectItem>
+                        <SelectItem value="business_day">Dia Útil do Mês (ex: 5º dia útil)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {recurrenceType === 'business_day' ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Nº do Dia Útil</Label>
+                        <Select 
+                          value={targetBusinessDay} 
+                          onValueChange={(v) => {
+                            setTargetBusinessDay(v);
+                            updateDynamicReceiveDate('business_day', v, weekendStrategy);
+                          }}
+                        >
+                          <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1º Dia Útil</SelectItem>
+                            <SelectItem value="2">2º Dia Útil</SelectItem>
+                            <SelectItem value="5">5º Dia Útil</SelectItem>
+                            <SelectItem value="10">10º Dia Útil</SelectItem>
+                            <SelectItem value="15">15º Dia Útil</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ajuste Fim de Semana</Label>
+                        <Select 
+                          value={weekendStrategy} 
+                          onValueChange={(v: any) => {
+                            setWeekendStrategy(v);
+                            updateDynamicReceiveDate('business_day', targetBusinessDay, v);
+                          }}
+                        >
+                          <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="next">Próximo Dia Útil</SelectItem>
+                            <SelectItem value="previous">Dia Útil Anterior</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Se cair no Fim de Semana</Label>
+                      <Select 
+                        value={weekendStrategy} 
+                        onValueChange={(v: any) => {
+                          setWeekendStrategy(v);
+                          updateDynamicReceiveDate('fixed_day', targetBusinessDay, v);
+                        }}
+                      >
+                        <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="next">Mover p/ Próximo Dia Útil</SelectItem>
+                          <SelectItem value="previous">Mover p/ Dia Útil Anterior</SelectItem>
+                          <SelectItem value="exact">Manter no Fim de Semana</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div key={`due-${shakeKey}`} className={cn("space-y-1.5", showErrors && !receiveDate && "animate-shake")}>
+                    <Label className={cn("text-[11px] font-bold uppercase tracking-wider", showErrors && !receiveDate ? "text-destructive" : "text-muted-foreground")}>Data de Recebimento Calculada *</Label>
+                    <DateInputBR value={receiveDate} onChange={setReceiveDate} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 font-medium", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
+                  </div>
                 </div>
               </div>
             </section>
@@ -452,12 +546,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Recorrência & Configurações de Dia Útil */}
+            {/* Recorrência & Observações */}
             <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
               <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500/40" />
               <div className="flex items-center gap-2 pl-2 mb-3">
                 <Repeat className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Recorrência & Dias Úteis</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Recorrência & Notas</span>
                 <div className="flex-1 h-px bg-border/60" />
               </div>
               <div className="space-y-3 pl-2">
@@ -479,64 +573,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                     </div>
                   )}
                 </div>
-
-                {/* Opções Personalizadas para Dias Úteis */}
-                {isRecurring && (
-                  <div className="space-y-3 pt-2 border-t border-border/40 animate-in fade-in slide-in-from-top-1">
-                    <div className="space-y-1.5">
-                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Regra de Recebimento</Label>
-                      <Select value={recurrenceType} onValueChange={(v: 'fixed_day' | 'business_day') => setRecurrenceType(v)}>
-                        <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="fixed_day">Dia Fixo do Mês (ex: Todo dia 10)</SelectItem>
-                          <SelectItem value="business_day">Dia Útil do Mês (ex: 5º dia útil)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {recurrenceType === 'business_day' ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1.5">
-                          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Nº do Dia Útil</Label>
-                          <Select value={targetBusinessDay} onValueChange={setTargetBusinessDay}>
-                            <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1">1º Dia Útil</SelectItem>
-                              <SelectItem value="2">2º Dia Útil</SelectItem>
-                              <SelectItem value="5">5º Dia Útil</SelectItem>
-                              <SelectItem value="10">10º Dia Útil</SelectItem>
-                              <SelectItem value="15">15º Dia Útil</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ajuste Fim de Semana</Label>
-                          <Select value={weekendStrategy} onValueChange={(v: any) => setWeekendStrategy(v)}>
-                            <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="next">Próximo Dia Útil</SelectItem>
-                              <SelectItem value="previous">Dia Útil Anterior</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5">
-                        <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Se cair no Fim de Semana</Label>
-                        <Select value={weekendStrategy} onValueChange={(v: any) => setWeekendStrategy(v)}>
-                          <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="next">Mover p/ Próximo Dia Útil</SelectItem>
-                            <SelectItem value="previous">Mover p/ Dia Útil Anterior</SelectItem>
-                            <SelectItem value="exact">Manter no Fim de Semana</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 <div className="space-y-1.5 pt-1">
                   <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Observação</Label>
