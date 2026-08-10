@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -115,7 +114,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         
         const catId = dataToLoad.categoryId || (dataToLoad as any).category_id || '';
         const subCatId = dataToLoad.subcategoryId || (dataToLoad as any).subcategory_id || '';
-        console.log('[ExpenseForm] Loading data:', { catId, subCatId, raw_subcategoryId: dataToLoad.subcategoryId, raw_subcategory_id: (dataToLoad as any).subcategory_id });
         setCategoryId(catId);
         setSubcategoryId(subCatId);
         
@@ -137,7 +135,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setSettlementAccountId((dataToLoad as any).settlementAccountId || (dataToLoad as any).settlement_account_id || '');
         setSettlementCardId((dataToLoad as any).settlementCardId || (dataToLoad as any).settlement_card_id || '');
       } else {
-        // Reset
         setDescription('');
         setCategoryId('');
         setSubcategoryId('');
@@ -158,6 +155,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         setScheduledDate('');
         setSettlementMethod('');
         setSettlementAccountId('');
+        setSettlementCardId('');
       }
     }
   }, [open, expense, initialData]);
@@ -211,7 +209,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
   const handleDelete = async () => {
     if (!expense) return;
     
-    // If recurring, show scope dialog instead of simple confirm
     if (expense.isRecurring && (expense.recurrenceId || (expense as any).recurrence_id)) {
       setDeleteScopeDialogOpen(true);
       return;
@@ -244,31 +241,24 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       if (scope === 'single') {
         await removeExpense(expense.id);
       } else if (scope === 'future') {
-        // Delete current + future
         const { error } = await supabase.from('expenses')
           .delete()
           .eq('recurrence_id', recurrenceId)
           .gte('due_date', originalDueDate);
         if (error) throw error;
       } else {
-        // Delete all in the series
         const { error } = await supabase.from('expenses')
           .delete()
           .eq('recurrence_id', recurrenceId);
         if (error) throw error;
       }
 
-      // Renumber remaining installments if not deleting all
       if (scope !== 'all' && recurrenceId) {
         await renumberInstallments(recurrenceId);
       }
 
       await refreshData();
-      const successMessage = scope === 'single' ? 'Despesa excluída!' : 'Despesas excluídas com sucesso!';
-      const descriptionMessage = scope === 'single'
-        ? 'Apenas a despesa selecionada foi removida.'
-        : 'As despesas recorrentes foram removidas conforme sua seleção.';
-      toast.success(successMessage, { description: descriptionMessage });
+      toast.success(scope === 'single' ? 'Despesa excluída!' : 'Despesas excluídas com sucesso!');
       onOpenChange(false);
     } catch (error: any) {
       toast.error('Erro ao excluir: ' + error.message);
@@ -351,25 +341,17 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     
     setIsSubmitting(true);
     try {
-      // Use original dates as anchor (before updating current)
       const originalDueDate = toIsoDay(expense.dueDate as any);
       const originalExpenseDate = expense.expenseDate ? toIsoDay(expense.expenseDate as any) : null;
 
-      // 1. Atualiza a despesa atual
       const { error: singleError } = await supabase.from('expenses').update(pendingData).eq('id', expense.id);
-      
-      if (singleError) {
-        console.error('Erro Supabase:', singleError);
-        throw singleError;
-      }
+      if (singleError) throw singleError;
 
       if (scope !== 'single') {
         let recurrenceId = expense.recurrenceId || (expense as any).recurrence_id;
         
-        // Legacy: generate recurrence_id for old recurring expenses that don't have one
         if (!recurrenceId) {
           recurrenceId = crypto.randomUUID();
-          // Find all expenses with matching base description and is_recurring
           const baseDesc = expense.description.replace(/\s*\(\d+\/\d+\)\s*$/, '').trim();
           const { data: siblings } = await supabase
             .from('expenses')
@@ -389,10 +371,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           }
         }
         
-        // Remove per-installment fields: payment state and absolute dates stay individual
         const { due_date, expense_date, is_paid, user_id, current_installment, settlement_method, settlement_account_id, settlement_card_id, ...batchData } = pendingData;
 
-        // Identify affected rows according to the chosen scope
         let selectQuery = supabase
           .from('expenses')
           .select('id, due_date, expense_date')
@@ -413,7 +393,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             if (error) throw error;
           }
 
-          // Propagate day-of-month changes while keeping each installment's own month/year
           const dueDayChanged = due_date && dayOfMonth(due_date) !== dayOfMonth(originalDueDate);
           const expenseDayChanged =
             expense_date && originalExpenseDate && dayOfMonth(expense_date) !== dayOfMonth(originalExpenseDate);
@@ -436,15 +415,11 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         }
       }
 
-
-      toast.success('Despesas atualizadas com sucesso!', {
-        description: 'As alterações foram aplicadas à série de recorrência.',
-      });
+      toast.success('Despesas atualizadas com sucesso!');
       await new Promise(resolve => setTimeout(resolve, 300));
       await refreshData();
       onOpenChange(false);
     } catch (error: any) {
-      console.error('[BatchUpdate] Error:', error);
       toast.error('Erro ao atualizar: ' + error.message);
     } finally {
       setIsSubmitting(false);
@@ -469,8 +444,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
     }
 
     setShowErrors(false);
-
     setIsSubmitting(true);
+
     try {
       if (!expense && isRecurring && user?.id) {
         const quota = await getRecurrenceQuotaStatus(user.id, subscriptionPlan as string);
@@ -491,10 +466,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
 
       const finalExpenseDate = isPaid ? paymentDate : launchDate;
 
-      // Sanitização: Garantir tipos numéricos e chaves snake_case
       const payload = {
         description,
-        amount: Number(numericAmount), // Garante Float
+        amount: Number(numericAmount),
         due_date: dueDate,
         expense_date: finalExpenseDate,
         category_id: categoryId,
@@ -515,8 +489,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
       };
 
       if (expense) {
-        console.log('Dados enviados (Update):', payload);
-        
         if (expense.isRecurring) {
           setPendingData(payload);
           setScopeDialogOpen(true);
@@ -524,15 +496,12 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           return;
         }
 
-        // If user is converting a non-recurring expense to recurring with installments > 1,
-        // generate the future installments
         if (isRecurring && parseInt(installments) > 1) {
           const newRecurrenceId = crypto.randomUUID();
           const limit = parseInt(installments);
           const [y, m, d] = dueDate.split('-').map(Number);
           const startDate = new Date(y, m - 1, d, 12);
 
-          // Update the current expense as installment 1
           const { error: updateError } = await supabase.from('expenses').update({
             ...payload,
             recurrence_id: newRecurrenceId,
@@ -541,7 +510,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           }).eq('id', expense.id);
           if (updateError) throw updateError;
 
-          // Create future installments (2 onwards)
           const futureExpenses = [];
           for (let i = 1; i < limit; i++) {
             const nextDueDate = addMonths(startDate, i);
@@ -557,70 +525,52 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             });
           }
           const { error: insertError } = await supabase.from('expenses').insert(futureExpenses);
-          if (insertError) {
-            console.error('Erro Supabase (Insert Parcelas):', insertError);
-            throw insertError;
-          }
-          toast.success(`${limit} despesas criadas!`, {
-            description: `A despesa "${description}" foi parcelada em ${limit} vezes.`,
-          });
+          if (insertError) throw insertError;
+          
+          toast.success(`${limit} despesas criadas!`);
         } else {
           const { error } = await supabase.from('expenses').update(payload).eq('id', expense.id);
-          if (error) {
-            console.error('Erro Supabase:', error);
-            throw error;
-          }
+          if (error) throw error;
           toast.success('Despesa atualizada!');
         }
       } else {
-        // Para INSERT, incluímos o user_id explicitamente
         const authUser = (await supabase.auth.getUser()).data.user;
         const insertPayload = { ...payload, user_id: authUser?.id };
-        console.log('Dados enviados (Insert):', insertPayload);
 
         if (isRecurring && parseInt(installments) > 1) {
-           const newRecurrenceId = crypto.randomUUID();
-           const newExpenses = [];
-           const limit = parseInt(installments);
-           const [y, m, d] = dueDate.split('-').map(Number);
-           const startDate = new Date(y, m - 1, d, 12);
+          const newRecurrenceId = crypto.randomUUID();
+          const newExpenses = [];
+          const limit = parseInt(installments);
+          const [y, m, d] = dueDate.split('-').map(Number);
+          const startDate = new Date(y, m - 1, d, 12);
 
-           for (let i = 0; i < limit; i++) {
-             const nextDueDate = addMonths(startDate, i);
-             const nextDueDateStr = format(nextDueDate, 'yyyy-MM-dd');
-             
-             newExpenses.push({
-               ...payload,
-               due_date: nextDueDateStr,
-               expense_date: nextDueDateStr,
-               is_paid: i === 0 ? isPaid : false,
-               recurrence_id: newRecurrenceId,
-               current_installment: i + 1,
-               installments: limit,
-             });
-           }
-           const { error } = await supabase.from('expenses').insert(newExpenses);
-           if (error) {
-             console.error('Erro Supabase:', error);
-             throw error;
-           }
-           toast.success(`${limit} despesas criadas!`, {
-             description: `A despesa "${description}" foi parcelada em ${limit} vezes.`,
-           });
+          for (let i = 0; i < limit; i++) {
+            const nextDueDate = addMonths(startDate, i);
+            const nextDueDateStr = format(nextDueDate, 'yyyy-MM-dd');
+            
+            newExpenses.push({
+              ...insertPayload,
+              due_date: nextDueDateStr,
+              expense_date: nextDueDateStr,
+              is_paid: i === 0 ? isPaid : false,
+              recurrence_id: newRecurrenceId,
+              current_installment: i + 1,
+              installments: limit,
+            });
+          }
+          const { error } = await supabase.from('expenses').insert(newExpenses);
+          if (error) throw error;
+          toast.success(`${limit} despesas criadas!`);
         } else {
-           const { error } = await supabase.from('expenses').insert([insertPayload]);
-           if (error) {
-             console.error('Erro Supabase (Insert Individual):', error);
-             throw error;
-           }
-           toast.success('Despesa salva!');
+          const { error } = await supabase.from('expenses').insert([insertPayload]);
+          if (error) throw error;
+          toast.success('Despesa salva!');
         }
       }
 
       await refreshData();
       onOpenChange(false);
     } catch (error: any) {
-      console.error(error);
       toast.error('Erro ao salvar: ' + error.message);
     } finally {
       setIsSubmitting(false);
@@ -652,7 +602,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[calc(95vh-72px)] sm:max-h-[calc(92vh-80px)] bg-muted/20">
-          {/* Bloco 1 — Faixa principal: Descrição + Valor */}
+          {/* Bloco 1 — Descrição + Valor */}
           <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
             <span className="absolute inset-y-0 left-0 w-1 bg-primary" />
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end pl-2">
@@ -669,51 +619,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                   <CalculatorPopover currentValue={amount} onConfirm={(val) => setAmount(formatCurrencyInput(val))} />
                 </div>
               </div>
-              {showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && <span className="text-xs text-destructive">Campo obrigatório</span>}
             </div>
           </section>
 
-          {/* Seção: Classificação */}
-          <div className="flex items-center gap-2 -mb-2 pt-2">
-            <Tag className="w-3.5 h-3.5 text-primary" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Categoria & Vencimento</span>
-            <div className="flex-1 h-px bg-border/60" />
-          </div>
-          {/* Row 2: Categoria + Subcategoria + Vencimento */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
-              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
-              <Select value={categoryId} onValueChange={handleCategorySelectChange}>
-                <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ADD_CATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-primary">+ Nova categoria</SelectItem>
-                  {categories.map(c => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-${c.color}`} /> {c.name}</div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {showErrors && !categoryId && <span className="text-xs text-destructive">Campo obrigatório</span>}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
-              <Select key={`subcat-${categoryId}-${subcategoryId}`} value={subcategoryId} onValueChange={handleSubcategorySelectChange} disabled={!categoryId}>
-                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ADD_SUBCATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-primary">+ Nova subcategoria</SelectItem>
-                  {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div key={`due-${shakeKey}`} className={cn("space-y-1.5", showErrors && !dueDate && "animate-shake")}>
-              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !dueDate ? "text-destructive" : "text-muted-foreground")}>Vencimento *</Label>
-              <DateInputBR value={dueDate} onChange={setDueDate} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !dueDate && "border-destructive ring-1 ring-destructive/30")} />
-              {showErrors && !dueDate && <span className="text-xs text-destructive">Campo obrigatório</span>}
-            </div>
-          </div>
-
-          {/* Blocos horizontais lado a lado */}
+          {/* Blocos lado a lado */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Categoria & Vencimento */}
             <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
@@ -784,17 +693,9 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                         <SelectContent>{cards.map(c => <SelectItem key={c.id} value={c.id}>{c.brand} •••• {c.lastFourDigits}</SelectItem>)}</SelectContent>
                       </Select>
                     </>
-                  ) : paymentMethod === 'account' ? (
-                    <>
-                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Conta</Label>
-                      <Select value={accountId} onValueChange={setAccountId}>
-                        <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </>
                   ) : (
                     <>
-                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Banco (PIX)</Label>
+                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Conta / Banco</Label>
                       <Select value={accountId} onValueChange={setAccountId}>
                         <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
                         <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
@@ -816,7 +717,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
             </section>
           </div>
 
-          {/* Seção: Quitação — como o pagamento foi efetivado */}
+          {/* Quitação */}
           {isPaid && (
             <section className="relative overflow-hidden rounded-2xl border border-emerald-200/60 bg-emerald-50/40 p-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
               <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500" />
@@ -824,12 +725,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 <CreditCard className="w-3.5 h-3.5 text-emerald-700" />
                 <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Quitação</span>
                 <div className="flex-1 h-px bg-emerald-200/60" />
-                <span className="text-[10px] text-emerald-700/70">De onde saiu o dinheiro</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-2">
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Forma de quitação</Label>
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Forma de quitação</Label>
                   <Select
                     value={settlementMethod || undefined}
                     onValueChange={(v) => {
@@ -872,14 +771,10 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                 {settlementMethod === 'credit_card' && (
                   <div className="space-y-1.5">
                     <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Cartão da quitação</Label>
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cartão da quitação</Label>
                     <Select value={settlementCardId} onValueChange={setSettlementCardId}>
-                      <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione o cartão (final)" /></SelectTrigger>
+                      <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue placeholder="Selecione o cartão" /></SelectTrigger>
                       <SelectContent>{cards.map(c => <SelectItem key={c.id} value={c.id}>{c.brand} •••• {c.lastFourDigits}</SelectItem>)}</SelectContent>
                     </Select>
-                    {cards.length === 0 && (
-                      <p className="text-[10px] text-muted-foreground">Cadastre seus cartões em Contas &amp; Cartões para selecionar o final.</p>
-                    )}
                   </div>
                 )}
               </div>
@@ -922,7 +817,7 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                   <textarea
                     value={observation}
                     onChange={e => setObservation(e.target.value)}
-                    className="flex w-full rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors focus:bg-card resize-none"
+                    className="flex w-full rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:bg-card resize-none"
                     placeholder="Anotações opcionais..."
                     rows={2}
                   />
@@ -947,47 +842,16 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
                   </Label>
                 </div>
                 {isScheduled && (
-                  <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-12">
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-6">
                     <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Data do Agendamento</Label>
                     <DateInputBR
                       value={scheduledDate}
                       onChange={setScheduledDate}
                       className="h-10 rounded-xl border-border/60 bg-muted/30"
                     />
-                    {scheduledDate && dueDate && scheduledDate > dueDate && (
-                      <p className="text-xs text-muted-foreground">Pagamento agendado para depois do vencimento.</p>
-                    )}
                   </div>
-          {/* Seção: Avançado */}
-          <div className="flex items-center gap-2 -mb-2 pt-2">
-            <Settings2 className="w-3.5 h-3.5 text-primary" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Opções Avançadas</span>
-            <div className="flex-1 h-px bg-border/60" />
-          </div>
-          {/* Toggles: Agendamento + Controle Visual */}
-          <div className="space-y-3 p-4 border rounded-xl bg-muted/20">
-            {/* Agendamento */}
-            <div className="flex items-center gap-3">
-              <Switch id="expense-scheduling" checked={isScheduled} onCheckedChange={setIsScheduled} />
-              <Label htmlFor="expense-scheduling" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                <CalendarClock className="h-4 w-4 text-primary" />
-                Agendar esta despesa
-              </Label>
-            </div>
-            {isScheduled && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-14">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento</Label>
-                <DateInputBR
-                  value={scheduledDate}
-                  onChange={setScheduledDate}
-                  className="h-10 rounded-xl border-border/60 bg-muted/30"
-                />
-                {scheduledDate && dueDate && scheduledDate > dueDate && (
-                  <p className="text-xs text-muted-foreground">Pagamento agendado para depois do vencimento.</p>
                 )}
-
-                <div className="border-t border-border/40" />
-
+                <div className="border-t border-border/40 pt-2" />
                 <div className={cn("flex items-center gap-3", !canUseExtraControl && "opacity-40")}>
                   <Switch id="visual-control" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl && !expense} />
                   <Label htmlFor="visual-control" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
@@ -998,7 +862,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
               </div>
             </section>
           </div>
-
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
@@ -1075,7 +938,6 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
 
       <AlertDialog open={deleteScopeDialogOpen} onOpenChange={setDeleteScopeDialogOpen}>
         <AlertDialogContent>
