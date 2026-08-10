@@ -101,51 +101,72 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     setReceiveDate(formattedDate);
   };
 
-  // --- Initialization ---
-  useEffect(() => {
-    if (open) {
-      const today = getTodayString();
-      const dataToLoad = income || initialData;
+ // --- Initialization ---
+useEffect(() => {
+  if (open) {
+    const today = getTodayString();
+    const dataToLoad: any = income || initialData;
 
-      if (dataToLoad) {
-        setTitle(dataToLoad.title || '');
-        setCategoryId(dataToLoad.categoryId || (dataToLoad as any).category_id || '');
-        setSubcategoryId(dataToLoad.subcategoryId || (dataToLoad as any).subcategory_id || '');
-        setReceiveDate(dataToLoad.receiveDate ? formatToInput(dataToLoad.receiveDate) : (dataToLoad as any).receive_date ? formatToInput((dataToLoad as any).receive_date) : today);
-        setAmount(dataToLoad.amount ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) : '');
-        setAccountId(dataToLoad.accountId || (dataToLoad as any).account_id || '');
-        setIsReceived(dataToLoad.isReceived || (dataToLoad as any).is_received || false);
-        setIsRecurring(dataToLoad.isRecurring || false);
-        setInstallments(dataToLoad.installments?.toString() || '1');
-        setExcludeFromCalculations((dataToLoad as any).exclude_from_calculations || false);
-        setDescription(dataToLoad.description || '');
-        setIsScheduled((dataToLoad as any).is_scheduled || false);
-        setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
-        
-        setRecurrenceType((dataToLoad as any).recurrence_type || 'fixed_day');
-        setTargetBusinessDay((dataToLoad as any).target_business_day?.toString() || '5');
-        setWeekendStrategy((dataToLoad as any).weekend_strategy || 'next');
-      } else {
-        setTitle('');
-        setCategoryId('');
-        setSubcategoryId('');
-        setReceiveDate(today);
-        setAmount('');
-        setAccountId('');
-        setIsReceived(false);
-        setIsRecurring(false);
-        setInstallments('1');
-        setExcludeFromCalculations(false);
-        setDescription('');
-        setShowErrors(false);
-        setIsScheduled(false);
-        setScheduledDate('');
-        setRecurrenceType('fixed_day');
-        setTargetBusinessDay('5');
-        setWeekendStrategy('next');
-      }
+    if (dataToLoad) {
+      setTitle(dataToLoad.title || '');
+      setCategoryId(dataToLoad.categoryId || dataToLoad.category_id || '');
+      setSubcategoryId(dataToLoad.subcategoryId || dataToLoad.subcategory_id || '');
+      setReceiveDate(
+        dataToLoad.receiveDate 
+          ? formatToInput(dataToLoad.receiveDate) 
+          : dataToLoad.receive_date 
+          ? formatToInput(dataToLoad.receive_date) 
+          : today
+      );
+      setAmount(
+        dataToLoad.amount 
+          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dataToLoad.amount) 
+          : ''
+      );
+      setAccountId(dataToLoad.accountId || dataToLoad.account_id || '');
+      setIsReceived(dataToLoad.isReceived ?? dataToLoad.is_received ?? false);
+      setIsRecurring(dataToLoad.isRecurring ?? dataToLoad.is_recurring ?? false);
+      setInstallments(dataToLoad.installments?.toString() || '1');
+      setExcludeFromCalculations(dataToLoad.excludeFromCalculations ?? dataToLoad.exclude_from_calculations ?? false);
+      setDescription(dataToLoad.description || '');
+      setIsScheduled(dataToLoad.isScheduled ?? dataToLoad.is_scheduled ?? false);
+      setScheduledDate(
+        dataToLoad.scheduledDate 
+          ? formatToInput(dataToLoad.scheduledDate) 
+          : dataToLoad.scheduled_date 
+          ? formatToInput(dataToLoad.scheduled_date) 
+          : ''
+      );
+
+      // --- RECUPERAÇÃO DAS REGRAS DO BANCO (CamelCase + Snake_case + Conversão para String) ---
+      const recType = dataToLoad.recurrenceType || dataToLoad.recurrence_type || 'fixed_day';
+      const busDay = (dataToLoad.targetBusinessDay ?? dataToLoad.target_business_day ?? '5').toString();
+      const wStrategy = dataToLoad.weekendStrategy || dataToLoad.weekend_strategy || 'next';
+
+      setRecurrenceType(recType);
+      setTargetBusinessDay(busDay);
+      setWeekendStrategy(wStrategy);
+    } else {
+      setTitle('');
+      setCategoryId('');
+      setSubcategoryId('');
+      setReceiveDate(today);
+      setAmount('');
+      setAccountId('');
+      setIsReceived(false);
+      setIsRecurring(false);
+      setInstallments('1');
+      setExcludeFromCalculations(false);
+      setDescription('');
+      setShowErrors(false);
+      setIsScheduled(false);
+      setScheduledDate('');
+      setRecurrenceType('fixed_day');
+      setTargetBusinessDay('5');
+      setWeekendStrategy('next');
     }
-  }, [open, income, initialData]);
+  }
+}, [open, income, initialData]);
 
   // --- Handlers ---
   const handleDelete = async () => {
