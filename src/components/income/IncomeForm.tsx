@@ -3,7 +3,6 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useIncome } from '@/contexts/IncomeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,13 +13,13 @@ import { Switch } from '@/components/ui/switch';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { cn } from '@/lib/utils';
 import { Income } from '@/types/income';
-import { Loader2, Trash2, Calendar, CalendarClock, CalendarDays, Lock, Wallet, FileText, Tag, CreditCard, Repeat, Settings2 } from 'lucide-react';
+import { Loader2, Trash2, FileText, Tag, CreditCard, Repeat, Settings2, CalendarClock, Lock } from 'lucide-react';
 import { CalculatorPopover } from '@/components/ui/calculator-popover';
 import { toast } from 'sonner';
-import { addMonths, format } from 'date-fns';
+import { addMonths, format, parseISO } from 'date-fns';
 import { type RecurrenceScope, toIsoDay, dayOfMonth, withDayOfMonth } from '@/lib/recurrenceScope';
-import { getPlanLimit, getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
 import { DateInputBR } from "@/components/ui/date-input-br";
+import { adjustToBusinessDay, getNthBusinessDay } from '@/lib/businessDays';
 
 interface IncomeFormProps {
   open: boolean;
@@ -30,14 +29,12 @@ interface IncomeFormProps {
 }
 
 export default function IncomeForm({ open, onOpenChange, income, initialData }: IncomeFormProps) {
-  const navigate = useNavigate();
-  const { hasFeatureAccess, subscriptionPlan, user } = useAuth();
+  const { hasFeatureAccess, user } = useAuth();
   const { accounts } = useFinance();
   const { refreshData, incomeCategories, incomeSubcategories, removeIncome, addIncomeCategory } = useIncome();
   const canUseExtraControl = hasFeatureAccess('extra_control');
-  const recurrencePlanLimit = getPlanLimit(subscriptionPlan as string);
   const ADD_CATEGORY_OPTION = '__add_new_income_category__';
-  
+
   // --- State ---
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -50,16 +47,20 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [installments, setInstallments] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [excludeFromCalculations, setExcludeFromCalculations] = useState(false);
-  const [recurrenceUsage, setRecurrenceUsage] = useState(0);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [description, setDescription] = useState(''); // Usado para observações
+  const [description, setDescription] = useState('');
   const [showErrors, setShowErrors] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
+
+  // Regras de Dia Útil / Final de Semana
+  const [recurrenceType, setRecurrenceType] = useState<'fixed_day' | 'business_day'>('fixed_day');
+  const [targetBusinessDay, setTargetBusinessDay] = useState('5');
+  const [weekendStrategy, setWeekendStrategy] = useState<'next' | 'previous' | 'exact'>('next');
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
@@ -83,7 +84,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     if (open) {
       const today = getTodayString();
       const dataToLoad = income || initialData;
-      
+
       if (dataToLoad) {
         setTitle(dataToLoad.title || '');
         setCategoryId(dataToLoad.categoryId || (dataToLoad as any).category_id || '');
@@ -98,6 +99,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setDescription(dataToLoad.description || '');
         setIsScheduled((dataToLoad as any).is_scheduled || false);
         setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
+        
+        // Carrega regras personalizadas se existirem no banco
+        setRecurrenceType((dataToLoad as any).recurrence_type || 'fixed_day');
+        setTargetBusinessDay((dataToLoad as any).target_business_day?.toString() || '5');
+        setWeekendStrategy((dataToLoad as any).weekend_strategy || 'next');
       } else {
         setTitle('');
         setCategoryId('');
@@ -113,23 +119,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setShowErrors(false);
         setIsScheduled(false);
         setScheduledDate('');
+        setRecurrenceType('fixed_day');
+        setTargetBusinessDay('5');
+        setWeekendStrategy('next');
       }
     }
   }, [open, income, initialData]);
-
-  useEffect(() => {
-    if (!open || !user?.id) return;
-    if (income) return;
-    const loadQuota = async () => {
-      try {
-        const quota = await getRecurrenceQuotaStatus(user.id, subscriptionPlan as string);
-        setRecurrenceUsage(quota.used);
-      } catch {
-        setRecurrenceUsage(0);
-      }
-    };
-    loadQuota();
-  }, [open, income, user?.id, subscriptionPlan]);
 
   // --- Handlers ---
   const handleDelete = async () => {
@@ -275,6 +270,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         description: description || null,
         is_scheduled: isScheduled,
         scheduled_date: isScheduled && scheduledDate ? `${scheduledDate}T12:00:00` : null,
+        recurrence_type: isRecurring ? recurrenceType : 'fixed_day',
+        target_business_day: isRecurring && recurrenceType === 'business_day' ? parseInt(targetBusinessDay) : null,
+        weekend_strategy: isRecurring ? weekendStrategy : 'exact',
       };
 
       if (income) {
@@ -293,10 +291,22 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           const newIncomes = [];
           const limit = parseInt(installments);
           const [y, m, d] = receiveDate.split('-').map(Number);
-          const startDate = new Date(y, m - 1, d, 12);
+          const initialDate = parseISO(receiveDate);
 
           for (let i = 0; i < limit; i++) {
-            const nextDate = addMonths(startDate, i);
+            let nextDate: Date;
+
+            if (recurrenceType === 'business_day') {
+              // Calcula o N-ésimo dia útil do mês correspondente
+              const targetMonth = (initialDate.getMonth() + i) % 12;
+              const targetYear = initialDate.getFullYear() + Math.floor((initialDate.getMonth() + i) / 12);
+              nextDate = getNthBusinessDay(targetYear, targetMonth, parseInt(targetBusinessDay), weekendStrategy === 'previous' ? 'previous' : 'next');
+            } else {
+              // Adiciona meses e ajusta final de semana conforme estratégia
+              const rawDate = addMonths(initialDate, i);
+              nextDate = adjustToBusinessDay(rawDate, weekendStrategy);
+            }
+
             newIncomes.push({
               ...payload,
               receive_date: format(nextDate, 'yyyy-MM-dd'),
@@ -308,7 +318,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           }
           const { error } = await supabase.from('incomes').insert(newIncomes);
           if (error) throw error;
-          toast.success(`${limit} receitas parceladas criadas!`);
+          toast.success(`${limit} receitas recorrentes/parceladas criadas!`);
         } else {
           const { error } = await supabase.from('incomes').insert([payload]);
           if (error) throw error;
@@ -326,7 +336,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     }
   };
 
-  const filteredSubcategories = incomeSubcategories.filter(s => s.categoryId === categoryId);
+  const filteredSubcategories = (incomeSubcategories || []).filter(s => s.categoryId === categoryId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -359,7 +369,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                 <Label className={cn("flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider", showErrors && !title ? "text-destructive" : "text-muted-foreground")}>
                   <FileText className="w-3 h-3" /> Descrição *
                 </Label>
-                <Input value={title} onChange={e => setTitle(e.target.value)} className={cn("h-11 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !title && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Salário" />
+                <Input value={title} onChange={e => setTitle(e.target.value)} className={cn("h-11 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !title && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Salário, Aluguel Recebido" />
               </div>
               <div key={`amt-${shakeKey}`} className={cn("w-full sm:w-64 space-y-1.5", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "animate-shake")}>
                 <Label className={cn("text-[11px] font-bold uppercase tracking-wider", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 ? "text-destructive" : "text-muted-foreground")}>Valor *</Label>
@@ -387,7 +397,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                     <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value={ADD_CATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-emerald-600">+ Nova categoria</SelectItem>
-                      {incomeCategories.map(c => (
+                      {(incomeCategories || []).map(c => (
                         <SelectItem key={c.id} value={c.id}>
                           <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-emerald-500`} /> {c.name}</div>
                         </SelectItem>
@@ -424,7 +434,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                   <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Conta</Label>
                   <Select value={accountId} onValueChange={setAccountId}>
                     <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Selecione a conta (Opcional)" /></SelectTrigger>
-                    <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
+                    <SelectContent>{(accounts || []).map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="col-span-2 space-y-1.5">
@@ -442,12 +452,12 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Recorrência & Observação */}
+            {/* Recorrência & Configurações de Dia Útil */}
             <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
               <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500/40" />
               <div className="flex items-center gap-2 pl-2 mb-3">
                 <Repeat className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Recorrência & Notas</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Recorrência & Dias Úteis</span>
                 <div className="flex-1 h-px bg-border/60" />
               </div>
               <div className="space-y-3 pl-2">
@@ -464,12 +474,71 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                   </div>
                   {isRecurring && (
                     <div className="space-y-1.5">
-                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Parcelas</Label>
-                      <Input type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="h-10 w-24 text-center rounded-xl border-border/60 bg-muted/30" />
+                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Repetições</Label>
+                      <Input type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="h-10 w-24 text-center rounded-xl border-border/60 bg-muted/30" placeholder="Meses" />
                     </div>
                   )}
                 </div>
-                <div className="space-y-1.5">
+
+                {/* Opções Personalizadas para Dias Úteis */}
+                {isRecurring && (
+                  <div className="space-y-3 pt-2 border-t border-border/40 animate-in fade-in slide-in-from-top-1">
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Regra de Recebimento</Label>
+                      <Select value={recurrenceType} onValueChange={(v: 'fixed_day' | 'business_day') => setRecurrenceType(v)}>
+                        <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fixed_day">Dia Fixo do Mês (ex: Todo dia 10)</SelectItem>
+                          <SelectItem value="business_day">Dia Útil do Mês (ex: 5º dia útil)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {recurrenceType === 'business_day' ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1.5">
+                          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Nº do Dia Útil</Label>
+                          <Select value={targetBusinessDay} onValueChange={setTargetBusinessDay}>
+                            <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1º Dia Útil</SelectItem>
+                              <SelectItem value="2">2º Dia Útil</SelectItem>
+                              <SelectItem value="5">5º Dia Útil</SelectItem>
+                              <SelectItem value="10">10º Dia Útil</SelectItem>
+                              <SelectItem value="15">15º Dia Útil</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ajuste Fim de Semana</Label>
+                          <Select value={weekendStrategy} onValueChange={(v: any) => setWeekendStrategy(v)}>
+                            <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="next">Próximo Dia Útil</SelectItem>
+                              <SelectItem value="previous">Dia Útil Anterior</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Se cair no Fim de Semana</Label>
+                        <Select value={weekendStrategy} onValueChange={(v: any) => setWeekendStrategy(v)}>
+                          <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="next">Mover p/ Próximo Dia Útil</SelectItem>
+                            <SelectItem value="previous">Mover p/ Dia Útil Anterior</SelectItem>
+                            <SelectItem value="exact">Manter no Fim de Semana</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-1.5 pt-1">
                   <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Observação</Label>
                   <textarea value={description} onChange={e => setDescription(e.target.value)} className="flex w-full rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm focus:bg-card resize-none" placeholder="Anotações opcionais..." rows={2} />
                 </div>
@@ -566,7 +635,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </Dialog>
   );
 }
