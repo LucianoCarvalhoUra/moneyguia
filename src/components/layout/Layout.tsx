@@ -31,6 +31,7 @@ export default function Layout({ children }: LayoutProps) {
     "/reconciliation": "Conciliação de Cartão",
     "/conciliacao": "Conciliação Bancária",
     "/reports": "Relatórios",
+    "/report-builder": "Construtor de Comprovantes",
     "/subscription": "Assinatura",
     "/settings": "Configurações",
     "/admin": "Admin",

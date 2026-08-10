@@ -336,7 +336,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl w-[calc(100vw-1rem)] max-h-[95vh] sm:max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
+      <DialogContent className="sm:max-w-4xl w-[calc(100vw-1rem)] max-h-[95vh] sm:max-h-[92vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
         {/* Header - Identidade Verde */}
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-emerald-500/5 to-transparent">
           <div className="min-w-0">
@@ -356,30 +356,66 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(95vh-72px)] sm:max-h-[calc(90vh-80px)]">
-          {/* Seção: Informações */}
-          <div className="flex items-center gap-2 -mb-2">
-            <FileText className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Informações</span>
-            <div className="flex-1 h-px bg-border/60" />
-          </div>
-          {/* Row 1: Descrição + Valor */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div key={`title-${shakeKey}`} className={cn("sm:col-span-2 space-y-1.5", showErrors && !title && "animate-shake")}>
-              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !title ? "text-destructive" : "text-muted-foreground")}>Descrição *</Label>
-              <Input value={title} onChange={e => setTitle(e.target.value)} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !title && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Salário" />
-              {showErrors && !title && <span className="text-xs text-destructive">Campo obrigatório</span>}
-            </div>
-            <div key={`amt-${shakeKey}`} className={cn("space-y-1.5", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "animate-shake")}>
-              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 ? "text-destructive" : "text-muted-foreground")}>Valor *</Label>
-              <div className="flex items-center gap-1">
-                <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className={cn("h-10 rounded-xl border-border/60 bg-muted/30 focus:bg-card text-right font-semibold transition-colors text-emerald-600", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "border-destructive ring-1 ring-destructive/30")} placeholder="R$ 0,00" />
-                <CalculatorPopover currentValue={amount} onConfirm={(val) => setAmount(formatCurrencyInput(val))} />
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[calc(95vh-72px)] sm:max-h-[calc(92vh-80px)] bg-muted/20">
+          {/* Bloco principal: Descrição + Valor */}
+          <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+            <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500" />
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end pl-2">
+              <div key={`title-${shakeKey}`} className={cn("flex-1 space-y-1.5", showErrors && !title && "animate-shake")}>
+                <Label className={cn("flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider", showErrors && !title ? "text-destructive" : "text-muted-foreground")}>
+                  <FileText className="w-3 h-3" /> Descrição *
+                </Label>
+                <Input value={title} onChange={e => setTitle(e.target.value)} className={cn("h-11 rounded-xl border-border/60 bg-muted/30 focus:bg-card transition-colors", showErrors && !title && "border-destructive ring-1 ring-destructive/30")} placeholder="Ex: Salário" />
               </div>
-              {showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && <span className="text-xs text-destructive">Campo obrigatório</span>}
+              <div key={`amt-${shakeKey}`} className={cn("w-full sm:w-64 space-y-1.5", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "animate-shake")}>
+                <Label className={cn("text-[11px] font-bold uppercase tracking-wider", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 ? "text-destructive" : "text-muted-foreground")}>Valor *</Label>
+                <div className="flex items-center gap-1">
+                  <Input value={amount} onChange={e => setAmount(formatCurrencyInput(e.target.value))} className={cn("h-11 rounded-xl border-border/60 bg-muted/30 focus:bg-card text-right text-lg font-bold transition-colors text-emerald-600", showErrors && (parseFloat(amount.replace(/[^\d,]/g, '').replace(',', '.')) || 0) <= 0 && "border-destructive ring-1 ring-destructive/30")} placeholder="R$ 0,00" />
+                  <CalculatorPopover currentValue={amount} onConfirm={(val) => setAmount(formatCurrencyInput(val))} />
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Categoria & Recebimento */}
+            <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+              <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500/40" />
+              <div className="flex items-center gap-2 pl-2 mb-3">
+                <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Categoria & Recebimento</span>
+                <div className="flex-1 h-px bg-border/60" />
+              </div>
+              <div className="grid grid-cols-2 gap-3 pl-2">
+                <div key={`cat-${shakeKey}`} className={cn("space-y-1.5", showErrors && !categoryId && "animate-shake")}>
+                  <Label className={cn("text-[11px] font-bold uppercase tracking-wider", showErrors && !categoryId ? "text-destructive" : "text-muted-foreground")}>Categoria *</Label>
+                  <Select value={categoryId} onValueChange={handleCategorySelectChange}>
+                    <SelectTrigger className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !categoryId && "border-destructive ring-1 ring-destructive/30")}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ADD_CATEGORY_OPTION} className="border-b mb-1 pb-2 font-medium text-emerald-600">+ Nova categoria</SelectItem>
+                      {incomeCategories.map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <div className="flex items-center gap-2"><CategoryIcon iconName={c.icon} className={`w-4 h-4 text-emerald-500`} /> {c.name}</div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Subcategoria</Label>
+                  <Select value={subcategoryId} onValueChange={setSubcategoryId} disabled={!categoryId}>
+                    <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Opcional" /></SelectTrigger>
+                    <SelectContent>
+                      {filteredSubcategories.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div key={`due-${shakeKey}`} className={cn("col-span-2 space-y-1.5", showErrors && !receiveDate && "animate-shake")}>
+                  <Label className={cn("text-[11px] font-bold uppercase tracking-wider", showErrors && !receiveDate ? "text-destructive" : "text-muted-foreground")}>Data de Recebimento *</Label>
+                  <DateInputBR value={receiveDate} onChange={setReceiveDate} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
+                </div>
+              </div>
+            </section>
           {/* Seção: Categoria & Recebimento */}
           <div className="flex items-center gap-2 -mb-2 pt-2">
             <Tag className="w-3.5 h-3.5 text-emerald-600" />
@@ -417,60 +453,78 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
           </div>
 
-          {/* Seção: Conta */}
-          <div className="flex items-center gap-2 -mb-2 pt-2">
-            <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Conta de Destino</span>
-            <div className="flex-1 h-px bg-border/60" />
-          </div>
-          {/* Row 3: Conta + Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-2 space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Conta de Destino</Label>
-              <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Selecione a conta (Opcional)" /></SelectTrigger>
-                <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
-              <button type="button" onClick={() => setIsReceived(!isReceived)} className={cn(
-                "flex items-center justify-center gap-2 w-full h-10 rounded-xl border text-sm font-semibold transition-all",
-                isReceived ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600" : "bg-muted/30 border-border/60 text-muted-foreground"
-              )}>
-                <span className={cn("w-2 h-2 rounded-full", isReceived ? "bg-emerald-500" : "bg-muted-foreground/40")} />
-                {isReceived ? 'Recebido' : 'Pendente'}
-              </button>
-            </div>
-          </div>
-
-          {/* Seção: Recorrência & Observação */}
-          <div className="flex items-center gap-2 -mb-2 pt-2">
-            <Repeat className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Recorrência</span>
-            <div className="flex-1 h-px bg-border/60" />
-          </div>
-          {/* Row 4: Recorrência + Observação */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recorrência</Label>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={cn(
-                  "flex items-center justify-center gap-2 h-10 rounded-xl border text-sm font-semibold transition-all flex-1",
-                  isRecurring ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600" : "bg-muted/30 border-border/60 text-muted-foreground"
-                )}>
-                  <span className={cn("w-2 h-2 rounded-full", isRecurring ? "bg-emerald-500" : "bg-muted-foreground/40")} />
-                  {isRecurring ? 'Sim' : 'Não'}
-                </button>
-                {isRecurring && <Input type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="h-10 w-20 text-center rounded-xl border-border/60 bg-muted/30" />}
+            {/* Conta de Destino & Status */}
+            <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+              <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500/40" />
+              <div className="flex items-center gap-2 pl-2 mb-3">
+                <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Conta de Destino</span>
+                <div className="flex-1 h-px bg-border/60" />
               </div>
-            </div>
-            <div className="sm:col-span-2 space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observação</Label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)} className="flex w-full rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm focus:bg-card resize-none" placeholder="Anotações opcionais..." rows={2} />
-            </div>
+              <div className="grid grid-cols-2 gap-3 pl-2">
+                <div className="col-span-2 space-y-1.5">
+                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Conta</Label>
+                  <Select value={accountId} onValueChange={setAccountId}>
+                    <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30"><SelectValue placeholder="Selecione a conta (Opcional)" /></SelectTrigger>
+                    <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bankName}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Status</Label>
+                  <button type="button" onClick={() => setIsReceived(!isReceived)} className={cn(
+                    "flex items-center justify-center gap-2 w-full h-10 rounded-xl border text-sm font-semibold transition-all",
+                    isReceived ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600" : "bg-muted/30 border-border/60 text-muted-foreground"
+                  )}>
+                    <span className={cn("w-2 h-2 rounded-full", isReceived ? "bg-emerald-500" : "bg-muted-foreground/40")} />
+                    {isReceived ? 'Recebido' : 'Pendente'}
+                  </button>
+                </div>
+              </div>
+            </section>
           </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Recorrência & Observação */}
+            <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+              <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500/40" />
+              <div className="flex items-center gap-2 pl-2 mb-3">
+                <Repeat className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Recorrência & Notas</span>
+                <div className="flex-1 h-px bg-border/60" />
+              </div>
+              <div className="space-y-3 pl-2">
+                <div className="flex items-end gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Recorrente</Label>
+                    <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={cn(
+                      "flex items-center justify-center gap-2 h-10 w-full rounded-xl border text-sm font-semibold transition-all",
+                      isRecurring ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600" : "bg-muted/30 border-border/60 text-muted-foreground"
+                    )}>
+                      <span className={cn("w-2 h-2 rounded-full", isRecurring ? "bg-emerald-500" : "bg-muted-foreground/40")} />
+                      {isRecurring ? 'Sim' : 'Não'}
+                    </button>
+                  </div>
+                  {isRecurring && (
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Parcelas</Label>
+                      <Input type="number" min="1" value={installments} onChange={e => setInstallments(e.target.value)} className="h-10 w-24 text-center rounded-xl border-border/60 bg-muted/30" />
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Observação</Label>
+                  <textarea value={description} onChange={e => setDescription(e.target.value)} className="flex w-full rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm focus:bg-card resize-none" placeholder="Anotações opcionais..." rows={2} />
+                </div>
+              </div>
+            </section>
+
+            {/* Opções Avançadas */}
+            <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+              <span className="absolute inset-y-0 left-0 w-1 bg-emerald-500/40" />
+              <div className="flex items-center gap-2 pl-2 mb-3">
+                <Settings2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Opções Avançadas</span>
+                <div className="flex-1 h-px bg-border/60" />
           {/* Seção: Avançado */}
           <div className="flex items-center gap-2 -mb-2 pt-2">
             <Settings2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -491,16 +545,32 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data do Agendamento (Baixa Automática)</Label>
                 <DateInputBR value={scheduledDate} onChange={setScheduledDate} className="h-10 rounded-xl border-border/60 bg-muted/30" />
               </div>
-            )}
-            <div className="border-t border-border/40" />
-            <div className={cn("flex items-center gap-3", !canUseExtraControl && "opacity-40")}>
-              <Switch id="visual-control-income" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl && !income} />
-              <Label htmlFor="visual-control-income" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                {!canUseExtraControl && !income && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
-                Apenas controle visual (não contabilizar)
-              </Label>
-            </div>
+              <div className="space-y-3 pl-2">
+                <div className={cn("flex items-center gap-3", isReceived && "opacity-40 pointer-events-none")}>
+                  <Switch id="income-scheduling" checked={isScheduled} onCheckedChange={setIsScheduled} disabled={isReceived} />
+                  <Label htmlFor="income-scheduling" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                    <CalendarClock className="h-4 w-4 text-emerald-600" />
+                    Agendar esta receita
+                  </Label>
+                </div>
+                {isScheduled && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-1.5 pl-12">
+                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Data do Agendamento (Baixa Automática)</Label>
+                    <DateInputBR value={scheduledDate} onChange={setScheduledDate} className="h-10 rounded-xl border-border/60 bg-muted/30" />
+                  </div>
+                )}
+                <div className="border-t border-border/40" />
+                <div className={cn("flex items-center gap-3", !canUseExtraControl && "opacity-40")}>
+                  <Switch id="visual-control-income" checked={excludeFromCalculations} onCheckedChange={setExcludeFromCalculations} disabled={!canUseExtraControl && !income} />
+                  <Label htmlFor="visual-control-income" className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                    {!canUseExtraControl && !income && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                    Apenas controle visual
+                  </Label>
+                </div>
+              </div>
+            </section>
           </div>
+
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-3 border-t border-border/40">

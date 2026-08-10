@@ -780,6 +780,36 @@ export type Database = {
         }
         Relationships: []
       }
+      report_templates: {
+        Row: {
+          created_at: string
+          id: string
+          layout_json: Json
+          name: string
+          page_size: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          layout_json?: Json
+          name: string
+          page_size?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          layout_json?: Json
+          name?: string
+          page_size?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subcategories: {
         Row: {
           category_id: string
