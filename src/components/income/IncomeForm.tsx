@@ -79,19 +79,26 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(floatValue);
   };
 
-  // Recalcula a Data de Recebimento dinâmica com base nos seletores
-  const updateDynamicReceiveDate = (type: 'fixed_day' | 'business_day', busDay: string, strategy: 'next' | 'previous' | 'exact') => {
-    const currentDate = receiveDate ? parseISO(receiveDate) : new Date();
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+  // Recalcula a Data de Recebimento dinâmica de forma robusta
+  const updateDynamicReceiveDate = (
+    type: 'fixed_day' | 'business_day', 
+    busDay: string, 
+    strategy: 'next' | 'previous' | 'exact'
+  ) => {
+    const base = receiveDate && !isNaN(Date.parse(receiveDate)) ? parseISO(receiveDate) : new Date();
+    const year = base.getFullYear();
+    const month = base.getMonth();
+
+    let calculatedDate: Date;
 
     if (type === 'business_day') {
-      const calculatedDate = getNthBusinessDay(year, month, parseInt(busDay), strategy === 'previous' ? 'previous' : 'next');
-      setReceiveDate(format(calculatedDate, 'yyyy-MM-dd'));
+      calculatedDate = getNthBusinessDay(year, month, parseInt(busDay), strategy === 'previous' ? 'previous' : 'next');
     } else {
-      const adjustedDate = adjustToBusinessDay(currentDate, strategy);
-      setReceiveDate(format(adjustedDate, 'yyyy-MM-dd'));
+      calculatedDate = adjustToBusinessDay(base, strategy);
     }
+
+    const formattedDate = format(calculatedDate, 'yyyy-MM-dd');
+    setReceiveDate(formattedDate);
   };
 
   // --- Initialization ---
@@ -436,7 +443,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
                       value={recurrenceType} 
                       onValueChange={(v: 'fixed_day' | 'business_day') => {
                         setRecurrenceType(v);
-                        updateDynamicReceiveDate(v, targetBusinessDay, weekendStrategy);
+                        setTimeout(() => updateDynamicReceiveDate(v, targetBusinessDay, weekendStrategy), 0);
                       }}
                     >
                       <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/30">
