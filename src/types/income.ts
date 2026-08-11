@@ -20,7 +20,7 @@ export interface Income {
   subcategoryId?: string;
   title: string;
   amount: number;
-  receiveDate: Date;
+  receiveDate: Date | string;
   description?: string;
   isRecurring: boolean;
   isReceived: boolean;
@@ -30,13 +30,17 @@ export interface Income {
   installments?: number;
   currentInstallment?: number;
   userId: string;
-  createdAt: Date;
+  createdAt: Date | string;
   groupId?: string;
-  recurrenceType?: 'fixed_day' | 'business_day';
-  targetBusinessDay?: number | null;
-  weekendStrategy?: 'next' | 'previous' | 'exact';
-}
 
+  // Campos de Regra de Dia Útil / Fim de Semana (Suporte a camelCase e snake_case)
+  recurrenceType?: 'fixed_day' | 'business_day';
+  targetBusinessDay?: number | string | null;
+  weekendStrategy?: 'next' | 'previous' | 'exact';
+  recurrence_type?: 'fixed_day' | 'business_day';
+  target_business_day?: number | string | null;
+  weekend_strategy?: 'next' | 'previous' | 'exact';
+}
 
 export const DEFAULT_INCOME_CATEGORIES: Omit<IncomeCategory, 'userId'>[] = [
   { id: 'salary', name: 'Salário', icon: '💼', color: 'category-income-salary', isDefault: true },
