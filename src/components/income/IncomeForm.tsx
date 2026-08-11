@@ -490,10 +490,72 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
               </Select>
             </div>
             <div key={`due-${shakeKey}`} className={cn("space-y-1.5", showErrors && !receiveDate && "animate-shake")}>
-              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !receiveDate ? "text-destructive" : "text-muted-foreground")}>Data de Recebimento *</Label>
-              <DateInputBR value={receiveDate} onChange={setReceiveDate} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
+              <Label className={cn("text-xs font-semibold uppercase tracking-wider", showErrors && !receiveDate ? "text-destructive" : "text-muted-foreground")}>
+                {recurrenceType === 'business_day' ? 'Data de Recebimento Calculada *' : 'Data de Recebimento *'}
+              </Label>
+              <DateInputBR value={receiveDate} onChange={(v) => { setReceiveDate(v); }} className={cn("h-10 rounded-xl border-border/60 bg-muted/30", showErrors && !receiveDate && "border-destructive ring-1 ring-destructive/30")} />
             </div>
           </div>
+
+          {/* Regra de recebimento */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-2xl border border-border/60 bg-muted/20 p-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Regra de Recebimento</Label>
+              <Select
+                value={recurrenceType}
+                onValueChange={(v: 'fixed_day' | 'business_day') => {
+                  setRecurrenceType(v);
+                  updateDynamicReceiveDate(v, targetBusinessDay, weekendStrategy);
+                }}
+              >
+                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fixed_day">Dia Fixo do Mês</SelectItem>
+                  <SelectItem value="business_day">Dia Útil do Mês</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {recurrenceType === 'business_day' && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nº do Dia Útil</Label>
+                <Select
+                  value={String(targetBusinessDay)}
+                  onValueChange={(v) => {
+                    const n = Number(v);
+                    setTargetBusinessDay(n);
+                    updateDynamicReceiveDate(recurrenceType, n, weekendStrategy);
+                  }}
+                >
+                  <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BUSINESS_DAY_OPTIONS.map(n => (
+                      <SelectItem key={n} value={String(n)}>{n}º dia útil</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ajuste Fim de Semana</Label>
+              <Select
+                value={weekendStrategy}
+                onValueChange={(v: 'next' | 'previous' | 'exact') => {
+                  setWeekendStrategy(v);
+                  updateDynamicReceiveDate(recurrenceType, targetBusinessDay, v);
+                }}
+              >
+                <SelectTrigger className="h-10 rounded-xl border-border/60 bg-card"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="next">Próximo Dia Útil</SelectItem>
+                  <SelectItem value="previous">Dia Útil Anterior</SelectItem>
+                  <SelectItem value="exact">Manter no Fim de Semana</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
 
           {/* Seção: Conta */}
           <div className="flex items-center gap-2 -mb-2 pt-2">
