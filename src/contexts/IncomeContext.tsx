@@ -281,14 +281,22 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         const receiveDate = new Date(income.receiveDate);
         receiveDate.setMonth(receiveDate.getMonth() + i);
 
-        
+        const resolvedDate = resolveReceiveDate({
+          year: receiveDate.getFullYear(),
+          monthIndex: receiveDate.getMonth(),
+          fixedDay: new Date(income.receiveDate).getDate(),
+          recurrenceType: ruleFields.recurrence_type as 'fixed_day' | 'business_day',
+          targetBusinessDay: ruleFields.target_business_day,
+          weekendStrategy: ruleFields.weekend_strategy as 'next' | 'previous' | 'exact',
+        });
+
         incomesToInsert.push({
           user_id: user.id,
           category_id: income.categoryId || null,
           subcategory_id: income.subcategoryId || null,
           title: income.title,
           amount: income.amount,
-          receive_date: receiveDate.toISOString().split('T')[0],
+          receive_date: resolvedDate,
           description: income.description || null,
           is_recurring: income.isRecurring,
           is_received: income.isReceived ?? false,
@@ -297,6 +305,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           exclude_from_calculations: income.excludeFromCalculations ?? false,
           current_installment: i + 1,
           installments: totalInstallments,
+          ...ruleFields,
         });
       }
     } else {
@@ -306,15 +315,17 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         subcategory_id: income.subcategoryId || null,
         title: income.title,
         amount: income.amount,
-        receive_date: income.receiveDate.toISOString().split('T')[0],
+        receive_date: toIsoDate(new Date(income.receiveDate)),
         description: income.description || null,
         is_recurring: income.isRecurring,
         is_received: income.isReceived ?? false,
         account_id: income.accountId || null,
         recurrence_id: recurrenceId,
         exclude_from_calculations: income.excludeFromCalculations ?? false,
+        ...ruleFields,
       });
     }
+
 
     const { data, error } = await (supabase
       .from('incomes') as any)
