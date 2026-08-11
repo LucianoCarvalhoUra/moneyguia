@@ -63,6 +63,10 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [scheduledDate, setScheduledDate] = useState('');
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
+  const [recurrenceType, setRecurrenceType] = useState<'fixed_day' | 'business_day'>('fixed_day');
+  const [targetBusinessDay, setTargetBusinessDay] = useState<number>(1);
+  const [weekendStrategy, setWeekendStrategy] = useState<'next' | 'previous' | 'exact'>('next');
+
 
   // --- Helpers ---
   const formatToInput = (dateVal: any) => {
