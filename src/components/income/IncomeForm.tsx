@@ -87,6 +87,30 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(floatValue);
   };
 
+  /** Recalcula a data de recebimento conforme a regra selecionada. */
+  const updateDynamicReceiveDate = (
+    type: 'fixed_day' | 'business_day' = recurrenceType,
+    bDay: number = targetBusinessDay,
+    strategy: 'next' | 'previous' | 'exact' = weekendStrategy,
+    baseDate: string = receiveDate,
+  ) => {
+    const base = baseDate || getTodayString();
+    const [y, m, d] = base.split('-').map(Number);
+    if (!y || !m) return;
+    setReceiveDate(
+      resolveReceiveDate({
+        year: y,
+        monthIndex: m - 1,
+        fixedDay: d,
+        recurrenceType: type,
+        targetBusinessDay: bDay,
+        weekendStrategy: strategy,
+      }),
+    );
+  };
+
+
+
   // --- Initialization ---
   useEffect(() => {
     if (open) {
