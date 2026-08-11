@@ -345,7 +345,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         description: description || null, // Observação
         is_scheduled: isScheduled,
         scheduled_date: isScheduled && scheduledDate ? `${scheduledDate}T12:00:00` : null,
+        recurrence_type: recurrenceType,
+        target_business_day: recurrenceType === 'business_day' ? targetBusinessDay : null,
+        weekend_strategy: weekendStrategy,
       };
+
 
       if (income) {
         if (income.isRecurring) {
