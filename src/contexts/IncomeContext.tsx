@@ -358,6 +358,10 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     if (incomeUpdate.isReceived !== undefined) updateData.is_received = incomeUpdate.isReceived;
     if (incomeUpdate.excludeFromCalculations !== undefined) updateData.exclude_from_calculations = incomeUpdate.excludeFromCalculations;
     if (incomeUpdate.accountId !== undefined) updateData.account_id = incomeUpdate.accountId || null;
+    if (incomeUpdate.recurrenceType !== undefined) updateData.recurrence_type = incomeUpdate.recurrenceType;
+    if (incomeUpdate.targetBusinessDay !== undefined) updateData.target_business_day = incomeUpdate.targetBusinessDay ?? null;
+    if (incomeUpdate.weekendStrategy !== undefined) updateData.weekend_strategy = incomeUpdate.weekendStrategy;
+
 
     const { error } = await supabase
       .from('incomes')
