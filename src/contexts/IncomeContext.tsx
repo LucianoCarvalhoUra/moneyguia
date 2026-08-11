@@ -4,6 +4,8 @@ import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
+import { resolveReceiveDate, toIsoDate } from '@/lib/businessDays';
+
 
 interface IncomeContextType {
   incomes: Income[];
@@ -181,9 +183,13 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             userId: i.user_id,
             createdAt: new Date(i.created_at),
             groupId: (i as any).group_id || undefined,
+            recurrenceType: ((i as any).recurrence_type as 'fixed_day' | 'business_day') || 'fixed_day',
+            targetBusinessDay: (i as any).target_business_day ?? null,
+            weekendStrategy: ((i as any).weekend_strategy as 'next' | 'previous' | 'exact') || 'next',
             is_scheduled: (i as any).is_scheduled ?? false,
             scheduled_date: (i as any).scheduled_date || null,
           };
+
         }));
       }
     } catch (error) {
@@ -259,7 +265,16 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       exclude_from_calculations: boolean;
       current_installment?: number | null;
       installments?: number | null;
+      recurrence_type?: string | null;
+      target_business_day?: number | null;
+      weekend_strategy?: string | null;
     }> = [];
+
+    const ruleFields = {
+      recurrence_type: income.recurrenceType || 'fixed_day',
+      target_business_day: income.targetBusinessDay ?? null,
+      weekend_strategy: income.weekendStrategy || 'next',
+    };
 
     // If recurring, create 12 months of income
     if (income.isRecurring) {
@@ -267,14 +282,23 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       for (let i = 0; i < totalInstallments; i++) {
         const receiveDate = new Date(income.receiveDate);
         receiveDate.setMonth(receiveDate.getMonth() + i);
-        
+
+        const resolvedDate = resolveReceiveDate({
+          year: receiveDate.getFullYear(),
+          monthIndex: receiveDate.getMonth(),
+          fixedDay: new Date(income.receiveDate).getDate(),
+          recurrenceType: ruleFields.recurrence_type as 'fixed_day' | 'business_day',
+          targetBusinessDay: ruleFields.target_business_day,
+          weekendStrategy: ruleFields.weekend_strategy as 'next' | 'previous' | 'exact',
+        });
+
         incomesToInsert.push({
           user_id: user.id,
           category_id: income.categoryId || null,
           subcategory_id: income.subcategoryId || null,
           title: income.title,
           amount: income.amount,
-          receive_date: receiveDate.toISOString().split('T')[0],
+          receive_date: resolvedDate,
           description: income.description || null,
           is_recurring: income.isRecurring,
           is_received: income.isReceived ?? false,
@@ -283,6 +307,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           exclude_from_calculations: income.excludeFromCalculations ?? false,
           current_installment: i + 1,
           installments: totalInstallments,
+          ...ruleFields,
         });
       }
     } else {
@@ -292,15 +317,17 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         subcategory_id: income.subcategoryId || null,
         title: income.title,
         amount: income.amount,
-        receive_date: income.receiveDate.toISOString().split('T')[0],
+        receive_date: toIsoDate(new Date(income.receiveDate)),
         description: income.description || null,
         is_recurring: income.isRecurring,
         is_received: income.isReceived ?? false,
         account_id: income.accountId || null,
         recurrence_id: recurrenceId,
         exclude_from_calculations: income.excludeFromCalculations ?? false,
+        ...ruleFields,
       });
     }
+
 
     const { data, error } = await (supabase
       .from('incomes') as any)
@@ -331,6 +358,10 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     if (incomeUpdate.isReceived !== undefined) updateData.is_received = incomeUpdate.isReceived;
     if (incomeUpdate.excludeFromCalculations !== undefined) updateData.exclude_from_calculations = incomeUpdate.excludeFromCalculations;
     if (incomeUpdate.accountId !== undefined) updateData.account_id = incomeUpdate.accountId || null;
+    if (incomeUpdate.recurrenceType !== undefined) updateData.recurrence_type = incomeUpdate.recurrenceType;
+    if (incomeUpdate.targetBusinessDay !== undefined) updateData.target_business_day = incomeUpdate.targetBusinessDay ?? null;
+    if (incomeUpdate.weekendStrategy !== undefined) updateData.weekend_strategy = incomeUpdate.weekendStrategy;
+
 
     const { error } = await supabase
       .from('incomes')
