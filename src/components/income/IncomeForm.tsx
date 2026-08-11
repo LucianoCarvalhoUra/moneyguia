@@ -373,13 +373,21 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             const nextDate = addMonths(startDate, i);
             newIncomes.push({
               ...payload,
-              receive_date: format(nextDate, 'yyyy-MM-dd'),
+              receive_date: resolveReceiveDate({
+                year: nextDate.getFullYear(),
+                monthIndex: nextDate.getMonth(),
+                fixedDay: d,
+                recurrenceType,
+                targetBusinessDay,
+                weekendStrategy,
+              }),
               is_received: i === 0 ? isReceived : false,
               recurrence_id: newRecurrenceId,
               current_installment: i + 1,
               installments: limit,
             });
           }
+
           const { error } = await supabase.from('incomes').insert(newIncomes);
           if (error) throw error;
           toast.success(`${limit} receitas parceladas criadas!`);
