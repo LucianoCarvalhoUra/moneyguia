@@ -259,21 +259,48 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             if (error) throw error;
           }
 
-          // Propagate day-of-month change keeping each installment's own month/year
-          if (receive_date && dayOfMonth(receive_date) !== dayOfMonth(originalReceiveDate)) {
+          const ruleType = (pendingData.recurrence_type || 'fixed_day') as 'fixed_day' | 'business_day';
+          const ruleStrategy = (pendingData.weekend_strategy || 'next') as 'next' | 'previous' | 'exact';
+          const ruleBusinessDay = pendingData.target_business_day || 1;
+
+          if (ruleType === 'business_day') {
+            // Recalcula o N-ésimo dia útil para o mês/ano de cada parcela
             await Promise.all(
-              (targets || []).map((t: any) =>
-                t.receive_date
-                  ? supabase
-                      .from('incomes')
-                      .update({ receive_date: withDayOfMonth(toIsoDay(t.receive_date), dayOfMonth(receive_date)) })
-                      .eq('id', t.id)
-                  : Promise.resolve()
-              )
+              (targets || []).map((t: any) => {
+                if (!t.receive_date) return Promise.resolve();
+                const iso = toIsoDay(t.receive_date);
+                const [ty, tm] = iso.split('-').map(Number);
+                const newDate = resolveReceiveDate({
+                  year: ty,
+                  monthIndex: tm - 1,
+                  recurrenceType: 'business_day',
+                  targetBusinessDay: ruleBusinessDay,
+                  weekendStrategy: ruleStrategy,
+                });
+                return supabase.from('incomes').update({ receive_date: newDate }).eq('id', t.id);
+              })
+            );
+          } else if (receive_date && dayOfMonth(receive_date) !== dayOfMonth(originalReceiveDate)) {
+            // Propaga a mudança de dia do mês mantendo mês/ano de cada parcela
+            await Promise.all(
+              (targets || []).map((t: any) => {
+                if (!t.receive_date) return Promise.resolve();
+                const iso = toIsoDay(t.receive_date);
+                const [ty, tm] = iso.split('-').map(Number);
+                const newDate = resolveReceiveDate({
+                  year: ty,
+                  monthIndex: tm - 1,
+                  fixedDay: dayOfMonth(receive_date),
+                  recurrenceType: 'fixed_day',
+                  weekendStrategy: ruleStrategy,
+                });
+                return supabase.from('incomes').update({ receive_date: newDate }).eq('id', t.id);
+              })
             );
           }
         }
       }
+
 
 
       toast.success('Receitas atualizadas com sucesso!');
