@@ -263,7 +263,16 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       exclude_from_calculations: boolean;
       current_installment?: number | null;
       installments?: number | null;
+      recurrence_type?: string | null;
+      target_business_day?: number | null;
+      weekend_strategy?: string | null;
     }> = [];
+
+    const ruleFields = {
+      recurrence_type: income.recurrenceType || 'fixed_day',
+      target_business_day: income.targetBusinessDay ?? null,
+      weekend_strategy: income.weekendStrategy || 'next',
+    };
 
     // If recurring, create 12 months of income
     if (income.isRecurring) {
@@ -271,6 +280,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       for (let i = 0; i < totalInstallments; i++) {
         const receiveDate = new Date(income.receiveDate);
         receiveDate.setMonth(receiveDate.getMonth() + i);
+
         
         incomesToInsert.push({
           user_id: user.id,
