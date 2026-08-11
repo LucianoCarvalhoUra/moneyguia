@@ -107,6 +107,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setDescription(dataToLoad.description || '');
         setIsScheduled((dataToLoad as any).is_scheduled || false);
         setScheduledDate((dataToLoad as any).scheduled_date ? formatToInput((dataToLoad as any).scheduled_date) : '');
+        setRecurrenceType(((dataToLoad as any).recurrenceType || (dataToLoad as any).recurrence_type || 'fixed_day') as 'fixed_day' | 'business_day');
+        setTargetBusinessDay(Number((dataToLoad as any).targetBusinessDay ?? (dataToLoad as any).target_business_day ?? 1) || 1);
+        setWeekendStrategy(((dataToLoad as any).weekendStrategy || (dataToLoad as any).weekend_strategy || 'next') as 'next' | 'previous' | 'exact');
       } else {
         setTitle('');
         setCategoryId('');
@@ -122,7 +125,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setShowErrors(false);
         setIsScheduled(false);
         setScheduledDate('');
+        setRecurrenceType('fixed_day');
+        setTargetBusinessDay(1);
+        setWeekendStrategy('next');
       }
+
     }
   }, [open, income, initialData]);
 
