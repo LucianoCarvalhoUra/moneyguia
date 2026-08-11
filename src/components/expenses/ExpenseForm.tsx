@@ -652,6 +652,8 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto form-scrollbar p-4 sm:p-6">
+            <div className="space-y-5">
           {/* Seção: Informações Básicas */}
           <div className="flex items-center gap-2 -mb-2">
             <FileText className="w-3.5 h-3.5 text-primary" />
