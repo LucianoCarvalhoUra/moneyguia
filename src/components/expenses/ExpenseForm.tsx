@@ -923,12 +923,17 @@ export default function ExpenseForm({ open, onOpenChange, expense, initialData }
              </div>
           </div>
 
+            </div>
+          </div>
+
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl h-9 px-5 text-sm">Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[110px] h-9 bg-primary hover:bg-primary/90 shadow-sm">
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
-            </Button>
+          <div className="shrink-0 border-t border-border/40 bg-card p-4 sm:p-6">
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl h-10 px-6 text-sm font-medium">Cancelar</Button>
+              <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[130px] h-10 bg-primary hover:bg-primary/90 shadow-sm text-sm font-semibold">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar despesa'}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
