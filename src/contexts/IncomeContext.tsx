@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
 import { resolveReceiveDate, toIsoDate } from '@/lib/businessDays';
 
-
 interface IncomeContextType {
   incomes: Income[];
   incomeCategories: IncomeCategory[];
@@ -150,14 +149,14 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           });
         }
 
-        setIncomes(rows.map(i => {
-          const [year, month, day] = i.receive_date.split('-').map(Number);
+        setIncomes(rows.map((i: any) => {
+          const [year, month, day] = (i.receive_date || '').split('-').map(Number);
           const receiveDate = new Date(year, month - 1, day);
           const pos = positionByRow[i.id];
-          const computedCurrent = pos ? pos.position : ((i as any).current_installment || undefined);
-          const computedTotal = pos ? pos.total : ((i as any).installments || undefined);
+          const computedCurrent = pos ? pos.position : (i.current_installment || undefined);
+          const computedTotal = pos ? pos.total : (i.installments || undefined);
 
-          return {
+          const mappedIncome: any = {
             id: i.id,
             categoryId: i.category_id || '',
             subcategoryId: i.subcategory_id || undefined,
@@ -168,27 +167,24 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             isRecurring: i.is_recurring,
             isReceived: i.is_received ?? false,
             accountId: i.account_id || undefined,
-            recurrenceId: (i as any).recurrence_id || undefined,
+            recurrenceId: i.recurrence_id || undefined,
             excludeFromCalculations: i.exclude_from_calculations ?? false,
             installments: computedTotal,
             currentInstallment: computedCurrent,
             userId: i.user_id,
             createdAt: new Date(i.created_at),
-            groupId: (i as any).group_id || undefined,
-            recurrenceType: ((i as any).recurrence_type as 'fixed_day' | 'business_day') || 'fixed_day',
-            targetBusinessDay: (i as any).target_business_day ?? null,
-            weekendStrategy: ((i as any).weekend_strategy as 'next' | 'previous' | 'exact') || 'next',
-            is_scheduled: (i as any).is_scheduled ?? false,
-            scheduled_date: (i as any).scheduled_date || null,
-            
-            // --- MAPEAMENTO DOS NOVOS CAMPOS SALVOS NO SUPABASE ---
+            groupId: i.group_id || undefined,
+            is_scheduled: i.is_scheduled ?? false,
+            scheduled_date: i.scheduled_date || null,
             recurrenceType: i.recurrence_type || 'fixed_day',
             targetBusinessDay: i.target_business_day ?? null,
             weekendStrategy: i.weekend_strategy || 'next',
             recurrence_type: i.recurrence_type || 'fixed_day',
             target_business_day: i.target_business_day ?? null,
             weekend_strategy: i.weekend_strategy || 'next',
-          } as any;
+          };
+
+          return mappedIncome as Income;
         }));
       }
     } catch (error) {
@@ -248,39 +244,25 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     
     const recurrenceId = income.isRecurring ? (income.recurrenceId || crypto.randomUUID()) : null;
     
-    const incomesToInsert: Array<{
-      user_id: string;
-      category_id: string | null;
-      subcategory_id: string | null;
-      title: string;
-      amount: number;
-      receive_date: string;
-      description: string | null;
-      is_recurring: boolean;
-      is_received: boolean;
-      account_id: string | null;
-      recurrence_id: string | null;
-      exclude_from_calculations: boolean;
-      current_installment?: number | null;
-      installments?: number | null;
-      recurrence_type?: string | null;
-      target_business_day?: number | null;
-      weekend_strategy?: string | null;
-    }> = [];
+    const incomesToInsert: Array<any> = [];
+
+    const recType = (income as any).recurrenceType || (income as any).recurrence_type || 'fixed_day';
+    const targetBusDay = (income as any).targetBusinessDay ?? (income as any).target_business_day ?? null;
+    const wStrategy = (income as any).weekendStrategy || (income as any).weekend_strategy || 'next';
 
     if (income.isRecurring) {
       const totalInstallments = 12;
       for (let i = 0; i < totalInstallments; i++) {
-        const receiveDate = new Date(income.receiveDate);
-        receiveDate.setMonth(receiveDate.getMonth() + i);
+        const baseDate = new Date(income.receiveDate);
+        baseDate.setMonth(baseDate.getMonth() + i);
 
         const resolvedDate = resolveReceiveDate({
-          year: receiveDate.getFullYear(),
-          monthIndex: receiveDate.getMonth(),
+          year: baseDate.getFullYear(),
+          monthIndex: baseDate.getMonth(),
           fixedDay: new Date(income.receiveDate).getDate(),
-          recurrenceType: ruleFields.recurrence_type as 'fixed_day' | 'business_day',
-          targetBusinessDay: ruleFields.target_business_day,
-          weekendStrategy: ruleFields.weekend_strategy as 'next' | 'previous' | 'exact',
+          recurrenceType: recType,
+          targetBusinessDay: targetBusDay,
+          weekendStrategy: wStrategy,
         });
 
         incomesToInsert.push({
@@ -298,9 +280,9 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           exclude_from_calculations: income.excludeFromCalculations ?? false,
           current_installment: i + 1,
           installments: totalInstallments,
-          recurrence_type: (income as any).recurrenceType || (income as any).recurrence_type || 'fixed_day',
-          target_business_day: (income as any).targetBusinessDay ?? (income as any).target_business_day ?? null,
-          weekend_strategy: (income as any).weekendStrategy || (income as any).weekend_strategy || 'next',
+          recurrence_type: recType,
+          target_business_day: targetBusDay,
+          weekend_strategy: wStrategy,
         });
       }
     } else {
@@ -317,12 +299,11 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         account_id: income.accountId || null,
         recurrence_id: recurrenceId,
         exclude_from_calculations: income.excludeFromCalculations ?? false,
-        recurrence_type: (income as any).recurrenceType || (income as any).recurrence_type || 'fixed_day',
-        target_business_day: (income as any).targetBusinessDay ?? (income as any).target_business_day ?? null,
-        weekend_strategy: (income as any).weekendStrategy || (income as any).weekend_strategy || 'next',
+        recurrence_type: recType,
+        target_business_day: targetBusDay,
+        weekend_strategy: wStrategy,
       });
     }
-
 
     const { data, error } = await (supabase
       .from('incomes') as any)
@@ -347,18 +328,13 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
     if (incomeUpdate.subcategoryId !== undefined) updateData.subcategory_id = incomeUpdate.subcategoryId || null;
     if (incomeUpdate.title !== undefined) updateData.title = incomeUpdate.title;
     if (incomeUpdate.amount !== undefined) updateData.amount = incomeUpdate.amount;
-    if (incomeUpdate.receiveDate !== undefined) updateData.receive_date = incomeUpdate.receiveDate.toISOString().split('T')[0];
+    if (incomeUpdate.receiveDate !== undefined) updateData.receive_date = new Date(incomeUpdate.receiveDate).toISOString().split('T')[0];
     if (incomeUpdate.description !== undefined) updateData.description = incomeUpdate.description || null;
     if (incomeUpdate.isRecurring !== undefined) updateData.is_recurring = incomeUpdate.isRecurring;
     if (incomeUpdate.isReceived !== undefined) updateData.is_received = incomeUpdate.isReceived;
     if (incomeUpdate.excludeFromCalculations !== undefined) updateData.exclude_from_calculations = incomeUpdate.excludeFromCalculations;
     if (incomeUpdate.accountId !== undefined) updateData.account_id = incomeUpdate.accountId || null;
-    if (incomeUpdate.recurrenceType !== undefined) updateData.recurrence_type = incomeUpdate.recurrenceType;
-    if (incomeUpdate.targetBusinessDay !== undefined) updateData.target_business_day = incomeUpdate.targetBusinessDay ?? null;
-    if (incomeUpdate.weekendStrategy !== undefined) updateData.weekend_strategy = incomeUpdate.weekendStrategy;
 
-
-    // Persistência das regras de dia útil no update
     if ((incomeUpdate as any).recurrenceType !== undefined || (incomeUpdate as any).recurrence_type !== undefined) {
       updateData.recurrence_type = (incomeUpdate as any).recurrenceType || (incomeUpdate as any).recurrence_type;
     }
