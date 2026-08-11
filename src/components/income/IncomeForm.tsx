@@ -336,7 +336,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl w-[calc(100vw-1rem)] max-h-[95vh] sm:max-h-[90vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl">
+      <DialogContent className="sm:max-w-4xl w-[calc(100vw-1rem)] max-h-[95vh] sm:max-h-[92vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl flex flex-col">
         {/* Header - Identidade Verde */}
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-emerald-500/5 to-transparent">
           <div className="min-w-0">
@@ -356,7 +356,9 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
           )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[calc(95vh-72px)] sm:max-h-[calc(90vh-80px)]">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto form-scrollbar p-4 sm:p-6">
+            <div className="space-y-5">
           {/* Seção: Informações */}
           <div className="flex items-center gap-2 -mb-2">
             <FileText className="w-3.5 h-3.5 text-emerald-600" />
@@ -502,12 +504,17 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
             </div>
           </div>
 
+            </div>
+          </div>
+
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl h-9 px-5 text-sm">Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[110px] h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
-            </Button>
+          <div className="shrink-0 border-t border-border/40 bg-card p-4 sm:p-6">
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl h-10 px-6 text-sm font-medium">Cancelar</Button>
+              <Button type="submit" disabled={isSubmitting} className="rounded-xl min-w-[130px] h-10 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm font-semibold">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar receita'}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
