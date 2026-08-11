@@ -509,11 +509,14 @@ export type Database = {
           is_scheduled: boolean | null
           receive_date: string
           recurrence_id: string | null
+          recurrence_type: string | null
           scheduled_date: string | null
           subcategory_id: string | null
+          target_business_day: number | null
           title: string
           updated_at: string
           user_id: string
+          weekend_strategy: string | null
         }
         Insert: {
           account_id?: string | null
@@ -531,11 +534,14 @@ export type Database = {
           is_scheduled?: boolean | null
           receive_date: string
           recurrence_id?: string | null
+          recurrence_type?: string | null
           scheduled_date?: string | null
           subcategory_id?: string | null
+          target_business_day?: number | null
           title: string
           updated_at?: string
           user_id: string
+          weekend_strategy?: string | null
         }
         Update: {
           account_id?: string | null
@@ -553,11 +559,14 @@ export type Database = {
           is_scheduled?: boolean | null
           receive_date?: string
           recurrence_id?: string | null
+          recurrence_type?: string | null
           scheduled_date?: string | null
           subcategory_id?: string | null
+          target_business_day?: number | null
           title?: string
           updated_at?: string
           user_id?: string
+          weekend_strategy?: string | null
         }
         Relationships: [
           {

@@ -56,6 +56,10 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [scheduledDate, setScheduledDate] = useState('');
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
+  const [recurrenceType, setRecurrenceType] = useState<'fixed_day' | 'business_day'>('fixed_day');
+  const [targetBusinessDay, setTargetBusinessDay] = useState<number>(1);
+  const [weekendStrategy, setWeekendStrategy] = useState<'next' | 'previous' | 'exact'>('next');
+
 
   // Regras de Dia Útil / Final de Semana
   const [recurrenceType, setRecurrenceType] = useState<'fixed_day' | 'business_day'>('fixed_day');
@@ -164,6 +168,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setTargetBusinessDay('5');
         setWeekendStrategy('next');
       }
+
     }
   }, [open, income, initialData]);
 
@@ -335,6 +340,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         weekend_strategy: isRecurring ? weekendStrategy : 'exact',
       };
 
+
       if (income) {
         if (income.isRecurring) {
           setPendingData(payload);
@@ -366,13 +372,21 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
             newIncomes.push({
               ...payload,
-              receive_date: format(nextDate, 'yyyy-MM-dd'),
+              receive_date: resolveReceiveDate({
+                year: nextDate.getFullYear(),
+                monthIndex: nextDate.getMonth(),
+                fixedDay: d,
+                recurrenceType,
+                targetBusinessDay,
+                weekendStrategy,
+              }),
               is_received: i === 0 ? isReceived : false,
               recurrence_id: newRecurrenceId,
               current_installment: i + 1,
               installments: limit,
             });
           }
+
           const { error } = await supabase.from('incomes').insert(newIncomes);
           if (error) throw error;
           toast.success(`${limit} receitas criadas com sucesso!`);
