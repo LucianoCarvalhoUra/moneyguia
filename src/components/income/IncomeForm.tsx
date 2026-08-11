@@ -56,14 +56,10 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
   const [scheduledDate, setScheduledDate] = useState('');
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [pendingData, setPendingData] = useState<any>(null);
-  const [recurrenceType, setRecurrenceType] = useState<'fixed_day' | 'business_day'>('fixed_day');
-  const [targetBusinessDay, setTargetBusinessDay] = useState<number>(1);
-  const [weekendStrategy, setWeekendStrategy] = useState<'next' | 'previous' | 'exact'>('next');
 
-
-  // Regras de Dia Útil / Final de Semana
+  // Regras de Dia Útil / Final de Semana (Unificadas)
   const [recurrenceType, setRecurrenceType] = useState<'fixed_day' | 'business_day'>('fixed_day');
-  const [targetBusinessDay, setTargetBusinessDay] = useState('5');
+  const [targetBusinessDay, setTargetBusinessDay] = useState<string>('5');
   const [weekendStrategy, setWeekendStrategy] = useState<'next' | 'previous' | 'exact'>('next');
 
   // --- Helpers ---
@@ -168,7 +164,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         setTargetBusinessDay('5');
         setWeekendStrategy('next');
       }
-
     }
   }, [open, income, initialData]);
 
@@ -217,7 +212,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     try {
       const originalReceiveDate = toIsoDay(income.receiveDate as any);
 
-      // 1. Atualiza o registro selecionado no formulário
       const { error: singleError } = await supabase.from('incomes').update(pendingData).eq('id', income.id);
       if (singleError) throw singleError;
 
@@ -241,7 +235,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
         const { receive_date, is_received, user_id, current_installment, ...batchData } = pendingData;
 
-        // 2. Busca parcelas do grupo conforme o escopo (passado, futuro ou todas)
         let selectQuery = supabase
           .from('incomes')
           .select('id, receive_date')
@@ -257,13 +250,11 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         const ids = (targets || []).map((t: any) => t.id);
 
         if (ids.length > 0) {
-          // 3. Atualiza os atributos gerais
           if (Object.keys(batchData).length > 0) {
             const { error } = await supabase.from('incomes').update(batchData).in('id', ids);
             if (error) throw error;
           }
 
-          // 4. Recalcula a data individualmente para o mês/ano de cada parcela
           await Promise.all(
             (targets || []).map((t: any) => {
               if (!t.receive_date) return Promise.resolve();
@@ -340,7 +331,6 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
         weekend_strategy: isRecurring ? weekendStrategy : 'exact',
       };
 
-
       if (income) {
         if (income.isRecurring) {
           setPendingData(payload);
@@ -372,14 +362,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
 
             newIncomes.push({
               ...payload,
-              receive_date: resolveReceiveDate({
-                year: nextDate.getFullYear(),
-                monthIndex: nextDate.getMonth(),
-                fixedDay: d,
-                recurrenceType,
-                targetBusinessDay,
-                weekendStrategy,
-              }),
+              receive_date: format(nextDate, 'yyyy-MM-dd'),
               is_received: i === 0 ? isReceived : false,
               recurrence_id: newRecurrenceId,
               current_installment: i + 1,
