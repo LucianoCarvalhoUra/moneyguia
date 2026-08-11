@@ -181,9 +181,13 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             userId: i.user_id,
             createdAt: new Date(i.created_at),
             groupId: (i as any).group_id || undefined,
+            recurrenceType: ((i as any).recurrence_type as 'fixed_day' | 'business_day') || 'fixed_day',
+            targetBusinessDay: (i as any).target_business_day ?? null,
+            weekendStrategy: ((i as any).weekend_strategy as 'next' | 'previous' | 'exact') || 'next',
             is_scheduled: (i as any).is_scheduled ?? false,
             scheduled_date: (i as any).scheduled_date || null,
           };
+
         }));
       }
     } catch (error) {
