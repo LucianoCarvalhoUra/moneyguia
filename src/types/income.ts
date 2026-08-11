@@ -32,7 +32,11 @@ export interface Income {
   userId: string;
   createdAt: Date;
   groupId?: string;
+  recurrenceType?: 'fixed_day' | 'business_day';
+  targetBusinessDay?: number | null;
+  weekendStrategy?: 'next' | 'previous' | 'exact';
 }
+
 
 export const DEFAULT_INCOME_CATEGORIES: Omit<IncomeCategory, 'userId'>[] = [
   { id: 'salary', name: 'Salário', icon: '💼', color: 'category-income-salary', isDefault: true },
