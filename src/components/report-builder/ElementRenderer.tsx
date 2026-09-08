@@ -318,4 +318,3 @@ function EmptyChart({ label }: { label: string }) {
     </div>
   );
 }
-export default ElementRenderer;

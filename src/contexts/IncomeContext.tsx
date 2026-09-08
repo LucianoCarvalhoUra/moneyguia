@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+﻿﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Income, IncomeCategory, IncomeSubcategory, DEFAULT_INCOME_CATEGORIES } from '@/types/income';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getRecurrenceQuotaStatus } from '@/lib/recurrenceQuota';
-import { format, parseISO } from 'date-fns';
-import { getNthBusinessDay, adjustToBusinessDay } from '@/lib/businessDays';
+import { resolveReceiveDate, toIsoDate } from '@/lib/businessDays';
+
 
 interface IncomeContextType {
   incomes: Income[];
@@ -32,8 +32,9 @@ interface IncomeContextType {
 
 const IncomeContext = createContext<IncomeContextType | undefined>(undefined);
 
-const INCOME_CATEGORY_MAPPING: Record<string, { icon: string; color: string }> = {
-  'Salário': { icon: 'Banknote', color: 'green-500' },
+// Mapping for migrating old/default income categories
+const INCOME_CATEGORY_MAPPING: Record<string, { icon: string, color: string }> = {
+  'SalÃ¡rio': { icon: 'Banknote', color: 'green-500' },
   'Trabalho': { icon: 'Briefcase', color: 'slate-500' },
   'Investimentos': { icon: 'TrendingUp', color: 'green-500' },
   'Freelance': { icon: 'Coins', color: 'blue-500' },
@@ -50,15 +51,17 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
   const fetchData = useCallback(async (force = false) => {
     if (!user) return;
 
+    // Se os dados já foram carregados e não há um 'force' refresh, não busca novamente.
+    // Isso mantém a navegação instantânea entre as telas de Receitas e Dashboard.
     if (!force && incomes.length > 0 && incomeCategories.length > 0 && incomeSubcategories.length > 0) {
       return;
     }
-
+    
+    // Evita flicker de carregamento se já houver dados carregados
     const hasData = incomes.length > 0 || incomeCategories.length > 0;
     if (!hasData || force) {
       setIsLoading(true);
     }
-
     try {
       const [categoriesRes, subcategoriesRes, incomesRes] = await Promise.all([
         supabase.from('income_categories').select('*').eq('user_id', user.id),
@@ -66,19 +69,21 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         supabase.from('incomes').select('*').eq('user_id', user.id).order('receive_date', { ascending: false }),
       ]);
 
-      if (categoriesRes.data && categoriesRes.data.length > 0) {
+      if (categoriesRes.data && categoriesRes.data.length > 0) { // Verifica se há categorias personalizadas
         const loadedCategories = categoriesRes.data.map(c => {
+          // Check if this category needs migration
           const mapping = INCOME_CATEGORY_MAPPING[c.name];
           if (mapping && (c.icon !== mapping.icon || c.color !== mapping.color)) {
-            supabase.from('income_categories').update({ icon: mapping.icon, color: mapping.color }).eq('id', c.id).then();
-            return {
-              id: c.id,
-              name: c.name,
-              icon: mapping.icon,
-              color: mapping.color,
-              userId: c.user_id,
-              isDefault: c.is_default,
-            };
+             // Update in background
+             supabase.from('income_categories').update({ icon: mapping.icon, color: mapping.color }).eq('id', c.id).then();
+             return {
+               id: c.id,
+               name: c.name,
+               icon: mapping.icon,
+               color: mapping.color,
+               userId: c.user_id,
+               isDefault: c.is_default,
+             };
           }
           return {
             id: c.id,
@@ -91,6 +96,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         });
         setIncomeCategories(loadedCategories.sort((a, b) => a.name.localeCompare(b.name)));
       } else {
+        // Inicializa com categorias padrão se não houver nenhuma
         const defaultCats = DEFAULT_INCOME_CATEGORIES.map(cat => {
           const mapping = INCOME_CATEGORY_MAPPING[cat.name];
           return {
@@ -101,50 +107,43 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             user_id: user.id,
           };
         });
-
+        
         const { data: insertedCats } = await supabase
           .from('income_categories')
           .insert(defaultCats)
           .select();
-
+        
         if (insertedCats) {
-          setIncomeCategories(
-            insertedCats
-              .map(c => ({
-                id: c.id,
-                name: c.name,
-                icon: c.icon,
-                color: c.color,
-                userId: c.user_id,
-                isDefault: c.is_default,
-              }))
-              .sort((a, b) => a.name.localeCompare(b.name))
-          );
+          setIncomeCategories(insertedCats.map(c => ({
+            id: c.id,
+            name: c.name,
+            icon: c.icon,
+            color: c.color,
+            userId: c.user_id,
+            isDefault: c.is_default,
+          })).sort((a, b) => a.name.localeCompare(b.name)));
         }
       }
 
       if (subcategoriesRes.data) {
-        setIncomeSubcategories(
-          subcategoriesRes.data.map(s => ({
-            id: s.id,
-            name: s.name,
-            categoryId: s.category_id,
-            userId: s.user_id,
-          }))
-        );
+        setIncomeSubcategories(subcategoriesRes.data.map(s => ({
+          id: s.id,
+          name: s.name,
+          categoryId: s.category_id,
+          userId: s.user_id,
+        })));
       }
 
       if (incomesRes.data) {
         const rows = incomesRes.data as any[];
+        // Compute current_installment dynamically per recurrence group ordered by receive_date
         const positionByRow: Record<string, { position: number; total: number }> = {};
         const groups: Record<string, any[]> = {};
-
         for (const r of rows) {
-          const rid = r.recurrence_id;
+          const rid = (r as any).recurrence_id;
           if (!rid) continue;
           (groups[rid] ||= []).push(r);
         }
-
         for (const rid of Object.keys(groups)) {
           const sorted = groups[rid].slice().sort((a, b) => {
             const da = a.receive_date || '';
@@ -158,11 +157,13 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           });
         }
 
-        const formattedIncomes: Income[] = rows.map((i: any) => {
-          const rawDateStr = String(i.receive_date || '').split('T')[0];
-          const [year, month, day] = rawDateStr.split('-').map(Number);
+        setIncomes(rows.map(i => {
+          // Parse date string as local date to avoid timezone issues
+          const [year, month, day] = i.receive_date.split('-').map(Number);
           const receiveDate = new Date(year, month - 1, day);
           const pos = positionByRow[i.id];
+          const computedCurrent = pos ? pos.position : ((i as any).current_installment || undefined);
+          const computedTotal = pos ? pos.total : ((i as any).installments || undefined);
 
           return {
             id: i.id,
@@ -172,25 +173,24 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
             amount: Number(i.amount),
             receiveDate,
             description: i.description || undefined,
-            isRecurring: Boolean(i.is_recurring),
-            isReceived: Boolean(i.is_received),
+            isRecurring: i.is_recurring,
+            isReceived: i.is_received ?? false,
             accountId: i.account_id || undefined,
-            recurrenceId: i.recurrence_id || undefined,
-            excludeFromCalculations: Boolean(i.exclude_from_calculations),
-            installments: pos ? pos.total : i.installments || undefined,
-            currentInstallment: pos ? pos.position : i.current_installment || undefined,
+            recurrenceId: (i as any).recurrence_id || undefined,
+            excludeFromCalculations: i.exclude_from_calculations ?? false,
+            installments: computedTotal,
+            currentInstallment: computedCurrent,
             userId: i.user_id,
             createdAt: new Date(i.created_at),
-            groupId: i.group_id || undefined,
-            is_scheduled: Boolean(i.is_scheduled),
-            scheduled_date: i.scheduled_date || null,
-            recurrenceType: i.recurrence_type || 'fixed_day',
-            targetBusinessDay: i.target_business_day ?? null,
-            weekendStrategy: i.weekend_strategy || 'next',
-          } as any;
-        });
+            groupId: (i as any).group_id || undefined,
+            recurrenceType: ((i as any).recurrence_type as 'fixed_day' | 'business_day') || 'fixed_day',
+            targetBusinessDay: (i as any).target_business_day ?? null,
+            weekendStrategy: ((i as any).weekend_strategy as 'next' | 'previous' | 'exact') || 'next',
+            is_scheduled: (i as any).is_scheduled ?? false,
+            scheduled_date: (i as any).scheduled_date || null,
+          };
 
-        setIncomes(formattedIncomes);
+        }));
       }
     } catch (error) {
       console.error('Error fetching income data:', error);
@@ -225,7 +225,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         },
         async () => {
           await fetchData();
-        }
+        },
       )
       .subscribe();
 
@@ -246,29 +246,51 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
         throw new Error('RECURRENCE_QUOTA_REACHED');
       }
     }
+    
+    // Gera recurrence_id se for recorrente
+    const recurrenceId = income.isRecurring ? (income.recurrenceId || crypto.randomUUID()) : null;
+    
+    const incomesToInsert: Array<{
+      user_id: string;
+      category_id: string | null;
+      subcategory_id: string | null;
+      title: string;
+      amount: number;
+      receive_date: string;
+      description: string | null;
+      is_recurring: boolean;
+      is_received: boolean;
+      account_id: string | null;
+      recurrence_id: string | null;
+      exclude_from_calculations: boolean;
+      current_installment?: number | null;
+      installments?: number | null;
+      recurrence_type?: string | null;
+      target_business_day?: number | null;
+      weekend_strategy?: string | null;
+    }> = [];
 
-    const recurrenceId = income.isRecurring ? income.recurrenceId || crypto.randomUUID() : null;
-    const incomesToInsert: any[] = [];
+    const ruleFields = {
+      recurrence_type: income.recurrenceType || 'fixed_day',
+      target_business_day: income.targetBusinessDay ?? null,
+      weekend_strategy: income.weekendStrategy || 'next',
+    };
 
-    const recType = (income as any).recurrenceType || (income as any).recurrence_type || 'fixed_day';
-    const targetBusDay = (income as any).targetBusinessDay ?? (income as any).target_business_day ?? '5';
-    const wStrategy = (income as any).weekendStrategy || (income as any).weekend_strategy || 'next';
-
+    // If recurring, create 12 months of income
     if (income.isRecurring) {
       const totalInstallments = 12;
-      const initialDate = income.receiveDate instanceof Date ? income.receiveDate : parseISO(String(income.receiveDate));
-
       for (let i = 0; i < totalInstallments; i++) {
-        let calcDate: Date;
-        const targetMonth = (initialDate.getMonth() + i) % 12;
-        const targetYear = initialDate.getFullYear() + Math.floor((initialDate.getMonth() + i) / 12);
+        const receiveDate = new Date(income.receiveDate);
+        receiveDate.setMonth(receiveDate.getMonth() + i);
 
-        if (recType === 'business_day') {
-          calcDate = getNthBusinessDay(targetYear, targetMonth, parseInt(String(targetBusDay)), wStrategy === 'previous' ? 'previous' : 'next');
-        } else {
-          const rawDate = new Date(targetYear, targetMonth, initialDate.getDate());
-          calcDate = adjustToBusinessDay(rawDate, wStrategy);
-        }
+        const resolvedDate = resolveReceiveDate({
+          year: receiveDate.getFullYear(),
+          monthIndex: receiveDate.getMonth(),
+          fixedDay: new Date(income.receiveDate).getDate(),
+          recurrenceType: ruleFields.recurrence_type as 'fixed_day' | 'business_day',
+          targetBusinessDay: ruleFields.target_business_day,
+          weekendStrategy: ruleFields.weekend_strategy as 'next' | 'previous' | 'exact',
+        });
 
         incomesToInsert.push({
           user_id: user.id,
@@ -276,7 +298,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           subcategory_id: income.subcategoryId || null,
           title: income.title,
           amount: income.amount,
-          receive_date: format(calcDate, 'yyyy-MM-dd'),
+          receive_date: resolvedDate,
           description: income.description || null,
           is_recurring: income.isRecurring,
           is_received: income.isReceived ?? false,
@@ -285,96 +307,96 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
           exclude_from_calculations: income.excludeFromCalculations ?? false,
           current_installment: i + 1,
           installments: totalInstallments,
-          recurrence_type: recType,
-          target_business_day: recType === 'business_day' ? parseInt(String(targetBusDay)) : null,
-          weekend_strategy: wStrategy,
+          ...ruleFields,
         });
       }
     } else {
-      const singleDate = income.receiveDate instanceof Date ? income.receiveDate : parseISO(String(income.receiveDate));
       incomesToInsert.push({
         user_id: user.id,
         category_id: income.categoryId || null,
         subcategory_id: income.subcategoryId || null,
         title: income.title,
         amount: income.amount,
-        receive_date: format(singleDate, 'yyyy-MM-dd'),
+        receive_date: toIsoDate(new Date(income.receiveDate)),
         description: income.description || null,
         is_recurring: income.isRecurring,
         is_received: income.isReceived ?? false,
         account_id: income.accountId || null,
         recurrence_id: recurrenceId,
         exclude_from_calculations: income.excludeFromCalculations ?? false,
-        recurrence_type: recType,
-        target_business_day: recType === 'business_day' ? parseInt(String(targetBusDay)) : null,
-        weekend_strategy: wStrategy,
+        ...ruleFields,
       });
     }
 
-    const { data, error } = await supabase.from('incomes').insert(incomesToInsert).select();
 
+    const { data, error } = await (supabase
+      .from('incomes') as any)
+      .insert(incomesToInsert)
+      .select();
+    
     if (error) {
       toast.error('Erro ao adicionar receita');
       console.error(error);
       return;
     }
-
+    
     if (data) {
-      await fetchData(true);
+      await fetchData();
     }
   };
 
   const updateIncome = async (id: string, incomeUpdate: Partial<Income>) => {
     const updateData: Record<string, unknown> = {};
-
+    
     if (incomeUpdate.categoryId !== undefined) updateData.category_id = incomeUpdate.categoryId || null;
     if (incomeUpdate.subcategoryId !== undefined) updateData.subcategory_id = incomeUpdate.subcategoryId || null;
     if (incomeUpdate.title !== undefined) updateData.title = incomeUpdate.title;
     if (incomeUpdate.amount !== undefined) updateData.amount = incomeUpdate.amount;
-    if (incomeUpdate.receiveDate !== undefined) {
-      const d = incomeUpdate.receiveDate instanceof Date ? incomeUpdate.receiveDate : parseISO(String(incomeUpdate.receiveDate));
-      updateData.receive_date = format(d, 'yyyy-MM-dd');
-    }
+    if (incomeUpdate.receiveDate !== undefined) updateData.receive_date = incomeUpdate.receiveDate.toISOString().split('T')[0];
     if (incomeUpdate.description !== undefined) updateData.description = incomeUpdate.description || null;
     if (incomeUpdate.isRecurring !== undefined) updateData.is_recurring = incomeUpdate.isRecurring;
     if (incomeUpdate.isReceived !== undefined) updateData.is_received = incomeUpdate.isReceived;
     if (incomeUpdate.excludeFromCalculations !== undefined) updateData.exclude_from_calculations = incomeUpdate.excludeFromCalculations;
     if (incomeUpdate.accountId !== undefined) updateData.account_id = incomeUpdate.accountId || null;
+    if (incomeUpdate.recurrenceType !== undefined) updateData.recurrence_type = incomeUpdate.recurrenceType;
+    if (incomeUpdate.targetBusinessDay !== undefined) updateData.target_business_day = incomeUpdate.targetBusinessDay ?? null;
+    if (incomeUpdate.weekendStrategy !== undefined) updateData.weekend_strategy = incomeUpdate.weekendStrategy;
 
-    const recType = (incomeUpdate as any).recurrenceType || (incomeUpdate as any).recurrence_type;
-    const busDay = (incomeUpdate as any).targetBusinessDay ?? (incomeUpdate as any).target_business_day;
-    const wStrat = (incomeUpdate as any).weekendStrategy || (incomeUpdate as any).weekend_strategy;
 
-    if (recType !== undefined) updateData.recurrence_type = recType;
-    if (busDay !== undefined) updateData.target_business_day = busDay ? parseInt(String(busDay)) : null;
-    if (wStrat !== undefined) updateData.weekend_strategy = wStrat;
-
-    const { error } = await supabase.from('incomes').update(updateData).eq('id', id);
-
+    const { error } = await supabase
+      .from('incomes')
+      .update(updateData)
+      .eq('id', id);
+    
     if (error) {
       toast.error('Erro ao atualizar receita');
       console.error(error);
       return;
     }
-
-    setIncomes(prev => prev.map(i => (i.id === id ? { ...i, ...incomeUpdate } : i)));
+    
+    setIncomes(prev => prev.map(i => 
+      i.id === id ? { ...i, ...incomeUpdate } : i
+    ));
   };
 
   const removeIncome = async (id: string) => {
-    const { error } = await supabase.from('incomes').delete().eq('id', id);
-
+    const { error } = await supabase
+      .from('incomes')
+      .delete()
+      .eq('id', id);
+    
     if (error) {
       toast.error('Erro ao remover receita');
       console.error(error);
       return;
     }
-
+    
     setIncomes(prev => prev.filter(i => i.id !== id));
   };
 
   const addIncomeCategory = async (category: Omit<IncomeCategory, 'id' | 'userId'>): Promise<IncomeCategory | null> => {
     if (!user) return null;
-
+    
     const { data, error } = await supabase
       .from('income_categories')
       .insert({
@@ -386,13 +408,13 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       })
       .select()
       .single();
-
+    
     if (error) {
       toast.error('Erro ao adicionar categoria de receita');
       console.error(error);
       return null;
     }
-
+    
     if (data) {
       const createdCategory: IncomeCategory = {
         id: data.id,
@@ -410,41 +432,48 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
 
   const updateIncomeCategory = async (id: string, categoryUpdate: Partial<IncomeCategory>) => {
     const updateData: Record<string, unknown> = {};
-
+    
     if (categoryUpdate.name !== undefined) updateData.name = categoryUpdate.name;
     if (categoryUpdate.icon !== undefined) updateData.icon = categoryUpdate.icon;
     if (categoryUpdate.color !== undefined) updateData.color = categoryUpdate.color;
     if (categoryUpdate.isDefault !== undefined) updateData.is_default = categoryUpdate.isDefault;
 
-    const { error } = await supabase.from('income_categories').update(updateData).eq('id', id);
-
+    const { error } = await supabase
+      .from('income_categories')
+      .update(updateData)
+      .eq('id', id);
+    
     if (error) {
       toast.error('Erro ao atualizar categoria de receita');
       console.error(error);
       return;
     }
-
-    setIncomeCategories(prev =>
-      prev.map(c => (c.id === id ? { ...c, ...categoryUpdate } : c)).sort((a, b) => a.name.localeCompare(b.name))
-    );
+    
+    setIncomeCategories(prev => prev.map(c => 
+      c.id === id ? { ...c, ...categoryUpdate } : c
+    ).sort((a, b) => a.name.localeCompare(b.name)));
   };
 
   const removeIncomeCategory = async (id: string) => {
-    const { error } = await supabase.from('income_categories').delete().eq('id', id);
-
+    const { error } = await supabase
+      .from('income_categories')
+      .delete()
+      .eq('id', id);
+    
     if (error) {
       toast.error('Erro ao remover categoria de receita');
       console.error(error);
       return;
     }
-
+    
     setIncomeCategories(prev => prev.filter(c => c.id !== id));
+    // Also remove associated subcategories from state
     setIncomeSubcategories(prev => prev.filter(s => s.categoryId !== id));
   };
 
   const addIncomeSubcategory = async (subcategory: Omit<IncomeSubcategory, 'id' | 'userId'>): Promise<IncomeSubcategory | null> => {
     if (!user) return null;
-
+    
     const { data, error } = await supabase
       .from('income_subcategories')
       .insert({
@@ -454,13 +483,13 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
       })
       .select()
       .single();
-
+    
     if (error) {
       toast.error('Erro ao adicionar subcategoria de receita');
       console.error(error);
       return null;
     }
-
+    
     if (data) {
       const createdSubcategory: IncomeSubcategory = {
         id: data.id,
@@ -476,30 +505,38 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
 
   const updateIncomeSubcategory = async (id: string, subcategoryUpdate: Partial<IncomeSubcategory>) => {
     const updateData: Record<string, unknown> = {};
-
+    
     if (subcategoryUpdate.name !== undefined) updateData.name = subcategoryUpdate.name;
     if (subcategoryUpdate.categoryId !== undefined) updateData.category_id = subcategoryUpdate.categoryId;
 
-    const { error } = await supabase.from('income_subcategories').update(updateData).eq('id', id);
-
+    const { error } = await supabase
+      .from('income_subcategories')
+      .update(updateData)
+      .eq('id', id);
+    
     if (error) {
       toast.error('Erro ao atualizar subcategoria de receita');
       console.error(error);
       return;
     }
-
-    setIncomeSubcategories(prev => prev.map(s => (s.id === id ? { ...s, ...subcategoryUpdate } : s)));
+    
+    setIncomeSubcategories(prev => prev.map(s => 
+      s.id === id ? { ...s, ...subcategoryUpdate } : s
+    ));
   };
 
   const removeIncomeSubcategory = async (id: string) => {
-    const { error } = await supabase.from('income_subcategories').delete().eq('id', id);
-
+    const { error } = await supabase
+      .from('income_subcategories')
+      .delete()
+      .eq('id', id);
+    
     if (error) {
       toast.error('Erro ao remover subcategoria de receita');
       console.error(error);
       return;
     }
-
+    
     setIncomeSubcategories(prev => prev.filter(s => s.id !== id));
   };
 
@@ -508,7 +545,7 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
   };
 
   const getMonthlyIncomes = (year: number, month: number) => {
-    return incomes.filter(i => {
+    return incomes.filter((i) => {
       const date = new Date(i.receiveDate);
       return date.getFullYear() === year && date.getMonth() === month;
     });
@@ -521,24 +558,22 @@ export function IncomeProvider({ children }: { children: ReactNode }) {
 
   const getIncomeTotalByCategory = (year: number, month: number) => {
     const monthlyIncomes = getMonthlyIncomes(year, month);
-    return monthlyIncomes
-      .filter(i => !i.excludeFromCalculations)
-      .reduce((acc, income) => {
-        acc[income.categoryId] = (acc[income.categoryId] || 0) + income.amount;
-        return acc;
-      }, {} as Record<string, number>);
+    return monthlyIncomes.filter(i => !i.excludeFromCalculations).reduce((acc, income) => {
+      acc[income.categoryId] = (acc[income.categoryId] || 0) + income.amount;
+      return acc;
+    }, {} as Record<string, number>);
   };
 
   const getIncomeCategoryById = (id: string) => {
-    return incomeCategories.find(c => c.id === id);
+    return incomeCategories.find((c) => c.id === id);
   };
 
   const getIncomeSubcategoryById = (id: string) => {
-    return incomeSubcategories.find(s => s.id === id);
+    return incomeSubcategories.find((s) => s.id === id);
   };
 
   const refreshData = useCallback(async () => {
-    await fetchData(true);
+    await fetchData(true); // Força o refresh dos dados
   }, [fetchData]);
 
   return (
