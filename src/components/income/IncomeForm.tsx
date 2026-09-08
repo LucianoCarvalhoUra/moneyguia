@@ -414,7 +414,7 @@ export default function IncomeForm({ open, onOpenChange, income, initialData }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl w-[calc(100vw-1rem)] max-h-[95vh] sm:max-h-[92vh] gap-0 overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-xl flex flex-col">
         {/* Header - Identidade Verde */}
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 border-b px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-emerald-500/5 to-transparent">
+        <DialogHeader className="flex flex-row items-center justify-between gap-3 space-y-0 border-b pl-4 sm:pl-6 pr-12 sm:pr-14 py-3 sm:py-4 bg-gradient-to-r from-emerald-500/5 to-transparent">
           <div className="min-w-0">
             <DialogTitle className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate">
               {income ? 'Editar Receita' : 'Nova Receita'}
